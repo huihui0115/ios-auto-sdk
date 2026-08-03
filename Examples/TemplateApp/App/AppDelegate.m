@@ -1,6 +1,6 @@
 #import "AppDelegate.h"
 #import "ScriptListViewController.h"
-#import <AutoSDK/AutoSDK.h>
+@import AutoSDK;
 
 static id<AutoAutomationAdapter> AutoTemplateAutomationAdapter(void) {
     NSBundle *bundle = NSBundle.mainBundle;

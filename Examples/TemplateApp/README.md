@@ -15,7 +15,7 @@ scripts in `Scripts`, and presents a script list with run, stop, and log views.
 The following is the minimal integration used by a template application:
 
 ```objc
-#import <AutoSDK/AutoSDK.h>
+@import AutoSDK;
 
 - (BOOL)application:(UIApplication *)application
     didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {

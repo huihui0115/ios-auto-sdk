@@ -1,5 +1,5 @@
 #import <XCTest/XCTest.h>
-#import <AutoSDK/AutoSDK.h>
+@import AutoSDK;
 #import <UIKit/UIKit.h>
 
 @interface AutoTestAdapter : NSObject <AutoAutomationAdapter>

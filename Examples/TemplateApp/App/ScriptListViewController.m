@@ -1,5 +1,5 @@
 #import "ScriptListViewController.h"
-#import <AutoSDK/AutoSDK.h>
+@import AutoSDK;
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <net/if.h>
