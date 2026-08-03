@@ -1,0 +1,80 @@
+name: Build TrollStore IPA
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      requestId:
+        description: "Optional client request ID for matching downloaded artifacts"
+        required: false
+        type: string
+
+run-name: AutoSDK TrollStore IPA (${{ inputs.requestId || github.run_id }})
+
+concurrency:
+  group: autosdk-ios-${{ github.event_name == 'workflow_dispatch' && (inputs.requestId || github.run_id) || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate package and developer tools
+        run: |
+          swift package dump-package >/dev/null
+          npm run verify
+          npm test
+          npm ci --prefix vscode-extension
+          npm run check --prefix vscode-extension
+          npm test --prefix vscode-extension
+          ./vscode-extension/node_modules/.bin/tsc -p jsconfig.json --noEmit
+          plutil -lint Examples/TemplateApp/App/Info.plist
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate template project
+        working-directory: Examples/TemplateApp
+        run: xcodegen generate
+      - name: Run iOS simulator tests
+        run: |
+          destination_id="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); print(next(device["udid"] for runtime in data["devices"].values() for device in runtime if device.get("isAvailable") and device.get("name", "").startswith("iPhone")))')"
+          test -n "$destination_id"
+          xcodebuild test \
+            -project Examples/TemplateApp/AutoSDKTemplate.xcodeproj \
+            -scheme AutoSDKTemplate \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=$destination_id" \
+            -derivedDataPath "$RUNNER_TEMP/autosdk-tests" \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Build unsigned iOS app
+        run: |
+          xcodebuild \
+            -project Examples/TemplateApp/AutoSDKTemplate.xcodeproj \
+            -scheme AutoSDKTemplate \
+            -sdk iphoneos \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/autosdk-derived" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/autosdk-derived/Build/Products/Debug-iphoneos/AutoSDKTemplate.app"
+          test -d "$app"
+          rm -rf dist
+          mkdir -p dist/Payload
+          cp -R "$app" dist/Payload/AutoSDKTemplate.app
+          (cd dist && zip -qry AutoSDKTemplate.ipa Payload)
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoSDKTemplate-TrollStore
+          path: dist/AutoSDKTemplate.ipa
+          if-no-files-found: error

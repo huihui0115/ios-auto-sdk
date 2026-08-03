@@ -1,0 +1,7 @@
+AutoSDK Script Tools
+
+Copyright (c) 2026 AutoSDK. All rights reserved.
+
+This software is proprietary and unlicensed for redistribution. Use,
+modification, or distribution requires prior written permission from the
+copyright holder.

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "target": "ES2017",
+    "lib": ["ES2017"],
+    "module": "none",
+    "typeRoots": ["./types"]
+  },
+  "include": [
+    "Examples/**/*.js",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "vscode-extension/node_modules"
+  ]
+}

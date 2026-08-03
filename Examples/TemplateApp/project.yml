@@ -1,0 +1,46 @@
+name: AutoSDKTemplate
+options:
+  minimumXcodeGenVersion: 2.38.0
+  deploymentTarget:
+    iOS: "14.0"
+packages:
+  AutoSDK:
+    path: ../..
+targets:
+  AutoSDKTemplate:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Scripts
+        buildPhase: resources
+    info:
+      path: App/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.autosdk.template
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CLANG_ENABLE_MODULES: YES
+        CODE_SIGN_STYLE: Automatic
+    dependencies:
+      - package: AutoSDK
+  AutoSDKTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: ../../Tests/AutoSDKTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.autosdk.tests
+    dependencies:
+      - package: AutoSDK
+schemes:
+  AutoSDKTemplate:
+    build:
+      targets:
+        AutoSDKTemplate: all
+        AutoSDKTests: [test]
+    test:
+      targets:
+        - AutoSDKTests

@@ -1,0 +1,19 @@
+{
+  "name": "auto-sdk-tools",
+  "version": "1.1.2",
+  "private": true,
+  "description": "Cross-platform helper for validating and invoking an iOS AutoSDK build",
+  "bin": {
+    "auto-sdk": "tools/auto-sdk.mjs"
+  },
+  "scripts": {
+    "build": "node tools/auto-sdk.mjs build",
+    "build:remote": "node tools/auto-sdk.mjs build-remote",
+    "debug": "node tools/debug-client.mjs",
+    "verify": "node tools/verify.mjs",
+    "test": "node --test tools/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

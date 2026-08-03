@@ -1,0 +1,190 @@
+{
+  "name": "autosdk-vscode",
+  "displayName": "AutoSDK Script Tools",
+  "description": "Edit, run, and build AutoSDK scripts for a TrollStore-installed iOS app",
+  "version": "0.4.0",
+  "private": true,
+  "publisher": "autosdk",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": ">=1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Connection inspection remains available, but running or deploying workspace scripts and starting local helpers requires trust.",
+      "restrictedConfigurations": [
+        "autosdk.iproxyPath",
+        "autosdk.repositoryPath"
+      ]
+    }
+  },
+  "main": "extension.js",
+  "activationEvents": [
+    "onCommand:autosdk.runCurrentScript",
+    "onCommand:autosdk.sendCurrentScript",
+    "onCommand:autosdk.manageScripts",
+    "onCommand:autosdk.configureDevice",
+    "onCommand:autosdk.startUsbTunnel",
+    "onCommand:autosdk.stopUsbTunnel",
+    "onCommand:autosdk.testConnection",
+    "onCommand:autosdk.stopScript",
+    "onCommand:autosdk.captureScreenshot",
+    "onCommand:autosdk.inspectNodes",
+    "onCommand:autosdk.openInspector",
+    "onCommand:autosdk.buildTrollStoreIPA",
+    "onLanguage:javascript",
+    "onLanguage:typescript"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "autosdk.runCurrentScript",
+        "title": "AutoSDK: Run Current Script"
+      },
+      {
+        "command": "autosdk.sendCurrentScript",
+        "title": "AutoSDK: Send Current Script to Device"
+      },
+      {
+        "command": "autosdk.manageScripts",
+        "title": "AutoSDK: Manage Device Scripts"
+      },
+      {
+        "command": "autosdk.configureDevice",
+        "title": "AutoSDK: Configure Device Connection"
+      },
+      {
+        "command": "autosdk.startUsbTunnel",
+        "title": "AutoSDK: Start USB Tunnel"
+      },
+      {
+        "command": "autosdk.stopUsbTunnel",
+        "title": "AutoSDK: Stop USB Tunnel"
+      },
+      {
+        "command": "autosdk.testConnection",
+        "title": "AutoSDK: Test Device Connection"
+      },
+      {
+        "command": "autosdk.stopScript",
+        "title": "AutoSDK: Stop Active Script"
+      },
+      {
+        "command": "autosdk.captureScreenshot",
+        "title": "AutoSDK: Capture Device Screenshot"
+      },
+      {
+        "command": "autosdk.inspectNodes",
+        "title": "AutoSDK: Inspect Device Nodes"
+      },
+      {
+        "command": "autosdk.openInspector",
+        "title": "AutoSDK: Open Visual Inspector"
+      },
+      {
+        "command": "autosdk.buildTrollStoreIPA",
+        "title": "AutoSDK: Build TrollStore IPA"
+      }
+    ],
+    "configuration": {
+      "title": "AutoSDK",
+      "properties": {
+        "autosdk.debugUrl": {
+          "type": "string",
+          "default": "ws://127.0.0.1:9001",
+          "description": "Direct Wi-Fi or USB-forwarded WebSocket URL for the iPhone's AutoSDK debug server."
+        },
+        "autosdk.debugToken": {
+          "type": "string",
+          "default": "",
+          "description": "Deprecated plaintext migration value. The configure command moves it to URL- and workspace-bound SecretStorage; runtime connections ignore this setting."
+        },
+        "autosdk.connectionTimeout": {
+          "type": "number",
+          "default": 300000,
+          "minimum": 1000,
+          "maximum": 3600000,
+          "description": "Milliseconds to wait for a debug command response."
+        },
+        "autosdk.iproxyPath": {
+          "type": "string",
+          "default": "iproxy",
+          "description": "iproxy executable name or absolute path used by the managed USB tunnel."
+        },
+        "autosdk.usbDevicePort": {
+          "type": "number",
+          "default": 9001,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "AutoSDK debug-server port on the iPhone forwarded by iproxy."
+        },
+        "autosdk.usbDeviceUdid": {
+          "type": "string",
+          "default": "",
+          "description": "Optional iPhone UDID passed to iproxy when more than one device is connected."
+        },
+        "autosdk.iproxyUdidStyle": {
+          "type": "string",
+          "enum": [
+            "modern",
+            "legacy"
+          ],
+          "default": "modern",
+          "description": "Use modern '-u UDID' arguments, or legacy trailing-UDID syntax for old iproxy builds."
+        },
+        "autosdk.repositoryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Local AutoSDK repository path used by the GitHub CLI build command."
+        },
+        "autosdk.repository": {
+          "type": "string",
+          "default": "",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+          "patternErrorMessage": "Use the GitHub owner/repository format.",
+          "description": "GitHub owner/repository. Leave empty to detect it from the local Git checkout."
+        },
+        "autosdk.workflow": {
+          "type": "string",
+          "default": "Build TrollStore IPA",
+          "description": "GitHub Actions workflow used to build the TrollStore IPA."
+        },
+        "autosdk.workflowRef": {
+          "type": "string",
+          "default": "",
+          "description": "Optional branch or tag passed to the GitHub Actions workflow."
+        },
+        "autosdk.artifactName": {
+          "type": "string",
+          "default": "AutoSDKTemplate-TrollStore",
+          "description": "GitHub Actions artifact containing the IPA."
+        },
+        "autosdk.buildTimeout": {
+          "type": "number",
+          "default": 1800,
+          "minimum": 60,
+          "maximum": 21600,
+          "description": "Maximum number of seconds to wait for the remote IPA build."
+        }
+      }
+    },
+    "snippets": [
+      {
+        "language": "javascript",
+        "path": "snippets/javascript.json"
+      }
+    ]
+  },
+  "scripts": {
+    "check": "node --check extension.js && node --check coalescing-runner.js && node --check connection-settings.js && node --check device-client.js && node --check inspector-input.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "typescript": "5.9.3",
+    "ws": "^8.18.0"
+  }
+}

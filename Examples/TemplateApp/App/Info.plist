@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>AutoSDK Template</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>AutoSDKAdapter</key>
+	<string>UIKit</string>
+	<key>AutoSDKWDAURL</key>
+	<string>http://127.0.0.1:8100</string>
+	<key>AutoSDKWDABundleId</key>
+	<string></string>
+	<key>AutoSDKWDATimeout</key>
+	<real>15</real>
+	<key>AutoSDKWDASourceCacheDuration</key>
+	<real>0.15</real>
+	<key>AutoSDKWDAScreenshotCacheDuration</key>
+	<real>0</real>
+	<key>AutoSDKWDAIgnoreUnsupportedSettings</key>
+	<true/>
+	<key>AutoSDKWDASettings</key>
+	<dict>
+		<key>shouldUseCompactResponses</key>
+		<true/>
+	</dict>
+	<key>AutoSDKScreenshotCacheDuration</key>
+	<real>0</real>
+	<key>AutoSDKDebugAllowWiFi</key>
+	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Connect Visual Studio Code to AutoSDK on this iPhone for local development.</string>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array><string>arm64</string></array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+</dict>
+</plist>

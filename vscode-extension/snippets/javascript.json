@@ -1,0 +1,60 @@
+{
+  "AutoSDK script": {
+    "prefix": "autosdk",
+    "body": [
+      "console.log('start');",
+      "const node = auto.findElement({id: '${1:element-id}'});",
+      "if (node && auto.exists(node)) {",
+      "  auto.click(node);",
+      "}",
+      "auto.sleep(${2:300});"
+    ],
+    "description": "Run a basic AutoSDK node workflow"
+  },
+  "AutoSDK HTTP request": {
+    "prefix": "autohttp",
+    "body": [
+      "const response = auto.http('${1:https://example.com/api}', {",
+      "  method: '${2:GET}',",
+      "  headers: {},",
+      "  timeout: ${3:10000}",
+      "});",
+      "console.log(response.status, response.body);"
+    ],
+    "description": "Make a controlled AutoSDK HTTP request"
+  },
+  "AutoSDK node query": {
+    "prefix": "autonode",
+    "body": [
+      "const nodes = auto.findElements({",
+      "  labelMatch: '${1:.*}',",
+      "  type: '${2:Button}',",
+      "  visible: true,",
+      "  maxResults: ${3:20}",
+      "});",
+      "for (const node of nodes) {",
+      "  console.log(node.handle, node.text, node.bounds);",
+      "}"
+    ],
+    "description": "Query stable node descriptors"
+  },
+  "AutoSDK image and color": {
+    "prefix": "autocolor",
+    "body": [
+      "const point = auto.findMultiColor('${1:#ff3b30}', [",
+      "  {dx: ${2:10}, dy: ${3:0}, color: '${4:#ffffff}'}",
+      "], {x: 0, y: 0, width: ${5:390}, height: ${6:844}}, {tolerance: ${7:10}});",
+      "if (point && point.found) auto.clickPoint(point.centerX, point.centerY);"
+    ],
+    "description": "Find a multi-point color pattern"
+  },
+  "AutoSDK sandbox storage": {
+    "prefix": "autostore",
+    "body": [
+      "const store = storages.create('${1:settings}');",
+      "store.putString('${2:key}', '${3:value}');",
+      "file.writeFile('${4:data/output.txt}', store.getString('${2:key}'));"
+    ],
+    "description": "Use persistent storage and sandbox files"
+  }
+}

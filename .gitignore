@@ -1,0 +1,17 @@
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+dist/
+*.xcarchive/
+*.ipa
+*.vsix
+node_modules/
+.vscode/
+.DS_Store
+.env
+.env.*
+*.p12
+*.mobileprovision
+vscode-extension/old-builds/
+Examples/TemplateApp/AutoSDKTemplate.xcodeproj/
