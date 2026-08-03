@@ -1596,7 +1596,9 @@ static BOOL AutoUIKitActivateView(UIView *view, NSError **error) {
 
 - (NSData *)screenshotWithError:(NSError **)error {
     NSUInteger operationGeneration = [self currentOperationCancellationGeneration];
-    @autoreleasepool {
+    // NSError out parameters are autoreleasing. A method-local pool would
+    // invalidate returned errors before the caller can retain them.
+    {
     NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;
     @synchronized (self) {
         if (self.screenshotCacheDuration > 0 && self.screenshotCacheData &&
@@ -1649,7 +1651,7 @@ static BOOL AutoUIKitActivateView(UIView *view, NSError **error) {
 
 - (NSDictionary *)findImageAtPath:(NSString *)templatePath options:(NSDictionary *)options error:(NSError **)error {
     NSUInteger operationGeneration = [self currentOperationCancellationGeneration];
-    @autoreleasepool {
+    {
     options = [options isKindOfClass:NSDictionary.class] ? options : @{};
     if (!AutoUIKitRegionIsValid(options[@"region"])) {
         if (error) *error = AutoUIKitError(@"Image search region must use finite coordinates and paired positive dimensions.");
@@ -1845,7 +1847,7 @@ static BOOL AutoUIKitActivateView(UIView *view, NSError **error) {
 
 - (NSDictionary *)findColor:(id)color region:(NSDictionary *)region options:(NSDictionary *)options error:(NSError **)error {
     NSUInteger operationGeneration = [self currentOperationCancellationGeneration];
-    @autoreleasepool {
+    {
     if (!AutoUIKitRegionIsValid(region)) {
         if (error) *error = AutoUIKitError(@"Color search region must use finite coordinates and paired positive dimensions.");
         return nil;
@@ -1940,7 +1942,7 @@ static BOOL AutoUIKitActivateView(UIView *view, NSError **error) {
 
 - (NSDictionary<NSString *,id> *)pixelColorAtX:(CGFloat)x y:(CGFloat)y error:(NSError **)error {
     NSUInteger operationGeneration = [self currentOperationCancellationGeneration];
-    @autoreleasepool {
+    {
     if (!isfinite(x) || !isfinite(y)) {
         if (error) *error = AutoUIKitError(@"Pixel coordinates must be finite.");
         return nil;
@@ -1988,7 +1990,7 @@ static BOOL AutoUIKitActivateView(UIView *view, NSError **error) {
 
 - (BOOL)compareColors:(NSArray<NSDictionary<NSString *,id> *> *)points options:(NSDictionary *)options error:(NSError **)error {
     NSUInteger operationGeneration = [self currentOperationCancellationGeneration];
-    @autoreleasepool {
+    {
     options = [options isKindOfClass:NSDictionary.class] ? options : @{};
     if (![points isKindOfClass:NSArray.class] || points.count == 0) {
         if (error) *error = AutoUIKitError(@"compareColors requires at least one point.");
@@ -2113,7 +2115,7 @@ static BOOL AutoUIKitActivateView(UIView *view, NSError **error) {
                                             options:(NSDictionary *)options
                                               error:(NSError **)error {
     NSUInteger operationGeneration = [self currentOperationCancellationGeneration];
-    @autoreleasepool {
+    {
     if (!AutoUIKitRegionIsValid(region)) {
         if (error) *error = AutoUIKitError(@"Multi-color search region must use finite coordinates and paired positive dimensions.");
         return nil;
@@ -2307,7 +2309,7 @@ static BOOL AutoUIKitActivateView(UIView *view, NSError **error) {
 
 - (NSArray<NSDictionary<NSString *,id> *> *)ocrInRegion:(NSDictionary *)region error:(NSError **)error {
     NSUInteger operationGeneration = [self currentOperationCancellationGeneration];
-    @autoreleasepool {
+    {
     if (!AutoUIKitRegionIsValid(region)) {
         if (error) *error = AutoUIKitError(@"OCR region must use finite coordinates and paired positive dimensions.");
         return nil;

@@ -120,6 +120,7 @@ static BOOL AutoValidateTreeBudget(NSURL *url,
     if (!isDirectory.boolValue) return YES;
 
     __block NSError *enumerationError = nil;
+    NSError *budgetError = nil;
     NSDirectoryEnumerator<NSURL *> *enumerator = [manager enumeratorAtURL:url
         includingPropertiesForKeys:@[NSURLIsRegularFileKey, NSURLFileSizeKey]
                            options:0
@@ -140,12 +141,16 @@ static BOOL AutoValidateTreeBudget(NSURL *url,
             }
             unsigned long long itemBytes = regular.boolValue ? size.unsignedLongLongValue : 0;
             if (itemCount > maximumItems || itemBytes > maximumBytes || totalBytes > maximumBytes - itemBytes) {
-                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed,
-                                                     [NSString stringWithFormat:@"%@ exceeds the configured file operation limits.", operationName], nil);
-                return NO;
+                budgetError = AutoSupportError(AutoSDKErrorFileOperationFailed,
+                                               [NSString stringWithFormat:@"%@ exceeds the configured file operation limits.", operationName], nil);
+                break;
             }
             totalBytes += itemBytes;
         }
+    }
+    if (budgetError) {
+        if (error) *error = budgetError;
+        return NO;
     }
     if (enumerationError) {
         if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed,
@@ -373,18 +378,19 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
                               return NO;
                           }];
         NSMutableArray *result = [NSMutableArray arrayWithCapacity:MIN(maximumItems, (NSUInteger)128)];
+        NSError *iterationError = nil;
         for (NSURL *item in items) {
             @autoreleasepool {
                 if (result.count >= maximumItems) {
-                    if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Directory exceeds maxFileListItems.", nil);
-                    return nil;
+                    iterationError = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Directory exceeds maxFileListItems.", nil);
+                    break;
                 }
                 NSError *itemError = nil;
                 NSDictionary *values = [item resourceValuesForKeys:@[NSURLIsDirectoryKey, NSURLFileSizeKey, NSURLContentModificationDateKey]
                                                               error:&itemError];
                 if (!values) {
-                    if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to inspect a listed item.", itemError);
-                    return nil;
+                    iterationError = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to inspect a listed item.", itemError);
+                    break;
                 }
                 NSDate *date = values[NSURLContentModificationDateKey];
                 [result addObject:@{ @"name": item.lastPathComponent ?: @"",
@@ -393,6 +399,10 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
                                      @"size": values[NSURLFileSizeKey] ?: @0,
                                      @"modifiedAtMs": date ? @([date timeIntervalSince1970] * 1000.0) : [NSNull null] }];
             }
+        }
+        if (iterationError) {
+            if (error) *error = iterationError;
+            return nil;
         }
         if (listError) {
             if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to list directory.", listError);

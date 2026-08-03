@@ -1195,7 +1195,9 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
            method:(NSString *)method
              body:(NSDictionary *)body
              error:(NSError **)error {
-    @autoreleasepool {
+    // NSError out parameters are autoreleasing. A method-local pool would
+    // invalidate returned errors before the caller can retain them.
+    {
     NSString *scheme = self.baseURL.scheme.lowercaseString;
     if (!self.baseURL || (![scheme isEqualToString:@"http"] && ![scheme isEqualToString:@"https"])) {
         if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration, @"WDA baseURL must use http or https.");
@@ -1985,7 +1987,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     }
     [self.screenshotRequestLock lock];
     @try {
-    @autoreleasepool {
+    {
         NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;
         __block NSUInteger requestGeneration = 0;
         __block NSTimeInterval duration = 0;
@@ -2064,7 +2066,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     BOOL ownsCancellationContext = [self installCancellationContextForGeneration:operationGeneration];
     [self.visualOperationLock lock];
     @try {
-    @autoreleasepool {
+    {
     if ([self operationWasCancelledSinceGeneration:operationGeneration]) {
         if (error) *error = AutoWDAError(AutoSDKErrorScriptCancelled, @"Image search was cancelled.");
         return nil;
@@ -2213,7 +2215,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     BOOL ownsCancellationContext = [self installCancellationContextForGeneration:operationGeneration];
     [self.visualOperationLock lock];
     @try {
-    @autoreleasepool {
+    {
     if ([self operationWasCancelledSinceGeneration:operationGeneration]) {
         if (error) *error = AutoWDAError(AutoSDKErrorScriptCancelled, @"OCR was cancelled.");
         return nil;
@@ -2354,7 +2356,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     BOOL ownsCancellationContext = [self installCancellationContextForGeneration:operationGeneration];
     [self.visualOperationLock lock];
     @try {
-    @autoreleasepool {
+    {
     if ([self operationWasCancelledSinceGeneration:operationGeneration]) {
         if (error) *error = AutoWDAError(AutoSDKErrorScriptCancelled, @"Color search was cancelled.");
         return nil;
@@ -2434,7 +2436,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     BOOL ownsCancellationContext = [self installCancellationContextForGeneration:operationGeneration];
     [self.visualOperationLock lock];
     @try {
-    @autoreleasepool {
+    {
     if ([self operationWasCancelledSinceGeneration:operationGeneration]) {
         if (error) *error = AutoWDAError(AutoSDKErrorScriptCancelled, @"Pixel read was cancelled.");
         return nil;
@@ -2475,7 +2477,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     BOOL ownsCancellationContext = [self installCancellationContextForGeneration:operationGeneration];
     [self.visualOperationLock lock];
     @try {
-    @autoreleasepool {
+    {
     if ([self operationWasCancelledSinceGeneration:operationGeneration]) {
         if (error) *error = AutoWDAError(AutoSDKErrorScriptCancelled, @"Color comparison was cancelled.");
         return NO;
@@ -2540,7 +2542,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     BOOL ownsCancellationContext = [self installCancellationContextForGeneration:operationGeneration];
     [self.visualOperationLock lock];
     @try {
-    @autoreleasepool {
+    {
     if ([self operationWasCancelledSinceGeneration:operationGeneration]) {
         if (error) *error = AutoWDAError(AutoSDKErrorScriptCancelled, @"Multi-color search was cancelled.");
         return nil;
@@ -2816,7 +2818,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     BOOL ownsCancellationContext = [self installCancellationContextForGeneration:operationGeneration];
     [self.sourceRequestLock lock];
     @try {
-    @autoreleasepool {
+    {
         __block NSTimeInterval duration = 0;
         __block NSUInteger requestGeneration = 0;
         __block NSUInteger sourceMaxBytes = 0;
