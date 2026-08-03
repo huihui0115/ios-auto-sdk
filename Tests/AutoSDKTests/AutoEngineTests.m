@@ -1093,8 +1093,9 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     XCTAssertNil([adapter findColor:@"#FF0000" region:@{ @"x": @0 } options:nil error:&error]);
     XCTAssertNotNil(error);
     error = nil;
+    NSDictionary *nonPositiveRegion = @{ @"x": @0, @"y": @0, @"width": @0, @"height": @1 };
     XCTAssertNil([adapter findColor:@"#FF0000"
-                             region:@{ @"x": @0, @"y": @0, @"width": @0, @"height": @1 }
+                             region:nonPositiveRegion
                             options:nil
                               error:&error]);
     XCTAssertNotNil(error);
