@@ -524,7 +524,7 @@ static NSData *AutoWebSocketHeader(NSUInteger length, uint8_t opcode) {
     nw_parameters_t parameters = nw_parameters_create_secure_tcp(NW_PARAMETERS_DISABLE_PROTOCOL,
                                                                   NW_PARAMETERS_DEFAULT_CONFIGURATION);
     if (allowsWiFi) {
-        nw_parameters_set_prohibited_interface_type(parameters, nw_interface_type_cellular);
+        nw_parameters_prohibit_interface_type(parameters, nw_interface_type_cellular);
     } else {
         nw_parameters_set_required_interface_type(parameters, nw_interface_type_loopback);
     }
