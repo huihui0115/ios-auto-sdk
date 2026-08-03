@@ -114,8 +114,8 @@ static NSString *AutoWDAElementIdFromValue(id value) {
     if ([dictionary[@"sourceDerived"] isKindOfClass:NSNumber.class] && [dictionary[@"sourceDerived"] boolValue]) return nil;
     for (NSString *key in @[@"element-6066-11e4-a52e-4f735466cecf", @"ELEMENT", @"elementId", @"wdElementId", @"handle"]) {
         id candidate = dictionary[key];
-        if ([candidate isKindOfClass:NSString.class] && candidate.length > 0 &&
-            candidate.length <= AutoWDAMaxElementHandleLength) return candidate;
+        NSString *candidateString = [candidate isKindOfClass:NSString.class] ? (NSString *)candidate : nil;
+        if (candidateString.length > 0 && candidateString.length <= AutoWDAMaxElementHandleLength) return candidateString;
     }
     return nil;
 }
@@ -322,11 +322,12 @@ typedef struct {
 } AutoWDAColorOffset;
 
 static BOOL AutoWDAParseColor(id color, uint8_t *red, uint8_t *green, uint8_t *blue) {
-    if ([color isKindOfClass:NSArray.class] && color.count >= 3) {
-        if (!AutoWDAIsNumber(color[0]) || !AutoWDAIsNumber(color[1]) || !AutoWDAIsNumber(color[2])) return NO;
-        *red = (uint8_t)MIN(255, MAX(0, AutoWDADouble(color[0], 0)));
-        *green = (uint8_t)MIN(255, MAX(0, AutoWDADouble(color[1], 0)));
-        *blue = (uint8_t)MIN(255, MAX(0, AutoWDADouble(color[2], 0)));
+    NSArray *colorValues = [color isKindOfClass:NSArray.class] ? (NSArray *)color : nil;
+    if (colorValues.count >= 3) {
+        if (!AutoWDAIsNumber(colorValues[0]) || !AutoWDAIsNumber(colorValues[1]) || !AutoWDAIsNumber(colorValues[2])) return NO;
+        *red = (uint8_t)MIN(255, MAX(0, AutoWDADouble(colorValues[0], 0)));
+        *green = (uint8_t)MIN(255, MAX(0, AutoWDADouble(colorValues[1], 0)));
+        *blue = (uint8_t)MIN(255, MAX(0, AutoWDADouble(colorValues[2], 0)));
         return YES;
     }
     if ([color isKindOfClass:NSDictionary.class]) {
@@ -663,14 +664,15 @@ static BOOL AutoWDASourceNodeMatches(AutoWDASourceNode *node, id selector) {
     }
     if ([query[@"index"] isKindOfClass:NSNumber.class]) {
         hasCondition = YES;
-        NSUInteger index = attributes[@"index"] ? attributes[@"index"].integerValue : node.siblingIndex;
+        NSNumber *indexValue = [attributes[@"index"] isKindOfClass:NSNumber.class] ? attributes[@"index"] : nil;
+        NSUInteger index = indexValue ? indexValue.unsignedIntegerValue : node.siblingIndex;
         if (index != [query[@"index"] unsignedIntegerValue]) return NO;
     }
     if ([query[@"depth"] isKindOfClass:NSNumber.class]) {
         hasCondition = YES;
         if (node.depth != [query[@"depth"] unsignedIntegerValue]) return NO;
     }
-    NSDictionary *bounds = [query[@"bounds"] isKindOfClass:NSDictionary.class] ? query[@"bounds"] : nil;
+        NSDictionary *bounds = [query[@"bounds"] isKindOfClass:NSDictionary.class] ? query[@"bounds"] : nil;
     if (bounds) {
         hasCondition = YES;
         for (NSString *key in @[@"x", @"y", @"width", @"height"]) {
@@ -2939,9 +2941,11 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
         NSMutableDictionary *identity = bounds ? [@{ @"bounds": bounds } mutableCopy] : [NSMutableDictionary dictionary];
         NSError *typeError = nil;
         id type = [self attribute:@"type" forSelector:selector error:&typeError];
-        if ([type isKindOfClass:NSString.class] && type.length > 0) identity[@"type"] = type;
+        NSString *typeString = [type isKindOfClass:NSString.class] ? (NSString *)type : nil;
+        if (typeString.length > 0) identity[@"type"] = typeString;
         id name = [self attribute:@"name" forSelector:selector error:nil];
-        if ([name isKindOfClass:NSString.class] && name.length > 0) identity[@"name"] = name;
+        NSString *nameString = [name isKindOfClass:NSString.class] ? (NSString *)name : nil;
+        if (nameString.length > 0) identity[@"name"] = nameString;
         AutoWDASourceNode *handleNode = identity.count > 0
             ? AutoWDAFindSourceNode(root, identity, shouldCancelLookup, &lookupCancelled, nil)
             : nil;
