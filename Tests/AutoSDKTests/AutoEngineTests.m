@@ -924,10 +924,12 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
 
     error = nil;
-    XCTAssertFalse([adapter exists:@{ @"type": @"Button", @"index": @1.5 } error:&error]);
+    NSDictionary *fractionalIndexSelector = @{ @"type": @"Button", @"index": @1.5 };
+    XCTAssertFalse([adapter exists:fractionalIndexSelector error:&error]);
     XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
     error = nil;
-    XCTAssertFalse([adapter exists:@{ @"bounds": @{ @"x": @0, @"y": @0, @"width": @10 } } error:&error]);
+    NSDictionary *incompleteBoundsSelector = @{ @"bounds": @{ @"x": @0, @"y": @0, @"width": @10 } };
+    XCTAssertFalse([adapter exists:incompleteBoundsSelector error:&error]);
     XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
 }
 
