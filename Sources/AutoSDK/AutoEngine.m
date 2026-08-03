@@ -450,7 +450,10 @@ didCompleteWithError:(NSError *)error {
     if (!target) return;
     [invocation retainArguments];
     SEL selector = invocation.selector;
-    NSDictionary *capabilities = [target respondsToSelector:@selector(capabilities)] ? [target capabilities] : nil;
+    id<AutoAutomationAdapter> automationTarget = (id<AutoAutomationAdapter>)target;
+    NSDictionary *capabilities = [automationTarget respondsToSelector:@selector(capabilities)]
+        ? [automationTarget capabilities]
+        : nil;
     BOOL handlesVisualThreads = AutoBoolean(capabilities[@"handlesVisualOperationThreads"], NO);
     BOOL backgroundVisualOperation = handlesVisualThreads && (selector == @selector(screenshotWithError:) ||
         selector == @selector(findImageAtPath:options:error:) ||
