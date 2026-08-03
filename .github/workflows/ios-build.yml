@@ -53,6 +53,31 @@ jobs:
             -resultBundlePath "$RUNNER_TEMP/AutoSDKTests.xcresult" \
             -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO
+      - name: Print test diagnostics
+        if: failure()
+        run: |
+          result="$RUNNER_TEMP/AutoSDKTests.xcresult"
+          summary="$RUNNER_TEMP/AutoSDKTests.json"
+          diagnostics="$RUNNER_TEMP/AutoSDKTestDiagnostics"
+          test -d "$result"
+          xcrun xcresulttool get --path "$result" --format json > "$summary"
+          echo "Failure messages:"
+          jq -r '.. | objects | .message?._value? // empty' "$summary" | sort -u | head -200
+          mkdir -p "$diagnostics"
+          jq -r '.. | objects | .diagnosticsRef?.id?._value? // empty' "$summary" | sort -u |
+          while IFS= read -r reference; do
+            test -n "$reference" || continue
+            output="$diagnostics/$reference"
+            xcrun xcresulttool export --path "$result" --id "$reference" \
+              --type directory --output-path "$output" || true
+          done
+          find "$diagnostics" -type f \( -name '*.crash' -o -name '*.ips' -o -name '*.txt' \) -print |
+          sort | head -20 |
+          while IFS= read -r report; do
+            echo "::group::Crash diagnostic: $report"
+            sed -n '1,260p' "$report"
+            echo "::endgroup::"
+          done
       - name: Upload test diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
