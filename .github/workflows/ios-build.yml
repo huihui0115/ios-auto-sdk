@@ -50,7 +50,16 @@ jobs:
             -sdk iphonesimulator \
             -destination "platform=iOS Simulator,id=$destination_id" \
             -derivedDataPath "$RUNNER_TEMP/autosdk-tests" \
+            -resultBundlePath "$RUNNER_TEMP/AutoSDKTests.xcresult" \
+            -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO
+      - name: Upload test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoSDKTests-xcresult
+          path: ${{ runner.temp }}/AutoSDKTests.xcresult
+          if-no-files-found: warn
       - name: Build unsigned iOS app
         run: |
           xcodebuild \

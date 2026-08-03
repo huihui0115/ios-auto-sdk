@@ -46,6 +46,7 @@ static NSError *AutoWDAResponseError(NSInteger statusCode, NSString *protocolErr
 }
 
 static BOOL AutoWDAErrorIsInvalidSession(NSError *error) {
+    if (![error isKindOfClass:NSError.class]) return NO;
     NSString *protocolError = [error.userInfo[AutoWDAProtocolErrorKey] description].lowercaseString;
     NSString *message = error.localizedDescription.lowercaseString;
     return [protocolError isEqualToString:@"invalid session id"] ||
@@ -56,6 +57,7 @@ static BOOL AutoWDAErrorIsInvalidSession(NSError *error) {
 }
 
 static BOOL AutoWDAErrorIsElementNotFound(NSError *error) {
+    if (![error isKindOfClass:NSError.class]) return NO;
     NSString *protocolError = [error.userInfo[AutoWDAProtocolErrorKey] description].lowercaseString;
     NSString *message = error.localizedDescription.lowercaseString;
     return [protocolError isEqualToString:@"no such element"] ||
@@ -67,6 +69,7 @@ static BOOL AutoWDAErrorIsElementNotFound(NSError *error) {
 }
 
 static BOOL AutoWDAErrorIsStaleElement(NSError *error) {
+    if (![error isKindOfClass:NSError.class]) return NO;
     NSString *protocolError = [error.userInfo[AutoWDAProtocolErrorKey] description].lowercaseString;
     NSString *message = error.localizedDescription.lowercaseString;
     return [protocolError isEqualToString:@"stale element reference"] ||
@@ -75,6 +78,7 @@ static BOOL AutoWDAErrorIsStaleElement(NSError *error) {
 }
 
 static BOOL AutoWDAErrorIsUnsupportedCommand(NSError *error) {
+    if (![error isKindOfClass:NSError.class]) return NO;
     NSString *protocolError = [error.userInfo[AutoWDAProtocolErrorKey] description].lowercaseString;
     NSString *message = error.localizedDescription.lowercaseString;
     NSInteger statusCode = [error.userInfo[AutoWDAHTTPStatusKey] integerValue];
@@ -120,6 +124,8 @@ static NSString *AutoWDAElementIdFromValue(id value) {
     return nil;
 }
 
+static BOOL AutoWDAIsNumber(id value);
+
 static BOOL AutoWDAValidateUnwrappedSelector(id selector, NSError **error) {
     if ([selector isKindOfClass:NSString.class]) {
         if ([(NSString *)selector length] <= AutoWDAMaxSelectorTextLength) return YES;
@@ -159,6 +165,37 @@ static BOOL AutoWDAValidateUnwrappedSelector(id selector, NSError **error) {
         if ([value isKindOfClass:NSString.class] && [(NSString *)value length] > AutoWDAMaxElementHandleLength) {
             if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration,
                                              @"WDA element and session handles are limited to 4096 characters.");
+            return NO;
+        }
+    }
+    for (NSString *key in @[@"index", @"depth", @"maxResults"]) {
+        id value = dictionary[key];
+        double number = AutoWDAIsNumber(value) ? [value doubleValue] : -1;
+        if (value && (!AutoWDAIsNumber(value) || number < 0 ||
+                      number > (double)NSUIntegerMax || floor(number) != number)) {
+            if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration,
+                [NSString stringWithFormat:@"WDA selector field '%@' must be a non-negative integer.", key]);
+            return NO;
+        }
+    }
+    id boundsValue = dictionary[@"bounds"];
+    if (boundsValue) {
+        if (![boundsValue isKindOfClass:NSDictionary.class]) {
+            if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration,
+                                             @"WDA selector bounds must be an object.");
+            return NO;
+        }
+        NSDictionary *bounds = boundsValue;
+        for (NSString *key in @[@"x", @"y", @"width", @"height"]) {
+            if (!AutoWDAIsNumber(bounds[key])) {
+                if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration,
+                    @"WDA selector bounds require finite x, y, width, and height values.");
+                return NO;
+            }
+        }
+        if ([bounds[@"width"] doubleValue] < 0 || [bounds[@"height"] doubleValue] < 0) {
+            if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration,
+                                             @"WDA selector bounds dimensions cannot be negative.");
             return NO;
         }
     }
