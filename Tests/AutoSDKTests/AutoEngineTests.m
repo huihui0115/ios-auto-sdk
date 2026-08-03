@@ -380,9 +380,11 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [self waitForExpectationsWithTimeout:2 handler:nil];
 
     NSError *listError = nil;
-    NSArray *scripts = [engine deployedScriptsWithError:&listError];
+    NSArray<NSDictionary<NSString *, id> *> *scripts = [engine deployedScriptsWithError:&listError];
     XCTAssertNil(listError);
-    XCTAssertTrue([scripts filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"name == %@", name]].count == 1);
+    NSPredicate *matchingName = [NSPredicate predicateWithFormat:@"name == %@", name];
+    NSArray<NSDictionary<NSString *, id> *> *matchingScripts = [scripts filteredArrayUsingPredicate:matchingName];
+    XCTAssertEqual(matchingScripts.count, 1);
 
     XCTestExpectation *run = [self expectationWithDescription:@"run stored"];
     [engine handleDebugRequest:@{ @"type": @"runStored", @"name": name }
