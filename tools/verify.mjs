@@ -133,6 +133,8 @@ const podspec = read('AutoSDK.podspec');
 const versionSource = read('Sources/AutoSDK/AutoSDKVersion.m');
 check(podspec.includes(`s.version          = '${rootPackage.version}'`), 'SDK version differs between package.json and AutoSDK.podspec');
 check(versionSource.includes(`"${rootPackage.version}"`), 'SDK version differs between package.json and AutoSDKVersion.m');
+check(/double AutoSDKVersionNumber = \d+\.\d+;/.test(versionSource),
+      'AutoSDKVersionNumber must stay a valid C double (major.minor only)');
 check(rootLock.name === rootPackage.name && rootLock.version === rootPackage.version &&
       rootLock.packages?.['']?.name === rootPackage.name && rootLock.packages?.['']?.version === rootPackage.version,
       'Root package-lock.json is missing or inconsistent with package.json');

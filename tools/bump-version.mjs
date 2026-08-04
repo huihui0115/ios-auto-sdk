@@ -38,7 +38,7 @@ podspec = podspec.replace(/s\.version\s*=\s*'[^']+'/, `s.version          = '${v
 writeFileSync(files.podspec, podspec, 'utf8');
 
 let versionSource = readFileSync(files.version, 'utf8');
-versionSource = versionSource.replace(/AutoSDKVersionNumber\s*=\s*[\d.]+/, `AutoSDKVersionNumber = ${versionArg}`);
+versionSource = versionSource.replace(/AutoSDKVersionNumber\s*=\s*[\d.]+/, `AutoSDKVersionNumber = ${versionArg.split(".")[0]}.${versionArg.split(".")[1]}`);
 versionSource = versionSource.replace(/AutoSDKVersionString\[\]\s*=\s*"[^"]+"/, `AutoSDKVersionString[] = "${versionArg}"`);
 writeFileSync(files.version, versionSource, 'utf8');
 
