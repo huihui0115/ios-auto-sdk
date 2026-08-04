@@ -244,7 +244,6 @@ check(/type === 'selectorResult'[\s\S]{0,800}state\.match = null[\s\S]{0,200}ele
       'Inspector selector results must clear stale match overlays and region selections');
 
 const engineSource = read('Sources/AutoSDK/AutoEngine.m');
-const bootstrapSource = read('Sources/AutoSDK/AutoBootstrapScript.m');
 check(engineSource.includes('waitPollInterval') && engineSource.includes('pollInterval * 1.5'), 'waitFor must use bounded polling backoff');
 check(engineSource.includes('NSError *destinationError = nil;') && engineSource.includes('&destinationError'),
       'HTTP download destination validation must declare its error pointer');
@@ -259,6 +258,7 @@ check(engineSource.includes('@"allowSystemControl"') && engineSource.includes('@
       engineSource.includes('AutoSystemURLSchemeAllowed') && engineSource.includes('AutoSystemClipboardByteLimit') &&
       engineSource.includes('isEqualToString:@"openurl"'),
       'System control must be configurable, capability-reported, bounded, and URL schemes validated');
+const bootstrapSource = read('Sources/AutoSDK/AutoBootstrapScript.m');
 check(bootstrapSource.includes("operation:'clipboardGet'") && bootstrapSource.includes("operation:'clipboardSet'") &&
       bootstrapSource.includes("operation:'brightnessGet'") && bootstrapSource.includes("operation:'brightnessSet'") &&
       bootstrapSource.includes("operation:'volumeGet'") && bootstrapSource.includes("operation:'vibrate'") &&
@@ -633,6 +633,29 @@ check(typeDefinitions.includes('interface AutoMediaAPI') &&
       typeDefinitions.includes('saveScreenshotToAlbum(): boolean'),
       'Type definitions must describe the photo-library media API');
 
+check(read('LICENSE').includes('AUTOSDK SOFTWARE LICENSE'), 'Root LICENSE file must describe the commercial SDK license');
+check(read('Sources/AutoSDK/AutoBootstrapScript.m').includes('bridge.invokeTouch({fingers:normalized})') &&
+      bootstrapSource.includes('base.gesture=function(actions)') &&
+      bootstrapSource.includes('base.multiGesture=function(fingers)') &&
+      bootstrapSource.includes('base.pinch=function(x,y,scale,duration)') &&
+      bootstrapSource.includes('g.pinch=base.pinch'),
+      'Bootstrap must expose gesture, multiGesture and pinch on auto and as globals');
+check(bootstrapSource.includes("if(!normalized[t].length)throw new Error('gesture finger track must contain at least one action.')"),
+      'Bootstrap gesture must reject empty finger tracks');
+check(typeDefinitions.includes('interface AutoGestureAPI') &&
+      typeDefinitions.includes('gesture(actions: AutoGestureAction[]): boolean') &&
+      typeDefinitions.includes('pinch(x: number, y: number, scale: number, durationMs?: number): boolean') &&
+      typeDefinitions.includes('declare function gesture('),
+      'Type definitions must describe the multi-touch gesture API');
+check(read('Sources/AutoSDK/include/AutoWDAHTTPAdapter.h').includes('performMultiTouch:') &&
+      read('Sources/AutoSDK/include/AutoAutomationAdapter.h').includes('performMultiTouch:'),
+      'Adapter headers must declare performMultiTouch');
+check(read('Sources/AutoSDK/AutoWDAHTTPAdapter.m').includes('@"/actions" method:@"POST" body:body') &&
+      wdaAdapter.includes('@"multiTouch": @YES'),
+      'WDA adapter must implement multi-touch gestures and report the capability');
+check(read('Sources/AutoSDK/AutoEngine.m').includes('invokeTouch:(JSValue *)payload') &&
+      read('Sources/AutoSDK/AutoEngine.m').includes('performMultiTouch:fingers error:&error'),
+      'Engine must bridge invokeTouch to the adapter performMultiTouch');
 for (const scriptPath of ['Examples/TemplateApp/Scripts/hello.js', 'Examples/TemplateApp/Scripts/demo-api.js']) {
   try {
     new vm.Script(read(scriptPath), { filename: scriptPath });

@@ -73,6 +73,14 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)goToHomeScreenWithError:(NSError * _Nullable * _Nullable)error;
 - (BOOL)lockDeviceWithError:(NSError * _Nullable * _Nullable)error;
 - (BOOL)unlockDeviceWithError:(NSError * _Nullable * _Nullable)error;
+/**
+ * Performs a multi-finger gesture. `fingers` is an array of finger tracks;
+ * each track is an array of W3C pointer actions for that finger
+ * (pointerMove / pointerDown / pointerUp / pause). Adapters that cannot
+ * synthesize real touches return NO with an error.
+ */
+- (BOOL)performMultiTouch:(NSArray<NSArray<NSDictionary *> *> *)fingers
+                    error:(NSError * _Nullable * _Nullable)error;
 - (NSDictionary<NSString *, id> *)capabilities;
 /** Cancels in-flight network/vision work when supported. Must be thread-safe. */
 - (void)cancelCurrentOperations;

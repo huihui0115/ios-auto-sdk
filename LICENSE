@@ -1,0 +1,40 @@
+AUTOSDK SOFTWARE LICENSE
+=======================
+
+Copyright (c) 2026 AutoSDK. All rights reserved.
+
+AutoSDK (the "Software") is licensed, not sold. Redistribution and use in
+source and binary forms, with or without modification, are permitted only
+under the terms of a separate written license agreement with the licensor.
+
+Without a separate written agreement you may NOT:
+
+  1. Redistribute, sublicense, rent, lease or lend the Software, in whole or
+     in part, to any third party.
+  2. Use the Software to provide a hosted or managed service to third parties
+     for commercial purposes without a separate license.
+  3. Remove, obscure or alter any copyright, trademark or other proprietary
+     notices contained in the Software.
+
+You MAY:
+
+  1. Use the Software in your own iOS applications for development, testing
+     and internal business purposes.
+  2. Modify the Software for your own use; modifications remain subject to
+     this license.
+  3. Distribute end-user applications that embed the Software as a library,
+     provided you do not charge separately for the Software itself and you
+     include this license notice in the distributed application.
+
+THIRD-PARTY SOFTWARE: The Software may include components distributed under
+open-source licenses (for example XCTest runner integrations and Node.js
+developer tooling). Those components remain governed by their own licenses,
+which are identified in the corresponding directories and documentation.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

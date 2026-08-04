@@ -308,7 +308,28 @@ APIS.push({ cat:'touch', sig:'longClick(selector, duration?)', title:'长按', d
   logd("长按: " + ok);
 }
 main();` });
-APIS.push({ cat:'touch', sig:'swipe(x1, y1, x2, y2, duration?)', title:'滑动', desc:'从 (x1,y1) 滑动到 (x2,y2)，duration 为秒数。', params:[['x1','number','起点横坐标'],['y1','number','起点纵坐标'],['x2','number','终点横坐标'],['y2','number','终点纵坐标'],['duration','number','可选，秒数']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'touch', sig:'gesture(actions)', title:'单指手势', desc:'按 W3C 指针动作序列执行单指手势：down/move/up/wait 会自动归一化为 pointerDown/pointerMove/pointerUp/pause。需要 WDA 适配器支持真实触摸注入（capabilities.multiTouch）。', params:[['actions','Array<{type,x,y,duration}>','动作序列：{type:"down",x,y} 按下、{type:"move",x,y,duration} 移动、{type:"up"} 抬起、{type:"wait",duration} 等待']], returns:'boolean', example:`function main(){
+  const ok = auto.gesture([
+    {type: "down", x: 100, y: 200},
+    {type: "move", x: 300, y: 400, duration: 500},
+    {type: "up"}
+  ]);
+  logd("手势: " + ok);
+}
+main();` });
+APIS.push({ cat:'touch', sig:'multiGesture(fingers)', title:'多指手势', desc:'并行执行多根手指的触摸序列，每根手指一个动作数组；常用于双指缩放、旋转等复杂手势。需要 WDA 适配器支持真实触摸注入。', params:[['fingers','Array<Array<{type,x,y,duration}>>','每根手指的 down/move/up/wait 动作序列']], returns:'boolean', example:`function main(){
+  const ok = auto.multiGesture([
+    [{type: "down", x: 100, y: 300}, {type: "move", x: 100, y: 100, duration: 300}, {type: "up"}],
+    [{type: "down", x: 300, y: 300}, {type: "move", x: 300, y: 100, duration: 300}, {type: "up"}]
+  ]);
+  logd("双指上滑: " + ok);
+}
+main();` });
+APIS.push({ cat:'touch', sig:'pinch(x, y, scale, duration?)', title:'双指缩放', desc:'以 (x,y) 为中心双指缩放，scale>1 放大、scale<1 缩小；duration 为毫秒。需要 WDA 适配器支持真实触摸注入。', params:[['x','number','中心横坐标'],['y','number','中心纵坐标'],['scale','number','缩放倍率（>1 放大，<1 缩小）'],['duration','number','毫秒，默认 300']], returns:'boolean', example:`function main(){
+  const ok = auto.pinch(200, 400, 1.5, 400);
+  logd("放大: " + ok);
+}
+main();` });APIS.push({ cat:'touch', sig:'swipe(x1, y1, x2, y2, duration?)', title:'滑动', desc:'从 (x1,y1) 滑动到 (x2,y2)，duration 为秒数。', params:[['x1','number','起点横坐标'],['y1','number','起点纵坐标'],['x2','number','终点横坐标'],['y2','number','终点纵坐标'],['duration','number','可选，秒数']], returns:'boolean', example:`function main(){
   const ok = swipe(190, 600, 190, 200, 0.4);
   logd("上滑: " + ok);
 }

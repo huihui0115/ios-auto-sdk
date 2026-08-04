@@ -40,6 +40,7 @@ Audit date: 2026-08-05
 | 相册/媒体 | 保存图片/视频/截图到相册 | ✅ media.saveImage / saveImageBase64 / saveVideo / saveScreenshot，iOS 授权弹窗 + allowMediaLibrary 开关 |
 | 内存信息 | 内存占用/可用 | ✅ device.getMemoryInfo（total/free/appUsed 字节） |
 | 分辨率适配 | setScreenMetrics / getScreenMetrics | ✅ setScreenMetrics(width,height) + metrics.point(x,y) + device.width/height |
+| 多指手势 | 双指缩放/自定义复杂手势 | ✅ auto.gesture / multiGesture / pinch（WDA 适配器真实触摸注入，capabilities.multiTouch）|
 | 随机/中心点击 | 无标准封装 | ✅ auto.clickCenter / auto.clickRandom（坐标取整，防检测） |
 | 工具函数 | uuid / base64 编码 | ✅ uuid()/uniqueId()、base64.encode/decode（UTF-8 安全） |
 | JSON 快捷请求 | httpGetJson | ✅ http.getJSON（parseJson:true） |

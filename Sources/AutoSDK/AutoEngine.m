@@ -47,6 +47,7 @@
 - (id)invokeMedia:(JSValue *)payload;
 - (id)invokeCapabilities;
 - (id)invokeApp:(JSValue *)payload;
+- (id)invokeTouch:(JSValue *)payload;
 - (BOOL)invokeIsStopped;
 - (id)invokeNative:(JSValue *)payload;
 @end
@@ -1539,6 +1540,23 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     return [self.engine shouldStop];
 }
 
+- (id)invokeTouch:(JSValue *)payload {
+    if (![self ensureScriptRunning]) return @NO;
+    NSDictionary *data = AutoPayload(payload);
+    NSArray *fingers = data[@"fingers"];
+    if (![fingers isKindOfClass:NSArray.class] || fingers.count == 0) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"gesture requires at least one finger track.", nil)];
+    }
+    if (fingers.count > 10) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"gesture accepts at most 10 fingers.", nil)];
+    }
+    if (![self.adapter respondsToSelector:@selector(performMultiTouch:error:)]) {
+        return [self failure:AutoMakeError(AutoSDKErrorAutomationUnavailable, @"The automation adapter does not support multi-touch gestures.", nil)];
+    }
+    NSError *error = nil;
+    BOOL ok = [self.adapter performMultiTouch:fingers error:&error];
+    return ok ? @YES : [self failure:error ?: AutoMakeError(AutoSDKErrorAutomationFailed, @"Multi-touch gesture failed.", nil)];
+}
 - (id)invokeNative:(JSValue *)payload {
     if (![self ensureScriptRunning]) return @NO;
     NSDictionary *nativePayload = AutoPayload(payload);

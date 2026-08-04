@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>5</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>22</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>6</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>12</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>4</span></a><a href="#file" style="--c:#4f46e5">文件<span>21</span></a><a href="#storage" style="--c:#0d9488">存储<span>5</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>6</span></a><a href="#media" style="--c:#db2777">相册媒体<span>5</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>7</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>5</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>25</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>6</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>12</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>4</span></a><a href="#file" style="--c:#4f46e5">文件<span>21</span></a><a href="#storage" style="--c:#0d9488">存储<span>5</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>6</span></a><a href="#media" style="--c:#db2777">相册媒体<span>5</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>7</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -167,7 +167,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="touch" class="cat" style="--c:#7c3aed">
-  <h2><span class="tag">触摸与节点</span><i>22</i></h2>
+  <h2><span class="tag">触摸与节点</span><i>25</i></h2>
   <article class="card" data-search="click(selector) 点击节点">
   <header class="card-head">
     <h4><code>click(selector)</code> <span class="cname">点击节点</span></h4>
@@ -225,6 +225,58 @@ main();</code></pre>
   <pre><code>function main(){
   const ok = longClick({text: "图标"}, 1.0);
   logd("长按: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="gesture(actions) 单指手势">
+  <header class="card-head">
+    <h4><code>gesture(actions)</code> <span class="cname">单指手势</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">按 W3C 指针动作序列执行单指手势：down/move/up/wait 会自动归一化为 pointerDown/pointerMove/pointerUp/pause。需要 WDA 适配器支持真实触摸注入（capabilities.multiTouch）。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">actions</code><span class="ptype">Array&lt;{type,x,y,duration}&gt;</span><span class="pdesc">动作序列：{type:"down",x,y} 按下、{type:"move",x,y,duration} 移动、{type:"up"} 抬起、{type:"wait",duration} 等待</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = auto.gesture([
+    {type: "down", x: 100, y: 200},
+    {type: "move", x: 300, y: 400, duration: 500},
+    {type: "up"}
+  ]);
+  logd("手势: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="multiGesture(fingers) 多指手势">
+  <header class="card-head">
+    <h4><code>multiGesture(fingers)</code> <span class="cname">多指手势</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">并行执行多根手指的触摸序列，每根手指一个动作数组；常用于双指缩放、旋转等复杂手势。需要 WDA 适配器支持真实触摸注入。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">fingers</code><span class="ptype">Array&lt;Array&lt;{type,x,y,duration}&gt;&gt;</span><span class="pdesc">每根手指的 down/move/up/wait 动作序列</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = auto.multiGesture([
+    [{type: "down", x: 100, y: 300}, {type: "move", x: 100, y: 100, duration: 300}, {type: "up"}],
+    [{type: "down", x: 300, y: 300}, {type: "move", x: 300, y: 100, duration: 300}, {type: "up"}]
+  ]);
+  logd("双指上滑: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="pinch(x, y, scale, duration?) 双指缩放">
+  <header class="card-head">
+    <h4><code>pinch(x, y, scale, duration?)</code> <span class="cname">双指缩放</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">以 (x,y) 为中心双指缩放，scale&gt;1 放大、scale&lt;1 缩小；duration 为毫秒。需要 WDA 适配器支持真实触摸注入。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">中心横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">中心纵坐标</span></div><div class="param"><code class="pname">scale</code><span class="ptype">number</span><span class="pdesc">缩放倍率（&gt;1 放大，&lt;1 缩小）</span></div><div class="param"><code class="pname">duration</code><span class="ptype">number</span><span class="pdesc">毫秒，默认 300</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = auto.pinch(200, 400, 1.5, 400);
+  logd("放大: " + ok);
 }
 main();</code></pre>
 </article>
@@ -1726,7 +1778,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 102 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 105 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

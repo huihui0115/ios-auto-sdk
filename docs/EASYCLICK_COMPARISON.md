@@ -79,7 +79,8 @@ The following surfaces must not be described as production-complete yet:
 | --- | --- | --- |
 | 日志与调试 | 5 | logd/logi/logw/loge、toast/toastLog、sleep |
 | 触摸与节点 | 22 | 坐标/节点点击、滑动、输入，节点 13 个查询（含 getChild/getSiblings/clickCenter/clickRandom） |
-| 图色与OCR | 9 | 截图、找图、找色、多点找色、像素、OCR |
+| 图色与OCR | 9 | 多指手势 | 双指缩放/自定义复杂手势 | ✅ auto.gesture / multiGesture / pinch（WDA 适配器真实触摸注入，capabilities.multiTouch）|
+| 截图、找图、找色、多点找色、像素、OCR |
 | App与应用控制 | 6 | launch/activate/terminate/state/openURL/homeScreen |
 | 设备与系统 | 12 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存 |
 | 坐标与屏幕 | 4 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |

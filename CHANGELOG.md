@@ -8,6 +8,24 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **Multi-touch gesture API.** New `auto.gesture(actions)`, `auto.multiGesture(fingers)`
+  and `auto.pinch(x, y, scale, duration?)` methods synthesize real multi-finger
+  touches through the WDA `/actions` endpoint (W3C pointer actions). Exposed on
+  `auto`, as globals, and in `types/autosdk.d.ts`; reported by
+  `capabilities().multiTouch`. Adapters without real touch injection return an
+  error. `AutoUIKitAdapter` intentionally does not implement it.
+- **Version tooling.** `node tools/bump-version.mjs <x.y.z>` synchronizes the
+  version across `package.json`, `AutoSDK.podspec` and `AutoSDKVersion.m` and
+  prints the tag/publish commands.
+- **Cross-platform regression tests.** `tools/bootstrap.test.mjs` runs the exact
+  embedded JavaScript bootstrap in a Node vm with a mock bridge and verifies
+  base64, randomInt, metrics, timers, storage, file, HTTP, gestures and stop
+  behavior on any platform (CI included). 22 tests total.
+- **Repository hygiene.** Added root `LICENSE`, `.editorconfig`, and a CI
+  release job that attaches the built IPA to GitHub Releases on `v*` tags.
+
+### Added
+
 - **Photo library media API.** New `media.saveImage`, `media.saveImageBase64`,
   `media.saveVideo` and `media.saveScreenshot` methods (plus
   `auto.saveImageToAlbum`, `auto.saveImageBase64ToAlbum`,

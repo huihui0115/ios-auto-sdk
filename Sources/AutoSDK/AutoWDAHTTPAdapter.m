@@ -1895,6 +1895,31 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     return requestError == nil;
 }
 
+- (BOOL)performMultiTouch:(NSArray<NSArray<NSDictionary *> *> *)fingers error:(NSError **)error {
+    if (![fingers isKindOfClass:NSArray.class] || fingers.count == 0) {
+        if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration, @"performMultiTouch requires at least one finger track.");
+        return NO;
+    }
+    if (fingers.count > 10) {
+        if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration, @"performMultiTouch accepts at most 10 fingers.");
+        return NO;
+    }
+    NSMutableArray *sources = [NSMutableArray arrayWithCapacity:fingers.count];
+    [fingers enumerateObjectsUsingBlock:^(NSArray *track, NSUInteger index, BOOL *stop) {
+        [sources addObject:@{
+            @"type": @"pointer",
+            @"id": [NSString stringWithFormat:@"autosdk-finger-%lu", (unsigned long)index],
+            @"parameters": @{ @"pointerType": @"touch" },
+            @"actions": [track isKindOfClass:NSArray.class] ? track : @[]
+        }];
+    }];
+    NSDictionary *body = @{ @"actions": sources };
+    NSError *requestError = nil;
+    [self requestSessionSuffix:@"/actions" method:@"POST" body:body error:&requestError];
+    if (requestError && error) *error = requestError;
+    if (!requestError) [self invalidateVisualCaches];
+    return requestError == nil;
+}
 - (NSDictionary *)elementInfoFromPayload:(NSDictionary *)payload {
     NSString *elementId = payload[@"elementId"];
     id selector = payload[@"selector"] ?: [NSNull null];
@@ -3168,7 +3193,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
               @"longClick": @YES, @"swipe": @YES, @"nodes": @YES, @"sourceTreeRelations": @YES,
               @"stableNodeHandles": @NO, @"sessionScopedNodeHandles": @YES, @"xpath": @YES, @"screenshot": @YES,
               @"findColor": @YES, @"multiColor": @YES, @"findImage": @YES,
-              @"ocr": @YES, @"opencv": @NO, @"appLifecycle": @YES, @"systemActions": @YES };
+              @"ocr": @YES, @"opencv": @NO, @"multiTouch": @YES, @"appLifecycle": @YES, @"systemActions": @YES };
 }
 
 @end

@@ -295,6 +295,19 @@ interface AutoMediaAPI {
   saveScreenshot(): boolean;
 }
 
+type AutoGestureAction =
+  | { type: "down"; x: number; y: number }
+  | { type: "move"; x: number; y: number; duration?: number }
+  | { type: "up" }
+  | { type: "wait"; duration: number }
+  | { type: string; [key: string]: unknown };
+
+interface AutoGestureAPI {
+  gesture(actions: AutoGestureAction[]): boolean;
+  multiGesture(fingers: AutoGestureAction[][]): boolean;
+  pinch(x: number, y: number, scale: number, durationMs?: number): boolean;
+}
+
 interface AutoAppAPI {
   launch(bundleId: string): boolean;
   activate(bundleId: string): boolean;
@@ -342,6 +355,9 @@ interface AutoAPI {
   activateApp(bundleId: string): boolean;
   terminateApp(bundleId: string): boolean;
   appState(bundleId: string): number;
+  gesture(actions: AutoGestureAction[]): boolean;
+  multiGesture(fingers: AutoGestureAction[][]): boolean;
+  pinch(x: number, y: number, scale: number, durationMs?: number): boolean;
   clickCenter(selector: AutoSelectorLike): boolean;
   clickRandom(selector: AutoSelectorLike): boolean;
   screenshot(): string;
@@ -366,7 +382,7 @@ interface AutoAPI {
   app: AutoAppAPI;
   capabilities(): Record<string, unknown>;
   time(): number;
-  randomInt(min: number, max: number): number;
+  randomInt(min: number, max?: number): number;
   [nativeMethod: string]: any;
 }
 
@@ -449,6 +465,9 @@ declare function uuid(): string;
 declare function uniqueId(): string;
 declare const base64: AutoBase64;
 declare function clickCenter(selector: AutoSelectorLike): boolean;
+declare function gesture(actions: AutoGestureAction[]): boolean;
+declare function multiGesture(fingers: AutoGestureAction[][]): boolean;
+declare function pinch(x: number, y: number, scale: number, durationMs?: number): boolean;
 declare function clickRandom(selector: AutoSelectorLike): boolean;
 declare function openURL(url: string): boolean;
 declare function getClipboard(): string | null;

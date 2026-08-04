@@ -75,6 +75,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)lockDeviceWithError:(NSError * _Nullable * _Nullable)error;
 - (BOOL)unlockDeviceWithError:(NSError * _Nullable * _Nullable)error;
 
+/** Multi-finger gesture via the WDA /actions endpoint. */
+- (BOOL)performMultiTouch:(NSArray<NSArray<NSDictionary *> *> *)fingers
+                    error:(NSError * _Nullable * _Nullable)error;
+
 @end
 
 NS_ASSUME_NONNULL_END
