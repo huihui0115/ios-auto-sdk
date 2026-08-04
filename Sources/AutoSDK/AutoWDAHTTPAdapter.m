@@ -3168,7 +3168,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
               @"longClick": @YES, @"swipe": @YES, @"nodes": @YES, @"sourceTreeRelations": @YES,
               @"stableNodeHandles": @NO, @"sessionScopedNodeHandles": @YES, @"xpath": @YES, @"screenshot": @YES,
               @"findColor": @YES, @"multiColor": @YES, @"findImage": @YES,
-              @"ocr": @YES, @"opencv": @NO, @"appLifecycle": @YES };
+              @"ocr": @YES, @"opencv": @NO, @"appLifecycle": @YES, @"systemActions": @YES };
 }
 
 @end

@@ -14,6 +14,10 @@
 - CocoaPods 和 Swift Package Manager 接入骨架
 - 基于公共 API 的 `AutoUIKitAdapter`，可直接自动化宿主 App 自己的 UIKit 视图
 
+> 🚀 想快速上手？先看 [`docs/QUICK_START.md`](docs/QUICK_START.md)（第三方 10 分钟跑通
+> 「写脚本 → 构建 IPA → 安装 → 调试」）。与 AutoScript 的定位/能力对比见
+> [`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)。
+
 ## 集成
 
 ### Swift Package Manager
@@ -101,7 +105,7 @@ auto.toast("自定义方法由 Native 注册");
 节点对象是带稳定弱关联句柄的可序列化描述，不会强持有 UIKit 对象；可以把 `findElement` 返回值再次传给 `getText`、`getBounds`、`getParent` 等 API。视图销毁后句柄自动失效。HTTP 默认关闭，需显式配置 `allowNetwork: @YES`，请求仅允许 `http` 和 `https`。
 
 节点 API 的字段和返回结构见 [`docs/NODE_OPERATIONS.md`](docs/NODE_OPERATIONS.md)，HTTP 请求见 [`docs/HTTP_API.md`](docs/HTTP_API.md)。
-文件、存储和设备模块见 [`docs/FILE_STORAGE_DEVICE_API.md`](docs/FILE_STORAGE_DEVICE_API.md)。与 EasyClick iOS USB/脱机版官方文档的逐类差距和真实完成度见 [`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)。脚本执行的整体语义（输入分类、执行生命周期、超时与中断、定时器排空、错误码）见 [`docs/SCRIPT_EXECUTION.md`](docs/SCRIPT_EXECUTION.md)。
+文件、存储和设备模块见 [`docs/FILE_STORAGE_DEVICE_API.md`](docs/FILE_STORAGE_DEVICE_API.md)。与 EasyClick iOS USB/脱机版官方文档的逐类差距见 [`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)，与 AutoScript 的定位与能力对比见 [`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)，第三方快速上手见 [`docs/QUICK_START.md`](docs/QUICK_START.md)。脚本执行的整体语义（输入分类、执行生命周期、超时与中断、定时器排空、错误码）见 [`docs/SCRIPT_EXECUTION.md`](docs/SCRIPT_EXECUTION.md)。
 
 默认禁止远程脚本。只有显式配置 `@{"allowRemoteScripts": @YES}` 后，`http://` 或 `https://` URL 才会被加载；生产环境建议只允许 HTTPS，并在适配器或宿主层做签名校验。
 

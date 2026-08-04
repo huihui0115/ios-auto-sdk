@@ -144,8 +144,8 @@ check(wdaAdapter.includes('/wda/apps/launch') && wdaAdapter.includes('@"appLifec
 check(wdaAdapter.includes('@"/wda/homescreen"') && wdaAdapter.includes('@"/wda/lock"') &&
       wdaAdapter.includes('@"/wda/unlock"') &&
       wdaAdapter.includes('goToHomeScreenWithError:') && wdaAdapter.includes('lockDeviceWithError:') &&
-      wdaAdapter.includes('unlockDeviceWithError:'),
-      'WDA adapter must implement the optional system-level endpoint methods');
+      wdaAdapter.includes('unlockDeviceWithError:') && wdaAdapter.includes('@"systemActions": @YES'),
+      'WDA adapter must implement the optional system-level endpoint methods and report them');
 check(wdaAdapter.includes('NSXMLParser') && wdaAdapter.includes('@"sourceDerived": @YES'), 'WDA adapter must mark source-derived node relationships');
 check(wdaAdapter.includes('childTypeCounts') && wdaAdapter.includes('initWithMaxNodes') && wdaAdapter.includes('cachedXPath'), 'WDA source parser must use bounded type counters and lazy XPath storage');
 check(wdaAdapter.includes('AutoWDAFindSourceNodeByAbsolutePath'), 'WDA source-derived XPath lookup must avoid full-tree scans');
@@ -448,12 +448,15 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
     check(script.includes('g.auto='), 'AutoBootstrapScript does not install the auto global');
     let stopped = false;
     let lastHTTPOptions;
+    let lastDeviceOperation;
+    let lastAppOperation;
     const context = vm.createContext({
       __bridge: new Proxy({}, { get: (_, key) => {
         if (key === 'invokeIsStopped') return () => stopped;
         if (key === 'invokeHTTP') return value => { lastHTTPOptions = value; return {}; };
         if (key === 'invokeFile') return value => value.operation === 'readLines' ? ['first', 'second'] : true;
-        if (key === 'invokeDevice') return value => value.operation === 'info' ? { model: 'test' } : false;
+        if (key === 'invokeDevice') return value => { lastDeviceOperation = value; return value.operation === 'info' ? { model: 'test' } : true; };
+        if (key === 'invokeApp') return value => { lastAppOperation = value; return true; };
         return () => false;
       } }),
       __console: { log() {}, warn() {}, error() {} }
@@ -483,6 +486,28 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
     const detachedDeviceInfo = context.device.getDeviceInfo;
     check(detachedReadAllLines('test.txt').length === 2 && detachedDeviceInfo().model === 'test',
           'Public file and device methods must remain callable when extracted');
+    context.device.setClipboard('hello');
+    check(lastDeviceOperation?.operation === 'clipboardSet' && lastDeviceOperation?.text === 'hello',
+          'device.setClipboard must forward the clipboardSet operation with text');
+    context.device.setBrightness(0.5);
+    check(lastDeviceOperation?.operation === 'brightnessSet' && lastDeviceOperation?.value === 0.5,
+          'device.setBrightness must forward the brightnessSet operation with a value');
+    context.device.vibrate(300);
+    check(lastDeviceOperation?.operation === 'vibrate' && lastDeviceOperation?.duration === 300,
+          'device.vibrate must forward the advisory duration');
+    context.app.homeScreen();
+    check(lastAppOperation?.operation === 'homescreen', 'app.homeScreen must forward the homescreen operation');
+    context.app.lock();
+    check(lastAppOperation?.operation === 'lock', 'app.lock must forward the lock operation');
+    context.app.unlock();
+    check(lastAppOperation?.operation === 'unlock', 'app.unlock must forward the unlock operation');
+    context.openURL('https://example.com');
+    check(lastAppOperation?.operation === 'openURL' && lastAppOperation?.url === 'https://example.com',
+          'openURL must forward the url through invokeApp');
+    check(typeof context.device?.getClipboard === 'function' && typeof context.device?.getBrightness === 'function' &&
+          typeof context.device?.getVolume === 'function' && typeof context.getClipboard === 'function' &&
+          typeof context.getBrightness === 'function' && typeof context.vibrate === 'function',
+          'System control aliases must be exposed on device and as globals');
     let firedTimers = 0;
     for (let index = 0; index < 1000; index += 1) context.setTimeout(() => { firedTimers += 1; }, 0);
     const cancelledTimer = context.setTimeout(() => { firedTimers = -100000; }, 0);
@@ -512,6 +537,17 @@ for (const path of ['Examples/TemplateApp/App/Info.plist', 'tools/ExportOptions.
   const plist = read(path);
   check(plist.includes('<?xml') && plist.includes('<plist') && plist.includes('</plist>'), `${path}: malformed plist envelope`);
 }
+
+for (const scriptPath of ['Examples/TemplateApp/Scripts/hello.js', 'Examples/TemplateApp/Scripts/demo-api.js']) {
+  try {
+    new vm.Script(read(scriptPath), { filename: scriptPath });
+  } catch (error) {
+    failures.push(`${scriptPath}: invalid JavaScript (${error.message})`);
+  }
+}
+check(read('Examples/TemplateApp/Scripts/hello.js').includes('device.setClipboard') &&
+      read('Examples/TemplateApp/Scripts/demo-api.js').includes('auto.capabilities().http'),
+      'Template bundled scripts must exercise device/system APIs and guard HTTP by capability');
 
 for (const path of [...sourceFiles('Sources/AutoSDK'), ...sourceFiles('Tests')]) {
   const source = read(path);

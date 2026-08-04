@@ -97,6 +97,18 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **Third-party onboarding.** New `docs/QUICK_START.md` walks a newcomer
+  from clone to installed IPA and debugged script in about ten minutes;
+  `docs/AUTOSCRIPT_COMPARISON.md` compares positioning and API coverage with
+  the AutoScript-style standalone tool. The README links both.
+- **Self-contained template scripts.** `hello.js` no longer depends on UI
+  that does not exist in the template; `demo-api.js` exercises device,
+  sandbox files, storage, cooperative timers, and system control without
+  specific UI, and guards HTTP behind the reported capability.
+- **WDA system-action capability.** `AutoWDAHTTPAdapter` reports
+  `systemActions: @YES` so scripts can detect home-screen/lock/unlock
+  support through `auto.capabilities()`.
+
 - **System control APIs.** `device` gains `getClipboard` / `setClipboard`,
   `getBrightness` / `setBrightness`, `getVolume` and `vibrate`; `app` and the
   top-level `auto` / globals gain `openURL`, `homeScreen`, `lock` and
