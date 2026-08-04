@@ -427,6 +427,52 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     XCTAssertTrue([engine deleteDeployedScriptNamed:name error:&deleteError]);
     XCTAssertNil(deleteError);
 }
+- (void)testDeployedScriptSaveReadRenameDelete {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{}];
+    NSString *unique = NSUUID.UUID.UUIDString;
+    NSString *oldName = [NSString stringWithFormat:@"save-%@.js", unique];
+    NSString *newName = [NSString stringWithFormat:@"renamed-%@.js", unique];
+    NSString *clashName = [NSString stringWithFormat:@"clash-%@.js", unique];
+
+    NSError *error = nil;
+    XCTAssertFalse([engine saveDeployedScriptNamed:oldName script:@"" error:&error]);
+    XCTAssertNotNil(error);
+    error = nil;
+    XCTAssertFalse([engine saveDeployedScriptNamed:@"../escape.js" script:@"1;" error:&error]);
+    XCTAssertNotNil(error);
+    error = nil;
+    XCTAssertFalse([engine saveDeployedScriptNamed:@"no-extension" script:@"1;" error:&error]);
+    XCTAssertNotNil(error);
+
+    error = nil;
+    XCTAssertTrue([engine saveDeployedScriptNamed:oldName script:@"7 * 6;" error:&error]);
+    XCTAssertNil(error);
+    error = nil;
+    XCTAssertEqualObjects([engine deployedScriptContentNamed:oldName error:&error], @"7 * 6;");
+
+    error = nil;
+    XCTAssertFalse([engine renameDeployedScriptNamed:oldName toName:@"../escape.js" error:&error]);
+    XCTAssertNotNil(error);
+    error = nil;
+    XCTAssertTrue([engine renameDeployedScriptNamed:oldName toName:newName error:&error]);
+    XCTAssertNil(error);
+    error = nil;
+    XCTAssertNil([engine deployedScriptContentNamed:oldName error:&error]);
+    error = nil;
+    XCTAssertEqualObjects([engine deployedScriptContentNamed:newName error:&error], @"7 * 6;");
+
+    error = nil;
+    XCTAssertTrue([engine saveDeployedScriptNamed:clashName script:@"1;" error:&error]);
+    error = nil;
+    XCTAssertFalse([engine renameDeployedScriptNamed:newName toName:clashName error:&error]);
+    XCTAssertNotNil(error);
+
+    error = nil;
+    XCTAssertTrue([engine deleteDeployedScriptNamed:newName error:&error]);
+    XCTAssertTrue([engine deleteDeployedScriptNamed:clashName error:&error]);
+}
+
 
 - (void)testDebugImageAssetAndOCRLifecycle {
     AutoEngine *engine = AutoEngine.sharedEngine;

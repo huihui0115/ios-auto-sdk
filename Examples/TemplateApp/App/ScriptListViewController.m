@@ -1,30 +1,11 @@
 #import "ScriptListViewController.h"
+#import "AutoTemplateSettings.h"
+#import "ScriptEditorViewController.h"
+#import "SettingsViewController.h"
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 @import AutoSDK;
-#include <arpa/inet.h>
-#include <ifaddrs.h>
-#include <net/if.h>
-#include <string.h>
 
-static NSString *AutoTemplateWiFiIPv4Address(void) {
-    struct ifaddrs *interfaces = NULL;
-    if (getifaddrs(&interfaces) != 0 || !interfaces) return nil;
-    NSString *result = nil;
-    for (struct ifaddrs *item = interfaces; item; item = item->ifa_next) {
-        if (!item->ifa_addr || item->ifa_addr->sa_family != AF_INET) continue;
-        if ((item->ifa_flags & IFF_UP) == 0 || (item->ifa_flags & IFF_LOOPBACK) != 0) continue;
-        if (strcmp(item->ifa_name, "en0") != 0) continue;
-        char address[INET_ADDRSTRLEN] = {0};
-        struct sockaddr_in *ipv4 = (struct sockaddr_in *)item->ifa_addr;
-        if (inet_ntop(AF_INET, &ipv4->sin_addr, address, sizeof(address))) {
-            result = [NSString stringWithUTF8String:address];
-            break;
-        }
-    }
-    freeifaddrs(interfaces);
-    return result;
-}
-
-@interface ScriptListViewController () <UITableViewDataSource, UITableViewDelegate>
+@interface ScriptListViewController () <UITableViewDataSource, UITableViewDelegate, UIDocumentPickerDelegate>
 @property (nonatomic, strong) UITableView *tableView;
 @property (nonatomic, strong) UITextView *logView;
 @property (nonatomic, copy) NSArray<NSDictionary<NSString *, NSString *> *> *scriptItems;
@@ -71,17 +52,61 @@ static NSString *AutoTemplateWiFiIPv4Address(void) {
     UIBarButtonItem *stop = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemStop target:self action:@selector(stopScript)];
     stop.accessibilityIdentifier = @"stop-script";
     self.navigationItem.rightBarButtonItems = @[run, stop];
+    UIBarButtonItem *settings = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"gearshape"] style:UIBarButtonItemStylePlain target:self action:@selector(openSettings)];
+    settings.accessibilityIdentifier = @"open-settings";
     UIBarButtonItem *refresh = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(reloadScripts)];
     refresh.accessibilityIdentifier = @"refresh-scripts";
-    self.navigationItem.leftBarButtonItem = refresh;
+    self.navigationItem.leftBarButtonItems = @[settings, refresh];
+
+    UIBarButtonItem *newScript = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(createScript)];
+    newScript.accessibilityIdentifier = @"new-script";
+    UIBarButtonItem *import = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"folder"] style:UIBarButtonItemStylePlain target:self action:@selector(importScript)];
+    import.accessibilityIdentifier = @"import-script";
+    UIBarButtonItem *edit = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"pencil"] style:UIBarButtonItemStylePlain target:self action:@selector(editSelected)];
+    edit.accessibilityIdentifier = @"edit-script";
+    UIBarButtonItem *rename = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"textformat"] style:UIBarButtonItemStylePlain target:self action:@selector(renameSelected)];
+    rename.accessibilityIdentifier = @"rename-script";
+    UIBarButtonItem *export = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(exportSelected)];
+    export.accessibilityIdentifier = @"export-script";
+    UIBarButtonItem *space = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
+    self.toolbarItems = @[newScript, import, space, edit, rename, export];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(scriptsChanged:) name:@"AutoSDKScriptsChanged" object:nil];
+
     [self reloadScripts];
+    [self updateDebugHint];
+}
+
+- (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    [self.navigationController setToolbarHidden:NO animated:animated];
+    [self reloadScripts];
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+    [self.navigationController setToolbarHidden:YES animated:animated];
+}
+
+- (void)scriptsChanged:(NSNotification *)notification {
+    [self reloadScripts];
+}
+
+- (void)openSettings {
+    [self.navigationController pushViewController:[SettingsViewController new] animated:YES];
+}
+
+- (void)updateDebugHint {
 #if DEBUG
     NSString *debugToken = [NSUserDefaults.standardUserDefaults stringForKey:@"AutoSDKDebugToken"];
     if (debugToken.length > 0) {
         BOOL usesWiFi = [NSUserDefaults.standardUserDefaults boolForKey:@"AutoSDKDebugWiFiActive"];
         NSUInteger port = [NSUserDefaults.standardUserDefaults integerForKey:@"AutoSDKDebugPort"];
         if (port == 0) port = 9001;
-        NSString *address = usesWiFi ? AutoTemplateWiFiIPv4Address() : @"127.0.0.1";
+        NSString *address = usesWiFi ? [AutoTemplateSettings wifiIPv4Address] ?: @"" : @"127.0.0.1";
         NSString *url = address.length > 0
             ? [NSString stringWithFormat:@"ws://%@:%lu", address, (unsigned long)port]
             : @"Connect this iPhone to Wi-Fi to obtain its debug URL.";
@@ -112,9 +137,10 @@ static NSString *AutoTemplateWiFiIPv4Address(void) {
         [self.tableView selectRowAtIndexPath:[NSIndexPath indexPathForRow:0 inSection:0]
                                    animated:NO scrollPosition:UITableViewScrollPositionNone];
     } else {
-        self.logView.text = error.localizedDescription ?: @"No bundled or deployed JavaScript files found.";
+        self.logView.text = error.localizedDescription ?: @"No bundled or deployed JavaScript files found.\nTap + to create one.";
     }
     if (error) self.logView.text = [NSString stringWithFormat:@"Unable to load deployed scripts: %@", error.localizedDescription];
+    [self updateDebugHint];
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
@@ -136,9 +162,14 @@ static NSString *AutoTemplateWiFiIPv4Address(void) {
     self.selectedIndex = indexPath.row;
 }
 
+- (NSDictionary *)selectedItem {
+    if (self.selectedIndex == NSNotFound || self.selectedIndex >= self.scriptItems.count) return nil;
+    return self.scriptItems[self.selectedIndex];
+}
+
 - (void)runSelectedScript {
-    if (self.selectedIndex == NSNotFound || self.selectedIndex >= self.scriptItems.count) return;
-    NSDictionary *item = self.scriptItems[self.selectedIndex];
+    NSDictionary *item = [self selectedItem];
+    if (!item) return;
     NSString *name = item[@"name"];
     self.logView.text = [NSString stringWithFormat:@"Running %@...\n", name];
     __weak ScriptListViewController *weakSelf = self;
@@ -150,6 +181,7 @@ static NSString *AutoTemplateWiFiIPv4Address(void) {
                                @"logs": error.userInfo[@"logs"] ?: @[] } : (result ?: @{});
         NSData *data = [NSJSONSerialization dataWithJSONObject:output options:NSJSONWritingPrettyPrinted error:nil];
         strongSelf.logView.text = data ? [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] : [output description];
+        [strongSelf updateDebugHint];
     };
     if ([item[@"source"] isEqualToString:@"Deployed"]) {
         [AutoEngine.sharedEngine runDeployedScriptNamed:name completion:completion];
@@ -178,6 +210,122 @@ commitEditingStyle:(UITableViewCellEditingStyle)editingStyle
 - (void)stopScript {
     [AutoEngine.sharedEngine stopScript];
     self.logView.text = [self.logView.text stringByAppendingString:@"\nStop requested."];
+}
+
+#pragma mark - Editor / import / rename / export
+
+- (void)createScript {
+    [self presentEditorWithName:nil source:nil];
+}
+
+- (void)editSelected {
+    NSDictionary *item = [self selectedItem];
+    if (!item) return;
+    NSString *name = item[@"name"];
+    if ([item[@"source"] isEqualToString:@"Deployed"]) {
+        NSError *error = nil;
+        NSString *content = [AutoEngine.sharedEngine deployedScriptContentNamed:name error:&error];
+        if (!content) {
+            self.logView.text = error.localizedDescription ?: @"Unable to read the script.";
+            return;
+        }
+        [self presentEditorWithName:name source:content];
+    } else {
+        NSString *path = item[@"path"];
+        NSString *content = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
+        [self presentEditorWithName:nil source:content];
+    }
+}
+
+- (void)presentEditorWithName:(NSString *)name source:(NSString *)source {
+    ScriptEditorViewController *editor = [[ScriptEditorViewController alloc] initWithScriptName:name source:source];
+    __weak ScriptListViewController *weakSelf = self;
+    editor.onSaved = ^(NSString *savedName) {
+        [weakSelf reloadScripts];
+    };
+    UINavigationController *navigation = [[UINavigationController alloc] initWithRootViewController:editor];
+    navigation.modalPresentationStyle = UIModalPresentationFullScreen;
+    [self presentViewController:navigation animated:YES completion:nil];
+}
+
+- (void)importScript {
+    UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc]
+        initForOpeningContentTypes:@[UTTypeJavaScript, UTTypePlainText]
+                         asCopy:YES];
+    picker.delegate = self;
+    picker.allowsMultipleSelection = NO;
+    [self presentViewController:picker animated:YES completion:nil];
+}
+
+- (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+    NSURL *url = urls.firstObject;
+    if (!url) return;
+    NSString *source = [NSString stringWithContentsOfURL:url encoding:NSUTF8StringEncoding error:nil];
+    if (source.length == 0) {
+        self.logView.text = @"Unable to read the imported file.";
+        return;
+    }
+    NSString *base = [url.lastPathComponent stringByDeletingPathExtension];
+    NSString *safeBase = [[[base stringByReplacingOccurrencesOfString:@" " withString:@"-"]
+                                componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"\\/:*?\"<>|"]] componentsJoinedByString:@"-"];
+    NSString *name = [safeBase stringByAppendingPathExtension:@"js"];
+    NSError *error = nil;
+    if (![AutoEngine.sharedEngine saveDeployedScriptNamed:name script:source error:&error]) {
+        self.logView.text = error.localizedDescription ?: @"Import failed.";
+        return;
+    }
+    [self reloadScripts];
+    self.logView.text = [NSString stringWithFormat:@"Imported %@", name];
+}
+
+- (void)renameSelected {
+    NSDictionary *item = [self selectedItem];
+    if (!item || ![item[@"source"] isEqualToString:@"Deployed"]) {
+        self.logView.text = @"Only deployed scripts can be renamed.";
+        return;
+    }
+    NSString *oldName = item[@"name"];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Rename Script"
+                                                                   message:nil
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+        field.text = oldName;
+        field.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    }];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Rename" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        NSString *newName = [[alert.textFields.firstObject text] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+        if (newName.length == 0) return;
+        NSError *error = nil;
+        if (![AutoEngine.sharedEngine renameDeployedScriptNamed:oldName toName:newName error:&error]) {
+            self.logView.text = error.localizedDescription ?: @"Rename failed.";
+            return;
+        }
+        [self reloadScripts];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)exportSelected {
+    NSDictionary *item = [self selectedItem];
+    if (!item) return;
+    NSString *name = item[@"name"];
+    NSString *content = nil;
+    if ([item[@"source"] isEqualToString:@"Deployed"]) {
+        NSError *error = nil;
+        content = [AutoEngine.sharedEngine deployedScriptContentNamed:name error:&error];
+    } else {
+        content = [NSString stringWithContentsOfFile:item[@"path"] encoding:NSUTF8StringEncoding error:nil];
+    }
+    if (content.length == 0) {
+        self.logView.text = @"Unable to read the script for export.";
+        return;
+    }
+    NSString *tempPath = [NSTemporaryDirectory() stringByAppendingPathComponent:name];
+    [content writeToFile:tempPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    UIActivityViewController *activity = [[UIActivityViewController alloc] initWithActivityItems:@[[NSURL fileURLWithPath:tempPath]] applicationActivities:nil];
+    activity.popoverPresentationController.sourceView = self.view;
+    [self presentViewController:activity animated:YES completion:nil];
 }
 
 @end

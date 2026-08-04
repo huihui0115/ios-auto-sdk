@@ -32,6 +32,12 @@ typedef id _Nullable (^AutoNativeMethodHandler)(NSArray *args);
 - (void)runDeployedScriptNamed:(NSString *)name completion:(AutoScriptCompletion _Nullable)completion;
 /** Removes one deployed script without affecting bundled scripts. */
 - (BOOL)deleteDeployedScriptNamed:(NSString *)name error:(NSError * _Nullable * _Nullable)error;
+/** Validates and stores one UTF-8 script into the deployed-scripts sandbox. */
+- (BOOL)saveDeployedScriptNamed:(NSString *)name script:(NSString *)script error:(NSError * _Nullable * _Nullable)error;
+/** Reads the source of one deployed script for editing. */
+- (nullable NSString *)deployedScriptContentNamed:(NSString *)name error:(NSError * _Nullable * _Nullable)error;
+/** Renames one deployed script; fails when the new name is already taken. */
+- (BOOL)renameDeployedScriptNamed:(NSString *)oldName toName:(NSString *)newName error:(NSError * _Nullable * _Nullable)error;
 
 - (void)registerNativeMethod:(NSString *)methodName handler:(AutoNativeMethodHandler)handler;
 

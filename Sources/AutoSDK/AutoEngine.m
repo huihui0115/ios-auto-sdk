@@ -1626,6 +1626,74 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     return [result boolValue];
 }
 
+- (BOOL)saveDeployedScriptNamed:(NSString *)name script:(NSString *)script error:(NSError **)error {
+    NSString *safeName = AutoDebugScriptName(name);
+    if (!safeName) {
+        if (error) *error = AutoMakeError(AutoSDKErrorInvalidConfiguration, @"A valid deployed .js script name is required.", nil);
+        return NO;
+    }
+    if (![script isKindOfClass:NSString.class]) {
+        if (error) *error = AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Script source must be a string.", nil);
+        return NO;
+    }
+    NSUInteger byteLength = [script lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    NSUInteger configuredLimit = AutoConfiguredByteLimit(self.config ?: @{}, @"maxScriptBytes", 5 * 1024 * 1024, 64 * 1024 * 1024);
+    NSUInteger limit = MIN(configuredLimit, AutoDebugScriptByteLimit);
+    if (byteLength == 0 || byteLength > limit) {
+        if (error) *error = AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                          [NSString stringWithFormat:@"Script must contain 1 to %lu UTF-8 bytes.", (unsigned long)limit], nil);
+        return NO;
+    }
+    NSError *writeError = nil;
+    id result = AutoScriptFileOperation(@{ @"operation": @"writeText",
+                                            @"path": AutoDebugScriptPath(safeName),
+                                            @"text": script }, self.config ?: @{}, &writeError);
+    if (![result boolValue] && !writeError) {
+        writeError = AutoMakeError(AutoSDKErrorFileOperationFailed, @"Unable to deploy the script.", nil);
+    }
+    if (writeError && error) *error = writeError;
+    return [result boolValue];
+}
+
+- (NSString *)deployedScriptContentNamed:(NSString *)name error:(NSError **)error {
+    NSString *safeName = AutoDebugScriptName(name);
+    if (!safeName) {
+        if (error) *error = AutoMakeError(AutoSDKErrorInvalidConfiguration, @"A valid deployed .js script name is required.", nil);
+        return nil;
+    }
+    id result = AutoScriptFileOperation(@{ @"operation": @"readText", @"path": AutoDebugScriptPath(safeName) },
+                                        self.config ?: @{}, error);
+    return [result isKindOfClass:NSString.class] ? result : nil;
+}
+
+- (BOOL)renameDeployedScriptNamed:(NSString *)oldName toName:(NSString *)newName error:(NSError **)error {
+    NSString *safeOld = AutoDebugScriptName(oldName);
+    NSString *safeNew = AutoDebugScriptName(newName);
+    if (!safeOld || !safeNew) {
+        if (error) *error = AutoMakeError(AutoSDKErrorInvalidConfiguration, @"A valid deployed .js script name is required.", nil);
+        return NO;
+    }
+    if ([safeOld isEqualToString:safeNew]) return YES;
+    NSError *existsError = nil;
+    id exists = AutoScriptFileOperation(@{ @"operation": @"exists", @"path": AutoDebugScriptPath(safeNew) },
+                                        self.config ?: @{}, &existsError);
+    if (existsError) { if (error) *error = existsError; return NO; }
+    if ([exists boolValue]) {
+        if (error) *error = AutoMakeError(AutoSDKErrorFileOperationFailed, @"A script with the new name already exists.", nil);
+        return NO;
+    }
+    NSError *moveError = nil;
+    id result = AutoScriptFileOperation(@{ @"operation": @"move",
+                                            @"path": AutoDebugScriptPath(safeOld),
+                                            @"destination": AutoDebugScriptPath(safeNew),
+                                            @"overwrite": @NO }, self.config ?: @{}, &moveError);
+    if (![result boolValue] && !moveError) {
+        moveError = AutoMakeError(AutoSDKErrorFileOperationFailed, @"Unable to rename the script.", nil);
+    }
+    if (moveError && error) *error = moveError;
+    return [result boolValue];
+}
+
 - (NSDictionary<NSString *, id> *)capabilityInfo {
     NSDictionary *config = nil;
     id<AutoAutomationAdapter> adapter = nil;

@@ -447,6 +447,36 @@ check(!read('Examples/TemplateApp/App/AppDelegate.m').includes('debug token: %@'
 check(!read('Examples/TemplateApp/README.md').includes('debug token: %@') && !read('Examples/TemplateApp/README.md').includes('per-launch token'), 'Template documentation must not recommend logging or rotating the installation token every launch');
 check(!read('docs/DEBUG_PROTOCOL.md').includes('debug token: %@'), 'Debug protocol documentation must not recommend logging the complete token');
 check(templatePlist.includes('NSLocalNetworkUsageDescription') && templatePlist.includes('AutoSDKDebugAllowWiFi'), 'Template must declare and configure local-network debugging');
+check(templatePlist.includes('CFBundleDocumentTypes') && templatePlist.includes('LSSupportsOpeningDocumentsInPlace') &&
+      templatePlist.includes('public.javascript') && templatePlist.includes('UTImportedTypeDeclarations'),
+      'Template must declare JS/text document types so Files can open scripts in the app');
+const listSource = read('Examples/TemplateApp/App/ScriptListViewController.m');
+check(listSource.includes('#import "ScriptEditorViewController.h"') && listSource.includes('#import "SettingsViewController.h"') &&
+      listSource.includes('#import "AutoTemplateSettings.h"') && listSource.includes('#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>'),
+      'Script list must import the editor, settings, and template configuration headers');
+check(listSource.includes('UIDocumentPickerViewController') && listSource.includes('initForOpeningContentTypes:') &&
+      listSource.includes('UIActivityViewController') && listSource.includes('renameDeployedScriptNamed:') && listSource.includes('toName:') &&
+      listSource.includes('deployedScriptContentNamed:') && listSource.includes('AutoSDKScriptsChanged'),
+      'Script list must support import, export, rename, and refresh-on-change');
+check(!listSource.includes('AutoTemplateWiFiIPv4Address'), 'Wi-Fi address lookup must live in AutoTemplateSettings, not the list controller');
+const editorSource = read('Examples/TemplateApp/App/ScriptEditorViewController.m');
+check(editorSource.includes('saveDeployedScriptNamed:name script:') && editorSource.includes('initWithScriptName:') &&
+      editorSource.includes('onSaved') && editorSource.includes('keyboardWillChange:'),
+      'Script editor must save deployed scripts, run, and avoid the keyboard');
+const settingsSource = read('Examples/TemplateApp/App/SettingsViewController.m');
+check(settingsSource.includes('AutoSDKVersionString') && settingsSource.includes('applyEngineConfiguration') &&
+      settingsSource.includes('wifiToggled:') && settingsSource.includes('wdaToggled:'),
+      'Settings must show the SDK version and re-apply adapter configuration');
+const templateSettingsSource = read('Examples/TemplateApp/App/AutoTemplateSettings.m');
+check(templateSettingsSource.includes('makeAutomationAdapter') && templateSettingsSource.includes('applyEngineConfiguration') &&
+      templateSettingsSource.includes('wifiIPv4Address') && !templateSettingsSource.includes('registerNativeMethod:@"toast"'),
+      'Template configuration must build adapters and rely on the engine built-in toast');
+const engineHeader = read('Sources/AutoSDK/include/AutoEngine.h');
+check(engineHeader.includes('saveDeployedScriptNamed:') && engineHeader.includes('deployedScriptContentNamed:') &&
+      engineHeader.includes('renameDeployedScriptNamed:'), 'Engine must expose deployed-script save/read/rename APIs');
+const appDelegateSource = read('Examples/TemplateApp/App/AppDelegate.m');
+check(appDelegateSource.includes('openURL:') && appDelegateSource.includes('options:') && appDelegateSource.includes('saveDeployedScriptNamed:'),
+      'AppDelegate must import opened JS files into the deployed-scripts sandbox');
 const bootstrapStart = bootstrapSource.indexOf('NSString *AutoBootstrapScript(void) {');
 const bootstrapReturn = bootstrapSource.indexOf('return @"', bootstrapStart);
 const bootstrapTerminator = '"})(this);"';
@@ -573,7 +603,7 @@ check(read('Examples/TemplateApp/Scripts/hello.js').includes('device.setClipboar
       read('Examples/TemplateApp/Scripts/demo-api.js').includes('auto.capabilities().http'),
       'Template bundled scripts must exercise device/system APIs and guard HTTP by capability');
 
-for (const path of [...sourceFiles('Sources/AutoSDK'), ...sourceFiles('Tests')]) {
+for (const path of [...sourceFiles('Sources/AutoSDK'), ...sourceFiles('Tests'), ...sourceFiles('Examples/TemplateApp/App')]) {
   const source = read(path);
   check(!/<<<<<<<|=======|>>>>>>>/.test(source), `${path}: unresolved conflict marker`);
   checkBalancedSource(path);

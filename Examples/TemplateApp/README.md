@@ -1,6 +1,10 @@
 # AutoSDK Template App
 
-Generate and open the example project on macOS:
+A ready-to-brand iOS automation host built on AutoSDK. It runs on-device
+JavaScript, edits scripts on the phone, imports/exports them through the Files
+app, and connects to a PC debug client over WebSocket.
+
+## Build
 
 ```bash
 brew install xcodegen
@@ -9,65 +13,73 @@ xcodegen generate
 open AutoSDKTemplate.xcodeproj
 ```
 
-The generated project links the repository's local Swift package, bundles the
-scripts in `Scripts`, and presents a script list with run, stop, and log views.
+The generated project links the repository's local Swift package and bundles
+the scripts in `Scripts`.
 
-The following is the minimal integration used by a template application:
+## What the template does
+
+- Script list: shows bundled scripts plus scripts stored in the app sandbox
+  (`debug-scripts/`), with run, stop, refresh, and swipe-to-delete.
+- On-device editor: create, edit, save, run, and stop JavaScript. Saved
+  scripts are validated (`*.js`, safe file name, 768 KB limit) and appear in
+  the list immediately.
+- Import: pick a `.js`/`.mjs`/`.txt` file from Files (toolbar folder button)
+  or use “Open With AutoSDK Template” from Files. Imported files are copied
+  into the sandbox.
+- Export: share any script through the system share sheet (AirDrop, Files,
+  Mail, ...) with the toolbar action button.
+- Rename: rename a deployed script; the engine rejects name collisions.
+- Settings: shows the debug WebSocket URL and token, toggles Wi-Fi debug mode,
+  and configures the optional WDA runner (URL, target bundle id, timeout).
+  Apply re-creates the automation adapter and re-applies engine config.
+- Debug: with `AutoSDKDebugAllowWiFi`, the log panel shows the phone's
+  `ws://` URL and installation token for `npm run debug`.
+
+## Integration notes
+
+The template wires the engine through `AutoTemplateSettings` instead of
+duplicating setup in `AppDelegate.m`:
 
 ```objc
 @import AutoSDK;
 
+// AppDelegate.m
 - (BOOL)application:(UIApplication *)application
     didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    AutoEngine *engine = AutoEngine.sharedEngine;
-    [engine setAutomationAdapter:[AutoUIKitAdapter new]];
-    NSString *debugToken = [NSUserDefaults.standardUserDefaults stringForKey:@"AutoSDKDebugToken"];
-    if (debugToken.length < 16) {
-        debugToken = NSUUID.UUID.UUIDString;
-        [NSUserDefaults.standardUserDefaults setObject:debugToken forKey:@"AutoSDKDebugToken"];
-    }
-    [engine configureWithConfig:@{
-        @"scriptTimeout": @300,
-        @"debugServerEnabled": @YES,
-        @"debugToken": debugToken,
-        @"debugAllowWiFi": @YES,
-        @"allowFileAccess": @YES,
-        @"allowFileWrite": @YES
-    }];
-    [engine registerNativeMethod:@"toast" handler:^id(NSArray *args) {
-        NSLog(@"toast: %@", args.firstObject);
-        return @YES;
-    }];
+    [AutoTemplateSettings applyEngineConfiguration];
+    // ... root navigation controller with ScriptListViewController
     return YES;
 }
 ```
 
 `AutoUIKitAdapter` automates only views owned by this application. Replace it
 with a separately signed XCTest/WDA adapter when cross-application automation
-is required.
+is required. Set `AutoSDKAdapter` to `WDA` in `App/Info.plist` or
+`NSUserDefaults` and configure `AutoSDKWDAURL`, `AutoSDKWDABundleId`, and
+`AutoSDKWDATimeout` (default `http://127.0.0.1:8100`). Selecting `WDA` does
+not embed XCTest or create the Runner; you must run a WDA-compatible Runner
+separately on the phone.
 
-The template can select the adapter without changing `AppDelegate.m`. Set
-`AutoSDKAdapter` to `WDA` in `App/Info.plist` (or in `NSUserDefaults` at launch),
-then configure `AutoSDKWDAURL`, `AutoSDKWDABundleId`, and
-`AutoSDKWDATimeout`. The default WDA URL is `http://127.0.0.1:8100`. The
-template still needs a separately signed WDA-compatible Runner running on the
-phone; selecting `WDA` does not embed XCTest or create that Runner.
+## Files integration
 
-Call `runScript:completion:` from a button or a development-only script list.
-Never expose script execution or a debug transport in a production App Store
-build unless the app's security and distribution model explicitly allows it.
+`App/Info.plist` declares:
 
-The bundled template enables `AutoSDKDebugAllowWiFi` and includes the required
-`NSLocalNetworkUsageDescription`. On a trusted Wi-Fi network its log panel
-shows the phone's `ws://` URL and the installation token. Keep the token in a
-development-only UI or protected storage; do not write it to the system log. Set
-`AutoSDKDebugAllowWiFi` to `false` to restore loopback-only USB-tunnel mode.
-Direct Wi-Fi debugging is authenticated but unencrypted and is intended only
-for development.
+- `CFBundleDocumentTypes` for `public.javascript` and `public.plain-text`
+  (`.js`, `.txt`) so Files offers “Open With AutoSDK Template”.
+- `UTImportedTypeDeclarations` for `.mjs`.
+- `LSSupportsOpeningDocumentsInPlace`.
 
-For a local PC debug client, enable `debugServerEnabled`, set a random
-`debugToken`, and send authenticated WebSocket JSON commands such as:
+`AppDelegate.m` handles `application:openURL:options:` and imports the opened
+file into `debug-scripts/`.
 
-```json
-{"id":"1","token":"<debugToken>","type":"run","script":"auto.sleep(100)"}
-```
+## Security
+
+The bundled template enables `AutoSDKDebugAllowWiFi` and includes
+`NSLocalNetworkUsageDescription`. On a trusted Wi-Fi network the settings page
+shows the phone's `ws://` URL and installation token. Keep the token in the
+settings UI only; do not log it. Set `AutoSDKDebugAllowWiFi` to `false` to
+restore loopback-only USB-tunnel mode. Wi-Fi debugging is authenticated but
+unencrypted and intended only for development.
+
+See `docs/MARKET_RELEASE.md` for the distribution checklist before shipping a
+signed build.
