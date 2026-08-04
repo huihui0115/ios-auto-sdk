@@ -8,21 +8,6 @@
 #import <UIKit/UIKit.h>
 #include <math.h>
 
-// JavaScriptCore exports these execution-time-limit symbols since iOS 9, but
-// they are not part of the public SDK headers. They are weak-linked so the
-// binary still loads on platforms that remove the symbols, and the calls are
-// skipped when unavailable. This gives the runtime the only reliable way to
-// interrupt a pure-JavaScript loop when scriptTimeout elapses (or on stop).
-extern void JSContextGroupSetExecutionTimeLimit(JSContextGroupRef group,
-                                                double limit,
-                                                JSContextRef context,
-                                                JSObjectRef failCallback) __attribute__((weak_import));
-extern void JSContextGroupClearExecutionTimeLimit(JSContextGroupRef group) __attribute__((weak_import));
-// Weak-linked symbols are only resolvable through their exported names; the
-// Auto-prefixed aliases keep the null-check pattern readable at call sites.
-#define AutoJSContextGroupSetExecutionTimeLimit JSContextGroupSetExecutionTimeLimit
-#define AutoJSContextGroupClearExecutionTimeLimit JSContextGroupClearExecutionTimeLimit
-
 @protocol AutoJSExport <JSExport>
 - (id)invokeClick:(JSValue *)selector;
 - (id)invokeClickPoint:(JSValue *)payload;
@@ -106,8 +91,6 @@ extern void JSContextGroupClearExecutionTimeLimit(JSContextGroupRef group) __att
 @property (nonatomic, strong) dispatch_queue_t scriptQueue;
 @property (nonatomic, strong) dispatch_queue_t debugAdapterQueue;
 @property (nonatomic, assign) BOOL stopRequested;
-@property (nonatomic, assign) JSContextGroupRef activeScriptInterruptGroup;
-@property (nonatomic, assign) JSGlobalContextRef activeScriptInterruptGlobalRef;
 - (void)loadScript:(NSString *)value config:(NSDictionary *)config completion:(void (^)(NSString * _Nullable source, NSError * _Nullable error))completion;
 - (void)evaluateScript:(NSString *)source config:(NSDictionary *)config adapter:(id<AutoAutomationAdapter>)adapter completion:(AutoScriptCompletion)completion;
 - (void)finishWithResult:(NSDictionary * _Nullable)result error:(NSError * _Nullable)error completion:(AutoScriptCompletion)completion;
@@ -119,7 +102,6 @@ extern void JSContextGroupClearExecutionTimeLimit(JSContextGroupRef group) __att
 @end
 
 static void *AutoDebugServerQueueKey = &AutoDebugServerQueueKey;
-static void *AutoScriptQueueKey = &AutoScriptQueueKey;
 
 static void AutoDispatchDebugServerCompletions(NSArray *callbacks, NSError *error) {
     if (callbacks.count == 0) return;
@@ -1305,7 +1287,6 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         _nativeMethods = [NSMutableDictionary dictionary];
         _adapter = [AutoUnavailableAdapter new];
         _scriptQueue = dispatch_queue_create("com.autosdk.javascript", DISPATCH_QUEUE_SERIAL);
-        dispatch_queue_set_specific(_scriptQueue, AutoScriptQueueKey, AutoScriptQueueKey, NULL);
         _debugAdapterQueue = dispatch_queue_create("com.autosdk.debug-adapter", DISPATCH_QUEUE_SERIAL);
         _debugServerQueue = dispatch_queue_create("com.autosdk.debug-server-state", DISPATCH_QUEUE_SERIAL);
         dispatch_queue_set_specific(_debugServerQueue, AutoDebugServerQueueKey, AutoDebugServerQueueKey, NULL);
@@ -1915,7 +1896,6 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     }
     if ([adapter respondsToSelector:@selector(cancelCurrentOperations)]) [adapter cancelCurrentOperations];
     [task cancel];
-    [self requestScriptInterruptionForStop];
 }
 
 - (void)requestStop {
@@ -1924,77 +1904,6 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 
 - (BOOL)shouldStop {
     @synchronized (self) { return self.stopRequested; }
-}
-
-- (BOOL)installScriptInterruptionForContext:(JSContext *)context timeout:(NSTimeInterval)timeout {
-    if (!AutoJSContextGroupSetExecutionTimeLimit || timeout <= 0) return NO;
-    JSGlobalContextRef globalRef = context.JSGlobalContextRef;
-    JSContextGroupRef group = JSContextGetGroup(globalRef);
-    if (!group) return NO;
-    @synchronized (self) {
-        self.activeScriptInterruptGroup = group;
-        self.activeScriptInterruptGlobalRef = globalRef;
-    }
-    JSContextGroupRetain(group);
-    JSGlobalContextRetain(globalRef);
-    // The last two arguments are ABI-sensitive across JSC versions: older
-    // runtimes expect (JSContextRef, JSObjectRef failCallback) while newer
-    // runtimes expect a C JSShouldTerminateCallback plus opaque data. Passing
-    // NULL/NULL is safe on both and makes JSC terminate execution by default
-    // when the limit fires. The wall-clock watchdog below still maps the
-    // termination to AutoSDKErrorScriptTimeout.
-    AutoJSContextGroupSetExecutionTimeLimit(group, timeout, NULL, NULL);
-    if ([self shouldStop]) {
-        // stopScript may have run between this method's start and the limit
-        // installation (or while the group references were stored), so the
-        // near-zero stop limit would have been missed or overwritten. Re-apply
-        // it so a pure-JS loop starting right now terminates immediately
-        // instead of running until the full scriptTimeout.
-        AutoJSContextGroupSetExecutionTimeLimit(group, 0.001, NULL, NULL);
-    }
-    return YES;
-}
-
-- (void)clearScriptInterruptionForContext:(JSContext *)context {
-    if (context) {
-        JSContextGroupRef group = JSContextGetGroup(context.JSGlobalContextRef);
-        if (AutoJSContextGroupClearExecutionTimeLimit && group) AutoJSContextGroupClearExecutionTimeLimit(group);
-    }
-    JSContextGroupRef ownedGroup = NULL;
-    JSGlobalContextRef ownedGlobal = NULL;
-    @synchronized (self) {
-        ownedGroup = self.activeScriptInterruptGroup;
-        ownedGlobal = self.activeScriptInterruptGlobalRef;
-        self.activeScriptInterruptGroup = NULL;
-        self.activeScriptInterruptGlobalRef = NULL;
-    }
-    if (ownedGroup) JSContextGroupRelease(ownedGroup);
-    if (ownedGlobal) JSGlobalContextRelease(ownedGlobal);
-}
-
-- (void)requestScriptInterruptionForStop {
-    JSContextGroupRef group = NULL;
-    JSGlobalContextRef globalRef = NULL;
-    @synchronized (self) {
-        group = self.activeScriptInterruptGroup;
-        globalRef = self.activeScriptInterruptGlobalRef;
-        if (group) JSContextGroupRetain(group);
-        if (globalRef) JSGlobalContextRetain(globalRef);
-    }
-    if (group && AutoJSContextGroupSetExecutionTimeLimit &&
-        dispatch_get_specific(AutoScriptQueueKey) != NULL) {
-        // JSContextGroupSetExecutionTimeLimit is an undocumented private API
-        // with no thread-safety guarantees. Shortening the limit from a
-        // foreign thread while JSC is executing can hang the VM (observed on
-        // the iOS 17.4 simulator), so only the script thread performs the
-        // change. stopScript on other threads relies on stopRequested
-        // polling, which covers sleeps, bridge calls and timer loops; pure
-        // JavaScript loops still hit the limit that the script thread
-        // installed with the script's own deadline.
-        AutoJSContextGroupSetExecutionTimeLimit(group, 0.001, NULL, NULL);
-    }
-    if (group) JSContextGroupRelease(group);
-    if (globalRef) JSGlobalContextRelease(globalRef);
 }
 
 - (void)runScript:(NSString *)scriptPathOrSource completion:(AutoScriptCompletion)completion {
@@ -2243,8 +2152,6 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     __block BOOL timedOut = NO;
     // One-shot dispatch timer instead of a blocking wait, so a long-running
     // script does not occupy a global utility thread for the whole budget.
-    // The JavaScriptCore execution-time limit installed below interrupts
-    // pure-JS loops at the same deadline.
     dispatch_source_t watchdog = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0,
                                                         dispatch_get_global_queue(QOS_CLASS_UTILITY, 0));
     if (watchdog) {
@@ -2264,13 +2171,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         });
         dispatch_resume(watchdog);
     }
-    BOOL interruptibleScripts = AutoPermission(config, @"interruptibleScripts", YES);
-    if (interruptibleScripts && timeout > 0) {
-        [self installScriptInterruptionForContext:context timeout:timeout];
-    }
     JSValue *value = [context evaluateScript:source ?: @""];
     if (!context.exception && ![self shouldStop]) [drainTimers callWithArguments:@[]];
-    [self clearScriptInterruptionForContext:context];
     BOOL didTimeOut = NO;
     @synchronized (executionState) {
         executionFinished = YES;

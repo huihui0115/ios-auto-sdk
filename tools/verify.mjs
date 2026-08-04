@@ -235,8 +235,6 @@ const bootstrapSource = read('Sources/AutoSDK/AutoBootstrapScript.m');
 check(engineSource.includes('waitPollInterval') && engineSource.includes('pollInterval * 1.5'), 'waitFor must use bounded polling backoff');
 check(engineSource.includes('NSError *destinationError = nil;') && engineSource.includes('&destinationError'),
       'HTTP download destination validation must declare its error pointer');
-check(engineSource.includes('AutoScriptQueueKey') && engineSource.includes('dispatch_get_specific(AutoScriptQueueKey)'),
-      'stopScript must not call the private JSC execution-time API from foreign threads');
 check(engineSource.includes('AutoPayloadHasFiniteNumbers') && engineSource.includes('maxScreenshotBytes'), 'script numeric inputs and screenshots must be bounded');
 check(engineSource.includes('maximumTotalBytes') && engineSource.includes('retainedMessageBytes') &&
       engineSource.includes('@"maxLogBytes"'),
@@ -260,9 +258,9 @@ check(bootstrapSource.includes('delete g.__bridge;delete g.__console') &&
 check(engineSource.includes('hasSuffix:@".js"') && engineSource.includes('!containsWhitespace') &&
       engineSource.includes('!containsCodeCharacters'),
       'Path detection must not reject inline source that merely ends in .js');
-check(engineSource.includes('AutoJSContextGroupSetExecutionTimeLimit(group, 0.001, NULL, NULL)') &&
-      engineSource.includes('if ([self shouldStop])'),
-      'Installed script interruption must re-check the stop flag so stopScript cannot race the install');
+check(!engineSource.includes('JSContextGroupSetExecutionTimeLimit') &&
+      !engineSource.includes('JSContextGroupClearExecutionTimeLimit'),
+      'The private JSC execution-time API must not be used; pure-JS loops are cooperative-only');
 check(engineSource.includes('__autosdkTruncated') && engineSource.includes('AutoMaxResultNodes'),
       'Script result conversion must be bounded');
 check(engineSource.includes('dispatch_source_set_event_handler(watchdog') &&

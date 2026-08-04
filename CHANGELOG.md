@@ -8,17 +8,16 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Fixed
 
-- **Pure-JavaScript loops are now interruptible.** `scriptTimeout` and
-  `stopScript` interrupt `while(true){}` style loops (including loops inside
-  timer callbacks) via the JavaScriptCore execution-time limit
-  (`JSContextGroupSetExecutionTimeLimit`, weak-linked). The limit is kept
-  installed while the timer queue drains, so a pure-JS loop in a
-  `setTimeout(..., 0)` callback can no longer wedge the engine forever. See
+- **The private JSC execution-time API is no longer used.**
+  `JSContextGroupSetExecutionTimeLimit` /
+  `JSContextGroupClearExecutionTimeLimit` (weak-linked, undocumented) were
+  observed to hang the JavaScript VM on the iOS 17.4 simulator, stalling the
+  whole test run. The SDK now relies on the cooperative stop flag plus the
+  wall-clock watchdog: `auto.sleep`, bridge calls and timer callbacks are
+  interrupted promptly, while a pure-JS `while(true){}` loop that never
+  crosses the bridge can keep the CPU busy until the process is terminated.
+  `interruptibleScripts` remains accepted for compatibility. See
   `docs/SCRIPT_EXECUTION.md`.
-- **ABI-safe interruption calls.** The execution-time-limit API has a
-  different callback ABI on older vs. newer JavaScriptCore versions. The SDK
-  now passes `NULL` callbacks (safe on both) and maps the termination to
-  `AutoSDKErrorScriptTimeout` via the existing watchdog.
 - **Stale bridge errors no longer leak into the next script.** `lastError`
   is cleared whenever a script starts successfully, so a failure from a
   previous bridge call cannot be reported as the current run's result.
@@ -42,16 +41,6 @@ All notable changes to AutoSDK are documented here. The format follows
   path.** A trailing comment such as `// main.js` no longer returns
   `AutoSDKErrorScriptNotFound`; the `.js` suffix only implies a path when
   the input is path-shaped (no whitespace, no JavaScript syntax characters).
-- **`stopScript` cannot race the execution-time-limit installation.** The
-  installed limit re-checks the stop flag, so a `stopScript` arriving
-  before or during install still interrupts a pure-JS loop immediately
-  instead of letting it run until the full `scriptTimeout`.
-- **The private JSC execution-time API is never called from foreign
-  threads.** `stopScript` used to shorten the JavaScriptCore execution-time
-  limit from whatever thread issued it, which hung the JavaScript VM on the
-  iOS 17.4 simulator (the whole XCTest run stalled). Only the script thread
-  now touches the limit; other threads rely on the cooperative stop polling
-  that covers sleeps, bridge calls and timer loops.
 - **Inspector selector results clear stale overlays.** Testing a selector
   now removes any previous image-match highlight and region selection, so
   the screenshot overlay always reflects the current result set.

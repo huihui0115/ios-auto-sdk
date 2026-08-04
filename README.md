@@ -9,7 +9,7 @@
 - 全局 `auto` API：点击、滑动、输入、稳定节点查询、图色、截图、OCR、沙盒文件、命名存储、设备信息和受控 HTTP
 - Native 方法注册：`registerNativeMethod:handler:`
 - 取消、超时、JS 异常和适配器错误统一转换为 `NSError`，成功结果包含 `value` 和 `logs`
-- 可中断脚本：`scriptTimeout` 到期或 `stopScript` 可打断纯 JS 死循环（`interruptibleScripts` 可关闭）
+- 脚本可取消：`stopScript`/`scriptTimeout` 在桥接调用、`auto.sleep` 和定时器回调处协作式中断脚本
 - CocoaPods 和 Swift Package Manager 接入骨架
 - 基于公共 API 的 `AutoUIKitAdapter`，可直接自动化宿主 App 自己的 UIKit 视图
 
@@ -42,7 +42,7 @@ AutoEngine *engine = AutoEngine.sharedEngine;
 }];
 ```
 
-常用配置项：`scriptTimeout`（秒，默认 300）、`maxScriptBytes`（默认 5 MB、硬上限 64 MB）、`maxLogEntries`、`maxLogMessageLength`、`maxLogBytes`、`allowRemoteScripts`（默认 `NO`）、`allowedRemoteScriptHosts`、`remoteScriptTimeout`、`allowNetwork`（默认 `NO`）、`allowedNetworkHosts`、`maxHTTPRequestBytes`、`maxHTTPResponseBytes`、`allowFileAccess`、`allowFileWrite`、`fileRoot`、`maxFileReadBytes`、`maxFileWriteBytes`、`maxFileCopyBytes`、`maxFileListItems`、`maxFileOperationItems`、`maxFileLineCount`、`allowStorage`、`maxStorageBytes`、`maxStorageEntries`、`debugLogging` 和 `interruptibleScripts`（默认开启，允许用执行时限打断纯 JS 死循环）。文件与存储默认只能访问 App 沙盒中的 AutoSDK 专用范围。
+常用配置项：`scriptTimeout`（秒，默认 300）、`maxScriptBytes`（默认 5 MB、硬上限 64 MB）、`maxLogEntries`、`maxLogMessageLength`、`maxLogBytes`、`allowRemoteScripts`（默认 `NO`）、`allowedRemoteScriptHosts`、`remoteScriptTimeout`、`allowNetwork`（默认 `NO`）、`allowedNetworkHosts`、`maxHTTPRequestBytes`、`maxHTTPResponseBytes`、`allowFileAccess`、`allowFileWrite`、`fileRoot`、`maxFileReadBytes`、`maxFileWriteBytes`、`maxFileCopyBytes`、`maxFileListItems`、`maxFileOperationItems`、`maxFileLineCount`、`allowStorage`、`maxStorageBytes`、`maxStorageEntries`、`debugLogging` 和 `interruptibleScripts`（为兼容保留，脚本中断为协作式：桥接调用、`auto.sleep`、定时器回调处生效；纯 JS 无限循环可能持续占用 CPU）。文件与存储默认只能访问 App 沙盒中的 AutoSDK 专用范围。
 
 ### 本地调试服务器
 

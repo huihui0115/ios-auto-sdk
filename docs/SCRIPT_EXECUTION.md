@@ -79,26 +79,28 @@ Remote loading is disabled by default. With `allowRemoteScripts: @YES`:
 ## Timeouts and interruption
 
 **`scriptTimeout`** (seconds, default 300, hard cap 3600) is the total
-wall-clock budget for one run, **including timer callbacks**. Two mechanisms
-enforce it:
+wall-clock budget for one run, **including timer callbacks**. The timeout is
+enforced by a watchdog plus cooperative stop checks:
 
 - **Watchdog.** A utility dispatch waits on a completion semaphore for the
   budget; on expiry it requests a stop and cancels in-flight adapter work.
   The run completes with `AutoSDKErrorScriptTimeout` and the engine remains
   usable for the next run.
-- **JavaScriptCore execution-time limit** (`interruptibleScripts`, default
-  YES). The SDK installs `JSContextGroupSetExecutionTimeLimit` before
-  evaluating the source and keeps it installed while timers drain, so even a
-  pure-JavaScript loop such as `while(true){}` – including inside a timer
-  callback – is interrupted at the budget. The symbols are weak-linked: on
-  runtimes that do not export them the limit is skipped and pure JS loops can
-  only be interrupted at SDK bridge boundaries.
+- **Cooperative interruption.** All SDK bridge entry points (automation,
+  HTTP, file, storage, device, app, console, native extensions and timers)
+  check the stop flag before crossing the bridge, and `auto.sleep` polls it
+  while it waits. A script that keeps hitting the bridge – including a
+  `while(true){}` loop that calls an SDK method, sleeps, or runs inside a
+  timer callback – stops within one bridge hop. A pure-JavaScript loop that
+  never crosses the bridge (e.g. `while(true){}`) is **not** interrupted and
+  can keep the CPU busy until the process is terminated; keep such loops
+  cooperative by calling `auto.sleep(…)` or an SDK API in the body.
 
-**`stopScript`** sets the stop flag, cancels the active network task and
-adapter operations, and requests a hard interruption so a running pure-JS
-loop exits within milliseconds. The completion then reports
-`AutoSDKErrorScriptCancelled`. A stopped engine is immediately ready for the
-next `runScript:`.
+**`stopScript`** sets the stop flag and cancels the active network task and
+adapter operations. Any script that is waiting in `auto.sleep`, blocked on a
+bridge call, or about to cross the bridge finishes within milliseconds and
+the completion reports `AutoSDKErrorScriptCancelled`. A stopped engine is
+immediately ready for the next `runScript:`.
 
 All SDK bridge entry points (automation, HTTP, file, storage, device, app,
 console, native extensions and timers) check the stop flag before crossing
@@ -172,7 +174,7 @@ On failure the completion receives `nil` result and an `NSError` in
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `scriptTimeout` | 300 | Total seconds budget, clamped to 3600; includes timers |
-| `interruptibleScripts` | YES | Install the JSC execution-time limit for pure-JS loops |
+| `interruptibleScripts` | YES | Accepted for compatibility; interruption is cooperative (no hard JSC limit) |
 | `maxScriptBytes` | 5 MB | Source/remote size limit (hard cap 64 MB) |
 | `allowRemoteScripts` | NO | Permit `http(s)://` script loading |
 | `allowedRemoteScriptHosts` | – | Optional exact host allowlist for remote scripts |

@@ -1221,14 +1221,14 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [self waitForExpectationsWithTimeout:2 handler:nil];
 }
 
-- (void)testPureJSLoopIsInterruptedByScriptTimeout {
+- (void)testBridgeSleepLoopIsInterruptedByScriptTimeout {
     AutoEngine *engine = AutoEngine.sharedEngine;
     AutoTestAdapter *adapter = [AutoTestAdapter new];
-    [engine initWithConfig:@{ @"scriptTimeout": @0.5, @"interruptibleScripts": @YES }];
+    [engine initWithConfig:@{ @"scriptTimeout": @0.5 }];
     [engine setAutomationAdapter:adapter];
 
-    XCTestExpectation *timedOut = [self expectationWithDescription:@"pure JS loop timeout"];
-    [engine runScript:@"while(true){}" completion:^(NSDictionary *result, NSError *error) {
+    XCTestExpectation *timedOut = [self expectationWithDescription:@"bridge sleep loop timeout"];
+    [engine runScript:@"while(true){auto.sleep(50);}" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(result);
         XCTAssertEqual(error.code, AutoSDKErrorScriptTimeout);
         [timedOut fulfill];
@@ -1236,7 +1236,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [self waitForExpectationsWithTimeout:5 handler:nil];
 
     [engine initWithConfig:@{ @"scriptTimeout": @5 }];
-    XCTestExpectation *nextRun = [self expectationWithDescription:@"run after pure JS timeout"];
+    XCTestExpectation *nextRun = [self expectationWithDescription:@"run after bridge loop timeout"];
     [engine runScript:@"40+2;" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(error);
         XCTAssertEqualObjects(result[@"value"], @42);
@@ -1245,14 +1245,14 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [self waitForExpectationsWithTimeout:2 handler:nil];
 }
 
-- (void)testTimerCallbackLoopIsInterruptedByScriptTimeout {
+- (void)testTimerCallbackBridgeLoopIsInterruptedByScriptTimeout {
     AutoEngine *engine = AutoEngine.sharedEngine;
     AutoTestAdapter *adapter = [AutoTestAdapter new];
-    [engine initWithConfig:@{ @"scriptTimeout": @0.5, @"interruptibleScripts": @YES }];
+    [engine initWithConfig:@{ @"scriptTimeout": @0.5 }];
     [engine setAutomationAdapter:adapter];
 
-    XCTestExpectation *timedOut = [self expectationWithDescription:@"timer loop timeout"];
-    [engine runScript:@"setTimeout(function(){ while(true){} }, 0); 1;" completion:^(NSDictionary *result, NSError *error) {
+    XCTestExpectation *timedOut = [self expectationWithDescription:@"timer bridge loop timeout"];
+    [engine runScript:@"setTimeout(function(){ while(true){auto.sleep(50);} }, 0); 1;" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(result);
         XCTAssertEqual(error.code, AutoSDKErrorScriptTimeout);
         [timedOut fulfill];
@@ -1260,7 +1260,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [self waitForExpectationsWithTimeout:5 handler:nil];
 
     [engine initWithConfig:@{ @"scriptTimeout": @5 }];
-    XCTestExpectation *nextRun = [self expectationWithDescription:@"run after timer loop timeout"];
+    XCTestExpectation *nextRun = [self expectationWithDescription:@"run after timer bridge loop timeout"];
     [engine runScript:@"42;" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(error);
         XCTAssertEqualObjects(result[@"value"], @42);
@@ -1315,20 +1315,19 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [self waitForExpectationsWithTimeout:2 handler:nil];
 }
 
-- (void)testStopBeforeEvaluationInterruptsPureJSLoop {
+- (void)testStopBeforeEvaluationInterruptsBridgeSleepLoop {
     AutoEngine *engine = AutoEngine.sharedEngine;
     [engine initWithConfig:@{ @"scriptTimeout": @1 }];
     [engine setAutomationAdapter:[AutoTestAdapter new]];
 
-    XCTestExpectation *stopped = [self expectationWithDescription:@"pure JS loop stopped before evaluation"];
-    [engine runScript:@"while (true) {}" completion:^(NSDictionary *result, NSError *error) {
+    XCTestExpectation *stopped = [self expectationWithDescription:@"bridge sleep loop stopped before evaluation"];
+    [engine runScript:@"while(true){auto.sleep(50);}" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(result);
         XCTAssertEqual(error.code, AutoSDKErrorScriptCancelled);
         [stopped fulfill];
     }];
     // runScript: has already passed its synchronous stop check, so this stop
-    // deterministically lands between the start check and the execution-time
-    // limit installation.
+    // deterministically lands before the evaluation's first bridge call.
     [engine stopScript];
     [self waitForExpectationsWithTimeout:3 handler:nil];
 }
