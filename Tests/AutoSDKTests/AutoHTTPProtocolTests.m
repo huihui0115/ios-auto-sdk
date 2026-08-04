@@ -44,7 +44,20 @@ static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
         headers = @{ @"Location": [AutoTestHTTPBase stringByAppendingString:@"/final"] };
         body = [NSData data];
     } else if ([path isEqualToString:@"/echo"]) {
-        body = self.request.HTTPBody ?: [NSData data];
+        body = self.request.HTTPBody;
+        if (!body && self.request.HTTPBodyStream) {
+            NSInputStream *stream = self.request.HTTPBodyStream;
+            [stream open];
+            NSMutableData *streamedBody = [NSMutableData data];
+            uint8_t buffer[4096];
+            NSInteger read = 0;
+            while ((read = [stream read:buffer maxLength:sizeof(buffer)]) > 0) {
+                [streamedBody appendBytes:buffer length:(NSUInteger)read];
+            }
+            [stream close];
+            body = streamedBody;
+        }
+        body = body ?: [NSData data];
         NSString *contentType = self.request.allHTTPHeaderFields[@"Content-Type"];
         headers = @{ @"Content-Type": contentType ?: @"application/octet-stream" };
     } else if ([path isEqualToString:@"/large"]) {
@@ -125,17 +138,111 @@ static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
     [self waitForExpectationsWithTimeout:5 handler:nil];
 }
 
-- (void)testHTTPRedirectFollowsSameSchemeByDefault {
-    XCTestExpectation *expectation = [self expectationWithDescription:@"redirect followed"];
-    [self runScript:@"auto.http.get('http://autosdk.test/redirect');"
-         withConfig:@{@"allowNetwork": @YES, @"scriptTimeout": @5}
-         completion:^(NSDictionary *result, NSError *error) {
-        XCTAssertNil(error);
-        XCTAssertEqualObjects(result[@"value"][@"status"], @200);
-        XCTAssertTrue([result[@"value"][@"url"] hasSuffix:@"/final"]);
-        [expectation fulfill];
-    }];
-    [self waitForExpectationsWithTimeout:5 handler:nil];
+- (void)testRedirectRouterFollowsSameSchemeByDefault {
+    // The shared session cannot follow a redirect produced by a custom
+    // NSURLProtocol (the delegate is not consulted for protocol responses),
+    // so the follow policy is verified directly against the router.
+    AutoHTTPRedirectRouter *router = [AutoHTTPRedirectRouter new];
+    NSURLSession *session = [NSURLSession sharedSession];
+    NSURLSessionTask *task = [session dataTaskWithURL:[NSURL URLWithString:@"http://autosdk.test/redirect"]];
+    AutoHTTPRedirectPolicy *policy = [AutoHTTPRedirectPolicy new];
+    policy.followsRedirects = YES;
+    [router setPolicy:policy forTask:task];
+
+    NSHTTPURLResponse *redirectResponse = [[NSHTTPURLResponse alloc] initWithURL:task.originalRequest.URL
+                                                                      statusCode:302
+                                                                     HTTPVersion:@"HTTP/1.1"
+                                                                    headerFields:@{@"Location": @"http://autosdk.test/final"}];
+    NSURLRequest *newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:@"http://autosdk.test/final"]];
+    __block NSURLRequest *approvedRequest = nil;
+    [router URLSession:session task:task willPerformHTTPRedirection:redirectResponse newRequest:newRequest
+     completionHandler:^(NSURLRequest * _Nullable request) { approvedRequest = request; }];
+    XCTAssertNotNil(approvedRequest);
+    XCTAssertEqualObjects(approvedRequest.URL.absoluteString, @"http://autosdk.test/final");
+    [router removePolicyForTask:task];
+}
+
+- (void)testRedirectRouterBlocksUnsafeRedirects {
+    AutoHTTPRedirectRouter *router = [AutoHTTPRedirectRouter new];
+    NSURLSession *session = [NSURLSession sharedSession];
+    AutoHTTPRedirectPolicy *policy = [AutoHTTPRedirectPolicy new];
+    policy.followsRedirects = YES;
+
+    NSURLSessionTask *downgradeTask = [session dataTaskWithURL:[NSURL URLWithString:@"https://autosdk.test/redirect"]];
+    [router setPolicy:policy forTask:downgradeTask];
+    NSHTTPURLResponse *downgradeResponse = [[NSHTTPURLResponse alloc] initWithURL:downgradeTask.originalRequest.URL
+                                                                      statusCode:302
+                                                                     HTTPVersion:@"HTTP/1.1"
+                                                                    headerFields:@{@"Location": @"http://autosdk.test/final"}];
+    NSURLRequest *downgradeRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:@"http://autosdk.test/final"]];
+    __block NSURLRequest *approved = nil;
+    [router URLSession:session task:downgradeTask willPerformHTTPRedirection:downgradeResponse newRequest:downgradeRequest
+     completionHandler:^(NSURLRequest * _Nullable request) { approved = request; }];
+    XCTAssertNil(approved, @"HTTPS-to-HTTP downgrades must be rejected");
+    [router removePolicyForTask:downgradeTask];
+
+    NSURLSessionTask *schemeTask = [session dataTaskWithURL:[NSURL URLWithString:@"http://autosdk.test/redirect"]];
+    [router setPolicy:policy forTask:schemeTask];
+    NSHTTPURLResponse *schemeResponse = [[NSHTTPURLResponse alloc] initWithURL:schemeTask.originalRequest.URL
+                                                                   statusCode:302
+                                                                  HTTPVersion:@"HTTP/1.1"
+                                                                 headerFields:@{@"Location": @"file:///tmp/x"}];
+    NSURLRequest *schemeRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:@"file:///tmp/x"]];
+    approved = nil;
+    [router URLSession:session task:schemeTask willPerformHTTPRedirection:schemeResponse newRequest:schemeRequest
+     completionHandler:^(NSURLRequest * _Nullable request) { approved = request; }];
+    XCTAssertNil(approved, @"Non-http(s) redirect targets must be rejected");
+    [router removePolicyForTask:schemeTask];
+
+    AutoHTTPRedirectPolicy *blockedPolicy = [AutoHTTPRedirectPolicy new];
+    blockedPolicy.followsRedirects = NO;
+    NSURLSessionTask *blockedTask = [session dataTaskWithURL:[NSURL URLWithString:@"http://autosdk.test/redirect"]];
+    [router setPolicy:blockedPolicy forTask:blockedTask];
+    NSHTTPURLResponse *blockedResponse = [[NSHTTPURLResponse alloc] initWithURL:blockedTask.originalRequest.URL
+                                                                    statusCode:302
+                                                                   HTTPVersion:@"HTTP/1.1"
+                                                                  headerFields:@{@"Location": @"http://autosdk.test/final"}];
+    NSURLRequest *blockedRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:@"http://autosdk.test/final"]];
+    approved = nil;
+    [router URLSession:session task:blockedTask willPerformHTTPRedirection:blockedResponse newRequest:blockedRequest
+     completionHandler:^(NSURLRequest * _Nullable request) { approved = request; }];
+    XCTAssertNil(approved, @"followRedirects:NO must block the redirect");
+    [router removePolicyForTask:blockedTask];
+}
+
+- (void)testRedirectRouterEnforcesHostAllowlist {
+    AutoHTTPRedirectRouter *router = [AutoHTTPRedirectRouter new];
+    NSURLSession *session = [NSURLSession sharedSession];
+    AutoHTTPRedirectPolicy *policy = [AutoHTTPRedirectPolicy new];
+    policy.followsRedirects = YES;
+    policy.allowedHosts = @[@"autosdk.test"];
+
+    NSURLSessionTask *allowedTask = [session dataTaskWithURL:[NSURL URLWithString:@"http://autosdk.test/redirect"]];
+    [router setPolicy:policy forTask:allowedTask];
+    NSHTTPURLResponse *allowedResponse = [[NSHTTPURLResponse alloc] initWithURL:allowedTask.originalRequest.URL
+                                                                    statusCode:302
+                                                                   HTTPVersion:@"HTTP/1.1"
+                                                                  headerFields:@{@"Location": @"http://autosdk.test/final"}];
+    NSURLRequest *allowedRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:@"http://autosdk.test/final"]];
+    __block NSURLRequest *approved = nil;
+    [router URLSession:session task:allowedTask willPerformHTTPRedirection:allowedResponse newRequest:allowedRequest
+     completionHandler:^(NSURLRequest * _Nullable request) { approved = request; }];
+    XCTAssertNotNil(approved);
+    XCTAssertEqualObjects(approved.URL.absoluteString, @"http://autosdk.test/final");
+    [router removePolicyForTask:allowedTask];
+
+    NSURLSessionTask *deniedTask = [session dataTaskWithURL:[NSURL URLWithString:@"http://autosdk.test/redirect"]];
+    [router setPolicy:policy forTask:deniedTask];
+    NSHTTPURLResponse *deniedResponse = [[NSHTTPURLResponse alloc] initWithURL:deniedTask.originalRequest.URL
+                                                                   statusCode:302
+                                                                  HTTPVersion:@"HTTP/1.1"
+                                                                 headerFields:@{@"Location": @"http://example.com/final"}];
+    NSURLRequest *deniedRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:@"http://example.com/final"]];
+    approved = nil;
+    [router URLSession:session task:deniedTask willPerformHTTPRedirection:deniedResponse newRequest:deniedRequest
+     completionHandler:^(NSURLRequest * _Nullable request) { approved = request; }];
+    XCTAssertNil(approved, @"Redirects outside the allowlist must be rejected");
+    [router removePolicyForTask:deniedTask];
 }
 
 - (void)testHTTPRedirectCanBeDisabledPerRequest {

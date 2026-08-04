@@ -4,6 +4,7 @@
 #import "AutoUIKitAdapter.h"
 #import "AutoWDAHTTPAdapter.h"
 #import "AutoDebugServer.h"
+#import "AutoHTTPSupport.h"
 #import "AutoSDKError.h"
 
 NS_ASSUME_NONNULL_BEGIN

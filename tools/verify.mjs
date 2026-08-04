@@ -277,7 +277,7 @@ check(engineSource.includes('AutoValidatedHostAllowlist') &&
       'HTTP redirects must use a validated allowlist when configured and otherwise follow same-scheme redirects');
 const httpSupportSource = read('Sources/AutoSDK/AutoHTTPSupport.m');
 check(httpSupportSource.includes('originalScheme') && httpSupportSource.includes('isEqualToString:@"https"'), 'HTTP redirects must reject HTTPS downgrade');
-check(read('Sources/AutoSDK/AutoHTTPSupport.h').includes('AutoHTTPRedirectRouter') &&
+check(read('Sources/AutoSDK/include/AutoHTTPSupport.h').includes('AutoHTTPRedirectRouter') &&
       engineSource.includes('#import "AutoHTTPSupport.h"'),
       'Shared HTTP redirect routing must be imported by the engine');
 check(engineSource.includes('AutoHTTPSharedSession(') && engineSource.includes('AutoHTTPSharedRouter()') &&
