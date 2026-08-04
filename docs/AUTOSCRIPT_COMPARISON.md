@@ -37,6 +37,7 @@ Audit date: 2026-08-04
 | 定时器 | setTimeout / setInterval | ✅ 协作式定时器 + 取消 |
 | 提示/日志 | toast / toastLog | ✅ 内置 toast 悬浮提示 + toastLog，宿主可覆盖注册 |
 | 系统配置开关 | 工具内开关 | allowSystemControl（默认开）等配置项 |
+| 相册/媒体 | 保存图片/视频/截图到相册 | ✅ media.saveImage / saveImageBase64 / saveVideo / saveScreenshot，iOS 授权弹窗 + allowMediaLibrary 开关 |
 | 内存信息 | 内存占用/可用 | ✅ device.getMemoryInfo（total/free/appUsed 字节） |
 | 文件移动 | move / rename / writeLines | ✅ file.move / rename / writeLines（沙盒内，预算同 copy） |
 

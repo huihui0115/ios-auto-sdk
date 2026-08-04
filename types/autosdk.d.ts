@@ -284,6 +284,13 @@ interface AutoDeviceAPI {
   vibrate(durationMs?: number): boolean;
 }
 
+interface AutoMediaAPI {
+  saveImage(path: string): boolean;
+  saveImageBase64(base64: string): boolean;
+  saveVideo(path: string): boolean;
+  saveScreenshot(): boolean;
+}
+
 interface AutoAppAPI {
   launch(bundleId: string): boolean;
   activate(bundleId: string): boolean;
@@ -334,6 +341,10 @@ interface AutoAPI {
   clickCenter(selector: AutoSelectorLike): boolean;
   clickRandom(selector: AutoSelectorLike): boolean;
   screenshot(): string;
+  saveImageToAlbum(path: string): boolean;
+  saveImageBase64ToAlbum(base64: string): boolean;
+  saveVideoToAlbum(path: string): boolean;
+  saveScreenshotToAlbum(): boolean;
   findImage(path: string, options?: AutoImageOptions): AutoMatch;
   findColor(color: AutoColor, region?: AutoRect, options?: AutoColorSearchOptions): AutoMatch;
   getPixelColor(x: number, y: number): AutoPixelColor;
@@ -347,6 +358,7 @@ interface AutoAPI {
   file: AutoFileAPI;
   storage(name: string): AutoStorage;
   device: AutoDeviceAPI;
+  media: AutoMediaAPI;
   app: AutoAppAPI;
   capabilities(): Record<string, unknown>;
   time(): number;
@@ -360,6 +372,7 @@ declare function toastLog(message: string): void;
 declare const file: AutoFileAPI;
 declare const storages: { create(name: string): AutoStorage };
 declare const device: AutoDeviceAPI;
+declare const media: AutoMediaAPI;
 declare const app: AutoAppAPI;
 declare const http: AutoHTTP;
 declare const image: {
@@ -369,6 +382,9 @@ declare const image: {
   cmpColor: AutoAPI["compareColors"];
   pixel: AutoAPI["getPixelColor"];
   screenshot: AutoAPI["screenshot"];
+  saveToAlbum: AutoAPI["saveImageToAlbum"];
+  saveBase64ToAlbum: AutoAPI["saveImageBase64ToAlbum"];
+  saveScreenshotToAlbum: AutoAPI["saveScreenshotToAlbum"];
 };
 
 interface AutoConsole {
@@ -393,6 +409,10 @@ declare function clickPoint(x: number, y: number): boolean;
 declare function doubleClickPoint(x: number, y: number, intervalSeconds?: number): boolean;
 declare function swipeToPoint(x1: number, y1: number, x2: number, y2: number, durationSeconds?: number): boolean;
 declare function sleep(milliseconds: number): boolean;
+declare function saveImageToAlbum(path: string): boolean;
+declare function saveImageBase64ToAlbum(base64: string): boolean;
+declare function saveVideoToAlbum(path: string): boolean;
+declare function saveScreenshotToAlbum(): boolean;
 declare function time(): number;
 declare function random(min: number, max: number): number;
 declare function logd(...values: unknown[]): void;

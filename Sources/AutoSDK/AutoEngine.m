@@ -6,6 +6,8 @@
 #import "AutoHTTPSupport.h"
 #import <JavaScriptCore/JavaScriptCore.h>
 #import <UIKit/UIKit.h>
+#import <Photos/Photos.h>
+#import <ImageIO/ImageIO.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <AVFoundation/AVFoundation.h>
@@ -42,6 +44,7 @@
 - (id)invokeFile:(JSValue *)payload;
 - (id)invokeStorage:(JSValue *)payload;
 - (id)invokeDevice:(JSValue *)payload;
+- (id)invokeMedia:(JSValue *)payload;
 - (id)invokeCapabilities;
 - (id)invokeApp:(JSValue *)payload;
 - (BOOL)invokeIsStopped;
@@ -433,6 +436,101 @@ static id AutoValueOnMainThread(id (^block)(void)) {
     return value;
 }
 
+static NSUInteger AutoMediaFileByteLimit(NSDictionary *config) {
+    return AutoConfiguredByteLimit(config, @"maxMediaBytes",
+                                   512 * 1024 * 1024, (NSUInteger)(2ull * 1024 * 1024 * 1024));
+}
+
+static NSUInteger AutoMediaImageByteLimit(NSDictionary *config) {
+    return AutoConfiguredByteLimit(config, @"maxMediaImageBytes",
+                                   64 * 1024 * 1024, 256 * 1024 * 1024);
+}
+
+static NSURL *AutoMediaSourceURL(id pathValue, NSDictionary *config, NSError **error) {
+    if (![pathValue isKindOfClass:NSString.class] || [pathValue length] == 0) {
+        if (error) *error = AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                          @"Media source path must not be empty.", nil);
+        return nil;
+    }
+    NSError *resolveError = nil;
+    id resolved = AutoScriptFileOperation(@{ @"operation": @"resolvePath", @"path": pathValue },
+                                          config ?: @{}, &resolveError);
+    if (![resolved isKindOfClass:NSString.class]) {
+        if (error) *error = resolveError ?: AutoMakeError(AutoSDKErrorFileAccessDenied,
+                                                          @"Unable to resolve the media source path.", nil);
+        return nil;
+    }
+    NSError *attributesError = nil;
+    NSDictionary *attributes = [NSFileManager.defaultManager attributesOfItemAtPath:resolved error:&attributesError];
+    if (![attributes[NSFileType] isEqualToString:NSFileTypeRegular]) {
+        if (error) *error = AutoMakeError(AutoSDKErrorFileOperationFailed,
+                                          @"Media source must be an existing regular file.", attributesError);
+        return nil;
+    }
+    unsigned long long size = [attributes[NSFileSize] unsignedLongLongValue];
+    if (size == 0 || size > AutoMediaFileByteLimit(config ?: @{})) {
+        if (error) *error = AutoMakeError(AutoSDKErrorFileOperationFailed,
+                                          @"Media source is empty or exceeds maxMediaBytes.", nil);
+        return nil;
+    }
+    return [NSURL fileURLWithPath:resolved];
+}
+
+static BOOL AutoMediaImageURLIsValid(NSURL *url) {
+    if (!url) return NO;
+    CGImageSourceRef source = CGImageSourceCreateWithURL((__bridge CFURLRef)url, NULL);
+    BOOL valid = source && CGImageSourceGetCount(source) > 0;
+    if (source) CFRelease(source);
+    return valid;
+}
+
+static BOOL AutoEnsurePhotoLibraryWriteAccess(AutoEngine *engine,
+                                              NSDictionary *config,
+                                              NSError **error) {
+    PHAuthorizationStatus status = [PHPhotoLibrary authorizationStatusForAccessLevel:PHAccessLevelAddOnly];
+    if (status == PHAuthorizationStatusAuthorized || status == PHAuthorizationStatusLimited) return YES;
+    if (status == PHAuthorizationStatusDenied || status == PHAuthorizationStatusRestricted) {
+        if (error) *error = AutoMakeError(AutoSDKErrorFileAccessDenied,
+                                          @"Photo library write access was denied. Enable Photos access in Settings.", nil);
+        return NO;
+    }
+
+    id usageDescription = [NSBundle.mainBundle objectForInfoDictionaryKey:@"NSPhotoLibraryAddUsageDescription"];
+    if (![usageDescription isKindOfClass:NSString.class] || [usageDescription length] == 0) {
+        if (error) *error = AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                          @"NSPhotoLibraryAddUsageDescription is required to save media.", nil);
+        return NO;
+    }
+
+    __block PHAuthorizationStatus requestedStatus = PHAuthorizationStatusNotDetermined;
+    dispatch_semaphore_t finished = dispatch_semaphore_create(0);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [PHPhotoLibrary requestAuthorizationForAccessLevel:PHAccessLevelAddOnly handler:^(PHAuthorizationStatus newStatus) {
+            requestedStatus = newStatus;
+            dispatch_semaphore_signal(finished);
+        }];
+    });
+
+    double configuredTimeout = AutoFiniteDouble(config[@"photoAuthorizationTimeout"], 60);
+    NSTimeInterval timeout = configuredTimeout > 0 ? MIN(configuredTimeout, 300.0) : 60.0;
+    NSTimeInterval deadline = NSProcessInfo.processInfo.systemUptime + timeout;
+    while (dispatch_semaphore_wait(finished, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC))) != 0) {
+        if ([engine shouldStop]) {
+            if (error) *error = AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil);
+            return NO;
+        }
+        if (NSProcessInfo.processInfo.systemUptime >= deadline) {
+            if (error) *error = AutoMakeError(AutoSDKErrorAutomationFailed,
+                                              @"Timed out waiting for photo library authorization.", nil);
+            return NO;
+        }
+    }
+    if (requestedStatus == PHAuthorizationStatusAuthorized || requestedStatus == PHAuthorizationStatusLimited) return YES;
+    if (error) *error = AutoMakeError(AutoSDKErrorFileAccessDenied,
+                                      @"Photo library write access was denied. Enable Photos access in Settings.", nil);
+    return NO;
+}
+
 static NSString *AutoDebugScriptName(id value) {
     if (![value isKindOfClass:NSString.class]) return nil;
     NSString *name = value;
@@ -781,6 +879,90 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"Screenshot exceeds maxScreenshotBytes.", nil)];
     }
     return data ? [data base64EncodedStringWithOptions:0] : [NSNull null];
+}
+
+- (id)invokeMedia:(JSValue *)payload {
+    if (![self ensureScriptRunning]) return @NO;
+    if (!AutoPermission(self.config, @"allowMediaLibrary", YES)) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                           @"Photo library writes are disabled by configuration.", nil)];
+    }
+
+    @autoreleasepool {
+    NSDictionary *data = AutoPayload(payload);
+    NSString *operation = [data[@"operation"] isKindOfClass:NSString.class]
+        ? [data[@"operation"] lowercaseString]
+        : @"";
+    NSURL *sourceURL = nil;
+    UIImage *sourceImage = nil;
+    BOOL isVideo = NO;
+    NSError *error = nil;
+
+    if ([operation isEqualToString:@"saveimage"] || [operation isEqualToString:@"savevideo"]) {
+        sourceURL = AutoMediaSourceURL(data[@"path"], self.config ?: @{}, &error);
+        if (!sourceURL) return [self failure:error];
+        isVideo = [operation isEqualToString:@"savevideo"];
+        if (!isVideo && !AutoMediaImageURLIsValid(sourceURL)) {
+            return [self failure:AutoMakeError(AutoSDKErrorFileOperationFailed,
+                                               @"Media source is not a supported image.", nil)];
+        }
+    } else if ([operation isEqualToString:@"saveimagebase64"]) {
+        NSString *base64 = [data[@"base64"] isKindOfClass:NSString.class] ? data[@"base64"] : @"";
+        NSUInteger maximum = AutoMediaImageByteLimit(self.config ?: @{});
+        NSUInteger maximumEncodedLength = ((maximum + 2) / 3) * 4 + 4;
+        if (base64.length == 0 || base64.length > maximumEncodedLength) {
+            return [self failure:AutoMakeError(AutoSDKErrorFileOperationFailed,
+                                               @"Image base64 is empty or exceeds maxMediaImageBytes.", nil)];
+        }
+        NSData *imageData = [[NSData alloc] initWithBase64EncodedString:base64 options:0];
+        if (!imageData || imageData.length == 0 || imageData.length > maximum) {
+            return [self failure:AutoMakeError(AutoSDKErrorFileOperationFailed,
+                                               @"Image base64 is invalid or exceeds maxMediaImageBytes.", nil)];
+        }
+        sourceImage = [UIImage imageWithData:imageData];
+        if (!sourceImage) {
+            return [self failure:AutoMakeError(AutoSDKErrorFileOperationFailed,
+                                               @"Image base64 does not contain a supported image.", nil)];
+        }
+    } else if ([operation isEqualToString:@"savescreenshot"]) {
+        NSData *screenshot = [self.adapter screenshotWithError:&error];
+        if (!screenshot || error) {
+            return [self failure:error ?: AutoMakeError(AutoSDKErrorAutomationFailed,
+                                                        @"Unable to capture a screenshot.", nil)];
+        }
+        if (screenshot.length > AutoScreenshotByteLimit(self.config ?: @{})) {
+            return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed,
+                                               @"Screenshot exceeds maxScreenshotBytes.", nil)];
+        }
+        sourceImage = [UIImage imageWithData:screenshot];
+        if (!sourceImage) {
+            return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed,
+                                               @"Screenshot data is not a supported image.", nil)];
+        }
+    } else {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                           @"Unknown media operation.", nil)];
+    }
+
+    if (!AutoEnsurePhotoLibraryWriteAccess(self.engine, self.config ?: @{}, &error)) {
+        return [self failure:error];
+    }
+    if (![self ensureScriptRunning]) return @NO;
+
+    __block PHObjectPlaceholder *placeholder = nil;
+    BOOL saved = [PHPhotoLibrary.sharedPhotoLibrary performChangesAndWait:^{
+        PHAssetChangeRequest *request = nil;
+        if (sourceImage) request = [PHAssetChangeRequest creationRequestForAssetFromImage:sourceImage];
+        else if (isVideo) request = [PHAssetChangeRequest creationRequestForAssetFromVideoAtFileURL:sourceURL];
+        else request = [PHAssetChangeRequest creationRequestForAssetFromImageAtFileURL:sourceURL];
+        placeholder = request.placeholderForCreatedAsset;
+    } error:&error];
+    if (!saved || !placeholder) {
+        return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed,
+                                           @"Unable to save media to the photo library.", error)];
+    }
+    return @YES;
+    }
 }
 
 - (id)invokeFindImage:(JSValue *)payload {
@@ -1712,7 +1894,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                                       @"fileRead": @(fileReadEnabled),
                                       @"fileWrite": @(fileWriteEnabled),
                                       @"storage": @(AutoPermission(config, @"allowStorage", YES)),
-                                      @"systemControl": @(AutoPermission(config, @"allowSystemControl", YES)) } mutableCopy];
+                                      @"systemControl": @(AutoPermission(config, @"allowSystemControl", YES)),
+                                      @"mediaLibraryWrite": @(AutoPermission(config, @"allowMediaLibrary", YES)) } mutableCopy];
     if ([adapter respondsToSelector:@selector(capabilities)]) result[@"automation"] = [adapter capabilities] ?: @{};
     return result;
 }

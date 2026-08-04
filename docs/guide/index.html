@@ -274,6 +274,8 @@ auto.click({ label: "AutoSDK Scripts", type: "Button" });
   <p>纯 JS 死循环（如 <code>while(true){}</code>）JavaScriptCore 无法硬中断，可能占满 CPU：用 <b>Stop Active Script</b> 配合桥接调用与定时器可中断；极端情况重启 App。别在脚本里写无出口死循环。</p>
   <h3>点不到别的 App 的按钮</h3>
   <p>默认适配器只能操作宿主 App 自己。跨 App 需要 WDA Runner（见 6.2）。</p>
+  <h3>怎么把图片/视频/截图存进系统相册</h3>
+  <p>用 <code>media.saveImage('images/a.png')</code>、<code>media.saveVideo('videos/a.mp4')</code>、<code>media.saveScreenshot()</code> 或 <code>media.saveImageBase64(auto.screenshot())</code>。第一次调用会弹 iOS 相册授权，App 已内置 <code>NSPhotoLibraryAddUsageDescription</code>；拒绝后脚本会报错而不是假装成功。</p>
   <h3>IPA 怎么来的 / 怎么换 Bundle ID 上架</h3>
   <p>CI（GitHub Actions）自动构建未签名 IPA；要上架/换包名，改 <code>Examples/TemplateApp/project.yml</code> 的 <code>PRODUCT_BUNDLE_IDENTIFIER</code> 和 <code>App/Info.plist</code> 的显示名/图标，发布清单见 <code>docs/MARKET_RELEASE.md</code>。App Store 对脚本执行与调试服务器审查风险高，主流分发走 TrollStore/侧载。</p>
 </section>
@@ -283,7 +285,7 @@ auto.click({ label: "AutoSDK Scripts", type: "Button" });
   <ul>
     <li><a href="../QUICK_START.md">docs/QUICK_START.md</a> — 第三方 10 分钟上手</li>
     <li><a href="../AUTOSCRIPT_COMPARISON.md">docs/AUTOSCRIPT_COMPARISON.md</a> — 与 AutoScript 对比</li>
-    <li><a href="../FILE_STORAGE_DEVICE_API.md">docs/FILE_STORAGE_DEVICE_API.md</a> — 文件/存储/设备/系统 API</li>
+    <li><a href="../FILE_STORAGE_DEVICE_API.md">docs/FILE_STORAGE_DEVICE_API.md</a> — 文件/存储/设备/相册/系统 API</li>
     <li><a href="../HTTP_API.md">docs/HTTP_API.md</a> — 受控 HTTP</li>
     <li><a href="../NODE_OPERATIONS.md">docs/NODE_OPERATIONS.md</a> — 节点操作</li>
     <li><a href="../SCRIPT_EXECUTION.md">docs/SCRIPT_EXECUTION.md</a> — 执行语义/超时/定时器</li>

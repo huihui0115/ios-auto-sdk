@@ -56,5 +56,15 @@
       "file.writeFile('${4:data/output.txt}', store.getString('${2:key}'));"
     ],
     "description": "Use persistent storage and sandbox files"
+  },
+  "AutoSDK save media": {
+    "prefix": "automedia",
+    "body": [
+      "// The source file must be inside the AutoSDK sandbox.",
+      "media.saveImage('${1:images/output.png}');",
+      "// media.saveVideo('${2:videos/output.mp4}');",
+      "// media.saveScreenshot();"
+    ],
+    "description": "Save an image, video, or screenshot to the iOS photo library"
   }
 }

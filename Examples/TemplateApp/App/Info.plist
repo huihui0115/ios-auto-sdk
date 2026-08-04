@@ -50,6 +50,8 @@
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Connect Visual Studio Code to AutoSDK on this iPhone for local development.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save images and videos created by automation scripts to your photo library.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>

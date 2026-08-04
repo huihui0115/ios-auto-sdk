@@ -6,6 +6,18 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Photo library media API.** New `media.saveImage`, `media.saveImageBase64`,
+  `media.saveVideo` and `media.saveScreenshot` methods (plus
+  `auto.saveImageToAlbum`, `auto.saveImageBase64ToAlbum`,
+  `auto.saveVideoToAlbum`, `auto.saveScreenshotToAlbum` and `image.*` aliases)
+  write to the iOS Photos library after an add-only authorization prompt.
+  Controlled by `allowMediaLibrary` (default on), `maxMediaBytes` (512 MiB
+  default, 2 GiB hard maximum) and `maxMediaImageBytes` (64 MiB default,
+  256 MiB hard maximum); hosts must declare `NSPhotoLibraryAddUsageDescription`.
+  The capability is reported as `mediaLibraryWrite`.
+
 ### Fixed
 
 - **The private JSC execution-time API is no longer used.**

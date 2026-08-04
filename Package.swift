@@ -24,7 +24,9 @@ let package = Package(
                 .linkedFramework("Network"),
                 .linkedFramework("Vision"),
                 .linkedFramework("AVFoundation"),
-                .linkedFramework("AudioToolbox")
+                .linkedFramework("AudioToolbox"),
+                .linkedFramework("Photos"),
+                .linkedFramework("ImageIO")
             ]
         ),
         .testTarget(

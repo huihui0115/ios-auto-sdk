@@ -1751,6 +1751,47 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [self waitForExpectationsWithTimeout:2 handler:nil];
 }
 
+- (void)testMediaLibraryCapabilityReflectsConfiguration {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"allowMediaLibrary": @NO }];
+    XCTAssertEqualObjects([engine capabilityInfo][@"mediaLibraryWrite"], @NO);
+    [engine initWithConfig:@{}];
+    XCTAssertEqualObjects([engine capabilityInfo][@"mediaLibraryWrite"], @YES);
+}
+
+- (void)testMediaLibraryDisabledFailsClosedInScripts {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5, @"allowMediaLibrary": @NO }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"media disabled"];
+    [engine runScript:@"media.saveImage('x.png');" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testMediaSaveRejectsInvalidInputsBeforePhotoAccess {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *emptyPath = [self expectationWithDescription:@"media empty path"];
+    [engine runScript:@"media.saveImage('');" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
+        [emptyPath fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+    XCTestExpectation *invalidBase64 = [self expectationWithDescription:@"media invalid base64"];
+    [engine runScript:@"media.saveImageBase64('not-base64!');" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorFileOperationFailed);
+        [invalidBase64 fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
 - (void)testOpenURLRejectsUnsafeSchemes {
     AutoEngine *engine = AutoEngine.sharedEngine;
     [engine initWithConfig:@{ @"scriptTimeout": @5 }];

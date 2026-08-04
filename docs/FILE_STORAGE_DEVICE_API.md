@@ -127,6 +127,44 @@ brightness, volume, vibration and URL opening (read-only device information
 such as `device.getModel()` and `device.getMemoryInfo()` stays available).
 The capability is reported as `systemControl` by `auto.capabilities()`.
 
+## Photo library media
+
+The template can add images, videos, and screenshots to the iOS Photos
+library (the normal Recents/camera-roll destination). The first write asks for
+the iOS add-only Photos permission. The template declares
+`NSPhotoLibraryAddUsageDescription`; host applications embedding AutoSDK must
+declare the same key in their own `Info.plist`.
+
+```objc
+[engine configureWithConfig:@{
+    @"allowMediaLibrary": @YES,
+    @"maxMediaBytes": @(512 * 1024 * 1024),
+    @"maxMediaImageBytes": @(64 * 1024 * 1024)
+}];
+```
+
+```javascript
+media.saveImage("images/result.png");
+media.saveImageBase64(auto.screenshot());
+media.saveScreenshot();
+media.saveVideo("videos/result.mp4");
+```
+
+`media.saveImage` and `media.saveVideo` accept files below the AutoSDK file
+sandbox. `media.saveImageBase64` accepts strict base64 image data, which makes
+it convenient to persist the result of `auto.screenshot()`. All methods return
+`true` after Photos confirms the change. Aliases are available as
+`auto.saveImageToAlbum`, `auto.saveImageBase64ToAlbum`,
+`auto.saveVideoToAlbum`, `auto.saveScreenshotToAlbum`, and the corresponding
+global functions. `image.saveToAlbum` and `image.saveScreenshotToAlbum` are
+also available for image-oriented scripts.
+
+Set `allowMediaLibrary: @NO` to disable all four operations. `maxMediaBytes`
+defaults to 512 MiB (2 GiB hard maximum); `maxMediaImageBytes` defaults to
+64 MiB (256 MiB hard maximum). The capability is reported as
+`mediaLibraryWrite` by `auto.capabilities()`. A denied Photos permission is
+returned as a script error and never silently treated as success.
+
 ## Convenience aliases
 
 The bootstrap layer keeps the AutoScript-style names as aliases so scripts

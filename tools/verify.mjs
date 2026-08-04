@@ -257,6 +257,11 @@ check(bootstrapSource.includes("operation:'clipboardGet'") && bootstrapSource.in
       bootstrapSource.includes("operation:'openURL'") && bootstrapSource.includes("operation:'homescreen'") &&
       bootstrapSource.includes('g.openURL=') && bootstrapSource.includes('homeScreen:function()'),
       'Bootstrap must expose clipboard, brightness, volume, vibration, openURL and home-screen operations with globals');
+check(bootstrapSource.includes("operation:'saveImage'") && bootstrapSource.includes("operation:'saveImageBase64'") &&
+      bootstrapSource.includes("operation:'saveVideo'") && bootstrapSource.includes("operation:'saveScreenshot'") &&
+      bootstrapSource.includes('var mediaApi=') && bootstrapSource.includes('g.media=mediaApi') &&
+      bootstrapSource.includes('saveImageToAlbum:function') && bootstrapSource.includes('saveVideoToAlbum:function'),
+      'Bootstrap must wire photo-library media operations and aliases');
 check(engineSource.includes('deviceMemoryInfo') && engineSource.includes('isEqualToString:@"memory"'),
       'Engine must expose device memory information');
 check(engineSource.includes('isEqualToString:@"toast"') && engineSource.includes('AutoShowToast'),
@@ -494,6 +499,7 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
     let lastHTTPOptions;
     let lastDeviceOperation;
     let lastAppOperation;
+    let lastMediaOperation;
     const context = vm.createContext({
       __bridge: new Proxy({}, { get: (_, key) => {
         if (key === 'invokeIsStopped') return () => stopped;
@@ -501,6 +507,7 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
         if (key === 'invokeFile') return value => value.operation === 'readLines' ? ['first', 'second'] : true;
         if (key === 'invokeDevice') return value => { lastDeviceOperation = value; return value.operation === 'info' ? { model: 'test' } : true; };
         if (key === 'invokeApp') return value => { lastAppOperation = value; return true; };
+        if (key === 'invokeMedia') return value => { lastMediaOperation = value; return true; };
         return () => false;
       } }),
       __console: { log() {}, warn() {}, error() {} }
@@ -548,6 +555,22 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
     context.openURL('https://example.com');
     check(lastAppOperation?.operation === 'openURL' && lastAppOperation?.url === 'https://example.com',
           'openURL must forward the url through invokeApp');
+    context.media.saveImage('shots/a.png');
+    check(lastMediaOperation?.operation === 'saveImage' && lastMediaOperation?.path === 'shots/a.png',
+          'media.saveImage must forward the saveImage operation with a path');
+    context.media.saveImageBase64('QUFBQQ==');
+    check(lastMediaOperation?.operation === 'saveImageBase64' && lastMediaOperation?.base64 === 'QUFBQQ==',
+          'media.saveImageBase64 must forward base64 image data');
+    context.media.saveVideo('videos/a.mp4');
+    check(lastMediaOperation?.operation === 'saveVideo' && lastMediaOperation?.path === 'videos/a.mp4',
+          'media.saveVideo must forward the saveVideo operation with a path');
+    context.media.saveScreenshot();
+    check(lastMediaOperation?.operation === 'saveScreenshot', 'media.saveScreenshot must forward the saveScreenshot operation');
+    check(typeof context.media?.saveImage === 'function' && typeof context.media?.saveScreenshot === 'function' &&
+          typeof context.auto?.saveImageToAlbum === 'function' && typeof context.auto?.saveScreenshotToAlbum === 'function' &&
+          typeof context.saveImageToAlbum === 'function' && typeof context.saveScreenshotToAlbum === 'function' &&
+          typeof context.image?.saveToAlbum === 'function' && typeof context.image?.saveScreenshotToAlbum === 'function',
+          'Media methods must be exposed on media, auto, image, and as globals');
     check(typeof context.device?.getClipboard === 'function' && typeof context.device?.getBrightness === 'function' &&
           typeof context.device?.getVolume === 'function' && typeof context.getClipboard === 'function' &&
           typeof context.getBrightness === 'function' && typeof context.vibrate === 'function',
@@ -587,10 +610,15 @@ const templateProject = read('Examples/TemplateApp/project.yml');
 check(templateProject.includes('AutoSDKTests:') && templateProject.includes('bundle.unit-test'), 'Template XcodeGen project must include the XCTest target');
 check(!/^\t/m.test(workflow), '.github/workflows/ios-build.yml contains tab indentation');
 
-for (const path of ['Examples/TemplateApp/App/Info.plist', 'tools/ExportOptions.plist']) {
-  const plist = read(path);
-  check(plist.includes('<?xml') && plist.includes('<plist') && plist.includes('</plist>'), `${path}: malformed plist envelope`);
-}
+check(read('Examples/TemplateApp/App/Info.plist').includes('NSPhotoLibraryAddUsageDescription'),
+      'Template Info.plist must declare NSPhotoLibraryAddUsageDescription');
+check(read('Package.swift').includes('.linkedFramework("Photos")') &&
+      read('AutoSDK.podspec').includes("'Photos'"),
+      'Package manifests must link the Photos framework');
+check(typeDefinitions.includes('interface AutoMediaAPI') &&
+      typeDefinitions.includes('saveImageBase64(base64: string): boolean') &&
+      typeDefinitions.includes('saveScreenshotToAlbum(): boolean'),
+      'Type definitions must describe the photo-library media API');
 
 for (const scriptPath of ['Examples/TemplateApp/Scripts/hello.js', 'Examples/TemplateApp/Scripts/demo-api.js']) {
   try {

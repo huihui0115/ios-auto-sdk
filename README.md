@@ -8,6 +8,7 @@
 - JavaScriptCore 执行本地脚本、Bundle 脚本和远程 URL
 - 全局 `auto` API：点击、滑动、输入、稳定节点查询、图色、截图、OCR、沙盒文件、命名存储、设备信息和受控 HTTP
 - 系统能力（`allowSystemControl` 可开关）：剪贴板读写、屏幕亮度、系统音量、振动、打开 URL；WDA Runner 额外支持主屏幕/锁屏/解锁
+- 相册写入（`allowMediaLibrary` 可开关）：保存沙盒图片、视频、Base64 图片或当前截图到 iOS“照片”
 - Native 方法注册：`registerNativeMethod:handler:`
 - 取消、超时、JS 异常和适配器错误统一转换为 `NSError`，成功结果包含 `value` 和 `logs`
 - 脚本可取消：`stopScript`/`scriptTimeout` 在桥接调用、`auto.sleep` 和定时器回调处协作式中断脚本
@@ -24,7 +25,7 @@
 ### Swift Package Manager
 
 在 Xcode 中添加本仓库 URL，选择 `AutoSDK` 产品。SDK 需要 iOS 14+，并链接
-`JavaScriptCore`、`UIKit`。
+`JavaScriptCore`、`UIKit`、`Photos` 等系统框架。
 
 ### CocoaPods
 
@@ -48,7 +49,7 @@ AutoEngine *engine = AutoEngine.sharedEngine;
 }];
 ```
 
-常用配置项：`scriptTimeout`（秒，默认 300）、`maxScriptBytes`（默认 5 MB、硬上限 64 MB）、`maxLogEntries`、`maxLogMessageLength`、`maxLogBytes`、`allowRemoteScripts`（默认 `NO`）、`allowedRemoteScriptHosts`、`remoteScriptTimeout`、`allowNetwork`（默认 `NO`）、`allowedNetworkHosts`、`maxHTTPRequestBytes`、`maxHTTPResponseBytes`、`allowFileAccess`、`allowFileWrite`、`fileRoot`、`maxFileReadBytes`、`maxFileWriteBytes`、`maxFileCopyBytes`、`maxFileListItems`、`maxFileOperationItems`、`maxFileLineCount`、`allowStorage`、`maxStorageBytes`、`maxStorageEntries`、`debugLogging` 和 `interruptibleScripts`（为兼容保留，脚本中断为协作式：桥接调用、`auto.sleep`、定时器回调处生效；纯 JS 无限循环可能持续占用 CPU）。文件与存储默认只能访问 App 沙盒中的 AutoSDK 专用范围。
+常用配置项：`scriptTimeout`（秒，默认 300）、`maxScriptBytes`（默认 5 MB、硬上限 64 MB）、`maxLogEntries`、`maxLogMessageLength`、`maxLogBytes`、`allowRemoteScripts`（默认 `NO`）、`allowedRemoteScriptHosts`、`remoteScriptTimeout`、`allowNetwork`（默认 `NO`）、`allowedNetworkHosts`、`maxHTTPRequestBytes`、`maxHTTPResponseBytes`、`allowFileAccess`、`allowFileWrite`、`fileRoot`、`maxFileReadBytes`、`maxFileWriteBytes`、`maxFileCopyBytes`、`maxFileListItems`、`maxFileOperationItems`、`maxFileLineCount`、`allowStorage`、`maxStorageBytes`、`maxStorageEntries`、`allowMediaLibrary`、`maxMediaBytes`、`maxMediaImageBytes`、`debugLogging` 和 `interruptibleScripts`（为兼容保留，脚本中断为协作式：桥接调用、`auto.sleep` 和定时器回调处生效；纯 JS 无限循环可能持续占用 CPU）。文件与存储默认只能访问 App 沙盒中的 AutoSDK 专用范围。宿主 App 如需相册写入，必须在自身 `Info.plist` 声明 `NSPhotoLibraryAddUsageDescription`。
 
 ### 本地调试服务器
 
