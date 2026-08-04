@@ -50,6 +50,12 @@ temporary allocations and repeated WDA work.
   fallback a naive runMode: pump would busy-spin a CPU core for the whole
   sleep. Old runtimes that attach a CFRunLoopTimer still block in runMode: and
   never take the sleep path.
+- metrics.point/x/y never cross the native bridge. With
+  setScreenMetrics(w, h) they use the device size captured once at setup
+  time; without it they are pure 1:1 math. Only getScreenMetrics() and
+  metrics.get() query the live screen size (and setScreenMetrics captures
+  it once at setup). Re-call setScreenMetrics after a rotation to re-anchor
+  the mapping.
 - The timer drain sleeps for the whole remaining wait in one native
   `invokeSleep` call instead of slicing it into 50 ms chunks from JavaScript.
   A one-second `setTimeout` therefore costs a single JSC-to-Objective-C round

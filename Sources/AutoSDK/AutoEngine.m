@@ -856,9 +856,13 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     NSTimeInterval seconds = (isfinite(millisecondsValue) && millisecondsValue > 0)
         ? MIN(millisecondsValue / 1000.0, 3600.0)
         : 0;
-    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:seconds];
-    while (![self.engine shouldStop] && [deadline timeIntervalSinceNow] > 0) {
-        AutoPumpRunLoopWithSleepFallback(MIN(0.02, [deadline timeIntervalSinceNow]));
+    if (seconds > 0) {
+        CFTimeInterval deadline = CFAbsoluteTimeGetCurrent() + seconds;
+        while (![self.engine shouldStop]) {
+            CFTimeInterval remaining = deadline - CFAbsoluteTimeGetCurrent();
+            if (remaining <= 0) break;
+            AutoPumpRunLoopWithSleepFallback(MIN(0.02, remaining));
+        }
     }
     return [self.engine shouldStop] ? [self failure:AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil)] : @YES;
 }
@@ -1321,15 +1325,15 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     NSTimeInterval timeout = (isfinite(timeoutMilliseconds) && timeoutMilliseconds > 0)
         ? MIN(timeoutMilliseconds / 1000.0, 3600.0)
         : 10.0;
-    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:timeout];
+    CFTimeInterval deadline = CFAbsoluteTimeGetCurrent() + timeout;
     NSTimeInterval pollInterval = AutoFiniteDouble(self.config[@"waitPollInterval"], 0);
     if (!isfinite(pollInterval) || pollInterval <= 0) pollInterval = 0.05;
     pollInterval = MIN(0.25, MAX(0.01, pollInterval));
-    while (![self.engine shouldStop] && [deadline timeIntervalSinceNow] > 0) {
+    while (![self.engine shouldStop]) {
         NSError *error = nil;
         if ([self.adapter exists:selector error:&error]) return @YES;
         if (error) return [self failure:error];
-        NSTimeInterval remaining = [deadline timeIntervalSinceNow];
+        CFTimeInterval remaining = deadline - CFAbsoluteTimeGetCurrent();
         if (remaining <= 0) break;
         NSTimeInterval delay = MIN(pollInterval, remaining);
         AutoPumpRunLoopWithSleepFallback(delay);

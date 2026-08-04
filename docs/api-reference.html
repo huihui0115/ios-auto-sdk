@@ -1242,7 +1242,7 @@ main();</code></pre>
     <h4><code>setScreenMetrics(width, height)</code> <span class="cname">设置设计分辨率</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">按设计稿宽高设置坐标基准（EasyClick/AutoJS 同款），之后用 metrics.point 把设计坐标换算为真机坐标；未设置时按 1:1。</p>
+  <p class="desc">按设计稿宽高设置坐标基准（EasyClick/AutoJS 同款），之后用 metrics.point 把设计坐标换算为真机坐标；设置时固定一次真机尺寸，坐标换算不再每次查询设备，旋转屏幕后请重新调用；未设置时按 1:1。</p>
   <div class="ref"><b>对标</b> EasyClick setScreenMetrics() · AutoJS setScreenMetrics()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">width</code><span class="ptype">number</span><span class="pdesc">设计稿宽度（px）</span></div><div class="param"><code class="pname">height</code><span class="ptype">number</span><span class="pdesc">设计稿高度（px）</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean 是否设置成功</span></div>

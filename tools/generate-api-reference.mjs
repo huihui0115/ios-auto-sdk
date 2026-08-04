@@ -1013,7 +1013,7 @@ APIS.push({ cat:'timer', sig:'console.time(label) / console.timeEnd(label)', tit
 }
 main();` });
 
-APIS.push({ cat:'metrics', sig:'setScreenMetrics(width, height)', title:'设置设计分辨率', desc:'按设计稿宽高设置坐标基准（EasyClick/AutoJS 同款），之后用 metrics.point 把设计坐标换算为真机坐标；未设置时按 1:1。', params:[['width','number','设计稿宽度（px）'],['height','number','设计稿高度（px）']], returns:'boolean 是否设置成功', example:`function main(){
+APIS.push({ cat:'metrics', sig:'setScreenMetrics(width, height)', title:'设置设计分辨率', desc:'按设计稿宽高设置坐标基准（EasyClick/AutoJS 同款），之后用 metrics.point 把设计坐标换算为真机坐标；设置时固定一次真机尺寸，坐标换算不再每次查询设备，旋转屏幕后请重新调用；未设置时按 1:1。', params:[['width','number','设计稿宽度（px）'],['height','number','设计稿高度（px）']], returns:'boolean 是否设置成功', example:`function main(){
   const ok = setScreenMetrics(390, 844);
   logd("已设置设计分辨率: " + ok);
   const m = getScreenMetrics();

@@ -220,6 +220,28 @@ test('screen metrics set/get/point scaling', () => {
   assert.equal(sandbox.metrics.x(375), 390);
   assert.equal(sandbox.metrics.y(812), 844);
 });
+test('metrics transforms reuse the cached screen size after setScreenMetrics', () => {
+  const { sandbox, calls } = boot();
+  sandbox.setScreenMetrics(375, 812);
+  const before = calls.device.length;
+  sandbox.metrics.point(187.5, 406);
+  sandbox.metrics.x(375);
+  sandbox.metrics.y(812);
+  assert.equal(calls.device.length, before);
+  const metrics = sandbox.getScreenMetrics();
+  assert.equal(metrics.screenWidth, 390);
+  assert.equal(metrics.screenHeight, 844);
+  assert.equal(metrics.scaleX, 390 / 375);
+  assert.equal(metrics.scaleY, 844 / 812);
+});
+test('metrics transforms are pure math before setScreenMetrics', () => {
+  const { sandbox, calls } = boot();
+  const before = calls.device.length;
+  assert.equal(sandbox.metrics.x(5), 5);
+  assert.equal(sandbox.metrics.y(7), 7);
+  assert.deepEqual(sandbox.metrics.point(10, 20), { x: 10, y: 20 });
+  assert.equal(calls.device.length, before);
+});
 
 test('device info and convenience accessors', () => {
   const { sandbox } = boot();

@@ -6,6 +6,29 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Timers wait in one native sleep instead of 50 ms slices.** A one-second
+  setTimeout now costs a single JSC-to-Objective-C round trip; the native
+  sleep keeps its 20 ms interruptible run-loop pump, so stop requests still
+  abort a pending wait promptly.
+- **setScreenMetrics fixes the coordinate mapping at setup time.** After
+  setScreenMetrics(w, h) the device size is captured once, so
+  metrics.point/x/y no longer cross the native bridge per call; call
+  setScreenMetrics again after a rotation to re-anchor the mapping.
+- **Sleep and wait loops avoid per-iteration NSDate allocations.** The
+  deadline is now a monotonic CFAbsoluteTimeGetCurrent value in
+  invokeSleep and invokeWaitFor.
+
+### Added
+
+- **Virtual-clock timer tests.** The bootstrap test sandbox now advances a
+  virtual clock inside invokeSleep, so CI exercises the real wait-sleep-fire
+  path deterministically, including interval cadence, one-shot sleeps, and
+  stop-during-wait.
+- **Bootstrap size/time guard.** 	ools/bootstrap.test.mjs asserts the
+  embedded runtime stays under 64 KB and parses in under 1 s.
+
 ## [1.2.1] - 2026-08-04
 
 ### Added
