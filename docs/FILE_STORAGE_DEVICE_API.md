@@ -37,14 +37,19 @@ file.writeFile("reports/latest.txt", "started");
 file.appendLine("reports/latest.txt", "finished");
 const text = file.readFile("reports/latest.txt");
 const entries = file.listDir("reports");
+file.writeLines("reports/points.txt", ["1,2", "3,4"]);
 file.copy("reports/latest.txt", "reports/copy.txt", true);
-file.deleteAllFile("reports/copy.txt");
+file.move("reports/copy.txt", "reports/moved.txt", true);
+file.rename("reports/moved.txt", "final.txt");
+file.deleteAllFile("reports/final.txt");
 ```
 
 Also available: `sandboxDir`, `getSandBoxDir`, `resolvePath`,
 `getSandBoxFilePath`, `exists`, `readText`, `readBase64`, `readLines`,
-`readAllLines`, `writeText`, `writeBase64`, `appendText`, `mkdir`, `remove`,
-`list`, and `copy`.
+`readAllLines`, `writeText`, `writeBase64`, `writeLines`, `appendText`,
+`mkdir`, `remove`, `list`, `copy`, `move`, and `rename`. `move` /
+`rename` respect the same byte/item budgets as `copy` and refuse to move a
+path into itself or one of its children.
 
 ## Named storage
 
@@ -69,10 +74,13 @@ store whose persisted data is corrupt or exceeds a newly lowered limit.
 ```javascript
 const info = device.getDeviceInfo();
 console.log(info.systemVersion, info.screenWidth, info.batteryLevel);
+const memory = device.getMemoryInfo(); // { totalBytes, freeBytes, appUsedBytes }
 console.log(auto.capabilities());
 ```
 
-The device module exposes public iOS information only. It cannot return a
+The device module exposes public iOS information only. Memory figures come
+from Mach APIs (`host_statistics64` / `task_info`) and are advisory: they
+describe the current process view, not a fixed device quota. It cannot return a
 hardware serial number or control other apps through `AutoUIKitAdapter`.
 
 ## System control
@@ -97,13 +105,18 @@ app.unlock();      // WDA runners: unlock the device
 
 Top-level aliases `auto.getClipboard`, `auto.setClipboard`,
 `auto.getBrightness`, `auto.setBrightness`, `auto.getVolume`,
-`auto.vibrate` and `auto.openURL` are also available. Clipboard text is
-capped at 1 MiB; brightness must be in 0...1; `openURL` accepts `http(s)`
-URLs and safe custom schemes (file, data, javascript, ftp and websocket
-targets are rejected); `homeScreen`/`lock`/`unlock` require an adapter
-that implements them (the WDA adapter does; embedded adapters usually return
-an unavailable error).
+`auto.vibrate`, `auto.toast` and `auto.toastLog` are also available.
+Clipboard text is capped at 1 MiB; brightness must be in 0...1; `openURL`
+accepts `http(s)` URLs and safe custom schemes (file, data, javascript, ftp
+and websocket targets are rejected); `homeScreen`/`lock`/`unlock` require
+an adapter that implements them (the WDA adapter does; embedded adapters
+usually return an unavailable error).
+
+`toast(message)` is built into the engine and shows a short overlay in the
+host app's key window; hosts may still override it by registering a native
+`toast` method. `toastLog(message)` additionally writes to the script log.
 
 Set `allowSystemControl: @NO` in the configuration to disable clipboard,
-brightness, volume, vibration and URL opening. The capability is reported as
-`systemControl` by `auto.capabilities()`.
+brightness, volume, vibration and URL opening (read-only device information
+such as `device.getModel()` and `device.getMemoryInfo()` stays available).
+The capability is reported as `systemControl` by `auto.capabilities()`.

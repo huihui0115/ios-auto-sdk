@@ -97,6 +97,18 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **Built-in toast.** `toast(message)` / `toastLog(message)` no longer
+  depend on the template's registered native method: the engine shows a short
+  overlay in the host window by default, and hosts can still override it.
+- **Device memory information.** `device.getMemoryInfo()` returns
+  `totalBytes` / `freeBytes` / `appUsedBytes` from Mach APIs.
+- **File move/rename/writeLines.** `file.move` (native, same budgets and
+  guards as copy), `file.rename` and `file.writeLines` wrappers.
+- **Narrower system-control gate.** `allowSystemControl: @NO` no longer
+  disables read-only device information (`device.getModel()`,
+  `device.getMemoryInfo()`, screen size); only clipboard, brightness,
+  volume, vibration and URL opening are gated.
+
 - **Third-party onboarding.** New `docs/QUICK_START.md` walks a newcomer
   from clone to installed IPA and debugged script in about ten minutes;
   `docs/AUTOSCRIPT_COMPARISON.md` compares positioning and API coverage with

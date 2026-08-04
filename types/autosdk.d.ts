@@ -240,6 +240,9 @@ interface AutoFileAPI {
   remove(path: string): boolean;
   deleteAllFile(path: string): boolean;
   copy(source: string, destination: string, overwrite?: boolean): boolean;
+  writeLines(path: string, lines: string[]): boolean;
+  move(source: string, destination: string, overwrite?: boolean): boolean;
+  rename(path: string, newName: string): boolean;
 }
 
 interface AutoStorage {
@@ -272,6 +275,7 @@ interface AutoDeviceAPI {
   getBattery(): number | null;
   isCharging(): boolean;
   getOrientation(): string;
+  getMemoryInfo(): { totalBytes: number; freeBytes: number; appUsedBytes: number };
   getClipboard(): string | null;
   setClipboard(text: string): boolean;
   getBrightness(): number;
@@ -306,6 +310,8 @@ interface AutoAPI {
   setBrightness(value: number): boolean;
   getVolume(): number;
   vibrate(durationMs?: number): boolean;
+  toast(message: string): boolean;
+  toastLog(message: string): void;
   openURL(url: string): boolean;
   getText(selector: AutoSelectorLike): string | null;
   findElement(selector: AutoSelectorLike): AutoNode | null;
@@ -349,6 +355,8 @@ interface AutoAPI {
 }
 
 declare const auto: AutoAPI;
+declare function toast(message: string): boolean;
+declare function toastLog(message: string): void;
 declare const file: AutoFileAPI;
 declare const storages: { create(name: string): AutoStorage };
 declare const device: AutoDeviceAPI;

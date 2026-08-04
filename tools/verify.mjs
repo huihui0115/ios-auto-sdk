@@ -257,6 +257,18 @@ check(bootstrapSource.includes("operation:'clipboardGet'") && bootstrapSource.in
       bootstrapSource.includes("operation:'openURL'") && bootstrapSource.includes("operation:'homescreen'") &&
       bootstrapSource.includes('g.openURL=') && bootstrapSource.includes('homeScreen:function()'),
       'Bootstrap must expose clipboard, brightness, volume, vibration, openURL and home-screen operations with globals');
+check(engineSource.includes('deviceMemoryInfo') && engineSource.includes('isEqualToString:@"memory"'),
+      'Engine must expose device memory information');
+check(engineSource.includes('isEqualToString:@"toast"') && engineSource.includes('AutoShowToast'),
+      'Engine must provide a built-in toast fallback for unregistered hosts');
+check(bootstrapSource.includes('getMemoryInfo:function') && bootstrapSource.includes("operation:'memory'") &&
+      bootstrapSource.includes('writeLines:function') && bootstrapSource.includes("callFile('move'") &&
+      bootstrapSource.includes('rename:function') && bootstrapSource.includes('base.toast=function') &&
+      bootstrapSource.includes('base.toastLog=function') && bootstrapSource.includes('g.toast=base.toast'),
+      'Bootstrap must expose memory info, file move/rename/writeLines, and toast helpers');
+check(read('Sources/AutoSDK/AutoScriptSupport.m').includes('isEqualToString:@"move"') &&
+      read('Sources/AutoSDK/AutoScriptSupport.m').includes('Unable to move path.'),
+      'Sandbox file operations must support move with overwrite semantics');
 check(bootstrapSource.includes('activeTimerCount>=10000') && bootstrapSource.includes("RangeError('Too many active timers')"), 'JavaScript timers must be bounded');
 check(bootstrapSource.includes('activeTimers[id]') && bootstrapSource.includes('delete activeTimers[id]'), 'Timers must support cancellation from inside an active interval callback');
 check(bootstrapSource.includes('function pushTimer') && bootstrapSource.includes('function popTimer') &&
@@ -508,6 +520,16 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
           typeof context.device?.getVolume === 'function' && typeof context.getClipboard === 'function' &&
           typeof context.getBrightness === 'function' && typeof context.vibrate === 'function',
           'System control aliases must be exposed on device and as globals');
+    context.device.getMemoryInfo();
+    check(lastDeviceOperation?.operation === 'memory', 'device.getMemoryInfo must forward the memory operation');
+    context.file.writeLines('demo/lines.txt', ['one', 'two']);
+    check(typeof context.file?.move === 'function' && typeof context.file?.rename === 'function' &&
+          typeof context.file?.writeLines === 'function',
+          'File API must expose writeLines, move and rename');
+    context.toast('hello');
+    check(typeof context.toastLog === 'function' && typeof context.toast === 'function' &&
+          typeof context.auto?.toast === 'function' && typeof context.auto?.toastLog === 'function',
+          'toast and toastLog must be exposed on auto and as globals');
     let firedTimers = 0;
     for (let index = 0; index < 1000; index += 1) context.setTimeout(() => { firedTimers += 1; }, 0);
     const cancelledTimer = context.setTimeout(() => { firedTimers = -100000; }, 0);

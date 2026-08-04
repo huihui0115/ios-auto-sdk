@@ -1765,4 +1765,75 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     XCTAssertEqualObjects(adapter.lastSystemMethod, @"POST");
 }
 
+- (void)testBuiltInToastFallbackAndHostOverride {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *fallback = [self expectationWithDescription:@"built-in toast"];
+    [engine runScript:@"var ok = toast('hello'); ok;" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"value"], @YES);
+        [fallback fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+
+    [engine registerNativeMethod:@"toast" handler:^id(NSArray *args) { return @42; }];
+    XCTestExpectation *override = [self expectationWithDescription:@"host toast override"];
+    [engine runScript:@"var v = toast('x'); v;" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"value"], @42);
+        [override fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testDeviceMemoryInfoIsExposed {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"memory info"];
+    [engine runScript:@"device.getMemoryInfo();" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertTrue([result[@"value"][@"totalBytes"] unsignedLongLongValue] > 0);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testFileWriteLinesMoveAndRename {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"file move"];
+    NSString *script = @"file.writeLines('demo/lines.txt', ['one', 'two']);"
+                        "const lines = file.readLines('demo/lines.txt');"
+                        "file.move('demo/lines.txt', 'demo/moved.txt');"
+                        "const moved = file.exists('demo/moved.txt');"
+                        "const gone = !file.exists('demo/lines.txt');"
+                        "file.rename('demo/moved.txt', 'renamed.txt');"
+                        "const renamed = file.exists('demo/renamed.txt');"
+                        "file.deleteAllFile('demo/lines.txt');file.deleteAllFile('demo/moved.txt');file.deleteAllFile('demo/renamed.txt');"
+                        "({ lines: lines, moved: moved, gone: gone, renamed: renamed });";
+    [engine runScript:script completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"value"][@"lines"], (@[@"one", @"two"]));
+        XCTAssertEqualObjects(result[@"value"][@"moved"], @YES);
+        XCTAssertEqualObjects(result[@"value"][@"gone"], @YES);
+        XCTAssertEqualObjects(result[@"value"][@"renamed"], @YES);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testDeviceInfoRemainsAvailableWhenSystemControlIsDisabled {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5, @"allowSystemControl": @NO }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"device info gated off"];
+    [engine runScript:@"device.getModel();" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertTrue([result[@"value"] length] > 0);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
 @end

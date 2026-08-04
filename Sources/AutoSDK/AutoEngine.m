@@ -10,6 +10,7 @@
 #import <objc/message.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AudioToolbox/AudioToolbox.h>
+#import <mach/mach.h>
 #include <math.h>
 
 @protocol AutoJSExport <JSExport>
@@ -356,6 +357,59 @@ static BOOL AutoSystemURLSchemeAllowed(NSURL *url) {
         @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-."];
     return [scheme rangeOfCharacterFromSet:allowed.invertedSet].location == NSNotFound;
 }
+static UILabel *AutoActiveToastLabel;
+static void AutoShowToast(NSString *message) {
+    if (!NSThread.isMainThread) {
+        dispatch_async(dispatch_get_main_queue(), ^{ AutoShowToast(message); });
+        return;
+    }
+    UIWindow *window = nil;
+    if (@available(iOS 13.0, *)) {
+        for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+            if (![scene isKindOfClass:UIWindowScene.class]) continue;
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            if (windowScene.activationState != UISceneActivationStateForegroundActive) continue;
+            window = windowScene.windows.firstObject;
+            if (window) break;
+        }
+    }
+    if (!window) window = UIApplication.sharedApplication.keyWindow;
+    UIView *container = window.rootViewController.view ?: window;
+    if (!container) return;
+    if (AutoActiveToastLabel) {
+        [AutoActiveToastLabel.layer removeAllAnimations];
+        [AutoActiveToastLabel removeFromSuperview];
+        AutoActiveToastLabel = nil;
+    }
+    UILabel *label = [UILabel new];
+    label.text = message;
+    label.font = [UIFont systemFontOfSize:14 weight:UIFontWeightMedium];
+    label.textColor = UIColor.whiteColor;
+    label.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.75];
+    label.textAlignment = NSTextAlignmentCenter;
+    label.numberOfLines = 0;
+    label.layer.cornerRadius = 10;
+    label.clipsToBounds = YES;
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+    [container addSubview:label];
+    [NSLayoutConstraint activateConstraints:@[
+        [label.centerXAnchor constraintEqualToAnchor:container.centerXAnchor],
+        [label.bottomAnchor constraintEqualToAnchor:container.safeAreaLayoutGuide.bottomAnchor constant:-56],
+        [label.leadingAnchor constraintGreaterThanOrEqualToAnchor:container.leadingAnchor constant:20],
+        [label.trailingAnchor constraintLessThanOrEqualToAnchor:container.trailingAnchor constant:-20]
+    ]];
+    AutoActiveToastLabel = label;
+    label.alpha = 0;
+    [UIView animateWithDuration:0.15 animations:^{ label.alpha = 1; } completion:^(BOOL finished) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [UIView animateWithDuration:0.25 animations:^{ label.alpha = 0; } completion:^(BOOL finished) {
+                if (AutoActiveToastLabel == label) AutoActiveToastLabel = nil;
+                [label removeFromSuperview];
+            }];
+        });
+    }];
+}
+
 static const NSUInteger AutoDebugScriptByteLimit = 768 * 1024;
 static const NSUInteger AutoDebugProtocolVersion = 2;
 static const NSUInteger AutoDebugDefaultNodeLimit = 500;
@@ -1170,8 +1224,15 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         NSDictionary *info = AutoValueOnMainThread(^id{ return [self.engine getDeviceInfo]; });
         return info ?: @{};
     }
-    if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
-        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
+    if ([operation isEqualToString:@"clipboardGet"] || [operation isEqualToString:@"clipboardSet"] ||
+        [operation isEqualToString:@"brightnessGet"] || [operation isEqualToString:@"brightnessSet"] ||
+        [operation isEqualToString:@"volumeGet"] || [operation isEqualToString:@"vibrate"]) {
+        if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
+        }
+    }
+    if ([operation isEqualToString:@"memory"]) {
+        return AutoValueOnMainThread(^id{ return [self.engine deviceMemoryInfo]; }) ?: @{};
     }
     if ([operation isEqualToString:@"clipboardGet"]) {
         return AutoValueOnMainThread(^id{
@@ -1307,7 +1368,16 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     }
     __block AutoNativeMethodHandler handler = nil;
     @synchronized (self.engine) { handler = [self.engine.nativeMethods[name] copy]; }
-    if (!handler) return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, [NSString stringWithFormat:@"Native method '%@' is not registered.", name], nil)];
+    if (!handler) {
+        if ([name isEqualToString:@"toast"]) {
+            id message = nativePayload[@"arguments"] isKindOfClass:NSArray.class ? [nativePayload[@"arguments"] firstObject] : nil;
+            NSString *text = [message isKindOfClass:NSString.class] ? message : [message description];
+            if (text.length == 0) text = @"";
+            AutoShowToast(text);
+            return @YES;
+        }
+        return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, [NSString stringWithFormat:@"Native method '%@' is not registered.", name], nil)];
+    }
     id object = nativePayload[@"arguments"] ?: @[];
     NSArray *args = [object isKindOfClass:NSArray.class] ? object : @[];
     id value = AutoValueOnMainThread(^id{
@@ -2356,6 +2426,30 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     NSDictionary *adapterInfo = [adapter deviceInfo];
     if (adapterInfo) [info addEntriesFromDictionary:adapterInfo];
     return info;
+}
+
+- (NSDictionary<NSString *,id> *)deviceMemoryInfo {
+    uint64_t totalBytes = (uint64_t)NSProcessInfo.processInfo.physicalMemory;
+    uint64_t freeBytes = 0;
+    uint64_t appUsedBytes = 0;
+    mach_port_t host = mach_host_self();
+    vm_size_t pageSize = 0;
+    if (host_page_size(host, &pageSize) == KERN_SUCCESS) {
+        vm_statistics64_data_t stats;
+        mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
+        if (host_statistics64(host, HOST_VM_INFO64, (host_info64_t)&stats, &count) == KERN_SUCCESS) {
+            freeBytes = (uint64_t)stats.free_count * pageSize;
+        }
+    }
+    struct task_vm_info info;
+    mach_msg_type_number_t taskCount = TASK_VM_INFO_COUNT;
+    if (task_info(mach_task_self(), TASK_VM_INFO, (task_info_t)&info, &taskCount) == KERN_SUCCESS) {
+        appUsedBytes = (uint64_t)info.phys_footprint;
+    }
+    mach_port_deallocate(mach_task_self(), host);
+    return @{ @"totalBytes": @(totalBytes),
+              @"freeBytes": @(freeBytes),
+              @"appUsedBytes": @(appUsedBytes) };
 }
 
 @end

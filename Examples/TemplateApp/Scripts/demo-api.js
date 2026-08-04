@@ -1,5 +1,7 @@
 // AutoSDK API showcase: device, files, storage, timers and system control.
 // Self-contained: it does not depend on specific UI in the host app.
+toast("demo-api.js started");
+toastLog("toast + log helper works");
 const report = {};
 
 // 1. Device information
@@ -10,14 +12,21 @@ report.device = {
   charging: device.isCharging(),
   orientation: device.getOrientation(),
   scale: device.getScale(),
+  memoryMB: Math.round(device.getMemoryInfo().totalBytes / (1024 * 1024)),
 };
 
 // 2. Sandbox files
 file.mkdirs("demo");
-file.writeText("demo/report.txt", JSON.stringify(report.device));
-report.fileRoundTrip = file.readText("demo/report.txt").length > 0;
+file.writeLines("demo/report.txt", [JSON.stringify(report.device), "second line"]);
+report.fileRoundTrip = file.readText("demo/report.txt").includes("second line");
+file.move("demo/report.txt", "demo/report-moved.txt");
+report.fileMoved = file.exists("demo/report-moved.txt") && !file.exists("demo/report.txt");
+file.rename("demo/report-moved.txt", "report-final.txt");
+report.fileRenamed = file.exists("demo/report-final.txt");
 report.fileList = file.listDir("demo");
 file.deleteAllFile("demo/report.txt");
+file.deleteAllFile("demo/report-moved.txt");
+file.deleteAllFile("demo/report-final.txt");
 
 // 3. Named storage
 const demoStore = storages.create("demo");

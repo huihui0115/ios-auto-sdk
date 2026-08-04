@@ -35,7 +35,10 @@ Audit date: 2026-08-04
 | 文件/存储 | 沙盒文件 CRUD、命名存储 | ✅ 受限根目录 CRUD、命名 JSON 存储 |
 | HTTP | 请求/JSON/下载 | ✅ 受控 HTTP + 主机白名单 + 大小上限 |
 | 定时器 | setTimeout / setInterval | ✅ 协作式定时器 + 取消 |
+| 提示/日志 | toast / toastLog | ✅ 内置 toast 悬浮提示 + toastLog，宿主可覆盖注册 |
 | 系统配置开关 | 工具内开关 | allowSystemControl（默认开）等配置项 |
+| 内存信息 | 内存占用/可用 | ✅ device.getMemoryInfo（total/free/appUsed 字节） |
+| 文件移动 | move / rename / writeLines | ✅ file.move / rename / writeLines（沙盒内，预算同 copy） |
 
 ## 缺失但仍需要通道的部分
 

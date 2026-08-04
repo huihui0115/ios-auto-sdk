@@ -37,6 +37,9 @@ typedef id _Nullable (^AutoNativeMethodHandler)(NSArray *args);
 
 - (NSDictionary<NSString *, id> *)getDeviceInfo;
 
+/** Total/free system memory and this process's memory footprint in bytes. */
+- (NSDictionary<NSString *, id> *)deviceMemoryInfo;
+
 /** Set the host's XCTest/WDA adapter. Must be called before runScript:. */
 - (void)setAutomationAdapter:(id<AutoAutomationAdapter>)adapter;
 

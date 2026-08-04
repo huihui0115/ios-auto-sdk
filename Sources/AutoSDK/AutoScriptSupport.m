@@ -487,6 +487,50 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
         return ok ? @YES : nil;
     }
 
+    if ([operation isEqualToString:@"move"]) {
+        NSString *destinationPath = AutoRequiredString(payload[@"destination"], @"destination", error);
+        if (!destinationPath) return nil;
+        NSURL *destination = AutoResolveFilePath(destinationPath, config, NO, error);
+        if (!destination) return nil;
+        if (![manager fileExistsAtPath:url.path]) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Source path does not exist.", nil);
+            return nil;
+        }
+        NSString *sourcePath = url.path;
+        NSString *destinationValue = destination.path;
+        if ([sourcePath isEqualToString:destinationValue] ||
+            [destinationValue hasPrefix:[sourcePath stringByAppendingString:@"/"]]) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Destination cannot be the source or one of its children.", nil);
+            return nil;
+        }
+        NSUInteger defaultBytes = AutoSupportByteLimit(config, @"maxFileWriteBytes", 10 * 1024 * 1024, 64 * 1024 * 1024);
+        NSUInteger maximumBytes = AutoSupportByteLimit(config, @"maxFileCopyBytes", defaultBytes, 64 * 1024 * 1024);
+        NSUInteger maximumItems = AutoSupportByteLimit(config, @"maxFileOperationItems", 4096, 100000);
+        if (!AutoValidateTreeBudget(url, maximumBytes, maximumItems, @"Move operation", error)) return nil;
+        NSError *directoryError = nil;
+        [manager createDirectoryAtURL:destination.URLByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:&directoryError];
+        if (directoryError) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to create the destination directory.", directoryError);
+            return nil;
+        }
+        BOOL destinationExists = [manager fileExistsAtPath:destination.path];
+        if (destinationExists && !([payload[@"overwrite"] isKindOfClass:NSNumber.class] && [payload[@"overwrite"] boolValue])) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Destination already exists.", nil);
+            return nil;
+        }
+        if (destinationExists) {
+            NSError *removeError = nil;
+            if (![manager removeItemAtURL:destination error:&removeError]) {
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to replace the destination path.", removeError);
+                return nil;
+            }
+        }
+        NSError *moveError = nil;
+        BOOL ok = [manager moveItemAtURL:url toURL:destination error:&moveError];
+        if (!ok && error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to move path.", moveError);
+        return ok ? @YES : nil;
+    }
+
     if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unknown file operation.", nil);
     return nil;
     }
