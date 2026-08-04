@@ -115,6 +115,14 @@ check(typeDefinitions.includes('declare function cancelTimeout') &&
       typeDefinitions.includes('declare function cancelInterval') &&
       typeDefinitions.includes('interface AutoConsole'),
       'Type definitions must describe the JavaScriptCore console and timer aliases');
+check(typeDefinitions.includes('getJSON(url: string') &&
+      typeDefinitions.includes('width(): number') &&
+      typeDefinitions.includes('declare function setScreenMetrics') &&
+      typeDefinitions.includes('declare const metrics: AutoMetrics') &&
+      typeDefinitions.includes('declare function randomInt') &&
+      typeDefinitions.includes('interface AutoBase64') &&
+      typeDefinitions.includes('declare function openURL'),
+      'Type definitions must declare metrics, uuid/base64, getJSON, device shortcuts, and missing globals');
 
 const podspec = read('AutoSDK.podspec');
 const versionSource = read('Sources/AutoSDK/AutoSDKVersion.m');
@@ -289,6 +297,11 @@ check(bootstrapSource.includes('delete g.__bridge;delete g.__console') &&
       engineSource.includes('[drainTimers callWithArguments:@[]]') &&
       !bootstrapSource.includes('evaluateScript:@"__autoDrainTimers();"'),
       'Bootstrap internals and timer draining must not remain user-overridable globals');
+check(bootstrapSource.includes('g.randomInt=base.randomInt') &&
+      bootstrapSource.includes('if(max==null){max=min;min=0;}') &&
+      bootstrapSource.includes("replace(/[^A-Za-z0-9+/=_-]/g,'')") &&
+      !bootstrapSource.includes('indexOf(str.charAt(i++))'),
+      'Bootstrap random() must accept a single bound and base64 decode must handle unpadded input correctly');
 check(engineSource.includes('hasSuffix:@".js"') && engineSource.includes('!containsWhitespace') &&
       engineSource.includes('!containsCodeCharacters'),
       'Path detection must not reject inline source that merely ends in .js');

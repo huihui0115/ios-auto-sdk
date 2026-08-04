@@ -769,7 +769,7 @@ APIS.push({ cat:'timer', sig:'cancelTimeout(id) / cancelInterval(id)', title:'�
   cancelTimeout(id);
 }
 main();` });
-APIS.push({ cat:'timer', sig:'time() / random(min, max) / randomInt(min, max)', title:'时间与随机数', desc:'time 返回毫秒时间戳；random/randomInt 返回闭区间随机整数。', params:[['min','number','最小值'],['max','number','最大值']], returns:'number', example:`function main(){
+APIS.push({ cat:'timer', sig:'time() / random(min, max) / randomInt(min, max)', title:'时间与随机数', desc:'time 返回毫秒时间戳；random/randomInt 返回闭区间随机整数，只传一个参数时按 random(0, max) 处理。', params:[['min','number','可选，最小值，默认 0'],['max','number','最大值']], returns:'number', example:`function main(){
   logd("时间: " + time());
   logd("随机 1~6: " + randomInt(1, 6));
 }

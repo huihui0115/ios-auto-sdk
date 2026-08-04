@@ -1665,9 +1665,9 @@ main();</code></pre>
     <h4><code>time() / random(min, max) / randomInt(min, max)</code> <span class="cname">时间与随机数</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">time 返回毫秒时间戳；random/randomInt 返回闭区间随机整数。</p>
+  <p class="desc">time 返回毫秒时间戳；random/randomInt 返回闭区间随机整数，只传一个参数时按 random(0, max) 处理。</p>
   <div class="ref"><b>对标</b> EasyClick time()/random() · AutoJS Date.now()/random()</div>
-  <div class="params"><b>参数</b><div class="param"><code class="pname">min</code><span class="ptype">number</span><span class="pdesc">最小值</span></div><div class="param"><code class="pname">max</code><span class="ptype">number</span><span class="pdesc">最大值</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">min</code><span class="ptype">number</span><span class="pdesc">可选，最小值，默认 0</span></div><div class="param"><code class="pname">max</code><span class="ptype">number</span><span class="pdesc">最大值</span></div></div>
   <div class="ret"><b>返回值</b> <span>number</span></div>
   <pre><code>function main(){
   logd("时间: " + time());

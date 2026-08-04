@@ -198,6 +198,7 @@ interface AutoHTTP {
   request(url: string, options?: AutoHTTPOptions): AutoHTTPResponse;
   get(url: string, options?: AutoHTTPOptions): AutoHTTPResponse;
   httpGet(url: string, options?: AutoHTTPOptions): AutoHTTPResponse;
+  getJSON(url: string, options?: AutoHTTPOptions): AutoHTTPResponse;
   post(url: string, body?: unknown, options?: AutoHTTPOptions): AutoHTTPResponse;
   httpPost(url: string, body?: unknown, options?: AutoHTTPOptions): AutoHTTPResponse;
   postJSON(url: string, body?: unknown, options?: AutoHTTPOptions): AutoHTTPResponse;
@@ -266,6 +267,9 @@ interface AutoStorage {
 interface AutoDeviceAPI {
   info(): Record<string, unknown>;
   getDeviceInfo(): Record<string, unknown>;
+  width(): number;
+  height(): number;
+  scale(): number;
   getScreenWidth(): number;
   getScreenHeight(): number;
   getScale(): number;
@@ -387,6 +391,28 @@ declare const image: {
   saveScreenshotToAlbum: AutoAPI["saveScreenshotToAlbum"];
 };
 
+interface AutoMetrics {
+  width: number;
+  height: number;
+  screenWidth: number;
+  screenHeight: number;
+  scaleX: number;
+  scaleY: number;
+}
+
+interface AutoMetricsAPI {
+  set(width: number, height: number): boolean;
+  get(): AutoMetrics;
+  x(value: number): number;
+  y(value: number): number;
+  point(x: number, y: number): { x: number; y: number };
+}
+
+interface AutoBase64 {
+  encode(text: string): string;
+  decode(base64: string): string;
+}
+
 interface AutoConsole {
   log(...values: unknown[]): void;
   debug(...values: unknown[]): void;
@@ -414,7 +440,23 @@ declare function saveImageBase64ToAlbum(base64: string): boolean;
 declare function saveVideoToAlbum(path: string): boolean;
 declare function saveScreenshotToAlbum(): boolean;
 declare function time(): number;
-declare function random(min: number, max: number): number;
+declare function random(min: number, max?: number): number;
+declare function randomInt(min: number, max?: number): number;
+declare function setScreenMetrics(width: number, height: number): boolean;
+declare function getScreenMetrics(): AutoMetrics;
+declare const metrics: AutoMetricsAPI;
+declare function uuid(): string;
+declare function uniqueId(): string;
+declare const base64: AutoBase64;
+declare function clickCenter(selector: AutoSelectorLike): boolean;
+declare function clickRandom(selector: AutoSelectorLike): boolean;
+declare function openURL(url: string): boolean;
+declare function getClipboard(): string | null;
+declare function setClipboard(text: string): boolean;
+declare function getBrightness(): number;
+declare function setBrightness(value: number): boolean;
+declare function getVolume(): number;
+declare function vibrate(durationMs?: number): boolean;
 declare function logd(...values: unknown[]): void;
 declare function logi(...values: unknown[]): void;
 declare function logw(...values: unknown[]): void;
