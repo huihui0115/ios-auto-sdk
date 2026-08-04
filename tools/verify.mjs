@@ -233,6 +233,8 @@ check(/type === 'selectorResult'[\s\S]{0,800}state\.match = null[\s\S]{0,200}ele
 const engineSource = read('Sources/AutoSDK/AutoEngine.m');
 const bootstrapSource = read('Sources/AutoSDK/AutoBootstrapScript.m');
 check(engineSource.includes('waitPollInterval') && engineSource.includes('pollInterval * 1.5'), 'waitFor must use bounded polling backoff');
+check(engineSource.includes('NSError *destinationError = nil;') && engineSource.includes('&destinationError'),
+      'HTTP download destination validation must declare its error pointer');
 check(engineSource.includes('AutoPayloadHasFiniteNumbers') && engineSource.includes('maxScreenshotBytes'), 'script numeric inputs and screenshots must be bounded');
 check(engineSource.includes('maximumTotalBytes') && engineSource.includes('retainedMessageBytes') &&
       engineSource.includes('@"maxLogBytes"'),

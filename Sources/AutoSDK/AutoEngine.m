@@ -840,6 +840,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     AutoHTTPRedirectRouter *router = AutoHTTPSharedRouter();
     NSString *downloadPath = [data[@"downloadPath"] isKindOfClass:NSString.class] ? data[@"downloadPath"] : nil;
     if (downloadPath) {
+        NSError *destinationError = nil;
         if (downloadPath.length == 0 || !AutoScriptValidateDownloadDestination(downloadPath, self.config ?: @{}, &destinationError)) {
             return [self failure:destinationError ?: AutoMakeError(AutoSDKErrorFileOperationFailed, @"Download destination is invalid.", nil)];
         }
