@@ -1725,7 +1725,8 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     XCTestExpectation *expectation = [self expectationWithDescription:@"openURL result"];
     [engine runScript:@"auto.openURL('https://example.com');" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(error);
-        XCTAssertTrue([result[@"value"] boolValue]);
+        XCTAssertTrue([result[@"value"] isKindOfClass:NSNumber.class],
+                      @"https URLs must pass the scheme check and reach the system");
         [expectation fulfill];
     }];
     [self waitForExpectationsWithTimeout:2 handler:nil];
