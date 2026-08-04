@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoSDK 本地开发教程</title>
+<style>
+  :root {
+    --bg: #0f1419; --panel: #171e26; --panel2: #1d2731; --line: #2a3642;
+    --text: #e6edf3; --muted: #9aa7b4; --accent: #3fb6ff; --accent2: #7ee787;
+    --warn: #f0b429; --danger: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; line-height: 1.65;
+  }
+  header.hero {
+    padding: 28px 24px 22px; background: linear-gradient(135deg, #0f1f2e, #12222e 55%, #0f1419);
+    border-bottom: 1px solid var(--line);
+  }
+  header.hero h1 { margin: 0 0 6px; font-size: 26px; }
+  header.hero p { margin: 0; color: var(--muted); max-width: 900px; }
+  .wrap { display: flex; gap: 0; min-height: calc(100vh - 130px); }
+  nav.side {
+    width: 240px; flex: 0 0 240px; padding: 16px 12px 40px; position: sticky; top: 0;
+    align-self: flex-start; max-height: 100vh; overflow: auto; border-right: 1px solid var(--line);
+    background: var(--panel);
+  }
+  nav.side a {
+    display: block; color: var(--muted); text-decoration: none; padding: 7px 10px;
+    border-radius: 8px; font-size: 14px; border-left: 3px solid transparent;
+  }
+  nav.side a:hover { color: var(--text); background: var(--panel2); }
+  nav.side a.active { color: var(--accent); border-left-color: var(--accent); background: var(--panel2); }
+  main { flex: 1; padding: 28px 34px 80px; max-width: 980px; min-width: 0; }
+  section { margin-bottom: 42px; }
+  h2 {
+    font-size: 21px; border-bottom: 1px solid var(--line); padding-bottom: 8px;
+    margin: 0 0 16px; scroll-margin-top: 20px;
+  }
+  h2 .step { color: var(--accent2); margin-right: 8px; }
+  h3 { font-size: 16px; margin: 22px 0 8px; color: var(--accent); }
+  p, li { color: var(--text); }
+  ul { padding-left: 22px; }
+  code, pre {
+    font-family: "Cascadia Code", Consolas, monospace; font-size: 13px;
+  }
+  code { background: var(--panel2); padding: 2px 6px; border-radius: 5px; color: var(--accent2); }
+  pre {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; overflow-x: auto; position: relative;
+  }
+  pre code { background: none; padding: 0; color: var(--text); }
+  .copy {
+    position: absolute; top: 8px; right: 8px; background: var(--panel2); color: var(--muted);
+    border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; font-size: 12px;
+    cursor: pointer;
+  }
+  .copy:hover { color: var(--text); }
+  .note {
+    background: var(--panel2); border-left: 4px solid var(--accent); padding: 10px 14px;
+    border-radius: 8px; margin: 14px 0; font-size: 14px;
+  }
+  .warn { border-left-color: var(--warn); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 12px 0; }
+  th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+  th { background: var(--panel2); }
+  .badge {
+    display: inline-block; background: var(--panel2); border: 1px solid var(--line);
+    padding: 1px 8px; border-radius: 999px; font-size: 12px; color: var(--muted); margin-left: 6px;
+  }
+  kbd {
+    background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 5px; padding: 1px 7px; font-size: 12px; font-family: inherit;
+  }
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 24px; border-top: 1px solid var(--line); }
+  @media (max-width: 860px) {
+    .wrap { flex-direction: column; }
+    nav.side { width: 100%; flex: auto; position: static; max-height: none; border-right: none; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <h1>AutoSDK 本地开发教程 <span class="badge">Windows / macOS</span></h1>
+  <p>从安装到运行第一行代码：安装 App 与 VS Code 插件 → 连接 iPhone → 写脚本 → 调试。本文是本地网页版，离线可用。</p>
+</header>
+<div class="wrap">
+<nav class="side" id="nav">
+  <a href="#overview">1. 这是什么</a>
+  <a href="#artifacts">2. 产物清单</a>
+  <a href="#install">3. 安装</a>
+  <a href="#connect">4. 连接 iPhone</a>
+  <a href="#first">5. 第一行代码</a>
+  <a href="#debug">6. 调试</a>
+  <a href="#device-app">7. 手机端 App 直接用</a>
+  <a href="#faq">8. 常见问题</a>
+  <a href="#refs">9. 参考文档</a>
+</nav>
+<main>
+
+<section id="overview">
+  <h2><span class="step">1</span>这是什么</h2>
+  <p>AutoSDK 是一套可复用的 iOS 自动化脚本框架，包含三部分：</p>
+  <ul>
+    <li><b>模板 App（AutoSDKTemplate）</b>：装到 iPhone 上的脚本宿主，内置脚本列表、编辑器、导入/导出、设置页。</li>
+    <li><b>VS Code 插件（AutoSDK Script Tools）</b>：在电脑上写脚本、连手机调试、可视化检查 UI、远程构建 IPA。</li>
+    <li><b>AutoSDK 引擎</b>：Objective-C 写的脚本执行引擎（SPM / CocoaPods 可集成进你自己的 App）。</li>
+  </ul>
+  <p>典型工作流：<b>电脑写脚本 → 一键发送/运行到手机 → 手机执行并回报日志 → 调试 UI/截图 → 构建新 IPA 安装</b>。</p>
+  <div class="note">脚本风格与 AutoScript / Auto.js 高度一致：<code>auto.click</code>、<code>device</code>、<code>file</code>、<code>storages</code>、<code>toast</code> 等都能直接用。</div>
+</section>
+
+<section id="artifacts">
+  <h2><span class="step">2</span>产物清单（本机已编译）</h2>
+  <table>
+    <tr><th>产物</th><th>路径</th><th>说明</th></tr>
+    <tr><td>App IPA</td><td><code>E:\ios脚本框架开发\dist\AutoSDKTemplate-TrollStore\AutoSDKTemplate.ipa</code></td><td>未签名 IPA，TrollStore 安装；GitHub Actions 自动编译产出</td></tr>
+    <tr><td>VS Code 插件</td><td><code>E:\ios脚本框架开发\vscode-extension\autosdk-vscode-0.4.0.vsix</code></td><td>离线安装包，1.66 MB</td></tr>
+    <tr><td>本教程</td><td><code>E:\ios脚本框架开发\docs\guide\index.html</code></td><td>就是本页，双击即可打开</td></tr>
+  </table>
+  <div class="note">IPA 由 GitHub Actions 的 <code>Build TrollStore IPA</code> workflow 编译（跑过模拟器 XCTest 全量测试），可直接下载：
+  <pre><code>gh run download 30902389054 --repo huihui0115/ios-auto-sdk --dir dist</code></pre>
+  插件包用 <code>npx @vscode/vsce package</code> 从当前源码重打，与源码一致。</div>
+</section>
+
+<section id="install">
+  <h2><span class="step">3</span>安装</h2>
+
+  <h3>3.1 环境要求</h3>
+  <ul>
+    <li>一台 iPhone（推荐 iOS 14+，已装 TrollStore 用于装未签名 IPA）</li>
+    <li>Windows 或 macOS 电脑</li>
+    <li>VS Code 1.85+、Node.js 22+（写脚本 + 插件需要）</li>
+    <li>USB 线（推荐 USB 隧道方式），或同一可信 Wi-Fi 网络（直连方式）</li>
+  </ul>
+
+  <h3>3.2 安装 App（TrollStore）</h3>
+  <ol>
+    <li>把 <code>AutoSDKTemplate.ipa</code> 传到 iPhone（隔空投送 / 微信文件 / iCloud 云盘均可）。</li>
+    <li>在 iPhone 的“文件”App 里找到 IPA → 长按 → <b>共享</b> → <b>用“TrollStore”打开</b> → 安装。</li>
+    <li>打开 <b>AutoSDK Template</b>：主界面是脚本列表（内置 <code>hello.js</code>、<code>demo-api.js</code>）。</li>
+  </ol>
+  <div class="note warn">IPA 未签名（<code>CODE_SIGNING_ALLOWED=NO</code>），普通方式装不上；只能用 TrollStore 或你自己的开发者证书签名后安装。</div>
+
+  <h3>3.3 安装 VS Code 插件</h3>
+  <pre><code>code --install-extension "E:\ios脚本框架开发\vscode-extension\autosdk-vscode-0.4.0.vsix" --force</code></pre>
+  <p>安装后命令面板（<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>）输入 <code>AutoSDK</code> 能看到全部命令。</p>
+
+  <h3>3.4 安装 iproxy（USB 隧道可选，Wi-Fi 直连可跳过）</h3>
+  <p>Windows 安装 libimobiledevice 发行版，确保 <code>iproxy</code> 在 PATH；或在插件设置里指定 <code>autosdk.iproxyPath</code>。验证：</p>
+  <pre><code>iproxy --version</code></pre>
+</section>
+
+<section id="connect">
+  <h2><span class="step">4</span>连接 iPhone</h2>
+
+  <h3>4.1 拿到调试地址和 Token</h3>
+  <p>手机打开 AutoSDK Template → 点左上角齿轮进入<b>设置</b>：会显示 <code>Debug URL</code>（如 <code>ws://192.168.1.8:9001</code> 或 <code>ws://127.0.0.1:9001</code>）和 <code>Debug Token</code>。Token 每次安装随机生成，只显示在 App 里，别外传。</p>
+
+  <h3>4.2 方式 A：USB 隧道（推荐，稳定）</h3>
+  <ol>
+    <li>iPhone 用 USB 线连电脑，解锁并保持 App 在前台。</li>
+    <li>VS Code 命令面板执行 <b>AutoSDK: Start USB Tunnel</b>（自动跑 <code>iproxy 9001:9001</code>）。</li>
+    <li>手动方式：<code>iproxy 9001:9001</code> 保持窗口开着。</li>
+    <li>连接 URL 填 <code>ws://127.0.0.1:9001</code>。</li>
+  </ol>
+
+  <h3>4.3 方式 B：Wi-Fi 直连（无需数据线）</h3>
+  <ol>
+    <li>电脑和手机连<b>同一个 Wi-Fi</b>，App 首次会弹“本地网络”权限，点允许（设置里 <b>Allow Wi-Fi connections</b> 保持开）。</li>
+    <li>设置页复制 <code>ws://手机IP:9001</code> 的地址。</li>
+    <li>注意：公司/访客 Wi-Fi 的“AP 隔离”会阻止直连，连不上就换 USB。</li>
+  </ol>
+
+  <h3>4.4 在 VS Code 里配置连接</h3>
+  <ol>
+    <li>命令面板 → <b>AutoSDK: Configure Device Connection</b>。</li>
+    <li>填入上面的 <code>ws://...</code> URL 和 Token（Token 存 VS Code SecretStorage，不落盘明文）。</li>
+    <li>命令面板 → <b>AutoSDK: Test Device Connection</b>，看到成功即连上。</li>
+  </ol>
+  <p>也可以不用 VS Code，用命令行调试客户端：</p>
+  <pre><code>cd E:\ios脚本框架开发
+node tools/debug-client.mjs --token &lt;你的token&gt; --url ws://127.0.0.1:9001 --script "toast('hello'); 1+1;"</code></pre>
+</section>
+
+<section id="first">
+  <h2><span class="step">5</span>第一行代码</h2>
+
+  <h3>5.1 新建脚本文件</h3>
+  <p>在 VS Code 里打开任意文件夹，新建 <code>hello.js</code>，写：</p>
+  <pre><code>// 第一行代码：读取设备信息并弹提示
+const info = device.getDeviceInfo();
+console.log("device:", info.model, info.systemVersion);
+toast("hello from AutoSDK");
+auto.sleep(500);
+// 宿主 App 内自动化（AutoUIKitAdapter 只控制本 App 的界面）
+auto.click({ label: "AutoSDK Scripts", type: "Button" });
+// 结果值会显示在日志面板
+({ model: info.model, ok: true });</code></pre>
+
+  <h3>5.2 运行</h3>
+  <ol>
+    <li>确认已连接（第 4 节），手机 App 保持前台解锁。</li>
+    <li>命令面板 → <b>AutoSDK: Run Current Script</b>。</li>
+    <li>VS Code 通知/输出面板显示运行结果与 <code>console.log</code> 日志；手机 App 的日志区同步显示。</li>
+  </ol>
+
+  <h3>5.3 存到手机 / 管理手机脚本</h3>
+  <ul>
+    <li><b>AutoSDK: Send Current Script to Device</b>：把当前文件转译成 <code>.js</code> 存进手机沙盒（<code>debug-scripts/</code>），不运行。</li>
+    <li><b>AutoSDK: Manage Device Scripts</b>：列出/运行/删除手机上的脚本。</li>
+    <li>手机 App 的脚本列表里也会出现刚发送的脚本，点 ▶ 直接运行。</li>
+  </ul>
+</section>
+
+<section id="debug">
+  <h2><span class="step">6</span>调试</h2>
+  <table>
+    <tr><th>命令</th><th>用途</th></tr>
+    <tr><td>AutoSDK: Run Current Script</td><td>直接运行当前编辑器内容，不用重新构建 IPA</td></tr>
+    <tr><td>AutoSDK: Stop Active Script</td><td>停止正在运行的脚本（配合超时、定时器协作用）</td></tr>
+    <tr><td>AutoSDK: Capture Device Screenshot</td><td>截图并保存到电脑</td></tr>
+    <tr><td>AutoSDK: Inspect Device Nodes</td><td>抓取界面节点树，定位可点击控件</td></tr>
+    <tr><td>AutoSDK: Open Visual Inspector</td><td>可视化：截图 + 节点树 + 选择器/找图/OCR 测试，自动生成点击代码</td></tr>
+    <tr><td>AutoSDK: Build TrollStore IPA</td><td>远程触发 GitHub Actions 构建，自动下载新 IPA（无需 Mac）</td></tr>
+  </table>
+
+  <h3>6.1 可视化检查 UI（最重要）</h3>
+  <ol>
+    <li>命令面板 → <b>AutoSDK: Open Visual Inspector</b>。</li>
+    <li>左侧截图，右侧节点树：点节点会高亮并生成选择器代码。</li>
+    <li>“测试选择器”立即执行；找图/OCR 模式可先用本地 PNG 测试（自动上传到手机 <code>debug-assets</code>）。</li>
+    <li>生成的 <code>auto.click</code> 代码直接粘回脚本。</li>
+  </ol>
+
+  <h3>6.2 跨 App 自动化（WDA）</h3>
+  <p>默认 <code>AutoUIKitAdapter</code> 只能控制 App 自己的界面。要控制其他 App：</p>
+  <ol>
+    <li>手机上有 WDA 兼容 Runner（如 WebDriverAgent，需单独签名运行）。</li>
+    <li>App 设置页打开 <b>Use WDA adapter</b>，填 Runner URL（默认 <code>http://127.0.0.1:8100</code>）和目标 App 的 Bundle ID → Apply。</li>
+    <li>之后 <code>auto.click</code> / <code>app.homeScreen()</code> / <code>app.lock()</code> 等走 WDA 执行。</li>
+  </ol>
+  <div class="note warn">TrollStore 环境不保证每个 iOS 版本都能跑起 WDA Runner；跨 App 自动化能力取决于你的 Runner。</div>
+
+  <h3>6.3 命令行快速试脚本</h3>
+  <pre><code>node tools/debug-client.mjs --token &lt;token&gt; --url ws://127.0.0.1:9001 --script-file .\hello.js</code></pre>
+</section>
+
+<section id="device-app">
+  <h2><span class="step">7</span>手机端 App 直接用</h2>
+  <p>不接电脑也能用：</p>
+  <ul>
+    <li><b>运行</b>：列表选中脚本 → 右上 ▶；<b>停止</b>用 ■。</li>
+    <li><b>新建/编辑</b>：工具栏 <code>+</code> 打开编辑器，写完后点保存（自动校验名字与大小，最大 768 KB）。</li>
+    <li><b>导入</b>：工具栏文件夹按钮从 Files 选 <code>.js</code>/<code>.txt</code>/<code>.mjs</code>；或电脑上把文件放进“文件”App → 长按 → 共享 → 用 AutoSDK Template 打开。</li>
+    <li><b>导出</b>：工具栏分享按钮把脚本导出到 Files/隔空投送。</li>
+    <li><b>重命名/删除</b>：选中后工具栏文本图标重命名；左滑删除。</li>
+  </ul>
+</section>
+
+<section id="faq">
+  <h2><span class="step">8</span>常见问题</h2>
+  <h3>连不上 / Test Connection 失败</h3>
+  <ul>
+    <li>手机 App 保持前台解锁（TrollStore 装的普通 App 后台会被 iOS 挂起，WebSocket 会断）。</li>
+    <li>USB 方式：确认 <code>iproxy</code> 在跑、URL 是 <code>ws://127.0.0.1:9001</code>、端口没被占用。</li>
+    <li>Wi-Fi 方式：确认同一网段、App 本地网络权限已允许、路由器没有 AP 隔离。</li>
+    <li>Token 填错会直接拒绝：重跑 Configure Device Connection。</li>
+  </ul>
+  <h3>脚本卡死 / 死循环</h3>
+  <p>纯 JS 死循环（如 <code>while(true){}</code>）JavaScriptCore 无法硬中断，可能占满 CPU：用 <b>Stop Active Script</b> 配合桥接调用与定时器可中断；极端情况重启 App。别在脚本里写无出口死循环。</p>
+  <h3>点不到别的 App 的按钮</h3>
+  <p>默认适配器只能操作宿主 App 自己。跨 App 需要 WDA Runner（见 6.2）。</p>
+  <h3>IPA 怎么来的 / 怎么换 Bundle ID 上架</h3>
+  <p>CI（GitHub Actions）自动构建未签名 IPA；要上架/换包名，改 <code>Examples/TemplateApp/project.yml</code> 的 <code>PRODUCT_BUNDLE_IDENTIFIER</code> 和 <code>App/Info.plist</code> 的显示名/图标，发布清单见 <code>docs/MARKET_RELEASE.md</code>。App Store 对脚本执行与调试服务器审查风险高，主流分发走 TrollStore/侧载。</p>
+</section>
+
+<section id="refs">
+  <h2><span class="step">9</span>参考文档（仓库内）</h2>
+  <ul>
+    <li><a href="../QUICK_START.md">docs/QUICK_START.md</a> — 第三方 10 分钟上手</li>
+    <li><a href="../AUTOSCRIPT_COMPARISON.md">docs/AUTOSCRIPT_COMPARISON.md</a> — 与 AutoScript 对比</li>
+    <li><a href="../FILE_STORAGE_DEVICE_API.md">docs/FILE_STORAGE_DEVICE_API.md</a> — 文件/存储/设备/系统 API</li>
+    <li><a href="../HTTP_API.md">docs/HTTP_API.md</a> — 受控 HTTP</li>
+    <li><a href="../NODE_OPERATIONS.md">docs/NODE_OPERATIONS.md</a> — 节点操作</li>
+    <li><a href="../SCRIPT_EXECUTION.md">docs/SCRIPT_EXECUTION.md</a> — 执行语义/超时/定时器</li>
+    <li><a href="../DEBUG_PROTOCOL.md">docs/DEBUG_PROTOCOL.md</a> — 调试协议</li>
+    <li><a href="../WINDOWS_TROLLSTORE.md">docs/WINDOWS_TROLLSTORE.md</a> — Windows + TrollStore 全流程</li>
+    <li><a href="../MARKET_RELEASE.md">docs/MARKET_RELEASE.md</a> — 发布清单</li>
+    <li><a href="../../vscode-extension/README.md">vscode-extension/README.md</a> — 插件说明</li>
+  </ul>
+</section>
+
+</main>
+</div>
+<footer>AutoSDK 本地开发教程 · 仓库 E:\ios脚本框架开发 · 离线可用</footer>
+<script>
+  const links = Array.from(document.querySelectorAll('nav.side a'));
+  const sections = links.map(a => document.querySelector(a.getAttribute('href')));
+  function highlight() {
+    let current = sections[0];
+    for (let i = 0; i < sections.length; i += 1) {
+      if (sections[i].getBoundingClientRect().top <= 90) current = sections[i];
+    }
+    links.forEach((a, i) => a.classList.toggle('active', sections[i] === current));
+  }
+  window.addEventListener('scroll', highlight, { passive: true });
+  highlight();
+  document.querySelectorAll('pre').forEach(pre => {
+    const btn = document.createElement('button');
+    btn.className = 'copy'; btn.textContent = '复制';
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(pre.innerText.replace(/复制$/, '').trim());
+        btn.textContent = '已复制';
+      } catch (e) {
+        btn.textContent = '复制失败';
+      }
+      setTimeout(() => { btn.textContent = '复制'; }, 1200);
+    });
+    pre.appendChild(btn);
+  });
+</script>
+</body>
+</html>
