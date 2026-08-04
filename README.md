@@ -1,4 +1,4 @@
-# AutoSDK
+﻿# AutoSDK
 
 这是一个面向第三方 iOS App 的客户端自动化 SDK MVP。它不是最终 App，也不包含后台设备管理或结果回传服务。
 
@@ -68,6 +68,7 @@ AutoEngine *engine = AutoEngine.sharedEngine;
 `AutoUIKitAdapter` 支持 `id`、`label`、`type`、`value` 及组合选择器，可完成宿主 App 内点击、输入、滚动、节点查询、截图和 Vision OCR。需要跨 App 时可使用 [`AutoWDAHTTPAdapter`](Sources/AutoSDK/include/AutoWDAHTTPAdapter.h)，连接设备上单独运行的 WDA-compatible Runner；它不把 XCTest 私有代码伪装成普通 SDK，也不保证 TrollStore 能在每个 iOS 版本启动 Runner。
 
 ## 脚本 API
+> 📚 交互式 API 速查（分类导航 + 搜索 + 一键复制可运行示例）：[docs/api-reference.html](docs/api-reference.html)，浏览器双击即开。
 
 ```javascript
 auto.click({label: "登录", type: "Button"});

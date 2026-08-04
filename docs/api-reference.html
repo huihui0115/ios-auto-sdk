@@ -1,0 +1,1481 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AutoSDK 脚本函数参考</title>
+<style>
+:root{--bg:#0f172a;--panel:#1e293b;--card:#1e293b;--line:#334155;--text:#e2e8f0;--muted:#94a3b8;--code:#0b1220;--accent:#38bdf8;}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.65 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text)}
+header.top{position:sticky;top:0;z-index:20;background:rgba(15,23,42,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header.top h1{font-size:18px;margin:0;white-space:nowrap}
+header.top h1 span{color:var(--accent)}
+.search{flex:1;min-width:220px}
+.search input{width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--code);color:var(--text);font-size:14px;outline:none}
+.search input:focus{border-color:var(--accent)}
+.hint{font-size:12px;color:var(--muted)}
+.layout{display:flex;gap:0;max-width:1400px;margin:0 auto}
+nav.side{position:sticky;top:64px;align-self:flex-start;width:200px;flex:0 0 200px;padding:18px 14px;border-right:1px solid var(--line);height:calc(100vh - 64px);overflow:auto}
+nav.side a{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;border-left:3px solid transparent;margin-bottom:2px}
+nav.side a:hover{background:var(--panel)}
+nav.side a span{font-size:11px;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:0 7px;color:var(--muted)}
+main{flex:1;min-width:0;padding:20px 26px 80px}
+section.cat{margin-bottom:34px}
+section.cat>h2{display:flex;align-items:center;gap:10px;font-size:20px;border-bottom:2px solid var(--line);padding-bottom:8px;margin:26px 0 16px}
+section.cat>h2 .tag{color:#fff;background:var(--c);padding:3px 12px;border-radius:999px;font-size:15px}
+section.cat>h2 i{font-style:normal;font-size:12px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 14px}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.card h4{margin:0;font-size:15px;font-family:ui-monospace,Consolas,monospace;word-break:break-all}
+.card h4 .cname{font-family:inherit;color:var(--muted);font-weight:500;font-size:13px}
+button.copy{flex:0 0 auto;background:var(--c,var(--accent));border:0;color:#fff;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer}
+button.copy.done{background:#16a34a}
+.desc{margin:10px 0 8px;color:var(--text)}
+.params{margin:6px 0;display:flex;flex-direction:column;gap:3px}
+.params b,.ret b{color:var(--accent);font-size:12px;margin-right:8px}
+.param{display:flex;gap:10px;font-size:13px;align-items:baseline;padding-left:10px}
+.pname{color:#fbbf24}
+.ptype{color:#67e8f9;font-size:12px}
+.pdesc{color:var(--muted)}
+.ret{font-size:13px;color:var(--text)}
+pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;margin:10px 0 0}
+pre code{font:12.5px/1.6 ui-monospace,Consolas,monospace;color:#a5f3fc;white-space:pre}
+.empty{color:var(--muted)}
+#toast-copy{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:#16a34a;color:#fff;padding:8px 18px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:.25s}
+#toast-copy.show{opacity:1;transform:translateX(-50%)}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
+@media(max-width:900px){nav.side{display:none}.layout{display:block}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>AutoSDK <span>脚本函数参考</span></h1>
+  <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
+</header>
+<div class="layout">
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>5</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>17</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>6</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>12</span></a><a href="#file" style="--c:#4f46e5">文件<span>21</span></a><a href="#storage" style="--c:#0d9488">存储<span>5</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>5</span></a><a href="#media" style="--c:#db2777">相册媒体<span>5</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>5</span></a></nav>
+<main>
+<section id="start" class="cat" style="--c:#2563eb">
+<h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
+<div class="card">
+<header class="card-head"><h4>最小可运行脚本</h4><button class="copy" data-copy>复制</button></header>
+<p class="desc">连上手机后（USB：<code>iproxy 9001:9001</code> + <code>ws://127.0.0.1:9001</code>；Wi-Fi：<code>ws://手机IP:9001</code> + token），把下面代码粘到 VS Code，按 <b>AutoSDK: Run Current Script</b>。</p>
+<div class="params"><b>参数</b><span class="pdesc">无需参数</span></div>
+<div class="ret"><b>返回值</b> <span>控制台实时输出日志</span></div>
+<pre><code>function main(){
+  toastLog("脚本已启动");
+  logd("设备: " + device.getModel() + " / iOS " + device.getOSVersion());
+  logd("屏幕: " + device.getScreenWidth() + "x" + device.getScreenHeight());
+  logd("能力: " + JSON.stringify(auto.capabilities()));
+  const png = screenshot();
+  logd("截屏成功，PNG base64 长度 = " + png.length);
+  toastLog("全部调试输出完成");
+}
+main();</code></pre>
+</div>
+</section>
+<section id="start" class="cat" style="--c:#2563eb">
+  <h2><span class="tag">快速开始</span><i></i></h2>
+  <p class="empty">（暂无）</p>
+</section>
+<section id="logs" class="cat" style="--c:#0891b2">
+  <h2><span class="tag">日志与调试</span><i>5</i></h2>
+  <article class="card" data-search="logd(message) 调试日志（debug）">
+  <header class="card-head">
+    <h4><code>logd(message)</code> <span class="cname">调试日志（debug）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">打印调试日志，等价于 console.log。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">message</code><span class="ptype">any</span><span class="pdesc">要打印的内容</span></div></div>
+  <div class="ret"><b>返回值</b> <span>void</span></div>
+  <pre><code>function main(){
+  const name = "AutoSDK";
+  logd("开始运行: " + name);
+  logi("普通信息");
+  logw("警告");
+  loge("错误");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="console.log / console.info(message) 控制台日志">
+  <header class="card-head">
+    <h4><code>console.log / console.info(message)</code> <span class="cname">控制台日志</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">console 系列输出日志；调试服务器会把它们实时发到 VS Code 输出面板。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">message</code><span class="ptype">any</span><span class="pdesc">内容</span></div></div>
+  <div class="ret"><b>返回值</b> <span>void</span></div>
+  <pre><code>function main(){
+  console.log("普通日志");
+  console.info("信息");
+  console.warn("警告");
+  console.error("错误");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="toast(message) 悬浮提示">
+  <header class="card-head">
+    <h4><code>toast(message)</code> <span class="cname">悬浮提示</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在手机上显示短暂悬浮提示（宿主 App 主窗口）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">message</code><span class="ptype">string</span><span class="pdesc">提示文字</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean 是否成功显示</span></div>
+  <pre><code>function main(){
+  toast("脚本运行中");
+  toastLog("提示并写入日志");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="toastLog(message) 提示并记录日志">
+  <header class="card-head">
+    <h4><code>toastLog(message)</code> <span class="cname">提示并记录日志</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">toast 提示的同时写入一条日志。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">message</code><span class="ptype">string</span><span class="pdesc">提示文字</span></div></div>
+  <div class="ret"><b>返回值</b> <span>void</span></div>
+  <pre><code>function main(){
+  toastLog("任务开始");
+  auto.sleep(1000);
+  toastLog("任务结束");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="sleep(milliseconds) 暂停">
+  <header class="card-head">
+    <h4><code>sleep(milliseconds)</code> <span class="cname">暂停</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">协作式暂停毫秒数，可被停止按钮中断，不会死循环占满 CPU。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">milliseconds</code><span class="ptype">number</span><span class="pdesc">毫秒</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  logd("等待 1 秒…");
+  sleep(1000);
+  logd("继续执行");
+}
+main();</code></pre>
+</article>
+</section>
+<section id="touch" class="cat" style="--c:#7c3aed">
+  <h2><span class="tag">触摸与节点</span><i>17</i></h2>
+  <article class="card" data-search="click(selector) 点击节点">
+  <header class="card-head">
+    <h4><code>click(selector)</code> <span class="cname">点击节点</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">点击第一个匹配的控件节点。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">节点选择器或节点句柄</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = click({text: "确定"});
+  logd("点击结果: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="clickPoint(x, y) 坐标点击">
+  <header class="card-head">
+    <h4><code>clickPoint(x, y)</code> <span class="cname">坐标点击</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在屏幕坐标 (x, y) 处点击。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">纵坐标</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = clickPoint(190, 400);
+  logd("坐标点击: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="doubleClickPoint(x, y, interval?) 双击">
+  <header class="card-head">
+    <h4><code>doubleClickPoint(x, y, interval?)</code> <span class="cname">双击</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在坐标处双击，interval 为两次点击间隔秒数。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">纵坐标</span></div><div class="param"><code class="pname">interval</code><span class="ptype">number</span><span class="pdesc">可选，间隔秒数</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = doubleClickPoint(190, 400, 0.05);
+  logd("双击: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="longClick(selector, duration?) 长按">
+  <header class="card-head">
+    <h4><code>longClick(selector, duration?)</code> <span class="cname">长按</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">长按匹配节点；需要适配器支持真实触摸注入。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div><div class="param"><code class="pname">duration</code><span class="ptype">number</span><span class="pdesc">可选，按住秒数</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = longClick({text: "图标"}, 1.0);
+  logd("长按: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="swipe(x1, y1, x2, y2, duration?) 滑动">
+  <header class="card-head">
+    <h4><code>swipe(x1, y1, x2, y2, duration?)</code> <span class="cname">滑动</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">从 (x1,y1) 滑动到 (x2,y2)，duration 为秒数。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x1</code><span class="ptype">number</span><span class="pdesc">起点横坐标</span></div><div class="param"><code class="pname">y1</code><span class="ptype">number</span><span class="pdesc">起点纵坐标</span></div><div class="param"><code class="pname">x2</code><span class="ptype">number</span><span class="pdesc">终点横坐标</span></div><div class="param"><code class="pname">y2</code><span class="ptype">number</span><span class="pdesc">终点纵坐标</span></div><div class="param"><code class="pname">duration</code><span class="ptype">number</span><span class="pdesc">可选，秒数</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = swipe(190, 600, 190, 200, 0.4);
+  logd("上滑: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="input(selector, text) 输入文字">
+  <header class="card-head">
+    <h4><code>input(selector, text)</code> <span class="cname">输入文字</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">向匹配的输入框填入文字（替换原内容）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">输入框选择器</span></div><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">要输入的文字</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = input({type: "TextField"}, "hello");
+  logd("输入结果: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="setText(selector, text) 输入文字（别名）">
+  <header class="card-head">
+    <h4><code>setText(selector, text)</code> <span class="cname">输入文字（别名）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">EasyClick 兼容别名，等价于 input()。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">输入框选择器</span></div><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">文字</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  setText({id: "input"}, "123456");
+  logd("完成");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="getText(selector) 读取节点文字">
+  <header class="card-head">
+    <h4><code>getText(selector)</code> <span class="cname">读取节点文字</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取第一个匹配节点的文本。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string|null</span></div>
+  <pre><code>function main(){
+  const text = getText({type: "Label"});
+  logd("文字: " + text);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="exists(selector) 节点是否存在">
+  <header class="card-head">
+    <h4><code>exists(selector)</code> <span class="cname">节点是否存在</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">判断是否有匹配的节点。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  if (exists({text: "开始"})) {
+    logd("找到“开始”按钮");
+  } else {
+    logd("未找到");
+  }
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="findElement(selector) 查找单个节点">
+  <header class="card-head">
+    <h4><code>findElement(selector)</code> <span class="cname">查找单个节点</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回第一个匹配的稳定节点描述（含句柄、文本、类型、坐标）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoNode|null</span></div>
+  <pre><code>function main(){
+  const node = findElement({text: "登录"});
+  if (node) {
+    logd("节点: " + JSON.stringify(node));
+    logd("中心点: " + node.bounds.centerX + "," + node.bounds.centerY);
+  } else {
+    logd("没找到");
+  }
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="findElements(selector) 查找全部节点">
+  <header class="card-head">
+    <h4><code>findElements(selector)</code> <span class="cname">查找全部节点</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回所有匹配的节点描述数组。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoNode[]</span></div>
+  <pre><code>function main(){
+  const nodes = findElements({type: "Button"});
+  logd("按钮数量: " + nodes.length);
+  for (const n of nodes) {
+    logd(n.text + " @ " + JSON.stringify(n.bounds));
+  }
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="waitFor(selector, timeoutMs?) 等待节点出现">
+  <header class="card-head">
+    <h4><code>waitFor(selector, timeoutMs?)</code> <span class="cname">等待节点出现</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">轮询等待匹配节点，默认 10 秒超时。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div><div class="param"><code class="pname">timeoutMs</code><span class="ptype">number</span><span class="pdesc">可选，毫秒</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = waitFor({text: "加载完成"}, 15000);
+  logd("等待结果: " + ok);
+  if (ok) click({text: "加载完成"});
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="getAttribute(selector, name) 读取节点属性">
+  <header class="card-head">
+    <h4><code>getAttribute(selector, name)</code> <span class="cname">读取节点属性</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取节点的属性，如 type、label、enabled。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div><div class="param"><code class="pname">name</code><span class="ptype">string</span><span class="pdesc">属性名</span></div></div>
+  <div class="ret"><b>返回值</b> <span>any</span></div>
+  <pre><code>function main(){
+  const type = getAttribute({id: "btn"}, "type");
+  logd("类型: " + type);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="getBounds(selector) 读取节点坐标">
+  <header class="card-head">
+    <h4><code>getBounds(selector)</code> <span class="cname">读取节点坐标</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回节点的 {x, y, width, height} 点坐标系矩形。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoRect|null</span></div>
+  <pre><code>function main(){
+  const rect = getBounds({text: "购买"});
+  if (rect) logd(JSON.stringify(rect));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="getChildren(selector) 子节点列表">
+  <header class="card-head">
+    <h4><code>getChildren(selector)</code> <span class="cname">子节点列表</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回节点的直接子节点描述数组。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoNode[]</span></div>
+  <pre><code>function main(){
+  const children = getChildren({type: "Window"});
+  logd("子节点数: " + children.length);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="getParent(selector) 父节点">
+  <header class="card-head">
+    <h4><code>getParent(selector)</code> <span class="cname">父节点</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回节点的父节点描述。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoNode|null</span></div>
+  <pre><code>function main(){
+  const parent = getParent({id: "child"});
+  logd(parent ? parent.type : "无父节点");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="scrollIntoView(selector) 滚动到可见">
+  <header class="card-head">
+    <h4><code>scrollIntoView(selector)</code> <span class="cname">滚动到可见</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">将匹配节点滚动到可见区域。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = scrollIntoView({text: "底部按钮"});
+  logd("滚动: " + ok);
+  if (ok) click({text: "底部按钮"});
+}
+main();</code></pre>
+</article>
+</section>
+<section id="vision" class="cat" style="--c:#ea580c">
+  <h2><span class="tag">图色与OCR</span><i>9</i></h2>
+  <article class="card" data-search="screenshot() 截屏">
+  <header class="card-head">
+    <h4><code>screenshot()</code> <span class="cname">截屏</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">截取当前屏幕，返回 PNG 的 Base64 字符串。</p>
+  
+  <div class="ret"><b>返回值</b> <span>string PNG base64</span></div>
+  <pre><code>function main(){
+  const png = screenshot();
+  logd("截图长度: " + png.length);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="findImage(templatePath, options?) 找图">
+  <header class="card-head">
+    <h4><code>findImage(templatePath, options?)</code> <span class="cname">找图</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在屏幕截图中查找模板图片，返回匹配位置与相似度。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">templatePath</code><span class="ptype">string</span><span class="pdesc">模板图片路径（沙盒内，支持 png/jpg）</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，region/threshold 等</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoMatch {found, x, y, similarity}</span></div>
+  <pre><code>function main(){
+  const match = findImage("images/start.png", {threshold: 0.9});
+  if (match.found) {
+    logd("找到，中心: " + match.centerX + "," + match.centerY);
+    clickPoint(match.centerX, match.centerY);
+  } else {
+    logd("未找到");
+  }
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="findColor(color, region?, options?) 找色">
+  <header class="card-head">
+    <h4><code>findColor(color, region?, options?)</code> <span class="cname">找色</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在指定区域内查找第一个匹配的颜色点。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">color</code><span class="ptype">string|[r,g,b]</span><span class="pdesc">颜色，如 "#ff0000"</span></div><div class="param"><code class="pname">region</code><span class="ptype">object</span><span class="pdesc">可选，{x,y,width,height}</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，tolerance 等</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoMatch {found, x, y}</span></div>
+  <pre><code>function main(){
+  const match = findColor("#ff3b30", {x: 0, y: 0, width: 390, height: 844});
+  if (match.found) logd("颜色点: " + match.x + "," + match.y);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="findMultiColor(color, offsets, region?, options?) 多点找色">
+  <header class="card-head">
+    <h4><code>findMultiColor(color, offsets, region?, options?)</code> <span class="cname">多点找色</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">按基准色 + 相对偏移点组合查找，比单点更稳。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">color</code><span class="ptype">string</span><span class="pdesc">基准颜色</span></div><div class="param"><code class="pname">offsets</code><span class="ptype">array</span><span class="pdesc">偏移点数组 [{dx,dy,color}]</span></div><div class="param"><code class="pname">region</code><span class="ptype">object</span><span class="pdesc">可选</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoMatch</span></div>
+  <pre><code>function main(){
+  const match = findMultiColor("#3b3b3b", [
+    {dx: 20, dy: 0, color: "#ffffff"},
+    {dx: 0, dy: 20, color: "#000000"}
+  ], {x: 0, y: 0, width: 390, height: 844}, {tolerance: 10});
+  if (match.found) clickPoint(match.centerX, match.centerY);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="getPixelColor(x, y) 读取像素颜色">
+  <header class="card-head">
+    <h4><code>getPixelColor(x, y)</code> <span class="cname">读取像素颜色</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取截图上某一点的像素颜色。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">纵坐标</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoPixelColor {hex, r, g, b, a}</span></div>
+  <pre><code>function main(){
+  const p = getPixelColor(100, 200);
+  logd("颜色: " + p.hex);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="compareColors(points, options?) 多点颜色比对">
+  <header class="card-head">
+    <h4><code>compareColors(points, options?)</code> <span class="cname">多点颜色比对</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">一次截图内比对多个点的颜色是否全部匹配。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">points</code><span class="ptype">array</span><span class="pdesc">[{x,y,color,tolerance?}]</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = compareColors([
+    {x: 10, y: 10, color: "#ffffff"},
+    {x: 20, y: 20, color: "#000000"}
+  ]);
+  logd("比对结果: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="cmpColor(points, options?) 多点颜色比对（别名）">
+  <header class="card-head">
+    <h4><code>cmpColor(points, options?)</code> <span class="cname">多点颜色比对（别名）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">EasyClick 兼容别名，等价于 compareColors()。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">points</code><span class="ptype">array</span><span class="pdesc">颜色点数组</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = cmpColor([{x: 5, y: 5, color: "#ff0000"}]);
+  logd("结果: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="ocr(options?) 文字识别（OCR）">
+  <header class="card-head">
+    <h4><code>ocr(options?)</code> <span class="cname">文字识别（OCR）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">用设备端 Vision 识别屏幕文字，返回带坐标的文本项。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，{x,y,width,height,mode}</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoOCRItem[]</span></div>
+  <pre><code>function main(){
+  const items = ocr({mode: "fast"});
+  for (const item of items) {
+    logd(item.text + " @ " + JSON.stringify(item.bounds));
+  }
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="image.findImage / findColor / pixel / screenshot 图色模块别名">
+  <header class="card-head">
+    <h4><code>image.findImage / findColor / pixel / screenshot</code> <span class="cname">图色模块别名</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">image 命名空间提供图色函数别名，便于移植。</p>
+  
+  <div class="ret"><b>返回值</b> <span>同对应函数</span></div>
+  <pre><code>function main(){
+  const png = image.screenshot();
+  const m = image.findColor("#ffffff", {x: 0, y: 0, width: 100, height: 100});
+  const p = image.pixel(10, 10);
+  logd("截图长度=" + png.length + " 颜色点=" + m.found + " 像素=" + p.hex);
+}
+main();</code></pre>
+</article>
+</section>
+<section id="app" class="cat" style="--c:#16a34a">
+  <h2><span class="tag">App与应用控制</span><i>6</i></h2>
+  <article class="card" data-search="launchApp(bundleId) 启动应用">
+  <header class="card-head">
+    <h4><code>launchApp(bundleId)</code> <span class="cname">启动应用</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">通过支持生命周期能力的适配器启动 App。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">App 的 Bundle ID</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = launchApp("com.apple.Preferences");
+  logd("启动: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="activateApp(bundleId) 切换到前台">
+  <header class="card-head">
+    <h4><code>activateApp(bundleId)</code> <span class="cname">切换到前台</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把已安装的 App 带到前台。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">Bundle ID</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = activateApp("com.apple.Preferences");
+  logd("激活: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="terminateApp(bundleId) 结束应用">
+  <header class="card-head">
+    <h4><code>terminateApp(bundleId)</code> <span class="cname">结束应用</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">结束指定 App 的进程。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">Bundle ID</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = terminateApp("com.example.demo");
+  logd("结束: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="appState(bundleId) 应用状态">
+  <header class="card-head">
+    <h4><code>appState(bundleId)</code> <span class="cname">应用状态</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取 WDA 应用状态码（4 表示前台运行）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">Bundle ID</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  const state = appState("com.apple.Preferences");
+  logd("状态码: " + state);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="openURL(url) 打开链接">
+  <header class="card-head">
+    <h4><code>openURL(url)</code> <span class="cname">打开链接</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">打开 http(s) 链接或安全的自定义 URL Scheme。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">链接</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = openURL("myapp://open?id=42");
+  logd("打开: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="app.homeScreen() / lock() / unlock() 主屏幕 / 锁屏 / 解锁">
+  <header class="card-head">
+    <h4><code>app.homeScreen() / lock() / unlock()</code> <span class="cname">主屏幕 / 锁屏 / 解锁</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">WDA 适配器支持的系统级操作。</p>
+  
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  logd("回主屏幕: " + app.homeScreen());
+  logd("锁屏: " + app.lock());
+  logd("解锁: " + app.unlock());
+}
+main();</code></pre>
+</article>
+</section>
+<section id="device" class="cat" style="--c:#dc2626">
+  <h2><span class="tag">设备与系统</span><i>12</i></h2>
+  <article class="card" data-search="device.getDeviceInfo() 设备信息">
+  <header class="card-head">
+    <h4><code>device.getDeviceInfo()</code> <span class="cname">设备信息</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回设备/屏幕/电池/系统等完整信息字典。</p>
+  
+  <div class="ret"><b>返回值</b> <span>object {model, systemVersion, screenWidth, batteryLevel, ...}</span></div>
+  <pre><code>function main(){
+  const info = device.getDeviceInfo();
+  logd("型号: " + info.model);
+  logd("系统: " + info.systemVersion);
+  logd("屏幕: " + info.screenWidth + "x" + info.screenHeight + " scale=" + info.scale);
+  logd("电量: " + info.batteryLevel + " 充电中=" + info.isCharging);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getScreenWidth() / getScreenHeight() 屏幕尺寸">
+  <header class="card-head">
+    <h4><code>device.getScreenWidth() / getScreenHeight()</code> <span class="cname">屏幕尺寸</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取屏幕逻辑宽高（点）。</p>
+  
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  logd("宽: " + device.getScreenWidth());
+  logd("高: " + device.getScreenHeight());
+  logd("缩放: " + device.getScale());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getScale() 屏幕缩放">
+  <header class="card-head">
+    <h4><code>device.getScale()</code> <span class="cname">屏幕缩放</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取屏幕像素密度 scale。</p>
+  
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  const s = device.getScale();
+  logd("scale: " + s + " 物理宽: " + device.getScreenWidth() * s);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getModel() / getOSVersion() / getDeviceName() 型号 / 系统 / 设备名">
+  <header class="card-head">
+    <h4><code>device.getModel() / getOSVersion() / getDeviceName()</code> <span class="cname">型号 / 系统 / 设备名</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取公开的 iOS 设备信息。</p>
+  
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(device.getModel() + " iOS " + device.getOSVersion());
+  logd("设备名: " + device.getDeviceName());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getBattery() / isCharging() 电量 / 充电状态">
+  <header class="card-head">
+    <h4><code>device.getBattery() / isCharging()</code> <span class="cname">电量 / 充电状态</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取电量百分比与是否充电。</p>
+  
+  <div class="ret"><b>返回值</b> <span>number|boolean</span></div>
+  <pre><code>function main(){
+  const battery = device.getBattery();
+  logd("电量: " + battery + "% 充电中: " + device.isCharging());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getOrientation() 屏幕方向">
+  <header class="card-head">
+    <h4><code>device.getOrientation()</code> <span class="cname">屏幕方向</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取当前界面方向。</p>
+  
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd("方向: " + device.getOrientation());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getMemoryInfo() 内存信息">
+  <header class="card-head">
+    <h4><code>device.getMemoryInfo()</code> <span class="cname">内存信息</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取进程可见的内存总量/空闲/已用（字节）。</p>
+  
+  <div class="ret"><b>返回值</b> <span>object {totalBytes, freeBytes, appUsedBytes}</span></div>
+  <pre><code>function main(){
+  const m = device.getMemoryInfo();
+  logd("内存 总=" + m.totalBytes + " 空闲=" + m.freeBytes + " App=" + m.appUsedBytes);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getClipboard() / setClipboard(text) 剪贴板">
+  <header class="card-head">
+    <h4><code>device.getClipboard() / setClipboard(text)</code> <span class="cname">剪贴板</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取或写入系统剪贴板（文本上限 1 MiB）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">写入的文字（set 时）</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string|null / boolean</span></div>
+  <pre><code>function main(){
+  const before = device.getClipboard();
+  logd("原来: " + before);
+  device.setClipboard("复制内容");
+  logd("现在: " + device.getClipboard());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getBrightness() / setBrightness(v) 屏幕亮度">
+  <header class="card-head">
+    <h4><code>device.getBrightness() / setBrightness(v)</code> <span class="cname">屏幕亮度</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取或设置亮度（0~1）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">v</code><span class="ptype">number</span><span class="pdesc">亮度 0~1（set 时）</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number / boolean</span></div>
+  <pre><code>function main(){
+  logd("当前亮度: " + device.getBrightness());
+  device.setBrightness(0.5);
+  logd("设置后: " + device.getBrightness());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getVolume() 系统音量">
+  <header class="card-head">
+    <h4><code>device.getVolume()</code> <span class="cname">系统音量</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取系统音量（0~1，只读）。</p>
+  
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  logd("音量: " + device.getVolume());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.vibrate(durationMs?) 振动">
+  <header class="card-head">
+    <h4><code>device.vibrate(durationMs?)</code> <span class="cname">振动</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">触发系统振动（时长是建议值，系统会封顶）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">可选，毫秒</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  device.vibrate(300);
+  logd("已振动");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="auto.capabilities() 运行时能力">
+  <header class="card-head">
+    <h4><code>auto.capabilities()</code> <span class="cname">运行时能力</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">查看当前适配器与各模块开关状态，常用于脚本内判断。</p>
+  
+  <div class="ret"><b>返回值</b> <span>object</span></div>
+  <pre><code>function main(){
+  const cap = auto.capabilities();
+  logd("HTTP: " + cap.http + " 文件: " + cap.fileRead + "/" + cap.fileWrite);
+  logd("相册写入: " + cap.mediaLibraryWrite + " 系统控制: " + cap.systemControl);
+  if (cap.http) logd("网络已启用");
+}
+main();</code></pre>
+</article>
+</section>
+<section id="file" class="cat" style="--c:#4f46e5">
+  <h2><span class="tag">文件</span><i>21</i></h2>
+  <article class="card" data-search="file.sandboxDir() 沙盒根目录">
+  <header class="card-head">
+    <h4><code>file.sandboxDir()</code> <span class="cname">沙盒根目录</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回当前配置的 AutoSDK 文件沙盒绝对路径。</p>
+  
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd("沙盒: " + file.sandboxDir());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.resolvePath(path) 解析沙盒路径">
+  <header class="card-head">
+    <h4><code>file.resolvePath(path)</code> <span class="cname">解析沙盒路径</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把相对路径拼接成沙盒内绝对路径。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">相对路径，如 data/1.txt</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(file.resolvePath("data/1.txt"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.exists(path) 是否存在">
+  <header class="card-head">
+    <h4><code>file.exists(path)</code> <span class="cname">是否存在</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">判断文件或文件夹是否存在。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  logd("存在: " + file.exists("data/1.txt"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.readFile(path) 读取文本">
+  <header class="card-head">
+    <h4><code>file.readFile(path)</code> <span class="cname">读取文本</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把沙盒文件读取为 UTF-8 字符串（别名 readText）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  if (file.exists("data/1.txt")) {
+    logd(file.readFile("data/1.txt"));
+  } else {
+    logd("文件不存在");
+  }
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.readBase64(path) 读取为 Base64">
+  <header class="card-head">
+    <h4><code>file.readBase64(path)</code> <span class="cname">读取为 Base64</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取文件并以 Base64 字符串返回（可用于图片等二进制）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  const b64 = file.readBase64("images/1.png");
+  logd("长度: " + b64.length);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.writeFile(path, text) 写入文本">
+  <header class="card-head">
+    <h4><code>file.writeFile(path, text)</code> <span class="cname">写入文本</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">原子写入 UTF-8 文本（覆盖，别名 writeText）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">内容</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = file.writeFile("data/1.txt", "hello
+world");
+  logd("写入: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.writeBase64(path, base64) 写入 Base64">
+  <header class="card-head">
+    <h4><code>file.writeBase64(path, base64)</code> <span class="cname">写入 Base64</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把 Base64 解码后写入文件。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">base64</code><span class="ptype">string</span><span class="pdesc">Base64 内容</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const png = screenshot();
+  const ok = file.writeBase64("shots/now.png", png);
+  logd("保存截图: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.appendText(path, text) 追加文本">
+  <header class="card-head">
+    <h4><code>file.appendText(path, text)</code> <span class="cname">追加文本</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在文件末尾追加文本（不换行）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">内容</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  file.appendText("data/log.txt", "start ");
+  file.appendLine("data/log.txt", "done");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.appendLine(path, line) 追加一行">
+  <header class="card-head">
+    <h4><code>file.appendLine(path, line)</code> <span class="cname">追加一行</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在文件末尾追加一行（自动换行）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">line</code><span class="ptype">string</span><span class="pdesc">行内容</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  for (let i = 0; i &lt; 3; i++) file.appendLine("data/log.txt", "第" + i + "行");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.writeLines(path, lines) 写入多行">
+  <header class="card-head">
+    <h4><code>file.writeLines(path, lines)</code> <span class="cname">写入多行</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把字符串数组按行写入文件。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">lines</code><span class="ptype">array</span><span class="pdesc">行数组</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  file.writeLines("data/points.txt", ["1,2", "3,4", "5,6"]);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.readLines(path) 读取所有行">
+  <header class="card-head">
+    <h4><code>file.readLines(path)</code> <span class="cname">读取所有行</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把文件按行读取为数组（别名 readAllLines）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string[]</span></div>
+  <pre><code>function main(){
+  const lines = file.readLines("data/points.txt");
+  for (const line of lines) logd(line);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.readLine(path, index) 读取某一行">
+  <header class="card-head">
+    <h4><code>file.readLine(path, index)</code> <span class="cname">读取某一行</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">按下标读取一行（从 0 开始），越界返回 null。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">index</code><span class="ptype">number</span><span class="pdesc">行下标</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string|null</span></div>
+  <pre><code>function main(){
+  const line = file.readLine("data/points.txt", 0);
+  logd("第一行: " + line);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.deleteLine(path, index) 删除某一行">
+  <header class="card-head">
+    <h4><code>file.deleteLine(path, index)</code> <span class="cname">删除某一行</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">删除指定下标的一行。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">index</code><span class="ptype">number</span><span class="pdesc">行下标</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = file.deleteLine("data/points.txt", 0);
+  logd("删除: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.create(path) 创建文件">
+  <header class="card-head">
+    <h4><code>file.create(path)</code> <span class="cname">创建文件</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">创建空文件（已存在则清空）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = file.create("data/new.txt");
+  logd("创建: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.mkdir(path) / mkdirs(path) 创建文件夹">
+  <header class="card-head">
+    <h4><code>file.mkdir(path) / mkdirs(path)</code> <span class="cname">创建文件夹</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">递归创建目录（可多级）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">目录路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = file.mkdirs("a/b/c");
+  logd("创建目录: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.list(path) 列出目录详情">
+  <header class="card-head">
+    <h4><code>file.list(path)</code> <span class="cname">列出目录详情</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回目录项数组（名字、大小、是否目录、修改时间）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">目录路径，可空=沙盒根</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoFileEntry[]</span></div>
+  <pre><code>function main(){
+  const entries = file.list("");
+  for (const e of entries) {
+    logd((e.isDirectory ? "[目录] " : "[文件] ") + e.name + " " + e.size);
+  }
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.listDir(path) 列出文件名">
+  <header class="card-head">
+    <h4><code>file.listDir(path)</code> <span class="cname">列出文件名</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">只返回目录下的名字数组（EasyClick 风格）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">目录路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string[]</span></div>
+  <pre><code>function main(){
+  const names = file.listDir("data");
+  logd(names.join(", "));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.remove(path) / deleteAllFile(path) 删除">
+  <header class="card-head">
+    <h4><code>file.remove(path) / deleteAllFile(path)</code> <span class="cname">删除</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">删除文件或目录（含递归目录树，别名 deleteAllFile）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  file.writeFile("tmp.txt", "x");
+  const ok = file.deleteAllFile("tmp.txt");
+  logd("删除: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.copy(src, dest, overwrite?) 复制">
+  <header class="card-head">
+    <h4><code>file.copy(src, dest, overwrite?)</code> <span class="cname">复制</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">复制文件或目录，overwrite 控制是否覆盖。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">src</code><span class="ptype">string</span><span class="pdesc">源路径</span></div><div class="param"><code class="pname">dest</code><span class="ptype">string</span><span class="pdesc">目标路径</span></div><div class="param"><code class="pname">overwrite</code><span class="ptype">boolean</span><span class="pdesc">可选，默认 false</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = file.copy("data/1.txt", "data/1-copy.txt", true);
+  logd("复制: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.move(src, dest, overwrite?) 移动">
+  <header class="card-head">
+    <h4><code>file.move(src, dest, overwrite?)</code> <span class="cname">移动</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">移动文件或目录（跨目录改名）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">src</code><span class="ptype">string</span><span class="pdesc">源路径</span></div><div class="param"><code class="pname">dest</code><span class="ptype">string</span><span class="pdesc">目标路径</span></div><div class="param"><code class="pname">overwrite</code><span class="ptype">boolean</span><span class="pdesc">可选</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = file.move("data/1.txt", "data/archive/1.txt", false);
+  logd("移动: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.rename(path, newName) 重命名">
+  <header class="card-head">
+    <h4><code>file.rename(path, newName)</code> <span class="cname">重命名</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把文件/目录改成新名字（同一目录内）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">原路径</span></div><div class="param"><code class="pname">newName</code><span class="ptype">string</span><span class="pdesc">新名字</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = file.rename("data/1.txt", "renamed.txt");
+  logd("重命名: " + ok);
+}
+main();</code></pre>
+</article>
+</section>
+<section id="storage" class="cat" style="--c:#0d9488">
+  <h2><span class="tag">存储</span><i>5</i></h2>
+  <article class="card" data-search="storages.create(name) 创建命名存储">
+  <header class="card-head">
+    <h4><code>storages.create(name)</code> <span class="cname">创建命名存储</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">打开一个命名 JSON 存储（不存在则创建），返回存储对象。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">name</code><span class="ptype">string</span><span class="pdesc">存储名</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoStorage</span></div>
+  <pre><code>function main(){
+  const store = storages.create("settings");
+  store.putString("endpoint", "https://example.com");
+  logd("读取: " + store.getString("endpoint"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="store.putString / putInt / putFloat / putBoolean(key, value) 写入数据">
+  <header class="card-head">
+    <h4><code>store.putString / putInt / putFloat / putBoolean(key, value)</code> <span class="cname">写入数据</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">按类型写入键值（JSON 安全）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">key</code><span class="ptype">string</span><span class="pdesc">键</span></div><div class="param"><code class="pname">value</code><span class="ptype">any</span><span class="pdesc">值</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const s = storages.create("settings");
+  s.putString("name", "demo");
+  s.putInt("count", 10);
+  s.putBoolean("enabled", true);
+  s.putFloat("ratio", 0.5);
+  logd("写入完成");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="store.getString / getInt / getFloat / getBoolean(key, default?) 读取数据">
+  <header class="card-head">
+    <h4><code>store.getString / getInt / getFloat / getBoolean(key, default?)</code> <span class="cname">读取数据</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">按类型读取，可给默认值；不存在返回 null/默认值。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">key</code><span class="ptype">string</span><span class="pdesc">键</span></div><div class="param"><code class="pname">default</code><span class="ptype">any</span><span class="pdesc">可选默认值</span></div></div>
+  <div class="ret"><b>返回值</b> <span>any</span></div>
+  <pre><code>function main(){
+  const s = storages.create("settings");
+  logd(s.getString("name", "未设置"));
+  logd(s.getInt("count", 0));
+  logd(s.getBoolean("enabled", false));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="store.all() / keys() 列出数据">
+  <header class="card-head">
+    <h4><code>store.all() / keys()</code> <span class="cname">列出数据</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回全部键值或全部键名。</p>
+  
+  <div class="ret"><b>返回值</b> <span>object | string[]</span></div>
+  <pre><code>function main(){
+  const s = storages.create("settings");
+  logd("键: " + JSON.stringify(s.keys()));
+  logd("全部: " + JSON.stringify(s.all()));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="store.contains(key) / remove(key) / clear() 判断 / 删除 / 清空">
+  <header class="card-head">
+    <h4><code>store.contains(key) / remove(key) / clear()</code> <span class="cname">判断 / 删除 / 清空</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">判断键是否存在、删除单个键、清空整个存储。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">key</code><span class="ptype">string</span><span class="pdesc">键</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const s = storages.create("settings");
+  logd("存在: " + s.contains("name"));
+  s.remove("name");
+  s.clear();
+  logd("已清空");
+}
+main();</code></pre>
+</article>
+</section>
+<section id="http" class="cat" style="--c:#9333ea">
+  <h2><span class="tag">网络HTTP</span><i>5</i></h2>
+  <article class="card" data-search="http.get(url, options?) GET 请求">
+  <header class="card-head">
+    <h4><code>http.get(url, options?)</code> <span class="cname">GET 请求</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">发送同步 GET 请求（需宿主配置 allowNetwork）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">http(s) 地址</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，headers/timeout 等</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoHTTPResponse {status, body, json, headers}</span></div>
+  <pre><code>function main(){
+  const cap = auto.capabilities();
+  if (!cap.http) { loge("网络未启用，需要 allowNetwork=YES"); return; }
+  const res = http.get("https://example.com/api");
+  logd("状态: " + res.status);
+  logd("响应: " + res.body);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="http.post(url, body?, options?) POST 请求">
+  <header class="card-head">
+    <h4><code>http.post(url, body?, options?)</code> <span class="cname">POST 请求</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">发送同步 POST 请求（body 可为字符串或对象）。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">地址</span></div><div class="param"><code class="pname">body</code><span class="ptype">any</span><span class="pdesc">可选请求体</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoHTTPResponse</span></div>
+  <pre><code>function main(){
+  if (!auto.capabilities().http) { loge("网络未启用"); return; }
+  const res = http.post("https://example.com/api", {a: 1}, {headers: {"Content-Type": "application/json"}});
+  logd("状态: " + res.status + " 内容: " + res.body);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="http.postJSON(url, body?, options?) JSON POST（别名）">
+  <header class="card-head">
+    <h4><code>http.postJSON(url, body?, options?)</code> <span class="cname">JSON POST（别名）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">EasyClick 兼容别名，等价于 http.post。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">地址</span></div><div class="param"><code class="pname">body</code><span class="ptype">any</span><span class="pdesc">对象</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoHTTPResponse</span></div>
+  <pre><code>function main(){
+  if (!auto.capabilities().http) return;
+  const res = http.postJSON("https://example.com/api", {name: "demo"});
+  logd(res.status);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="http.downloadFile(url, path, options?) 下载文件">
+  <header class="card-head">
+    <h4><code>http.downloadFile(url, path, options?)</code> <span class="cname">下载文件</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把响应下载到沙盒文件；requireSuccess 可要求 2xx。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">地址</span></div><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒目标路径</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  if (!auto.capabilities().http) return;
+  const ok = http.downloadFile("https://example.com/a.png", "images/a.png", {requireSuccess: true});
+  logd("下载: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="http.request(url, options?) / httpGet / httpPost 通用请求与别名">
+  <header class="card-head">
+    <h4><code>http.request(url, options?) / httpGet / httpPost</code> <span class="cname">通用请求与别名</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">http 本体可调用，另有 httpGet/httpPost/httpGetDefault/httpPostJSON/downloadFileDefault 等别名。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">地址</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">method/headers/body 等</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoHTTPResponse</span></div>
+  <pre><code>function main(){
+  if (!auto.capabilities().http) return;
+  const res = http.request("https://example.com", {method: "GET", timeout: 5000});
+  logd("状态: " + res.status);
+}
+main();</code></pre>
+</article>
+</section>
+<section id="media" class="cat" style="--c:#db2777">
+  <h2><span class="tag">相册媒体</span><i>5</i></h2>
+  <article class="card" data-search="media.saveImage(path) 保存图片到相册">
+  <header class="card-head">
+    <h4><code>media.saveImage(path)</code> <span class="cname">保存图片到相册</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把沙盒内图片写入系统相册；首次调用会弹 iOS 授权。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内图片路径，png/jpg</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = media.saveImage("images/result.png");
+  logd("保存图片: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="media.saveImageBase64(base64) Base64 图片存相册">
+  <header class="card-head">
+    <h4><code>media.saveImageBase64(base64)</code> <span class="cname">Base64 图片存相册</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">直接把 Base64 图片写入相册，可配合截图。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">base64</code><span class="ptype">string</span><span class="pdesc">PNG/JPEG 的 Base64</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const png = screenshot();
+  const ok = media.saveImageBase64(png);
+  logd("保存截图到相册: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="media.saveVideo(path) 保存视频到相册">
+  <header class="card-head">
+    <h4><code>media.saveVideo(path)</code> <span class="cname">保存视频到相册</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把沙盒内视频文件写入系统相册。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内视频路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = media.saveVideo("videos/record.mp4");
+  logd("保存视频: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="media.saveScreenshot() 截图存相册">
+  <header class="card-head">
+    <h4><code>media.saveScreenshot()</code> <span class="cname">截图存相册</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">截图并直接保存到相册（一步完成）。</p>
+  
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = media.saveScreenshot();
+  logd("截图已存相册: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="auto.saveImageToAlbum / image.saveToAlbum 等别名 相册别名">
+  <header class="card-head">
+    <h4><code>auto.saveImageToAlbum / image.saveToAlbum 等别名</code> <span class="cname">相册别名</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">saveImageToAlbum、saveImageBase64ToAlbum、saveVideoToAlbum、saveScreenshotToAlbum 全局可用；image 模块另有 saveToAlbum/saveBase64ToAlbum/saveScreenshotToAlbum。</p>
+  
+  <div class="ret"><b>返回值</b> <span>同对应函数</span></div>
+  <pre><code>function main(){
+  const ok = saveScreenshotToAlbum();
+  logd("别名调用: " + ok);
+}
+main();</code></pre>
+</article>
+</section>
+<section id="timer" class="cat" style="--c:#64748b">
+  <h2><span class="tag">定时器与工具</span><i>5</i></h2>
+  <article class="card" data-search="setTimeout(fn, ms, ...args) / clearTimeout(id) 延时执行">
+  <header class="card-head">
+    <h4><code>setTimeout(fn, ms, ...args) / clearTimeout(id)</code> <span class="cname">延时执行</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">延时后执行一次回调；脚本结束前会排空定时器。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">fn</code><span class="ptype">function</span><span class="pdesc">回调</span></div><div class="param"><code class="pname">ms</code><span class="ptype">number</span><span class="pdesc">毫秒</span></div><div class="param"><code class="pname">id</code><span class="ptype">number</span><span class="pdesc">定时器 id</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number / void</span></div>
+  <pre><code>function main(){
+  const id = setTimeout(() =&gt; { logd("延时执行"); }, 500);
+  clearTimeout(id);
+  logd("已取消");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="setInterval(fn, ms) / clearInterval(id) 定时循环">
+  <header class="card-head">
+    <h4><code>setInterval(fn, ms) / clearInterval(id)</code> <span class="cname">定时循环</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">周期性执行回调，可取消；脚本停止时自动清空。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">fn</code><span class="ptype">function</span><span class="pdesc">回调</span></div><div class="param"><code class="pname">ms</code><span class="ptype">number</span><span class="pdesc">间隔毫秒</span></div><div class="param"><code class="pname">id</code><span class="ptype">number</span><span class="pdesc">定时器 id</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number / void</span></div>
+  <pre><code>function main(){
+  let count = 0;
+  const id = setInterval(() =&gt; {
+    count++;
+    logd("第 " + count + " 次");
+    if (count &gt;= 3) clearInterval(id);
+  }, 200);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="cancelTimeout(id) / cancelInterval(id) 取消定时器（别名）">
+  <header class="card-head">
+    <h4><code>cancelTimeout(id) / cancelInterval(id)</code> <span class="cname">取消定时器（别名）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">EasyClick 兼容别名。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">id</code><span class="ptype">number</span><span class="pdesc">定时器 id</span></div></div>
+  <div class="ret"><b>返回值</b> <span>void</span></div>
+  <pre><code>function main(){
+  const id = setTimeout(() =&gt; logd("不会执行"), 100);
+  cancelTimeout(id);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="time() / random(min, max) / randomInt(min, max) 时间与随机数">
+  <header class="card-head">
+    <h4><code>time() / random(min, max) / randomInt(min, max)</code> <span class="cname">时间与随机数</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">time 返回毫秒时间戳；random/randomInt 返回闭区间随机整数。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">min</code><span class="ptype">number</span><span class="pdesc">最小值</span></div><div class="param"><code class="pname">max</code><span class="ptype">number</span><span class="pdesc">最大值</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  logd("时间: " + time());
+  logd("随机 1~6: " + randomInt(1, 6));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="console.time(label) / console.timeEnd(label) 计时">
+  <header class="card-head">
+    <h4><code>console.time(label) / console.timeEnd(label)</code> <span class="cname">计时</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">console 风格计时，timeEnd 打印并返回耗时毫秒。</p>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">label</code><span class="ptype">string</span><span class="pdesc">可选标签</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number|null</span></div>
+  <pre><code>function main(){
+  console.time("run");
+  sleep(200);
+  const ms = console.timeEnd("run");
+  logd("耗时: " + ms + "ms");
+}
+main();</code></pre>
+</article>
+</section>
+</main>
+</div>
+<footer>AutoSDK 离线函数参考 · 与 EasyClick/AutoScript 风格对齐 · 双击 index.html 即可打开</footer>
+<div id="toast-copy">已复制到剪贴板</div>
+<script>
+const q = document.getElementById('q');
+const cards = Array.from(document.querySelectorAll('.card'));
+q.addEventListener('input', () => {
+  const text = q.value.trim().toLowerCase();
+  for (const card of cards) {
+    card.style.display = (!text || card.dataset.search.toLowerCase().includes(text)) ? '' : 'none';
+  }
+});
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch (_) {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } finally { ta.remove(); }
+    return true;
+  }
+}
+const toast = document.getElementById('toast-copy');
+document.addEventListener('click', async ev => {
+  const btn = ev.target.closest('button[data-copy]');
+  if (!btn) return;
+  const code = btn.closest('.card').querySelector('pre code');
+  if (!code) return;
+  await copyText(code.textContent);
+  const old = btn.textContent;
+  btn.textContent = '已复制';
+  btn.classList.add('done');
+  toast.classList.add('show');
+  setTimeout(() => { btn.textContent = old; btn.classList.remove('done'); toast.classList.remove('show'); }, 1200);
+});
+</script>
+</body>
+</html>
