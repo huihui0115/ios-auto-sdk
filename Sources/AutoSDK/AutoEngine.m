@@ -1370,7 +1370,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     @synchronized (self.engine) { handler = [self.engine.nativeMethods[name] copy]; }
     if (!handler) {
         if ([name isEqualToString:@"toast"]) {
-            id message = nativePayload[@"arguments"] isKindOfClass:NSArray.class ? [nativePayload[@"arguments"] firstObject] : nil;
+            id message = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? [nativePayload[@"arguments"] firstObject] : nil;
             NSString *text = [message isKindOfClass:NSString.class] ? message : [message description];
             if (text.length == 0) text = @"";
             AutoShowToast(text);

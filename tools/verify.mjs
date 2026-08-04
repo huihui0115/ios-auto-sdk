@@ -261,6 +261,8 @@ check(engineSource.includes('deviceMemoryInfo') && engineSource.includes('isEqua
       'Engine must expose device memory information');
 check(engineSource.includes('isEqualToString:@"toast"') && engineSource.includes('AutoShowToast'),
       'Engine must provide a built-in toast fallback for unregistered hosts');
+check(engineSource.includes('[nativePayload[@"arguments"] isKindOfClass:NSArray.class]'),
+      'The built-in toast must parse arguments with a bracketed message send');
 check(bootstrapSource.includes('getMemoryInfo:function') && bootstrapSource.includes("operation:'memory'") &&
       bootstrapSource.includes('writeLines:function') && bootstrapSource.includes("callFile('move'") &&
       bootstrapSource.includes('rename:function') && bootstrapSource.includes('base.toast=function') &&
