@@ -769,7 +769,16 @@ APIS.push({ cat:'device', sig:'device.vibrate(durationMs?)', title:'振动', des
   logd("已振动");
 }
 main();` });
-APIS.push({ cat:'device', sig:'auto.capabilities()', title:'运行时能力', desc:'查看当前适配器与各模块开关状态，常用于脚本内判断。', params:[], returns:'object', example:`function main(){
+APIS.push({ cat:'device', sig:'device.volumeUp() / device.volumeDown()', title:'音量加/减键', desc:'模拟按下系统音量加/减键（WDA 真机按键注入）；宿主适配器不支持时返回错误，可用 capabilities() 判断。', params:[], returns:'boolean', example:`function main(){
+  const ok = device.volumeUp();
+  logd("音量+ " + ok);
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.isScreenOn()', title:'屏幕状态', desc:'查询屏幕是否点亮（未锁屏），WDA 真机支持；宿主适配器不支持时返回错误。', params:[], returns:'boolean', example:`function main(){
+  if (device.isScreenOn()) logd("屏幕已点亮");
+  else logd("屏幕已熄灭");
+}
+main();` });APIS.push({ cat:'device', sig:'auto.capabilities()', title:'运行时能力', desc:'查看当前适配器与各模块开关状态，常用于脚本内判断。', params:[], returns:'object', example:`function main(){
   const cap = auto.capabilities();
   logd("HTTP: " + cap.http + " 文件: " + cap.fileRead + "/" + cap.fileWrite);
   logd("相册写入: " + cap.mediaLibraryWrite + " 系统控制: " + cap.systemControl);

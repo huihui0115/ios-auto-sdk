@@ -286,6 +286,9 @@ interface AutoDeviceAPI {
   setBrightness(value: number): boolean;
   getVolume(): number;
   vibrate(durationMs?: number): boolean;
+  volumeUp(): boolean;
+  volumeDown(): boolean;
+  isScreenOn(): boolean;
 }
 
 interface AutoMediaAPI {

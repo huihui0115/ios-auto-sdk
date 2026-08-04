@@ -30,6 +30,7 @@ Audit date: 2026-08-05
 | 振动 | vibrate | ✅ device.vibrate（时长建议值，封顶） |
 | 打开 URL | openURL | ✅ auto/app.openURL（http(s)+安全自定义 scheme） |
 | 主屏幕/锁屏/解锁 | homeScreen / lock / unlock | ✅ app.homeScreen / lock / unlock（WDA 适配器实现） |
+| 音量键/屏幕状态 | 音量加/减键、屏幕亮灭查询 | ✅ device.volumeUp / volumeDown / isScreenOn（WDA 按键注入） |
 | 触摸/节点 | 跨 App 点击、滑动、节点树 | 宿主内 AutoUIKitAdapter 直接；跨 App 走 WDA 适配器 |
 | 图色/OCR | 截图、找色、找图、OCR | ✅ 截图、像素、找色、多色、找图、Vision OCR |
 | 文件/存储 | 沙盒文件 CRUD、命名存储 | ✅ 受限根目录 CRUD、命名 JSON 存储 |

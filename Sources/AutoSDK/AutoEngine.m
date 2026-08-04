@@ -1407,6 +1407,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     if (![self ensureScriptRunning]) return @NO;
     NSDictionary *data = AutoPayload(payload);
     NSString *operation = [data[@"operation"] isKindOfClass:NSString.class] ? data[@"operation"] : @"info";
+    NSError *error = nil;
     if ([operation isEqualToString:@"info"]) {
         NSDictionary *info = AutoValueOnMainThread(^id{ return [self.engine getDeviceInfo]; });
         return info ?: @{};
@@ -1461,7 +1462,28 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
         return @YES;
     }
-    NSDictionary *mapping = @{ @"screenWidth": @"screenWidth", @"screenHeight": @"screenHeight",
+    if ([operation isEqualToString:@"volumeUp"] || [operation isEqualToString:@"volumeDown"]) {
+        if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
+        }
+        if (![self.adapter respondsToSelector:@selector(pressButtonWithName:error:)]) {
+            return [self failure:AutoMakeError(AutoSDKErrorAutomationUnavailable, @"The automation adapter does not support hardware button presses.", nil)];
+        }
+        NSString *buttonName = [operation isEqualToString:@"volumeUp"] ? @"volumeUp" : @"volumeDown";
+        BOOL ok = [self.adapter pressButtonWithName:buttonName error:&error];
+        return error ? [self failure:error] : @(ok);
+    }
+    if ([operation isEqualToString:@"isScreenOn"]) {
+        if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
+        }
+        if (![self.adapter respondsToSelector:@selector(deviceLockedStateWithError:)]) {
+            return [self failure:AutoMakeError(AutoSDKErrorAutomationUnavailable, @"The automation adapter does not report screen lock state.", nil)];
+        }
+        NSNumber *locked = [self.adapter deviceLockedStateWithError:&error];
+        if (error) return [self failure:error];
+        return @(!locked.boolValue);
+    }    NSDictionary *mapping = @{ @"screenWidth": @"screenWidth", @"screenHeight": @"screenHeight",
                                @"scale": @"screenScale", @"model": @"model", @"osVersion": @"systemVersion",
                                @"name": @"name", @"battery": @"batteryLevel", @"isCharging": @"isCharging",
                                @"orientation": @"orientation" };

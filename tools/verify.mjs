@@ -120,6 +120,9 @@ check(typeDefinitions.includes('declare function cancelTimeout') &&
       typeDefinitions.includes('declare function cancelInterval') &&
       typeDefinitions.includes('interface AutoConsole'),
       'Type definitions must describe the JavaScriptCore console and timer aliases');
+check(typeDefinitions.includes('volumeUp(): boolean') && typeDefinitions.includes('volumeDown(): boolean') &&
+      typeDefinitions.includes('isScreenOn(): boolean'),
+      'Type definitions must declare device volume keys and screen-state queries');
 check(typeDefinitions.includes('getJSON(url: string') &&
       typeDefinitions.includes('width(): number') &&
       typeDefinitions.includes('declare function setScreenMetrics') &&

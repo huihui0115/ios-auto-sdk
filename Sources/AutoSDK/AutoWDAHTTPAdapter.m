@@ -3169,6 +3169,28 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     return requestError == nil;
 }
 
+- (BOOL)pressButtonWithName:(NSString *)name error:(NSError **)error {
+    if (name.length == 0) {
+        if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration, @"Button name must not be empty.");
+        return NO;
+    }
+    NSError *requestError = nil;
+    [self requestSessionSuffix:@"/wda/pressButton" method:@"POST" body:@{ @"name": name } error:&requestError];
+    if (requestError && error) *error = requestError;
+    if (!requestError) [self invalidateVisualCaches];
+    return requestError == nil;
+}
+
+- (NSNumber *)deviceLockedStateWithError:(NSError **)error {
+    NSError *requestError = nil;
+    id response = [self requestSessionSuffix:@"/wda/locked" method:@"GET" body:nil error:&requestError];
+    if (requestError) {
+        if (error) *error = requestError;
+        return nil;
+    }
+    id value = AutoWDAResponseValue(response);
+    return @([value boolValue]);
+}
 - (BOOL)lockDeviceWithError:(NSError **)error {
     NSError *requestError = nil;
     [self requestSessionSuffix:@"/wda/lock" method:@"POST" body:@{} error:&requestError];

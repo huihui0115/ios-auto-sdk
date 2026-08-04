@@ -105,6 +105,9 @@ function createSandbox() {
         case 'volumeGet': return 0.4;
         case 'vibrate': return true;
         case 'memory': return { free: 100, total: 1000 };
+        case 'volumeUp': return true;
+        case 'volumeDown': return true;
+        case 'isScreenOn': return true;
         default: return null;
       }
     },
@@ -243,6 +246,17 @@ test('metrics transforms are pure math before setScreenMetrics', () => {
   assert.equal(calls.device.length, before);
 });
 
+
+test('device volume and screen-state operations forward through invokeDevice', () => {
+  const { sandbox, calls } = boot();
+  sandbox.device.volumeUp();
+  assert.deepEqual(calls.device.at(-1), { operation: 'volumeUp' });
+  sandbox.device.volumeDown();
+  assert.deepEqual(calls.device.at(-1), { operation: 'volumeDown' });
+  sandbox.device.isScreenOn();
+  assert.deepEqual(calls.device.at(-1), { operation: 'isScreenOn' });
+  assert.equal(sandbox.auto.device.volumeUp(), true);
+});
 test('device info and convenience accessors', () => {
   const { sandbox } = boot();
   assert.equal(sandbox.device.width(), 390);

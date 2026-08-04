@@ -102,6 +102,9 @@ const brightness = device.getBrightness(); // 0...1
 device.setBrightness(0.5);                  // true (validated to 0...1)
 const volume = device.getVolume();         // 0...1 (read-only)
 device.vibrate(300);                        // true (advisory duration, capped)
+device.volumeUp();   // WDA runners: press the volume-up hardware key
+device.volumeDown(); // WDA runners: press the volume-down hardware key
+device.isScreenOn();  // WDA runners: is the screen unlocked/on
 auto.openURL("myapp://open?id=42");        // true when the system opened it
 auto.openURL("https://example.com");
 app.homeScreen();  // WDA runners: go to the home screen

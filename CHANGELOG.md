@@ -22,6 +22,13 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **Device volume keys and screen state.** New device.volumeUp(),
+  device.volumeDown() and device.isScreenOn() (WDA /wda/pressButton and
+  /wda/locked), gated by llowSystemControl; embedded adapters report
+  unavailable instead of failing silently. API reference grows to 142
+  documented functions.
+### Added
+
 - **Virtual-clock timer tests.** The bootstrap test sandbox now advances a
   virtual clock inside invokeSleep, so CI exercises the real wait-sleep-fire
   path deterministically, including interval cadence, one-shot sleeps, and

@@ -82,7 +82,7 @@ The following surfaces must not be described as production-complete yet:
 | 图色与OCR | 9 | 多指手势 | 双指缩放/自定义复杂手势 | ✅ auto.gesture / multiGesture / pinch（WDA 适配器真实触摸注入，capabilities.multiTouch）|
 | 截图、找图、找色、多点找色、像素、OCR |
 | App与应用控制 | 6 | launch/activate/terminate/state/openURL/homeScreen |
-| 设备与系统 | 12 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存 |
+| 设备与系统 | 15 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、音量键、屏幕状态 |
 | 坐标与屏幕 | 4 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
 | 文件 | 21 | 沙盒 CRUD、行操作、复制/移动/重命名 |
 | 存储 | 5 | 命名 typed store |
