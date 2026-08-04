@@ -1307,7 +1307,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
 
     [engine initWithConfig:@{ @"scriptTimeout": @5 }];
     XCTestExpectation *multiLine = [self expectationWithDescription:@"source whose last line is a .js comment"];
-    [engine runScript:@"var answer = 42; // run.js" completion:^(NSDictionary *result, NSError *error) {
+    [engine runScript:@"42; // run.js" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(error);
         XCTAssertEqualObjects(result[@"value"], @42);
         [multiLine fulfill];
@@ -1619,7 +1619,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
 
     XCTestExpectation *limited = [self expectationWithDescription:@"storage entry limit"];
     script = [NSString stringWithFormat:
-        @"const s=storages.create('%@');s.put('second',2);s.clear();", storageName];
+        @"const s=storages.create('%@');s.put('second',2);", storageName];
     [engine runScript:script completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(result);
         XCTAssertEqual(error.code, AutoSDKErrorStorageFailed);

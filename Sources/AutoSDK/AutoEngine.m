@@ -389,8 +389,11 @@ static NSString *AutoDebugAssetPath(NSString *name) {
 }
 
 // The engine reuses one keep-alive NSURLSession for every invokeHTTP and
-// remote-script request instead of creating an ephemeral session per request,
-// so TLS sessions and HTTP connections survive between calls. Redirect
+// remote-script request instead of creating a session per request, so TLS
+// sessions and HTTP connections survive between calls. The default
+// configuration (not ephemeral/background) is required so NSURLProtocol
+// classes registered with +[NSURLProtocol registerClass:] still intercept
+// requests; caches and cookies are explicitly disabled below. Redirect
 // enforcement stays per-task through AutoHTTPRedirectRouter; the session
 // itself is never invalidated per request.
 static AutoHTTPRedirectRouter *AutoHTTPSharedRouter(void) {
@@ -404,8 +407,9 @@ static NSURLSession *AutoHTTPSharedSession(void) {
     static NSURLSession *session = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        NSURLSessionConfiguration *configuration = NSURLSessionConfiguration.ephemeralSessionConfiguration;
+        NSURLSessionConfiguration *configuration = NSURLSessionConfiguration.defaultSessionConfiguration;
         configuration.URLCache = nil;
+        configuration.URLCredentialStorage = nil;
         configuration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
         configuration.HTTPCookieStorage = nil;
         configuration.timeoutIntervalForRequest = 120;

@@ -281,8 +281,9 @@ check(read('Sources/AutoSDK/AutoHTTPSupport.h').includes('AutoHTTPRedirectRouter
       engineSource.includes('#import "AutoHTTPSupport.h"'),
       'Shared HTTP redirect routing must be imported by the engine');
 check(engineSource.includes('AutoHTTPSharedSession()') && engineSource.includes('AutoHTTPSharedRouter()') &&
-      engineSource.includes('dispatch_once') && engineSource.includes('ephemeralSessionConfiguration'),
-      'HTTP requests must reuse one shared keep-alive session created exactly once');
+      engineSource.includes('dispatch_once') && engineSource.includes('defaultSessionConfiguration') &&
+      !engineSource.includes('ephemeralSessionConfiguration'),
+      'Shared HTTP session must use the default configuration so registered NSURLProtocol classes intercept requests');
 check(engineSource.includes('setPolicy:policy forTask:') && engineSource.includes('removePolicyForTask:'),
       'Per-task redirect policies must be registered before resume and removed after completion');
 check(!engineSource.includes('[session invalidateAndCancel]') && !engineSource.includes('finishTasksAndInvalidate'),
