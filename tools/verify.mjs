@@ -280,10 +280,13 @@ check(httpSupportSource.includes('originalScheme') && httpSupportSource.includes
 check(read('Sources/AutoSDK/AutoHTTPSupport.h').includes('AutoHTTPRedirectRouter') &&
       engineSource.includes('#import "AutoHTTPSupport.h"'),
       'Shared HTTP redirect routing must be imported by the engine');
-check(engineSource.includes('AutoHTTPSharedSession()') && engineSource.includes('AutoHTTPSharedRouter()') &&
+check(engineSource.includes('AutoHTTPSharedSession(') && engineSource.includes('AutoHTTPSharedRouter()') &&
       engineSource.includes('dispatch_once') && engineSource.includes('defaultSessionConfiguration') &&
-      !engineSource.includes('ephemeralSessionConfiguration'),
-      'Shared HTTP session must use the default configuration so registered NSURLProtocol classes intercept requests');
+      engineSource.includes('configuration.protocolClasses') && engineSource.includes('urlProtocolClasses'),
+      'Shared HTTP session must accept injected NSURLProtocol classes via the urlProtocolClasses config key');
+check(read('Tests/AutoSDKTests/AutoHTTPProtocolTests.m').includes('mergedConfig[@\"urlProtocolClasses\"]') &&
+      read('Tests/AutoSDKTests/AutoHTTPProtocolTests.m').includes('AutoTestHTTPProtocol.class'),
+      'HTTP protocol tests must inject their NSURLProtocol class through configuration');
 check(engineSource.includes('setPolicy:policy forTask:') && engineSource.includes('removePolicyForTask:'),
       'Per-task redirect policies must be registered before resume and removed after completion');
 check(!engineSource.includes('[session invalidateAndCancel]') && !engineSource.includes('finishTasksAndInvalidate'),

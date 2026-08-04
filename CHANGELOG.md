@@ -22,9 +22,10 @@ All notable changes to AutoSDK are documented here. The format follows
   `NSURLSession` used the ephemeral configuration, which ignores
   `NSURLProtocol` classes registered with `+[NSURLProtocol registerClass:]`,
   so the in-process `autosdk.test` test harness could not see any request.
-  The shared session now uses the default configuration with caches, cookies
-  and credential storage explicitly disabled, which keeps the keep-alive
-  behavior and lets registered protocols participate.
+  The shared session now uses the default configuration (caches, cookies and
+  credential storage explicitly disabled) and accepts an internal
+  `urlProtocolClasses` config key so hosts and tests can inject
+  `NSURLProtocol` subclasses deterministically before first use.
 - **Stale bridge errors no longer leak into the next script.** `lastError`
   is cleared whenever a script starts successfully, so a failure from a
   previous bridge call cannot be reported as the current run's result.

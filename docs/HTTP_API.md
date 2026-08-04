@@ -84,6 +84,12 @@ policy stays per-request: each task carries its own follow/allowlist policy
 routed through `AutoHTTPRedirectRouter`, so concurrent requests cannot
 influence each other's redirects.
 
+The internal config key `urlProtocolClasses` (an array of `Class` objects)
+lets hosts and tests inject `NSURLProtocol` subclasses into the shared
+session's configuration; it must be set before the first HTTP use because the
+session is created once. The default configuration is used (not ephemeral)
+with caches, cookies and credential storage explicitly disabled.
+
 The host remains responsible for TLS pinning and authentication. The current
 JavaScript facade is synchronous and pumps the main run loop while URLSession
 performs network I/O.

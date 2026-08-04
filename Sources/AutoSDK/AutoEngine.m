@@ -6,6 +6,7 @@
 #import "AutoHTTPSupport.h"
 #import <JavaScriptCore/JavaScriptCore.h>
 #import <UIKit/UIKit.h>
+#import <objc/runtime.h>
 #include <math.h>
 
 @protocol AutoJSExport <JSExport>
@@ -78,6 +79,7 @@
 @interface AutoEngine ()
 @property (nonatomic, readwrite, getter=isRunning) BOOL running;
 @property (atomic, copy) NSDictionary *config;
+@property (atomic, copy) NSArray<Class> *urlProtocolClasses;
 @property (atomic, strong) id<AutoAutomationAdapter> adapter;
 @property (nonatomic, strong) id<AutoAutomationAdapter> activeAdapter;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, AutoNativeMethodHandler> *nativeMethods;
@@ -403,7 +405,7 @@ static AutoHTTPRedirectRouter *AutoHTTPSharedRouter(void) {
     return router;
 }
 
-static NSURLSession *AutoHTTPSharedSession(void) {
+static NSURLSession *AutoHTTPSharedSession(NSArray<Class> *protocolClasses) {
     static NSURLSession *session = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -414,6 +416,9 @@ static NSURLSession *AutoHTTPSharedSession(void) {
         configuration.HTTPCookieStorage = nil;
         configuration.timeoutIntervalForRequest = 120;
         configuration.timeoutIntervalForResource = 120;
+        if ([protocolClasses isKindOfClass:NSArray.class] && protocolClasses.count > 0) {
+            configuration.protocolClasses = protocolClasses;
+        }
         NSOperationQueue *delegateQueue = [NSOperationQueue new];
         delegateQueue.maxConcurrentOperationCount = 1;
         delegateQueue.name = @"com.autosdk.http-session";
@@ -823,7 +828,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     AutoHTTPRedirectPolicy *policy = [AutoHTTPRedirectPolicy new];
     policy.followsRedirects = AutoBoolean(data[@"followRedirects"], YES);
     policy.allowedHosts = hasHostAllowlist ? allowedHosts : nil;
-    NSURLSession *session = AutoHTTPSharedSession();
+    NSURLSession *session = AutoHTTPSharedSession(self.engine.urlProtocolClasses);
     AutoHTTPRedirectRouter *router = AutoHTTPSharedRouter();
     NSString *downloadPath = [data[@"downloadPath"] isKindOfClass:NSString.class] ? data[@"downloadPath"] : nil;
     if (downloadPath) {
@@ -1310,6 +1315,13 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         if ([configSnapshot[@"adapter"] conformsToProtocol:@protocol(AutoAutomationAdapter)]) {
             self.adapter = configSnapshot[@"adapter"];
         }
+        id protocolValue = configSnapshot[@"urlProtocolClasses"];
+        NSArray *configuredProtocols = [protocolValue isKindOfClass:NSArray.class] ? protocolValue : nil;
+        NSMutableArray *validProtocols = [NSMutableArray array];
+        for (id protocol in configuredProtocols) {
+            if (object_isClass(protocol)) [validProtocols addObject:protocol];
+        }
+        self.urlProtocolClasses = validProtocols.count > 0 ? [validProtocols copy] : nil;
     }
     if (AutoBoolean(configSnapshot[@"debugServerEnabled"], NO)) {
         uint16_t port = (uint16_t)AutoBoundedPositiveInteger(configSnapshot[@"debugPort"], 9001, UINT16_MAX);
@@ -1988,7 +2000,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         NSTimeInterval remoteTimeout = AutoFiniteDouble(config[@"remoteScriptTimeout"], 0);
         NSMutableURLRequest *remoteRequest = [NSMutableURLRequest requestWithURL:url];
         remoteRequest.timeoutInterval = (isfinite(remoteTimeout) && remoteTimeout > 0) ? MIN(120, remoteTimeout) : 30;
-        NSURLSession *session = AutoHTTPSharedSession();
+        NSURLSession *session = AutoHTTPSharedSession(self.urlProtocolClasses);
         AutoHTTPRedirectRouter *router = AutoHTTPSharedRouter();
         __weak NSURLSessionDownloadTask *weakTask = nil;
         NSObject *sizeLimitLock = [NSObject new];

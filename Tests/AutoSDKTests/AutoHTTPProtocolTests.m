@@ -104,7 +104,9 @@ static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
 - (void)runScript:(NSString *)script
       withConfig:(NSDictionary *)config
       completion:(void (^)(NSDictionary * _Nullable result, NSError * _Nullable error))completion {
-    [AutoEngine.sharedEngine initWithConfig:config];
+    NSMutableDictionary *mergedConfig = [NSMutableDictionary dictionaryWithDictionary:config ?: @{}];
+    mergedConfig[@"urlProtocolClasses"] = @[AutoTestHTTPProtocol.class];
+    [AutoEngine.sharedEngine initWithConfig:mergedConfig];
     [AutoEngine.sharedEngine runScript:script completion:completion];
 }
 
