@@ -248,7 +248,8 @@ check(engineSource.includes('fileWriteEnabled = fileReadEnabled &&') &&
       engineSource.includes('@"fileWrite": @(fileWriteEnabled)'),
       'File-write capability must require both file access and file-write permission');
 check(engineSource.includes('@"allowSystemControl"') && engineSource.includes('@"systemControl"') &&
-      engineSource.includes('AutoSystemURLSchemeAllowed') && engineSource.includes('AutoSystemClipboardByteLimit'),
+      engineSource.includes('AutoSystemURLSchemeAllowed') && engineSource.includes('AutoSystemClipboardByteLimit') &&
+      engineSource.includes('isEqualToString:@"openurl"'),
       'System control must be configurable, capability-reported, bounded, and URL schemes validated');
 check(bootstrapSource.includes("operation:'clipboardGet'") && bootstrapSource.includes("operation:'clipboardSet'") &&
       bootstrapSource.includes("operation:'brightnessGet'") && bootstrapSource.includes("operation:'brightnessSet'") &&

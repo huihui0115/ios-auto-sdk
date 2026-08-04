@@ -1228,7 +1228,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     NSDictionary *data = AutoPayload(payload);
     NSString *operation = [data[@"operation"] isKindOfClass:NSString.class] ? [data[@"operation"] lowercaseString] : @"";
     NSError *error = nil;
-    if ([operation isEqualToString:@"openURL"]) {
+    if ([operation isEqualToString:@"openurl"]) {
         if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
             return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
         }
