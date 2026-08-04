@@ -36,9 +36,16 @@ function createSandbox() {
     touch: [], clickPoint: [], click: [], swipe: [], sleep: [], ocr: [], screenshot: [],
   };
   const logs = [];
+  let virtualNow = 0;
+  let sleepRejected = false;
   const bridge = {
     invokeIsStopped: () => false,
-    invokeSleep: (ms) => { calls.sleep.push(ms); return true; },
+    invokeSleep: (ms) => {
+      calls.sleep.push(ms);
+      if (sleepRejected) return false;
+      virtualNow += Math.max(0, Number(ms) || 0);
+      return true;
+    },
     invokeFile: (data) => {
       calls.file.push(data);
       switch (data.operation) {
@@ -139,12 +146,19 @@ function createSandbox() {
     warn: (value) => logs.push(['warn', value]),
     error: (value) => logs.push(['error', value]),
   };
-  return { bridge, consoleBridge, calls, logs, files, store };
+  return {
+    bridge, consoleBridge, calls, logs, files, store,
+    clock: { now: () => virtualNow },
+    setSleepRejected: (value) => { sleepRejected = value; },
+  };
 }
 
 function boot() {
   const state = createSandbox();
-  const sandbox = { __bridge: state.bridge, __console: state.consoleBridge };
+  const virtualDate = class extends Date {
+    static now() { return state.clock.now(); }
+  };
+  const sandbox = { __bridge: state.bridge, __console: state.consoleBridge, Date: virtualDate };
   vm.createContext(sandbox);
   const drainTimers = vm.runInContext(loadBootstrap(), sandbox);
   return { sandbox, ...state, drainTimers };
@@ -290,6 +304,46 @@ test('setInterval repeats until cleared', () => {
   drainTimers();
   assert.equal(sandbox.intervalFires, 2);
 });
+test('timers wait via one-shot native sleep (no 50ms JS slicing)', () => {
+  const { sandbox, drainTimers, calls } = boot();
+  sandbox.fired = 0;
+  sandbox.setTimeout(() => { sandbox.fired += 1; }, 120);
+  drainTimers();
+  assert.equal(sandbox.fired, 1);
+  assert.deepEqual(calls.sleep, [120]);
+});
+
+test('timers fire when the virtual clock passes their deadline', () => {
+  const { sandbox, drainTimers, calls } = boot();
+  sandbox.fired = 0;
+  sandbox.setTimeout(() => { sandbox.fired += 1; }, 10);
+  sandbox.auto.sleep(30);
+  drainTimers();
+  assert.equal(sandbox.fired, 1);
+  assert.deepEqual(calls.sleep, [30]);
+});
+
+test('setInterval keeps interval cadence over virtual time', () => {
+  const { sandbox, drainTimers } = boot();
+  sandbox.ticks = 0;
+  let intervalId = null;
+  intervalId = sandbox.setInterval(() => {
+    sandbox.ticks += 1;
+    if (sandbox.ticks >= 10) sandbox.clearInterval(intervalId);
+  }, 10);
+  sandbox.auto.sleep(100);
+  drainTimers();
+  assert.equal(sandbox.ticks, 10);
+});
+
+test('drainTimers aborts the wait when the native sleep is rejected', () => {
+  const { sandbox, drainTimers, setSleepRejected } = boot();
+  sandbox.fired = 0;
+  sandbox.setTimeout(() => { sandbox.fired += 1; }, 10);
+  setSleepRejected(true);
+  drainTimers();
+  assert.equal(sandbox.fired, 0);
+});
 
 test('console methods are captured', () => {
   const { sandbox, logs } = boot();
@@ -381,6 +435,17 @@ test('unknown auto.* methods fall back to invokeNative', () => {
   assert.deepEqual(calls.native.at(-1), { name: 'someNativeThing', arguments: ['a', 2] });
 });
 
+test('bootstrap stays small and parses quickly', () => {
+  const source = loadBootstrap();
+  // Guards the embedded runtime against unbounded growth: 23 KB today.
+  assert.ok(source.length <= 64 * 1024, `bootstrap grew to ${source.length} bytes`);
+  const started = process.hrtime.bigint();
+  const sandbox = { __bridge: { invokeIsStopped: () => false, invokeSleep: () => true } };
+  vm.runInNewContext(source, sandbox, { timeout: 5000 });
+  const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
+  // Generous ceiling: catches accidental O(n^2) bootstrap growth.
+  assert.ok(elapsedMs < 1000, `bootstrap took ${elapsedMs.toFixed(1)} ms to parse+run`);
+});
 test('stopped scripts throw Script cancelled', () => {
   const { sandbox, bridge } = boot();
   bridge.invokeIsStopped = () => true;

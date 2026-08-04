@@ -50,6 +50,12 @@ temporary allocations and repeated WDA work.
   fallback a naive runMode: pump would busy-spin a CPU core for the whole
   sleep. Old runtimes that attach a CFRunLoopTimer still block in runMode: and
   never take the sleep path.
+- The timer drain sleeps for the whole remaining wait in one native
+  `invokeSleep` call instead of slicing it into 50 ms chunks from JavaScript.
+  A one-second `setTimeout` therefore costs a single JSC-to-Objective-C round
+  trip instead of about twenty, while the native sleep keeps its 20 ms
+  interruptible run-loop pump, so `stopScript` still aborts a pending timer
+  wait promptly.
 - The JavaScript timer queue accepts at most 10,000 active timers and clamps a
   delay/interval to one hour, preventing accidental loops from retaining an
   unbounded number of callbacks. Clearing a queued timer removes its cancellation
@@ -57,6 +63,13 @@ temporary allocations and repeated WDA work.
   One `runScript` keeps executing until the timer queue drains, so
   `setInterval` keeps running until `stopScript` or `scriptTimeout`.
   `scriptTimeout` is the total execution budget and includes timer callbacks.
+  Timers fire only while the script thread pumps: callback bodies are
+  single-threaded with the main script, so work inside `auto.sleep` or a long
+  `waitFor` cannot interleave timer callbacks. Repeat timers re-anchor their
+  next deadline to `Date.now()` after each callback, so a slow callback delays
+  the next tick without a catch-up burst, and the native sleep returns `NO`
+  when the engine stops so the drain loop aborts instead of sleeping the full
+  remaining wait.
 - Automation, file, storage, HTTP, device, image, app, console, native extension,
   and timer entry points check script cancellation before crossing the bridge.
   A loop that repeatedly calls SDK APIs therefore exits on its next call after
