@@ -7,6 +7,9 @@
 #import <JavaScriptCore/JavaScriptCore.h>
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
+#import <objc/message.h>
+#import <AVFoundation/AVFoundation.h>
+#import <AudioToolbox/AudioToolbox.h>
 #include <math.h>
 
 @protocol AutoJSExport <JSExport>
@@ -336,6 +339,23 @@ static NSUInteger AutoScreenshotByteLimit(NSDictionary *config) {
 }
 
 static const NSUInteger AutoDebugTemplateByteLimit = 512 * 1024;
+static const NSUInteger AutoSystemClipboardByteLimit = 1024 * 1024;
+
+// RFC 3986 scheme validation: http(s) always passes; known dangerous schemes
+// are rejected; anything else must be a legal custom scheme (ALPHA *( ALPHA /
+// DIGIT / "+" / "-" / "." )).
+static BOOL AutoSystemURLSchemeAllowed(NSURL *url) {
+    if (!url || url.scheme.length == 0 || url.scheme.length > 64) return NO;
+    NSString *scheme = url.scheme.lowercaseString;
+    if ([scheme isEqualToString:@"http"] || [scheme isEqualToString:@"https"]) return YES;
+    NSSet *blocked = [NSSet setWithArray:@[@"file", @"data", @"javascript", @"about", @"ftp", @"ws", @"wss", @"itms-services"]];
+    if ([blocked containsObject:scheme]) return NO;
+    unichar first = [scheme characterAtIndex:0];
+    if (!((first >= 'a' && first <= 'z') || (first >= 'A' && first <= 'Z'))) return NO;
+    NSCharacterSet *allowed = [NSCharacterSet characterSetWithCharactersInString:
+        @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-."];
+    return [scheme rangeOfCharacterFromSet:allowed.invertedSet].location == NSNotFound;
+}
 static const NSUInteger AutoDebugScriptByteLimit = 768 * 1024;
 static const NSUInteger AutoDebugProtocolVersion = 2;
 static const NSUInteger AutoDebugDefaultNodeLimit = 500;
@@ -1146,14 +1166,60 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     if (![self ensureScriptRunning]) return @NO;
     NSDictionary *data = AutoPayload(payload);
     NSString *operation = [data[@"operation"] isKindOfClass:NSString.class] ? data[@"operation"] : @"info";
-    NSDictionary *info = AutoValueOnMainThread(^id{ return [self.engine getDeviceInfo]; });
-    if ([operation isEqualToString:@"info"]) return info ?: @{};
+    if ([operation isEqualToString:@"info"]) {
+        NSDictionary *info = AutoValueOnMainThread(^id{ return [self.engine getDeviceInfo]; });
+        return info ?: @{};
+    }
+    if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
+    }
+    if ([operation isEqualToString:@"clipboardGet"]) {
+        return AutoValueOnMainThread(^id{
+            NSString *clipboard = UIPasteboard.generalPasteboard.string;
+            return clipboard ?: [NSNull null];
+        });
+    }
+    if ([operation isEqualToString:@"clipboardSet"]) {
+        NSString *text = [data[@"text"] isKindOfClass:NSString.class] ? data[@"text"] : @"";
+        if ([text lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > AutoSystemClipboardByteLimit) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Clipboard text exceeds the 1 MiB limit.", nil)];
+        }
+        AutoValueOnMainThread(^id{ UIPasteboard.generalPasteboard.string = text; return @YES; });
+        return @YES;
+    }
+    if ([operation isEqualToString:@"brightnessGet"]) {
+        return AutoValueOnMainThread(^id{ return @(UIScreen.mainScreen.brightness); });
+    }
+    if ([operation isEqualToString:@"brightnessSet"]) {
+        double value = AutoFiniteDouble(data[@"value"], -1);
+        if (!(value >= 0 && value <= 1)) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Brightness must be between 0 and 1.", nil)];
+        }
+        AutoValueOnMainThread(^id{ UIScreen.mainScreen.brightness = value; return @YES; });
+        return @YES;
+    }
+    if ([operation isEqualToString:@"volumeGet"]) {
+        return AutoValueOnMainThread(^id{
+            float volume = AVAudioSession.sharedInstance.outputVolume;
+            return @(MIN(MAX(volume, 0), 1));
+        });
+    }
+    if ([operation isEqualToString:@"vibrate"]) {
+        double durationMs = AutoFiniteDouble(data[@"duration"], 0);
+        if (!(durationMs >= 0)) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Vibration duration must be non-negative.", nil)];
+        }
+        // The system sound API fires once; the duration is advisory and capped.
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+        return @YES;
+    }
     NSDictionary *mapping = @{ @"screenWidth": @"screenWidth", @"screenHeight": @"screenHeight",
                                @"scale": @"screenScale", @"model": @"model", @"osVersion": @"systemVersion",
                                @"name": @"name", @"battery": @"batteryLevel", @"isCharging": @"isCharging",
                                @"orientation": @"orientation" };
     NSString *key = mapping[operation];
     if (!key) return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"Unknown device operation.", nil)];
+    NSDictionary *info = AutoValueOnMainThread(^id{ return [self.engine getDeviceInfo]; });
     return info[key] ?: [NSNull null];
 }
 
@@ -1161,9 +1227,35 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     if (![self ensureScriptRunning]) return @NO;
     NSDictionary *data = AutoPayload(payload);
     NSString *operation = [data[@"operation"] isKindOfClass:NSString.class] ? [data[@"operation"] lowercaseString] : @"";
+    NSError *error = nil;
+    if ([operation isEqualToString:@"openURL"]) {
+        if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
+        }
+        NSString *urlString = [data[@"url"] isKindOfClass:NSString.class] ? data[@"url"] : @"";
+        NSURL *url = [NSURL URLWithString:urlString];
+        if (!AutoSystemURLSchemeAllowed(url)) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"openURL only accepts http(s) URLs or custom URL schemes.", nil)];
+        }
+        return @([AutoValueOnMainThread(^id{ return @([UIApplication.sharedApplication openURL:url]); }) boolValue]);
+    }
+    if ([operation isEqualToString:@"homescreen"] || [operation isEqualToString:@"lock"] || [operation isEqualToString:@"unlock"]) {
+        if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
+        }
+        SEL selector = NULL;
+        if ([operation isEqualToString:@"homescreen"]) selector = @selector(goToHomeScreenWithError:);
+        else if ([operation isEqualToString:@"lock"]) selector = @selector(lockDeviceWithError:);
+        else if ([operation isEqualToString:@"unlock"]) selector = @selector(unlockDeviceWithError:);
+        if (![self.adapter respondsToSelector:selector]) {
+            return [self failure:AutoMakeError(AutoSDKErrorAutomationUnavailable,
+                                               [NSString stringWithFormat:@"The automation adapter does not support the '%@' operation.", operation], nil)];
+        }
+        BOOL ok = ((BOOL (*)(id, SEL, NSError **))objc_msgSend)(self.adapter, selector, &error);
+        return error ? [self failure:error] : @(ok);
+    }
     NSString *bundleId = [data[@"bundleId"] isKindOfClass:NSString.class] ? data[@"bundleId"] : @"";
     if (bundleId.length == 0) return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Application bundleId must not be empty.", nil)];
-    NSError *error = nil;
     if ([operation isEqualToString:@"launch"]) {
         if (![self.adapter respondsToSelector:@selector(launchApplicationWithBundleId:error:)]) {
             return [self failure:AutoMakeError(AutoSDKErrorAutomationUnavailable, @"The automation adapter does not support launching applications.", nil)];
@@ -1481,7 +1573,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                                       @"http": @(AutoBoolean(config[@"allowNetwork"], NO)),
                                       @"fileRead": @(fileReadEnabled),
                                       @"fileWrite": @(fileWriteEnabled),
-                                      @"storage": @(AutoPermission(config, @"allowStorage", YES)) } mutableCopy];
+                                      @"storage": @(AutoPermission(config, @"allowStorage", YES)),
+                                      @"systemControl": @(AutoPermission(config, @"allowSystemControl", YES)) } mutableCopy];
     if ([adapter respondsToSelector:@selector(capabilities)]) result[@"automation"] = [adapter capabilities] ?: @{};
     return result;
 }

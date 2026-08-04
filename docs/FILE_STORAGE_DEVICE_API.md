@@ -74,3 +74,36 @@ console.log(auto.capabilities());
 
 The device module exposes public iOS information only. It cannot return a
 hardware serial number or control other apps through `AutoUIKitAdapter`.
+
+## System control
+
+The engine can also read and write device-global system state from the
+process it runs in (the host app in embedded mode, or the automation app in
+WDA mode):
+
+```javascript
+const clip = device.getClipboard();        // string | null
+device.setClipboard("copied text");         // true
+const brightness = device.getBrightness(); // 0...1
+device.setBrightness(0.5);                  // true (validated to 0...1)
+const volume = device.getVolume();         // 0...1 (read-only)
+device.vibrate(300);                        // true (advisory duration, capped)
+auto.openURL("myapp://open?id=42");        // true when the system opened it
+auto.openURL("https://example.com");
+app.homeScreen();  // WDA runners: go to the home screen
+app.lock();        // WDA runners: lock the device
+app.unlock();      // WDA runners: unlock the device
+```
+
+Top-level aliases `auto.getClipboard`, `auto.setClipboard`,
+`auto.getBrightness`, `auto.setBrightness`, `auto.getVolume`,
+`auto.vibrate` and `auto.openURL` are also available. Clipboard text is
+capped at 1 MiB; brightness must be in 0...1; `openURL` accepts `http(s)`
+URLs and safe custom schemes (file, data, javascript, ftp and websocket
+targets are rejected); `homeScreen`/`lock`/`unlock` require an adapter
+that implements them (the WDA adapter does; embedded adapters usually return
+an unavailable error).
+
+Set `allowSystemControl: @NO` in the configuration to disable clipboard,
+brightness, volume, vibration and URL opening. The capability is reported as
+`systemControl` by `auto.capabilities()`.

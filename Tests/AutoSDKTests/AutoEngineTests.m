@@ -311,6 +311,25 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
 }
 @end
 
+@interface AutoSystemControlWDAAdapter : AutoWDAHTTPAdapter
+@property (nonatomic, copy) NSString *lastSystemPath;
+@property (nonatomic, copy) NSString *lastSystemMethod;
+@end
+
+@implementation AutoSystemControlWDAAdapter
+- (id)requestPath:(NSString *)path method:(NSString *)method body:(NSDictionary *)body error:(NSError **)error {
+    if ([path hasSuffix:@"/wda/homescreen"] || [path hasSuffix:@"/wda/lock"] || [path hasSuffix:@"/wda/unlock"]) {
+        self.lastSystemPath = [path copy];
+        self.lastSystemMethod = [method copy];
+        return @{ @"value": @{} };
+    }
+    if ([path isEqualToString:@"/session"] && [method isEqualToString:@"POST"]) {
+        return @{ @"sessionId": @"system-session", @"value": @{} };
+    }
+    return @{ @"value": @{} };
+}
+@end
+
 @interface AutoEngineTests : XCTestCase
 @end
 
@@ -1657,4 +1676,92 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     });
     [self waitForExpectationsWithTimeout:2 handler:nil];
 }
+
+- (void)testSystemControlCapabilityReflectsConfiguration {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"allowSystemControl": @NO }];
+    XCTAssertEqualObjects([engine capabilityInfo][@"systemControl"], @NO);
+    [engine initWithConfig:@{}];
+    XCTAssertEqualObjects([engine capabilityInfo][@"systemControl"], @YES);
+}
+
+- (void)testSystemControlDisabledFailsClosedInScripts {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5, @"allowSystemControl": @NO }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *brightness = [self expectationWithDescription:@"brightness disabled"];
+    [engine runScript:@"device.setBrightness(0.5);" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
+        [brightness fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+    XCTestExpectation *clipboard = [self expectationWithDescription:@"clipboard disabled"];
+    [engine runScript:@"device.setClipboard('text');" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
+        [clipboard fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testOpenURLRejectsUnsafeSchemes {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"unsafe openURL"];
+    [engine runScript:@"auto.openURL('file:///etc/passwd');" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testOpenURLHTTPSchemeReturnsSystemResult {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"openURL result"];
+    [engine runScript:@"auto.openURL('https://example.com');" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertTrue([result[@"value"] boolValue]);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testSystemAppActionsRequireAdapterSupport {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"unsupported homescreen"];
+    [engine runScript:@"app.homeScreen();" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorAutomationUnavailable);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testWDASystemEndpointsPostToHomescreenLockAndUnlock {
+    AutoSystemControlWDAAdapter *adapter = [[AutoSystemControlWDAAdapter alloc]
+        initWithBaseURL:[NSURL URLWithString:@"http://127.0.0.1:8100"]];
+    XCTAssertTrue([adapter startSession:nil]);
+    NSError *error = nil;
+    XCTAssertTrue([adapter goToHomeScreenWithError:&error]);
+    XCTAssertNil(error);
+    XCTAssertTrue([adapter.lastSystemPath hasSuffix:@"/wda/homescreen"]);
+    XCTAssertEqualObjects(adapter.lastSystemMethod, @"POST");
+    error = nil;
+    XCTAssertTrue([adapter lockDeviceWithError:&error]);
+    XCTAssertNil(error);
+    XCTAssertTrue([adapter.lastSystemPath hasSuffix:@"/wda/lock"]);
+    error = nil;
+    XCTAssertTrue([adapter unlockDeviceWithError:&error]);
+    XCTAssertNil(error);
+    XCTAssertTrue([adapter.lastSystemPath hasSuffix:@"/wda/unlock"]);
+    XCTAssertEqualObjects(adapter.lastSystemMethod, @"POST");
+}
+
 @end

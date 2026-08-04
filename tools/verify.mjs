@@ -141,6 +141,11 @@ check(wdaAdapter.includes('usedSession:&elementSession') && wdaAdapter.includes(
 check(wdaAdapter.includes('- (NSString *)sessionId') && wdaAdapter.includes('- (NSDictionary<NSString *,id> *)sessionSettings'), 'WDA public session state getters must synchronize with mutation');
 check(wdaAdapter.includes('AutoWDAHTTPRedirectDelegate') && wdaAdapter.includes('sameScheme && sameHost && originPort == targetPort'), 'WDA redirects must stay on the configured origin');
 check(wdaAdapter.includes('/wda/apps/launch') && wdaAdapter.includes('@"appLifecycle": @YES'), 'WDA adapter is missing application lifecycle support');
+check(wdaAdapter.includes('@"/wda/homescreen"') && wdaAdapter.includes('@"/wda/lock"') &&
+      wdaAdapter.includes('@"/wda/unlock"') &&
+      wdaAdapter.includes('goToHomeScreenWithError:') && wdaAdapter.includes('lockDeviceWithError:') &&
+      wdaAdapter.includes('unlockDeviceWithError:'),
+      'WDA adapter must implement the optional system-level endpoint methods');
 check(wdaAdapter.includes('NSXMLParser') && wdaAdapter.includes('@"sourceDerived": @YES'), 'WDA adapter must mark source-derived node relationships');
 check(wdaAdapter.includes('childTypeCounts') && wdaAdapter.includes('initWithMaxNodes') && wdaAdapter.includes('cachedXPath'), 'WDA source parser must use bounded type counters and lazy XPath storage');
 check(wdaAdapter.includes('AutoWDAFindSourceNodeByAbsolutePath'), 'WDA source-derived XPath lookup must avoid full-tree scans');
@@ -242,6 +247,15 @@ check(engineSource.includes('maximumTotalBytes') && engineSource.includes('retai
 check(engineSource.includes('fileWriteEnabled = fileReadEnabled &&') &&
       engineSource.includes('@"fileWrite": @(fileWriteEnabled)'),
       'File-write capability must require both file access and file-write permission');
+check(engineSource.includes('@"allowSystemControl"') && engineSource.includes('@"systemControl"') &&
+      engineSource.includes('AutoSystemURLSchemeAllowed') && engineSource.includes('AutoSystemClipboardByteLimit'),
+      'System control must be configurable, capability-reported, bounded, and URL schemes validated');
+check(bootstrapSource.includes("operation:'clipboardGet'") && bootstrapSource.includes("operation:'clipboardSet'") &&
+      bootstrapSource.includes("operation:'brightnessGet'") && bootstrapSource.includes("operation:'brightnessSet'") &&
+      bootstrapSource.includes("operation:'volumeGet'") && bootstrapSource.includes("operation:'vibrate'") &&
+      bootstrapSource.includes("operation:'openURL'") && bootstrapSource.includes("operation:'homescreen'") &&
+      bootstrapSource.includes('g.openURL=') && bootstrapSource.includes('homeScreen:function()'),
+      'Bootstrap must expose clipboard, brightness, volume, vibration, openURL and home-screen operations with globals');
 check(bootstrapSource.includes('activeTimerCount>=10000') && bootstrapSource.includes("RangeError('Too many active timers')"), 'JavaScript timers must be bounded');
 check(bootstrapSource.includes('activeTimers[id]') && bootstrapSource.includes('delete activeTimers[id]'), 'Timers must support cancellation from inside an active interval callback');
 check(bootstrapSource.includes('function pushTimer') && bootstrapSource.includes('function popTimer') &&

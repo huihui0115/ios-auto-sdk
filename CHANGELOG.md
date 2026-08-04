@@ -97,6 +97,20 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **System control APIs.** `device` gains `getClipboard` / `setClipboard`,
+  `getBrightness` / `setBrightness`, `getVolume` and `vibrate`; `app` and the
+  top-level `auto` / globals gain `openURL`, `homeScreen`, `lock` and
+  `unlock`. Clipboard text is capped at 1 MiB, brightness is validated to
+  0...1, and `openURL` rejects file/data/javascript/ftp/websocket schemes
+  while allowing `http(s)` and safe custom schemes. All operations are gated
+  by the new `allowSystemControl` config key (default `YES`) and reported as
+  the `systemControl` capability.
+- **WDA system endpoints.** `AutoWDAHTTPAdapter` implements the optional
+  `goToHomeScreenWithError:` / `lockDeviceWithError:` /
+  `unlockDeviceWithError:` adapter methods via `/wda/homescreen`, `/wda/lock`
+  and `/wda/unlock`; adapters that do not implement them return
+  `AutoSDKErrorAutomationUnavailable`.
+
 - Regression tests: pure-JS loop timeout, timer-callback loop timeout
   (including that the engine stays usable afterwards), missing-path errors,
   division expression `1/2` disambiguation, and proxy reserved-key /

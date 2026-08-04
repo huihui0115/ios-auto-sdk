@@ -70,6 +70,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)terminateApplicationWithBundleId:(NSString *)bundleId error:(NSError * _Nullable * _Nullable)error;
 - (nullable NSNumber *)applicationStateForBundleId:(NSString *)bundleId error:(NSError * _Nullable * _Nullable)error;
 
+/** System-level UI actions backed by the WDA runner endpoints. */
+- (BOOL)goToHomeScreenWithError:(NSError * _Nullable * _Nullable)error;
+- (BOOL)lockDeviceWithError:(NSError * _Nullable * _Nullable)error;
+- (BOOL)unlockDeviceWithError:(NSError * _Nullable * _Nullable)error;
+
 @end
 
 NS_ASSUME_NONNULL_END

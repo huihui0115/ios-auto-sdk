@@ -3136,6 +3136,30 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     return nil;
 }
 
+- (BOOL)goToHomeScreenWithError:(NSError **)error {
+    NSError *requestError = nil;
+    [self requestSessionSuffix:@"/wda/homescreen" method:@"POST" body:@{} error:&requestError];
+    if (requestError && error) *error = requestError;
+    if (!requestError) [self invalidateVisualCaches];
+    return requestError == nil;
+}
+
+- (BOOL)lockDeviceWithError:(NSError **)error {
+    NSError *requestError = nil;
+    [self requestSessionSuffix:@"/wda/lock" method:@"POST" body:@{} error:&requestError];
+    if (requestError && error) *error = requestError;
+    if (!requestError) [self invalidateVisualCaches];
+    return requestError == nil;
+}
+
+- (BOOL)unlockDeviceWithError:(NSError **)error {
+    NSError *requestError = nil;
+    [self requestSessionSuffix:@"/wda/unlock" method:@"POST" body:@{} error:&requestError];
+    if (requestError && error) *error = requestError;
+    if (!requestError) [self invalidateVisualCaches];
+    return requestError == nil;
+}
+
 - (NSDictionary *)capabilities {
     return @{ @"scope": @"crossApp", @"crossApp": @YES, @"requiresWDA": @YES,
               @"requiresMainThread": @NO,

@@ -69,6 +69,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)activateApplicationWithBundleId:(NSString *)bundleId error:(NSError * _Nullable * _Nullable)error;
 - (BOOL)terminateApplicationWithBundleId:(NSString *)bundleId error:(NSError * _Nullable * _Nullable)error;
 - (nullable NSNumber *)applicationStateForBundleId:(NSString *)bundleId error:(NSError * _Nullable * _Nullable)error;
+/** System-level UI actions. WDA runners expose these; most embedded adapters do not. */
+- (BOOL)goToHomeScreenWithError:(NSError * _Nullable * _Nullable)error;
+- (BOOL)lockDeviceWithError:(NSError * _Nullable * _Nullable)error;
+- (BOOL)unlockDeviceWithError:(NSError * _Nullable * _Nullable)error;
 - (NSDictionary<NSString *, id> *)capabilities;
 /** Cancels in-flight network/vision work when supported. Must be thread-safe. */
 - (void)cancelCurrentOperations;

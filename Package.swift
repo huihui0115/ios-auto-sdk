@@ -22,7 +22,9 @@ let package = Package(
                 .linkedFramework("UIKit"),
                 .linkedFramework("QuartzCore"),
                 .linkedFramework("Network"),
-                .linkedFramework("Vision")
+                .linkedFramework("Vision"),
+                .linkedFramework("AVFoundation"),
+                .linkedFramework("AudioToolbox")
             ]
         ),
         .testTarget(

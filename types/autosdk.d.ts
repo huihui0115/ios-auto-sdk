@@ -272,6 +272,12 @@ interface AutoDeviceAPI {
   getBattery(): number | null;
   isCharging(): boolean;
   getOrientation(): string;
+  getClipboard(): string | null;
+  setClipboard(text: string): boolean;
+  getBrightness(): number;
+  setBrightness(value: number): boolean;
+  getVolume(): number;
+  vibrate(durationMs?: number): boolean;
 }
 
 interface AutoAppAPI {
@@ -279,6 +285,10 @@ interface AutoAppAPI {
   activate(bundleId: string): boolean;
   terminate(bundleId: string): boolean;
   state(bundleId: string): number;
+  openURL(url: string): boolean;
+  homeScreen(): boolean;
+  lock(): boolean;
+  unlock(): boolean;
 }
 
 interface AutoAPI {
@@ -290,6 +300,13 @@ interface AutoAPI {
   input(selector: AutoSelectorLike, text: string): boolean;
   setText(selector: AutoSelectorLike, text: string): boolean;
   sleep(milliseconds: number): boolean;
+  getClipboard(): string | null;
+  setClipboard(text: string): boolean;
+  getBrightness(): number;
+  setBrightness(value: number): boolean;
+  getVolume(): number;
+  vibrate(durationMs?: number): boolean;
+  openURL(url: string): boolean;
   getText(selector: AutoSelectorLike): string | null;
   findElement(selector: AutoSelectorLike): AutoNode | null;
   findElements(selector: AutoSelectorLike): AutoNode[];
