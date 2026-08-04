@@ -41,6 +41,7 @@ jobs:
         working-directory: Examples/TemplateApp
         run: xcodegen generate
       - name: Run iOS simulator tests
+        timeout-minutes: 20
         run: |
           destination_id="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); print(next(device["udid"] for runtime in data["devices"].values() for device in runtime if device.get("isAvailable") and device.get("name", "").startswith("iPhone")))')"
           test -n "$destination_id"
