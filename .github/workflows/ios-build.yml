@@ -135,7 +135,16 @@ jobs:
           set -euo pipefail
           tag="${GITHUB_REF_NAME}"
           notes="$RUNNER_TEMP/release-notes.md"
-          { echo "AutoSDK ${tag} unsigned TrollStore IPA."; echo ""; echo "See CHANGELOG.md for release notes."; } > "$notes"
+          {
+            echo "AutoSDK ${tag} unsigned TrollStore IPA + VS Code extension."
+            echo ""
+            echo "## Downloads"
+            echo "- AutoSDKTemplate.ipa — TrollStore 可直接安装的模板 App"
+            echo "- autosdk-vscode-0.4.0.vsix — VS Code 调试插件（本机写脚本 / 连手机调试 / 可视化检查 UI）"
+            echo ""
+            echo "## Changelog"
+            awk -v ver="${tag#v}" '$0 ~ "^## \\[" ver "\\]" { flag=1; next } flag && /^## / { exit } flag { print }' CHANGELOG.md
+          } > "$notes"
           gh release create "$tag" \
             --title "AutoSDK ${tag}" \
             --notes-file "$notes" \

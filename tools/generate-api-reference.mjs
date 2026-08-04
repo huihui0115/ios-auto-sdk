@@ -121,6 +121,216 @@ function card(api) {
 </article>`;
 }
 
+
+// ==== 补齐：设备与系统 ====
+APIS.push({ cat:'device', sig:'device.getOSVersion()', title:'系统版本', desc:'返回 iOS 系统版本号，如 "17.5"。', params:[], returns:'string', example:`function main(){
+  logd("iOS: " + device.getOSVersion());
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.getDeviceName()', title:'设备名称', desc:'返回设备显示名称（设置 → 通用 → 关于本机里的名称）。', params:[], returns:'string', example:`function main(){
+  toast("设备: " + device.getDeviceName());
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.isCharging()', title:'是否充电中', desc:'返回当前是否正在充电。', params:[], returns:'boolean', example:`function main(){
+  if (device.isCharging()) toastLog("正在充电");
+  else toastLog("未充电");
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.getScreenWidth() / device.getScreenHeight()', title:'屏幕宽高（点）', desc:'返回屏幕逻辑尺寸，单位是点（pt），不是像素。', params:[], returns:'number', example:`function main(){
+  const w = device.getScreenWidth();
+  const h = device.getScreenHeight();
+  toastLog("屏幕: " + w + " x " + h);
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.width() / device.height() / device.scale() / device.getScale() / device.info()', title:'屏幕尺寸与信息简写', desc:'width/height 返回屏幕宽高（点），scale/getScale 返回缩放比，info 等价 getDeviceInfo。', params:[], returns:'number | object', example:`function main(){
+  logd("宽=" + device.width() + " 高=" + device.height());
+  logd("缩放=" + device.scale());
+  logd(JSON.stringify(device.info()));
+}
+main();` });APIS.push({ cat:'device', sig:'device.setBrightness(value)', title:'设置屏幕亮度', desc:'设置屏幕亮度，value 范围 0～1。', params:[['value','number','0～1 的亮度值']], returns:'boolean', example:`function main(){
+  device.setBrightness(0.5);
+  auto.sleep(500);
+  device.setBrightness(device.getBrightness());
+}
+main();` });
+
+// ==== 补齐：App 与应用控制 ====
+APIS.push({ cat:'app', sig:'app.launch(bundleId)', title:'启动应用', desc:'按 bundle id 启动应用。', params:[['bundleId','string','如 com.apple.mobilesafari']], returns:'boolean', example:`function main(){
+  app.launch("com.apple.mobilesafari");
+  auto.sleep(1500);
+}
+main();` });
+APIS.push({ cat:'app', sig:'app.activate(bundleId)', title:'激活应用', desc:'把已安装的应用带到前台。', params:[['bundleId','string','应用 bundle id']], returns:'boolean', example:`function main(){
+  app.activate("com.apple.Preferences");
+}
+main();` });
+APIS.push({ cat:'app', sig:'app.terminate(bundleId)', title:'结束应用', desc:'终止指定应用进程。', params:[['bundleId','string','应用 bundle id']], returns:'boolean', example:`function main(){
+  app.terminate("com.apple.mobilesafari");
+}
+main();` });
+APIS.push({ cat:'app', sig:'app.state(bundleId)', title:'应用状态', desc:'返回应用运行状态（0 未知 / 1 未运行 / 2 前台 / 3 后台）。', params:[['bundleId','string','应用 bundle id']], returns:'number', example:`function main(){
+  const state = app.state("com.apple.mobilesafari");
+  toastLog("状态码: " + state);
+}
+main();` });
+APIS.push({ cat:'app', sig:'app.lock() / app.unlock()', title:'锁屏 / 解锁', desc:'锁屏或解锁设备（需 WDA systemActions 能力）。', params:[], returns:'boolean', example:`function main(){
+  app.lock();
+  auto.sleep(1000);
+  app.unlock();
+}
+main();` });
+
+// ==== 补齐：控制台 ====
+APIS.push({ cat:'logs', sig:'console.log / debug / info / warn / error', title:'分级日志', desc:'console 系列分级日志；调试服务器实时转发到 VS Code 输出面板。', params:[['values','any[]','可打印任意值']], returns:'void', example:`function main(){
+  console.debug("调试");
+  console.info("信息");
+  console.warn("警告");
+  console.error("错误");
+}
+main();` });
+APIS.push({ cat:'logs', sig:'console.time(label) / console.timeEnd(label)', title:'计时', desc:'对一段代码计时，timeEnd 返回耗时毫秒。', params:[['label','string','计时标签']], returns:'number | null', example:`function main(){
+  console.time("task");
+  auto.sleep(100);
+  const ms = console.timeEnd("task");
+  logd("耗时: " + ms + "ms");
+}
+main();` });
+APIS.push({ cat:'logs', sig:'logi(message) / logw(message) / loge(message)', title:'日志简写', desc:'EasyClick 风格日志简写：信息 / 警告 / 错误。', params:[['message','any','内容']], returns:'void', example:`function main(){
+  logi("信息");
+  logw("警告");
+  loge("错误");
+}
+main();` });
+
+// ==== 补齐：文件常用操作 ====
+APIS.push({ cat:'file', sig:'file.writeText(path, text)', title:'写文本', desc:'把文本写入沙盒文件（自动建目录）。', params:[['path','string','沙盒内路径'],['text','string','文本内容']], returns:'boolean', example:`function main(){
+  file.writeText("data/note.txt", "hello");
+  logd(file.readText("data/note.txt"));
+}
+main();` });
+APIS.push({ cat:'file', sig:'file.getSandBoxDir() / file.getSandBoxFilePath(path) / file.resolvePath(path)', title:'沙盒路径查询', desc:'返回沙盒根目录、指定路径的完整沙盒路径。', params:[['path','string','沙盒内路径']], returns:'string', example:`function main(){
+  logd("沙盒根: " + file.getSandBoxDir());
+  logd("完整路径: " + file.getSandBoxFilePath("data/a.txt"));
+}
+main();` });APIS.push({ cat:'file', sig:'file.mkdirs(path)', title:'递归建目录', desc:'递归创建目录，父目录不存在也会创建。', params:[['path','string','沙盒内目录路径']], returns:'boolean', example:`function main(){
+  file.mkdirs("logs/2026/08");
+  logd("created");
+}
+main();` });
+APIS.push({ cat:'file', sig:'file.deleteAllFile(path)', title:'删除文件/目录', desc:'删除文件或整个目录（含子内容）。', params:[['path','string','沙盒内路径']], returns:'boolean', example:`function main(){
+  file.deleteAllFile("data/note.txt");
+}
+main();` });
+APIS.push({ cat:'file', sig:'file.readAllLines(path)', title:'读取所有行', desc:'按行读取整个文件，返回字符串数组。', params:[['path','string','沙盒内路径']], returns:'string[]', example:`function main(){
+  const lines = file.readAllLines("data/list.txt");
+  for (const line of lines) logd(line);
+}
+main();` });
+
+// ==== 补齐：命名存储 ====
+APIS.push({ cat:'storage', sig:'auto.storage(name)', title:'storage 别名', desc:'等价于 storages.create(name)，方便链式调用。', params:[['name','string','存储空间名']], returns:'AutoStorage', example:`function main(){
+  const store = auto.storage("cfg");
+  store.put("key", 1);
+}
+main();` });APIS.push({ cat:'storage', sig:'storages.create(name).put(key, value)', title:'写入键值', desc:'把任意 JSON 可序列化值写入命名存储。', params:[['name','string','存储空间名'],['key','string','键'],['value','any','值']], returns:'boolean', example:`function main(){
+  const store = storages.create("cfg");
+  store.put("count", 3);
+  store.put("name", "AutoSDK");
+}
+main();` });
+APIS.push({ cat:'storage', sig:'storages.create(name).get(key, default?)', title:'读取键值', desc:'读取存储值，key 不存在时返回默认值。', params:[['key','string','键'],['default','any','可选的默认值']], returns:'any', example:`function main(){
+  const store = storages.create("cfg");
+  const count = store.get("count", 0);
+  toastLog("count=" + count);
+}
+main();` });
+APIS.push({ cat:'storage', sig:'putString / putInt / putBoolean / putFloat / getString / getInt / getBoolean / getFloat', title:'类型化存取', desc:'带类型的读写，避免 JSON 序列化歧义。', params:[['key','string','键'],['value','string|number|boolean','对应类型的值']], returns:'any', example:`function main(){
+  const store = storages.create("cfg");
+  store.putInt("retry", 3);
+  store.putBoolean("enabled", true);
+  logd("retry=" + store.getInt("retry", 0));
+  logd("enabled=" + store.getBoolean("enabled", false));
+}
+main();` });
+APIS.push({ cat:'storage', sig:'storages.create(name).keys() / all() / contains(key) / clear()', title:'遍历与清空', desc:'列出所有键、导出全部键值、判断键是否存在、清空存储。', params:[['key','string','键（contains 需要）']], returns:'string[] | object | boolean | void', example:`function main(){
+  const store = storages.create("cfg");
+  logd("keys=" + JSON.stringify(store.keys()));
+  logd("all=" + JSON.stringify(store.all()));
+  logd("has=" + store.contains("retry"));
+  store.clear();
+}
+main();` });
+
+// ==== 补齐：HTTP 别名 ====
+APIS.push({ cat:'http', sig:'httpGet(url, options?) / httpPost(url, body?, options?)', title:'HTTP 全局简写', desc:'AutoJS 风格全局简写，等价于 http.get / http.post。', params:[['url','string','请求地址'],['body','any','POST 请求体'],['options','object','可选配置']], returns:'AutoHTTPResponse', example:`function main(){
+  if (auto.capabilities().http !== true) return;
+  const r = httpGet("https://example.com", { timeout: 5000 });
+  logd("status=" + r.status);
+}
+main();` });
+APIS.push({ cat:'http', sig:'httpGetDefault(url, options?) / httpPostDefault(url, body?, options?)', title:'HTTP 默认值简写', desc:'带默认请求头/超时的简写，等价于默认参数版。', params:[['url','string','请求地址'],['body','any','POST 请求体']], returns:'AutoHTTPResponse', example:`function main(){
+  if (auto.capabilities().http !== true) return;
+  const r = httpGetDefault("https://example.com");
+  logd("ok=" + r.ok);
+}
+main();` });
+APIS.push({ cat:'http', sig:'http.downloadFileDefault(url, path, options?)', title:'下载文件（默认参数）', desc:'把 URL 下载到沙盒文件，使用默认参数。', params:[['url','string','文件地址'],['path','string','沙盒保存路径'],['options','object','可选配置']], returns:'boolean', example:`function main(){
+  if (auto.capabilities().http !== true) return;
+  const ok = http.downloadFileDefault("https://example.com/a.png", "tmp/a.png");
+  toastLog("下载: " + ok);
+}
+main();` });
+
+// ==== 补齐：相册别名 ====
+APIS.push({ cat:'media', sig:'saveImageToAlbum(path) / saveImageBase64ToAlbum(base64) / saveScreenshotToAlbum() / saveVideoToAlbum(path)', title:'相册全局简写', desc:'全局函数简写，等价于 media.saveImage / saveImageBase64 / saveScreenshot / saveVideo。', params:[['path','string','沙盒文件路径'],['base64','string','图片 Base64']], returns:'boolean', example:`function main(){
+  if (auto.capabilities().mediaLibraryWrite !== true) return;
+  saveScreenshotToAlbum();
+  saveImageBase64ToAlbum("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+}
+main();` });
+APIS.push({ cat:'media', sig:'image 对象（findImage / findColor / pixel / screenshot / saveToAlbum）', title:'image 别名对象', desc:'image.* 提供图色与相册的集中入口，等价于 auto 上的同名方法。', params:[], returns:'见具体方法', example:`function main(){
+  const p = image.pixel(100, 200);
+  logd("颜色: " + p.hex);
+  image.saveScreenshotToAlbum();
+}
+main();` });
+
+// ==== 补齐：工具与全局别名 ====
+APIS.push({ cat:'timer', sig:'clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id)', title:'取消定时器', desc:'取消已创建的定时器；两种命名都可用。', params:[['id','number','定时器 ID']], returns:'void', example:`function main(){
+  const timer = setTimeout(function () { logd("tick"); }, 1000);
+  clearTimeout(timer);
+  logd("cancelled");
+}
+main();` });
+APIS.push({ cat:'timer', sig:'random(min, max?) / randomInt(min, max?)', title:'随机数', desc:'返回 [min, max] 闭区间随机整数。', params:[['min','number','最小值'],['max','number','最大值（可选）']], returns:'number', example:`function main(){
+  const x = random(0, 100);
+  const y = randomInt(0, 100);
+  toastLog("随机: " + x + ", " + y);
+}
+main();` });
+APIS.push({ cat:'timer', sig:'uuid() / uniqueId()', title:'唯一 ID', desc:'生成 UUID 字符串。', params:[], returns:'string', example:`function main(){
+  logd(uuid());
+  logd(uniqueId());
+}
+main();` });
+APIS.push({ cat:'timer', sig:'setClipboard(text) / setBrightness(value)', title:'系统全局简写', desc:'全局函数简写，等价于 device.setClipboard / device.setBrightness。', params:[['text','string','剪贴板文本'],['value','number','亮度 0～1']], returns:'boolean', example:`function main(){
+  setClipboard("hello");
+  logd(getClipboard());
+}
+main();` });
+APIS.push({ cat:'metrics', sig:'metrics.get() / metrics.set(w, h) / metrics.x(v) / metrics.y(v)', title:'屏幕坐标换算', desc:'读取/设置屏幕逻辑尺寸，把坐标按缩放换算。', params:[['w','number','宽'],['h','number','高'],['v','number','坐标值']], returns:'AutoMetrics | boolean | number', example:`function main(){
+  const m = metrics.get();
+  logd("屏幕: " + m.width + " x " + m.height);
+  const px = metrics.x(50);
+  logd("x(50)=" + px);
+}
+main();` });
+APIS.push({ cat:'base64', sig:'base64.encode(text) / base64.decode(base64)', title:'Base64 编解码', desc:'文本与 Base64 互转。', params:[['text','string','原文'],['base64','string','Base64 串']], returns:'string', example:`function main(){
+  const enc = base64.encode("hello");
+  logd(enc);
+  logd(base64.decode(enc));
+}
+main();` });
 function render() {
   const sidebar = CATEGORIES.map(c => `<a href="#${c.id}" style="--c:${c.color}">${esc(c.name)}<span>${APIS.filter(a => a.cat === c.id).length}</span></a>`).join('');
   const sections = CATEGORIES.map(c => {

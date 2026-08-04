@@ -21,6 +21,7 @@ if (!/^\d+\.\d+\.\d+$/.test(versionArg)) fail(`invalid version "${versionArg}" (
 
 const files = {
   package: resolve(root, 'package.json'),
+  lock: resolve(root, 'package-lock.json'),
   podspec: resolve(root, 'AutoSDK.podspec'),
   version: resolve(root, 'Sources/AutoSDK/AutoSDKVersion.m'),
   changelog: resolve(root, 'CHANGELOG.md'),
@@ -32,6 +33,15 @@ if (oldVersion === versionArg) fail(`version is already ${versionArg}`);
 
 packageJSON.version = versionArg;
 writeFileSync(files.package, `${JSON.stringify(packageJSON, null, 2)}\n`, 'utf8');
+let lockJSON;
+try {
+  lockJSON = JSON.parse(readFileSync(files.lock, 'utf8'));
+} catch {
+  fail('package-lock.json is missing or invalid');
+}
+if (lockJSON.version !== undefined) lockJSON.version = versionArg;
+if (lockJSON.packages?.['']?.version !== undefined) lockJSON.packages[''].version = versionArg;
+writeFileSync(files.lock, `${JSON.stringify(lockJSON, null, 2)}\n`, 'utf8');
 
 let podspec = readFileSync(files.podspec, 'utf8');
 podspec = podspec.replace(/s\.version\s*=\s*'[^']+'/, `s.version          = '${versionArg}'`);
@@ -48,13 +58,14 @@ if (changelog.includes(`## [${versionArg}]`)) {
 } else {
   const today = new Date().toISOString().slice(0, 10);
   const header = `## [${versionArg}] - ${today}\n\n### Added\n\n- Version synchronized to ${versionArg}.\n\n### Fixed\n\n- (fill in)`;
-  changelog = changelog.replace('## [Unreleased]', `## [Unreleased]\n\n## [${versionArg}] - ${today}`);
+  changelog = changelog.replace('## [Unreleased]', `## [Unreleased]\n\n${header}`);
   writeFileSync(files.changelog, changelog, 'utf8');
   console.log(`bump-version: added CHANGELOG.md section [${versionArg}] - ${today}`);
 }
 
 console.log(`bump-version: ${oldVersion} -> ${versionArg}`);
 console.log('  package.json          updated');
+console.log('  package-lock.json     updated');
 console.log('  AutoSDK.podspec       updated');
 console.log('  AutoSDKVersion.m      updated');
 console.log('');

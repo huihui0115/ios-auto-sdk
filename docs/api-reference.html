@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>5</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>25</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>6</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>12</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>4</span></a><a href="#file" style="--c:#4f46e5">文件<span>21</span></a><a href="#storage" style="--c:#0d9488">存储<span>5</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>6</span></a><a href="#media" style="--c:#db2777">相册媒体<span>5</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>7</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>25</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>11</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>18</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>26</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>7</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>11</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -82,8 +82,58 @@ main();</code></pre>
   <p class="empty">（暂无）</p>
 </section>
 <section id="logs" class="cat" style="--c:#0891b2">
-  <h2><span class="tag">日志与调试</span><i>5</i></h2>
-  <article class="card" data-search="logd(message) 调试日志（debug）">
+  <h2><span class="tag">日志与调试</span><i>8</i></h2>
+  <article class="card" data-search="console.log / debug / info / warn / error 分级日志">
+  <header class="card-head">
+    <h4><code>console.log / debug / info / warn / error</code> <span class="cname">分级日志</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">console 系列分级日志；调试服务器实时转发到 VS Code 输出面板。</p>
+  <div class="ref"><b>对标</b> EasyClick logi()/logw()/loge() · AutoJS console.*</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">values</code><span class="ptype">any[]</span><span class="pdesc">可打印任意值</span></div></div>
+  <div class="ret"><b>返回值</b> <span>void</span></div>
+  <pre><code>function main(){
+  console.debug("调试");
+  console.info("信息");
+  console.warn("警告");
+  console.error("错误");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="console.time(label) / console.timeEnd(label) 计时">
+  <header class="card-head">
+    <h4><code>console.time(label) / console.timeEnd(label)</code> <span class="cname">计时</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">对一段代码计时，timeEnd 返回耗时毫秒。</p>
+  <div class="ref"><b>对标</b> AutoJS console.time()/timeEnd()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">label</code><span class="ptype">string</span><span class="pdesc">计时标签</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number | null</span></div>
+  <pre><code>function main(){
+  console.time("task");
+  auto.sleep(100);
+  const ms = console.timeEnd("task");
+  logd("耗时: " + ms + "ms");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="logi(message) / logw(message) / loge(message) 日志简写">
+  <header class="card-head">
+    <h4><code>logi(message) / logw(message) / loge(message)</code> <span class="cname">日志简写</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">EasyClick 风格日志简写：信息 / 警告 / 错误。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">message</code><span class="ptype">any</span><span class="pdesc">内容</span></div></div>
+  <div class="ret"><b>返回值</b> <span>void</span></div>
+  <pre><code>function main(){
+  logi("信息");
+  logw("警告");
+  loge("错误");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="logd(message) 调试日志（debug）">
   <header class="card-head">
     <h4><code>logd(message)</code> <span class="cname">调试日志（debug）</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -720,8 +770,82 @@ main();</code></pre>
 </article>
 </section>
 <section id="app" class="cat" style="--c:#16a34a">
-  <h2><span class="tag">App与应用控制</span><i>6</i></h2>
-  <article class="card" data-search="launchApp(bundleId) 启动应用">
+  <h2><span class="tag">App与应用控制</span><i>11</i></h2>
+  <article class="card" data-search="app.launch(bundleId) 启动应用">
+  <header class="card-head">
+    <h4><code>app.launch(bundleId)</code> <span class="cname">启动应用</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">按 bundle id 启动应用。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">如 com.apple.mobilesafari</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  app.launch("com.apple.mobilesafari");
+  auto.sleep(1500);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="app.activate(bundleId) 激活应用">
+  <header class="card-head">
+    <h4><code>app.activate(bundleId)</code> <span class="cname">激活应用</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把已安装的应用带到前台。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">应用 bundle id</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  app.activate("com.apple.Preferences");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="app.terminate(bundleId) 结束应用">
+  <header class="card-head">
+    <h4><code>app.terminate(bundleId)</code> <span class="cname">结束应用</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">终止指定应用进程。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">应用 bundle id</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  app.terminate("com.apple.mobilesafari");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="app.state(bundleId) 应用状态">
+  <header class="card-head">
+    <h4><code>app.state(bundleId)</code> <span class="cname">应用状态</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回应用运行状态（0 未知 / 1 未运行 / 2 前台 / 3 后台）。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">应用 bundle id</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  const state = app.state("com.apple.mobilesafari");
+  toastLog("状态码: " + state);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="app.lock() / app.unlock() 锁屏 / 解锁">
+  <header class="card-head">
+    <h4><code>app.lock() / app.unlock()</code> <span class="cname">锁屏 / 解锁</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">锁屏或解锁设备（需 WDA systemActions 能力）。</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  app.lock();
+  auto.sleep(1000);
+  app.unlock();
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="launchApp(bundleId) 启动应用">
   <header class="card-head">
     <h4><code>launchApp(bundleId)</code> <span class="cname">启动应用</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -814,8 +938,99 @@ main();</code></pre>
 </article>
 </section>
 <section id="device" class="cat" style="--c:#dc2626">
-  <h2><span class="tag">设备与系统</span><i>12</i></h2>
-  <article class="card" data-search="device.getDeviceInfo() 设备信息">
+  <h2><span class="tag">设备与系统</span><i>18</i></h2>
+  <article class="card" data-search="device.getOSVersion() 系统版本">
+  <header class="card-head">
+    <h4><code>device.getOSVersion()</code> <span class="cname">系统版本</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回 iOS 系统版本号，如 "17.5"。</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd("iOS: " + device.getOSVersion());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getDeviceName() 设备名称">
+  <header class="card-head">
+    <h4><code>device.getDeviceName()</code> <span class="cname">设备名称</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回设备显示名称（设置 → 通用 → 关于本机里的名称）。</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  toast("设备: " + device.getDeviceName());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.isCharging() 是否充电中">
+  <header class="card-head">
+    <h4><code>device.isCharging()</code> <span class="cname">是否充电中</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回当前是否正在充电。</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  if (device.isCharging()) toastLog("正在充电");
+  else toastLog("未充电");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getScreenWidth() / device.getScreenHeight() 屏幕宽高（点）">
+  <header class="card-head">
+    <h4><code>device.getScreenWidth() / device.getScreenHeight()</code> <span class="cname">屏幕宽高（点）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回屏幕逻辑尺寸，单位是点（pt），不是像素。</p>
+  <div class="ref"><b>对标</b> EasyClick getScreenWidth()/getScreenHeight() · AutoJS device.width/height</div>
+  
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  const w = device.getScreenWidth();
+  const h = device.getScreenHeight();
+  toastLog("屏幕: " + w + " x " + h);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.width() / device.height() / device.scale() / device.getScale() / device.info() 屏幕尺寸与信息简写">
+  <header class="card-head">
+    <h4><code>device.width() / device.height() / device.scale() / device.getScale() / device.info()</code> <span class="cname">屏幕尺寸与信息简写</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">width/height 返回屏幕宽高（点），scale/getScale 返回缩放比，info 等价 getDeviceInfo。</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>number | object</span></div>
+  <pre><code>function main(){
+  logd("宽=" + device.width() + " 高=" + device.height());
+  logd("缩放=" + device.scale());
+  logd(JSON.stringify(device.info()));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.setBrightness(value) 设置屏幕亮度">
+  <header class="card-head">
+    <h4><code>device.setBrightness(value)</code> <span class="cname">设置屏幕亮度</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">设置屏幕亮度，value 范围 0～1。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">value</code><span class="ptype">number</span><span class="pdesc">0～1 的亮度值</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  device.setBrightness(0.5);
+  auto.sleep(500);
+  device.setBrightness(device.getBrightness());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getDeviceInfo() 设备信息">
   <header class="card-head">
     <h4><code>device.getDeviceInfo()</code> <span class="cname">设备信息</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -1004,8 +1219,25 @@ main();</code></pre>
 </article>
 </section>
 <section id="metrics" class="cat" style="--c:#0ea5e9">
-  <h2><span class="tag">坐标与屏幕</span><i>4</i></h2>
-  <article class="card" data-search="setScreenMetrics(width, height) 设置设计分辨率">
+  <h2><span class="tag">坐标与屏幕</span><i>5</i></h2>
+  <article class="card" data-search="metrics.get() / metrics.set(w, h) / metrics.x(v) / metrics.y(v) 屏幕坐标换算">
+  <header class="card-head">
+    <h4><code>metrics.get() / metrics.set(w, h) / metrics.x(v) / metrics.y(v)</code> <span class="cname">屏幕坐标换算</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取/设置屏幕逻辑尺寸，把坐标按缩放换算。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">w</code><span class="ptype">number</span><span class="pdesc">宽</span></div><div class="param"><code class="pname">h</code><span class="ptype">number</span><span class="pdesc">高</span></div><div class="param"><code class="pname">v</code><span class="ptype">number</span><span class="pdesc">坐标值</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoMetrics | boolean | number</span></div>
+  <pre><code>function main(){
+  const m = metrics.get();
+  logd("屏幕: " + m.width + " x " + m.height);
+  const px = metrics.x(50);
+  logd("x(50)=" + px);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="setScreenMetrics(width, height) 设置设计分辨率">
   <header class="card-head">
     <h4><code>setScreenMetrics(width, height)</code> <span class="cname">设置设计分辨率</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -1072,8 +1304,82 @@ main();</code></pre>
 </article>
 </section>
 <section id="file" class="cat" style="--c:#4f46e5">
-  <h2><span class="tag">文件</span><i>21</i></h2>
-  <article class="card" data-search="file.sandboxDir() 沙盒根目录">
+  <h2><span class="tag">文件</span><i>26</i></h2>
+  <article class="card" data-search="file.writeText(path, text) 写文本">
+  <header class="card-head">
+    <h4><code>file.writeText(path, text)</code> <span class="cname">写文本</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把文本写入沙盒文件（自动建目录）。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内路径</span></div><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">文本内容</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  file.writeText("data/note.txt", "hello");
+  logd(file.readText("data/note.txt"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.getSandBoxDir() / file.getSandBoxFilePath(path) / file.resolvePath(path) 沙盒路径查询">
+  <header class="card-head">
+    <h4><code>file.getSandBoxDir() / file.getSandBoxFilePath(path) / file.resolvePath(path)</code> <span class="cname">沙盒路径查询</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回沙盒根目录、指定路径的完整沙盒路径。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd("沙盒根: " + file.getSandBoxDir());
+  logd("完整路径: " + file.getSandBoxFilePath("data/a.txt"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.mkdirs(path) 递归建目录">
+  <header class="card-head">
+    <h4><code>file.mkdirs(path)</code> <span class="cname">递归建目录</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">递归创建目录，父目录不存在也会创建。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内目录路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  file.mkdirs("logs/2026/08");
+  logd("created");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.deleteAllFile(path) 删除文件/目录">
+  <header class="card-head">
+    <h4><code>file.deleteAllFile(path)</code> <span class="cname">删除文件/目录</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">删除文件或整个目录（含子内容）。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  file.deleteAllFile("data/note.txt");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.readAllLines(path) 读取所有行">
+  <header class="card-head">
+    <h4><code>file.readAllLines(path)</code> <span class="cname">读取所有行</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">按行读取整个文件，返回字符串数组。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string[]</span></div>
+  <pre><code>function main(){
+  const lines = file.readAllLines("data/list.txt");
+  for (const line of lines) logd(line);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.sandboxDir() 沙盒根目录">
   <header class="card-head">
     <h4><code>file.sandboxDir()</code> <span class="cname">沙盒根目录</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -1393,8 +1699,91 @@ main();</code></pre>
 </article>
 </section>
 <section id="storage" class="cat" style="--c:#0d9488">
-  <h2><span class="tag">存储</span><i>5</i></h2>
-  <article class="card" data-search="storages.create(name) 创建命名存储">
+  <h2><span class="tag">存储</span><i>10</i></h2>
+  <article class="card" data-search="auto.storage(name) storage 别名">
+  <header class="card-head">
+    <h4><code>auto.storage(name)</code> <span class="cname">storage 别名</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">等价于 storages.create(name)，方便链式调用。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">name</code><span class="ptype">string</span><span class="pdesc">存储空间名</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoStorage</span></div>
+  <pre><code>function main(){
+  const store = auto.storage("cfg");
+  store.put("key", 1);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="storages.create(name).put(key, value) 写入键值">
+  <header class="card-head">
+    <h4><code>storages.create(name).put(key, value)</code> <span class="cname">写入键值</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把任意 JSON 可序列化值写入命名存储。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">name</code><span class="ptype">string</span><span class="pdesc">存储空间名</span></div><div class="param"><code class="pname">key</code><span class="ptype">string</span><span class="pdesc">键</span></div><div class="param"><code class="pname">value</code><span class="ptype">any</span><span class="pdesc">值</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const store = storages.create("cfg");
+  store.put("count", 3);
+  store.put("name", "AutoSDK");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="storages.create(name).get(key, default?) 读取键值">
+  <header class="card-head">
+    <h4><code>storages.create(name).get(key, default?)</code> <span class="cname">读取键值</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取存储值，key 不存在时返回默认值。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">key</code><span class="ptype">string</span><span class="pdesc">键</span></div><div class="param"><code class="pname">default</code><span class="ptype">any</span><span class="pdesc">可选的默认值</span></div></div>
+  <div class="ret"><b>返回值</b> <span>any</span></div>
+  <pre><code>function main(){
+  const store = storages.create("cfg");
+  const count = store.get("count", 0);
+  toastLog("count=" + count);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="putString / putInt / putBoolean / putFloat / getString / getInt / getBoolean / getFloat 类型化存取">
+  <header class="card-head">
+    <h4><code>putString / putInt / putBoolean / putFloat / getString / getInt / getBoolean / getFloat</code> <span class="cname">类型化存取</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">带类型的读写，避免 JSON 序列化歧义。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">key</code><span class="ptype">string</span><span class="pdesc">键</span></div><div class="param"><code class="pname">value</code><span class="ptype">string|number|boolean</span><span class="pdesc">对应类型的值</span></div></div>
+  <div class="ret"><b>返回值</b> <span>any</span></div>
+  <pre><code>function main(){
+  const store = storages.create("cfg");
+  store.putInt("retry", 3);
+  store.putBoolean("enabled", true);
+  logd("retry=" + store.getInt("retry", 0));
+  logd("enabled=" + store.getBoolean("enabled", false));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="storages.create(name).keys() / all() / contains(key) / clear() 遍历与清空">
+  <header class="card-head">
+    <h4><code>storages.create(name).keys() / all() / contains(key) / clear()</code> <span class="cname">遍历与清空</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">列出所有键、导出全部键值、判断键是否存在、清空存储。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">key</code><span class="ptype">string</span><span class="pdesc">键（contains 需要）</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string[] | object | boolean | void</span></div>
+  <pre><code>function main(){
+  const store = storages.create("cfg");
+  logd("keys=" + JSON.stringify(store.keys()));
+  logd("all=" + JSON.stringify(store.all()));
+  logd("has=" + store.contains("retry"));
+  store.clear();
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="storages.create(name) 创建命名存储">
   <header class="card-head">
     <h4><code>storages.create(name)</code> <span class="cname">创建命名存储</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -1482,8 +1871,56 @@ main();</code></pre>
 </article>
 </section>
 <section id="http" class="cat" style="--c:#9333ea">
-  <h2><span class="tag">网络HTTP</span><i>6</i></h2>
-  <article class="card" data-search="http.get(url, options?) GET 请求">
+  <h2><span class="tag">网络HTTP</span><i>9</i></h2>
+  <article class="card" data-search="httpGet(url, options?) / httpPost(url, body?, options?) HTTP 全局简写">
+  <header class="card-head">
+    <h4><code>httpGet(url, options?) / httpPost(url, body?, options?)</code> <span class="cname">HTTP 全局简写</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">AutoJS 风格全局简写，等价于 http.get / http.post。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">请求地址</span></div><div class="param"><code class="pname">body</code><span class="ptype">any</span><span class="pdesc">POST 请求体</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选配置</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoHTTPResponse</span></div>
+  <pre><code>function main(){
+  if (auto.capabilities().http !== true) return;
+  const r = httpGet("https://example.com", { timeout: 5000 });
+  logd("status=" + r.status);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="httpGetDefault(url, options?) / httpPostDefault(url, body?, options?) HTTP 默认值简写">
+  <header class="card-head">
+    <h4><code>httpGetDefault(url, options?) / httpPostDefault(url, body?, options?)</code> <span class="cname">HTTP 默认值简写</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">带默认请求头/超时的简写，等价于默认参数版。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">请求地址</span></div><div class="param"><code class="pname">body</code><span class="ptype">any</span><span class="pdesc">POST 请求体</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoHTTPResponse</span></div>
+  <pre><code>function main(){
+  if (auto.capabilities().http !== true) return;
+  const r = httpGetDefault("https://example.com");
+  logd("ok=" + r.ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="http.downloadFileDefault(url, path, options?) 下载文件（默认参数）">
+  <header class="card-head">
+    <h4><code>http.downloadFileDefault(url, path, options?)</code> <span class="cname">下载文件（默认参数）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把 URL 下载到沙盒文件，使用默认参数。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">文件地址</span></div><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒保存路径</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选配置</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  if (auto.capabilities().http !== true) return;
+  const ok = http.downloadFileDefault("https://example.com/a.png", "tmp/a.png");
+  toastLog("下载: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="http.get(url, options?) GET 请求">
   <header class="card-head">
     <h4><code>http.get(url, options?)</code> <span class="cname">GET 请求</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -1582,8 +2019,40 @@ main();</code></pre>
 </article>
 </section>
 <section id="media" class="cat" style="--c:#db2777">
-  <h2><span class="tag">相册媒体</span><i>5</i></h2>
-  <article class="card" data-search="media.saveImage(path) 保存图片到相册">
+  <h2><span class="tag">相册媒体</span><i>7</i></h2>
+  <article class="card" data-search="saveImageToAlbum(path) / saveImageBase64ToAlbum(base64) / saveScreenshotToAlbum() / saveVideoToAlbum(path) 相册全局简写">
+  <header class="card-head">
+    <h4><code>saveImageToAlbum(path) / saveImageBase64ToAlbum(base64) / saveScreenshotToAlbum() / saveVideoToAlbum(path)</code> <span class="cname">相册全局简写</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">全局函数简写，等价于 media.saveImage / saveImageBase64 / saveScreenshot / saveVideo。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒文件路径</span></div><div class="param"><code class="pname">base64</code><span class="ptype">string</span><span class="pdesc">图片 Base64</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  if (auto.capabilities().mediaLibraryWrite !== true) return;
+  saveScreenshotToAlbum();
+  saveImageBase64ToAlbum("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="image 对象（findImage / findColor / pixel / screenshot / saveToAlbum） image 别名对象">
+  <header class="card-head">
+    <h4><code>image 对象（findImage / findColor / pixel / screenshot / saveToAlbum）</code> <span class="cname">image 别名对象</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">image.* 提供图色与相册的集中入口，等价于 auto 上的同名方法。</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>见具体方法</span></div>
+  <pre><code>function main(){
+  const p = image.pixel(100, 200);
+  logd("颜色: " + p.hex);
+  image.saveScreenshotToAlbum();
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="media.saveImage(path) 保存图片到相册">
   <header class="card-head">
     <h4><code>media.saveImage(path)</code> <span class="cname">保存图片到相册</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -1661,8 +2130,70 @@ main();</code></pre>
 </article>
 </section>
 <section id="timer" class="cat" style="--c:#64748b">
-  <h2><span class="tag">定时器与工具</span><i>7</i></h2>
-  <article class="card" data-search="setTimeout(fn, ms, ...args) / clearTimeout(id) 延时执行">
+  <h2><span class="tag">定时器与工具</span><i>11</i></h2>
+  <article class="card" data-search="clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id) 取消定时器">
+  <header class="card-head">
+    <h4><code>clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id)</code> <span class="cname">取消定时器</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">取消已创建的定时器；两种命名都可用。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">id</code><span class="ptype">number</span><span class="pdesc">定时器 ID</span></div></div>
+  <div class="ret"><b>返回值</b> <span>void</span></div>
+  <pre><code>function main(){
+  const timer = setTimeout(function () { logd("tick"); }, 1000);
+  clearTimeout(timer);
+  logd("cancelled");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="random(min, max?) / randomInt(min, max?) 随机数">
+  <header class="card-head">
+    <h4><code>random(min, max?) / randomInt(min, max?)</code> <span class="cname">随机数</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回 [min, max] 闭区间随机整数。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">min</code><span class="ptype">number</span><span class="pdesc">最小值</span></div><div class="param"><code class="pname">max</code><span class="ptype">number</span><span class="pdesc">最大值（可选）</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  const x = random(0, 100);
+  const y = randomInt(0, 100);
+  toastLog("随机: " + x + ", " + y);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="uuid() / uniqueId() 唯一 ID">
+  <header class="card-head">
+    <h4><code>uuid() / uniqueId()</code> <span class="cname">唯一 ID</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">生成 UUID 字符串。</p>
+  <div class="ref"><b>对标</b> EasyClick uuid()</div>
+  
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(uuid());
+  logd(uniqueId());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="setClipboard(text) / setBrightness(value) 系统全局简写">
+  <header class="card-head">
+    <h4><code>setClipboard(text) / setBrightness(value)</code> <span class="cname">系统全局简写</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">全局函数简写，等价于 device.setClipboard / device.setBrightness。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">剪贴板文本</span></div><div class="param"><code class="pname">value</code><span class="ptype">number</span><span class="pdesc">亮度 0～1</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  setClipboard("hello");
+  logd(getClipboard());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="setTimeout(fn, ms, ...args) / clearTimeout(id) 延时执行">
   <header class="card-head">
     <h4><code>setTimeout(fn, ms, ...args) / clearTimeout(id)</code> <span class="cname">延时执行</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -1778,7 +2309,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 105 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 140 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

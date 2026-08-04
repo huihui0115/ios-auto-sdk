@@ -133,7 +133,43 @@ const podspec = read('AutoSDK.podspec');
 const versionSource = read('Sources/AutoSDK/AutoSDKVersion.m');
 check(podspec.includes(`s.version          = '${rootPackage.version}'`), 'SDK version differs between package.json and AutoSDK.podspec');
 check(versionSource.includes(`"${rootPackage.version}"`), 'SDK version differs between package.json and AutoSDKVersion.m');
-check(/double AutoSDKVersionNumber = \d+\.\d+;/.test(versionSource),
+
+// --- API reference completeness: every declared function must be documented ---
+{
+  const apiSource = read('tools/generate-api-reference.mjs');
+  const documented = new Set();
+  for (const sigMatch of apiSource.matchAll(/sig:['"]([^'"]+)['"]/g)) {
+    for (const part of sigMatch[1].split('/')) {
+      const root = part.trim().match(/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*/);
+      if (root) documented.add(root[0].split('.').pop());
+    }
+    for (const chain of sigMatch[1].matchAll(/\)\s*\.\s*([A-Za-z_$][\w$]*)\s*\(/g)) documented.add(chain[1]);
+  }
+  for (const exampleMatch of apiSource.matchAll(/example:`([\s\S]*?)`\s*\}/g)) {
+    for (const call of exampleMatch[1].matchAll(/(?:^|[^A-Za-z_$])([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)\s*\(/g)) {
+      documented.add(call[2]);
+    }
+  }
+  const declared = new Set();
+  for (const match of typeDefinitions.matchAll(/declare function\s+([A-Za-z_$][\w$]*)\s*\(/g)) declared.add(match[1]);
+  const interfacePattern = /interface\s+[A-Za-z_$][\w$]*\s*\{/g;
+  let interfaceMatch;
+  while ((interfaceMatch = interfacePattern.exec(typeDefinitions))) {
+    const start = interfaceMatch.index + interfaceMatch[0].length;
+    let depth = 1;
+    let index = start;
+    for (; index < typeDefinitions.length && depth > 0; index += 1) {
+      if (typeDefinitions[index] === '{') depth += 1;
+      else if (typeDefinitions[index] === '}') depth -= 1;
+    }
+    const body = typeDefinitions.slice(start, index - 1);
+    for (const method of body.matchAll(/(?:^|[;\n])\s*([A-Za-z_$][\w$]*)\s*\(/g)) declared.add(method[1]);
+  }
+  const aliases = new Set(['auto', 'console', 'file', 'storages', 'device', 'http', 'image', 'media', 'app', 'metrics', 'base64', 'store']);
+  const undocumented = [...declared].filter(name => !documented.has(name) && !aliases.has(name)).sort();
+  check(undocumented.length === 0,
+        `API reference must document every declared function; missing: ${undocumented.join(', ')}`);
+}check(/double AutoSDKVersionNumber = \d+\.\d+;/.test(versionSource),
       'AutoSDKVersionNumber must stay a valid C double (major.minor only)');
 check(rootLock.name === rootPackage.name && rootLock.version === rootPackage.version &&
       rootLock.packages?.['']?.name === rootPackage.name && rootLock.packages?.['']?.version === rootPackage.version,

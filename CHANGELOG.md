@@ -6,6 +6,15 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-08-04
+
+### Added
+
+- **API 参考补齐到 140 个函数并加自动一致性检查。** `docs/api-reference.html` 新增约 35 个缺失条目：device 屏幕/系统简写、app 生命周期、console 分级日志与计时、file 常用读写、storages 类型化存取与遍历、HTTP 别名、相册与 image 对象、随机数/uuid/定时器取消等，每条都带可直接复制的调试代码。`tools/verify.mjs` 新增回归检查：解析 `types/autosdk.d.ts` 的全部声明并断言每个函数都有文档条目。
+- **`bump-version.mjs` 同步 `package-lock.json` 并修复 CHANGELOG 段落写入。** 版本提升现在一次性同步 package.json / package-lock.json / AutoSDK.podspec / AutoSDKVersion.m，且 CHANGELOG 的占位段落会真正写入。
+- **Release 说明自动带 CHANGELOG。** CI 发布时自动提取当前版本对应的 CHANGELOG 段落作为 Release notes，并列出下载项（IPA + VS Code 插件）。
+- **本地教程更新。** `docs/guide/index.html` 增加内置示例脚本表（含 gesture/vision/media）、capability 守卫写法、`npm run init`/`npm run doctor` 用法，以及文档中心/Releases/API 参考直达链接。
+
 ## [1.2.0] - 2026-08-05
 
 ### Added
