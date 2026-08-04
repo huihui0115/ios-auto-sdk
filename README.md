@@ -14,6 +14,7 @@
 - CocoaPods 和 Swift Package Manager 接入骨架
 - 基于公共 API 的 `AutoUIKitAdapter`，可直接自动化宿主 App 自己的 UIKit 视图
 
+> 📖 ???????????????????[`docs/guide/index.html`](docs/guide/index.html)??? ? ?? ? ????? ? ????
 > 🚀 想快速上手？先看 [`docs/QUICK_START.md`](docs/QUICK_START.md)（第三方 10 分钟跑通
 > 「写脚本 → 构建 IPA → 安装 → 调试」）。与 AutoScript 的定位/能力对比见
 > [`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)。

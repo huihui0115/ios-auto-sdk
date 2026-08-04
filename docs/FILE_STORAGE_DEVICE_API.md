@@ -46,8 +46,9 @@ file.deleteAllFile("reports/final.txt");
 
 Also available: `sandboxDir`, `getSandBoxDir`, `resolvePath`,
 `getSandBoxFilePath`, `exists`, `readText`, `readBase64`, `readLines`,
-`readAllLines`, `writeText`, `writeBase64`, `writeLines`, `appendText`,
-`mkdir`, `remove`, `list`, `copy`, `move`, and `rename`. `move` /
+`readAllLines`, `readLine` (by index), `writeText`, `writeBase64`, `writeLines`,
+`appendText`, `appendLine`, `create`, `deleteLine` (by index), `mkdir`, `remove`,
+`list`, `copy`, `move`, and `rename`. `move` /
 `rename` respect the same byte/item budgets as `copy` and refuse to move a
 path into itself or one of its children.
 
@@ -62,7 +63,8 @@ const enabled = settings.getBoolean("enabled", false);
 ```
 
 Stores accept JSON-safe values. Methods are `keys`, `all`, `put`, `get`,
-typed `put*`/`get*` wrappers, `contains`, `remove`, and `clear`. Set
+typed wrappers `putString`, `putInt`, `putFloat`, `putBoolean`,
+`getString`, `getInt`, `getFloat`, `getBoolean`, plus `contains`, `remove`, and `clear`. Set
 `allowStorage` to `NO` to disable the module, `maxStorageBytes` to change the
 default 1 MiB per-store limit (hard maximum 16 MiB), or `maxStorageEntries` to
 change the default 4,096-key limit (hard maximum 100,000). Stored bytes and
@@ -77,6 +79,10 @@ console.log(info.systemVersion, info.screenWidth, info.batteryLevel);
 const memory = device.getMemoryInfo(); // { totalBytes, freeBytes, appUsedBytes }
 console.log(auto.capabilities());
 ```
+
+Standalone getters are also available: `getScreenWidth`, `getScreenHeight`,
+`getScale`, `getModel`, `getOSVersion`, `getDeviceName`, `getBattery`,
+`isCharging` and `getOrientation`.
 
 The device module exposes public iOS information only. Memory figures come
 from Mach APIs (`host_statistics64` / `task_info`) and are advisory: they
@@ -120,3 +126,23 @@ Set `allowSystemControl: @NO` in the configuration to disable clipboard,
 brightness, volume, vibration and URL opening (read-only device information
 such as `device.getModel()` and `device.getMemoryInfo()` stays available).
 The capability is reported as `systemControl` by `auto.capabilities()`.
+
+## Convenience aliases
+
+The bootstrap layer keeps the AutoScript-style names as aliases so scripts
+written for AutoScript/Auto.js port over with minimal changes:
+
+- Logs: `logd` / `logi` / `logw` / `loge` alias `console.debug` /
+  `console.info` / `console.warn` / `console.error`.
+- Timing: `setTimeout` / `setInterval` / `clearTimeout` /
+  `clearInterval` (aliases `cancelTimeout` / `cancelInterval`), plus
+  `time` (`Date.now()`) and `random` / `randomInt` (inclusive range).
+- Touch: `clickPoint`, `doubleClickPoint`, `swipeToPoint` (alias of
+  `swipe`), `sleep`.
+- Image: `image.findImage`, `image.findColor`, `image.findMultiColor`,
+  `image.cmpColor`, `image.pixel` (alias of `getPixelColor`),
+  `image.screenshot`.
+- Top-level globals: `auto`, `file`, `storages` (via `storages.create`),
+  `device`, `http` (also `httpGet` / `httpPost`), `app`, `image`,
+  `toast`, `toastLog`, `openURL`, `getClipboard`, `setClipboard`,
+  `getBrightness`, `setBrightness`, `getVolume`, and `vibrate`.
