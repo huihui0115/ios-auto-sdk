@@ -119,6 +119,7 @@ extern void JSContextGroupClearExecutionTimeLimit(JSContextGroupRef group) __att
 @end
 
 static void *AutoDebugServerQueueKey = &AutoDebugServerQueueKey;
+static void *AutoScriptQueueKey = &AutoScriptQueueKey;
 
 static void AutoDispatchDebugServerCompletions(NSArray *callbacks, NSError *error) {
     if (callbacks.count == 0) return;
@@ -1304,6 +1305,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         _nativeMethods = [NSMutableDictionary dictionary];
         _adapter = [AutoUnavailableAdapter new];
         _scriptQueue = dispatch_queue_create("com.autosdk.javascript", DISPATCH_QUEUE_SERIAL);
+        dispatch_queue_set_specific(_scriptQueue, AutoScriptQueueKey, AutoScriptQueueKey, NULL);
         _debugAdapterQueue = dispatch_queue_create("com.autosdk.debug-adapter", DISPATCH_QUEUE_SERIAL);
         _debugServerQueue = dispatch_queue_create("com.autosdk.debug-server-state", DISPATCH_QUEUE_SERIAL);
         dispatch_queue_set_specific(_debugServerQueue, AutoDebugServerQueueKey, AutoDebugServerQueueKey, NULL);
@@ -1979,7 +1981,16 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         if (group) JSContextGroupRetain(group);
         if (globalRef) JSGlobalContextRetain(globalRef);
     }
-    if (group && AutoJSContextGroupSetExecutionTimeLimit) {
+    if (group && AutoJSContextGroupSetExecutionTimeLimit &&
+        dispatch_get_specific(AutoScriptQueueKey) != NULL) {
+        // JSContextGroupSetExecutionTimeLimit is an undocumented private API
+        // with no thread-safety guarantees. Shortening the limit from a
+        // foreign thread while JSC is executing can hang the VM (observed on
+        // the iOS 17.4 simulator), so only the script thread performs the
+        // change. stopScript on other threads relies on stopRequested
+        // polling, which covers sleeps, bridge calls and timer loops; pure
+        // JavaScript loops still hit the limit that the script thread
+        // installed with the script's own deadline.
         AutoJSContextGroupSetExecutionTimeLimit(group, 0.001, NULL, NULL);
     }
     if (group) JSContextGroupRelease(group);

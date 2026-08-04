@@ -46,6 +46,12 @@ All notable changes to AutoSDK are documented here. The format follows
   installed limit re-checks the stop flag, so a `stopScript` arriving
   before or during install still interrupts a pure-JS loop immediately
   instead of letting it run until the full `scriptTimeout`.
+- **The private JSC execution-time API is never called from foreign
+  threads.** `stopScript` used to shorten the JavaScriptCore execution-time
+  limit from whatever thread issued it, which hung the JavaScript VM on the
+  iOS 17.4 simulator (the whole XCTest run stalled). Only the script thread
+  now touches the limit; other threads rely on the cooperative stop polling
+  that covers sleeps, bridge calls and timer loops.
 - **Inspector selector results clear stale overlays.** Testing a selector
   now removes any previous image-match highlight and region selection, so
   the screenshot overlay always reflects the current result set.
