@@ -1,6 +1,6 @@
 # EasyClick iOS capability comparison
 
-Audit date: 2026-08-02
+Audit date: 2026-08-05
 
 Official references:
 
@@ -69,3 +69,27 @@ The following surfaces must not be described as production-complete yet:
 4. Replace the basic matcher with an optional OpenCV-backed adapter.
 5. Add workers/parallel JavaScript contexts and a safe execution interrupt mechanism.
 6. Upgrade point-in-time screenshots and node JSON into a continuous visual inspector.
+
+## 函数级覆盖清单（2026-08-05）
+
+交互式速查 `docs/api-reference.html` 收录 102 个可运行示例，分 12 个分类，
+每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
+
+| 分类 | 函数数 | 亮点 |
+| --- | --- | --- |
+| 日志与调试 | 5 | logd/logi/logw/loge、toast/toastLog、sleep |
+| 触摸与节点 | 22 | 坐标/节点点击、滑动、输入，节点 13 个查询（含 getChild/getSiblings/clickCenter/clickRandom） |
+| 图色与OCR | 9 | 截图、找图、找色、多点找色、像素、OCR |
+| App与应用控制 | 6 | launch/activate/terminate/state/openURL/homeScreen |
+| 设备与系统 | 12 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存 |
+| 坐标与屏幕 | 4 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
+| 文件 | 21 | 沙盒 CRUD、行操作、复制/移动/重命名 |
+| 存储 | 5 | 命名 typed store |
+| 网络HTTP | 6 | get/post/postJSON/getJSON/download/通用请求 |
+| 相册媒体 | 5 | saveImage/saveImageBase64/saveVideo/saveScreenshot |
+| 定时器与工具 | 7 | 定时器、uuid、base64、time/random |
+
+本次新增：`setScreenMetrics`/`getScreenMetrics`/`metrics.point`（EasyClick 分辨率适配）、
+`http.getJSON`、`uuid`/`uniqueId`、`base64.encode/decode`（UTF-8 安全）、
+`auto.clickCenter/clickRandom`（取整坐标）、`auto.getChild/getSiblings` 文档化，
+以及 `device.width/height/scale` 快捷属性。

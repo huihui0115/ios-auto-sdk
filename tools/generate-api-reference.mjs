@@ -17,6 +17,7 @@ const CATEGORIES = [
   { id: 'vision',   name: '图色与OCR', color: '#ea580c' },
   { id: 'app',      name: 'App与应用控制', color: '#16a34a' },
   { id: 'device',   name: '设备与系统', color: '#dc2626' },
+  { id: 'metrics',  name: '坐标与屏幕', color: '#0ea5e9' },
   { id: 'file',     name: '文件', color: '#4f46e5' },
   { id: 'storage',  name: '存储', color: '#0d9488' },
   { id: 'http',     name: '网络HTTP', color: '#9333ea' },
@@ -24,7 +25,87 @@ const CATEGORIES = [
   { id: 'timer',    name: '定时器与工具', color: '#64748b' }
 ];
 
+const REFS = {
+  'logd(message)': 'EasyClick logd() · AutoJS log()',
+  'console.log': 'EasyClick logi()/logw()/loge() · AutoJS console.*',
+  'toast(message)': 'EasyClick toast() · AutoJS toast()',
+  'toastLog(message)': 'EasyClick toastLog() · AutoJS toast()',
+  'sleep(milliseconds)': 'EasyClick sleep() · AutoJS sleep()',
+  'click(selector)': 'EasyClick click() · AutoJS click()',
+  'clickPoint(x, y)': 'EasyClick clickPoint() · AutoJS click(x, y)',
+  'doubleClickPoint(x, y, interval?)': 'EasyClick doubleClickPoint() · AutoJS click(x, y, true)',
+  'longClick(selector, duration?)': 'EasyClick longClick() · AutoJS longClick()',
+  'swipe(x1, y1, x2, y2, duration?)': 'EasyClick swipe() · AutoJS swipe()',
+  'input(selector, text)': 'EasyClick inputText() · AutoJS setText()',
+  'setText(selector, text)': 'EasyClick inputText() 别名',
+  'getText(selector)': 'EasyClick getText() · AutoJS text()',
+  'exists(selector)': 'EasyClick exists() · AutoJS exists()',
+  'findElement(selector)': 'EasyClick getNode() · AutoJS findOne()',
+  'findElements(selector)': 'EasyClick getNodes() · AutoJS findOnce()',
+  'waitFor(selector, timeoutMs?)': 'EasyClick waitNode() · AutoJS waitFor()',
+  'getAttribute(selector, name)': 'EasyClick getAttribute() · AutoJS attr()',
+  'getBounds(selector)': 'EasyClick getBounds() · AutoJS bounds()',
+  'getChildren(selector)': 'EasyClick getChildren() · AutoJS children()',
+  'getParent(selector)': 'EasyClick getParent() · AutoJS parent()',
+  'scrollIntoView(selector)': 'EasyClick scrollTo() · AutoJS scrollForward()',
+  'screenshot()': 'EasyClick screenshot() · AutoJS captureScreen()',
+  'findImage(templatePath, options?)': 'EasyClick findImage() · AutoJS findImage()',
+  'findColor(color, region?, options?)': 'EasyClick findColor() · AutoJS findColor()',
+  'findMultiColor(color, offsets, region?, options?)': 'EasyClick findMultiColor() · AutoJS findMultiColor()',
+  'getPixelColor(x, y)': 'EasyClick getPixelColor() · AutoJS images.pixel()',
+  'ocr(options?)': 'EasyClick ocr() · AutoJS OCR（MLKit）',
+  'launchApp(bundleId)': 'EasyClick launchApp() · AutoJS launchApp()',
+  'activateApp(bundleId)': 'EasyClick activateApp() · AutoJS app.launch()',
+  'terminateApp(bundleId)': 'EasyClick closeApp() · AutoJS app.close()',
+  'appState(bundleId)': 'EasyClick getAppState()',
+  'openURL(url)': 'EasyClick openUrl() · AutoJS app.openUrl()',
+  'app.homeScreen()': 'EasyClick home()/lock()/unlock() · AutoJS home()',
+  'device.getDeviceInfo()': 'EasyClick getDeviceInfo()',
+  'device.getScreenWidth()': 'EasyClick getScreenWidth()/getScreenHeight() · AutoJS device.width/height',
+  'device.getBattery()': 'EasyClick getBattery()/isCharging()',
+  'device.getOrientation()': 'EasyClick getScreenOrientation()',
+  'device.getClipboard()': 'EasyClick getClipboard()/setClipboard() · AutoJS setClip()',
+  'device.getBrightness()': 'EasyClick getScreenBrightness()/setScreenBrightness()',
+  'device.getVolume()': 'EasyClick getVolume()',
+  'device.vibrate(durationMs?)': 'EasyClick vibrate()',
+  'file.sandboxDir()': 'EasyClick 沙盒根目录',
+  'file.readFile(path)': 'EasyClick readFile() · AutoJS files.read()',
+  'file.writeFile(path, text)': 'EasyClick writeFile() · AutoJS files.write()',
+  'file.exists(path)': 'EasyClick exists() · AutoJS files.exists()',
+  'file.list(path)': 'EasyClick list() · AutoJS files.listDir()',
+  'file.remove(path)': 'EasyClick remove() · AutoJS files.remove()',
+  'file.copy(src, dest, overwrite?)': 'EasyClick copy() · AutoJS files.copy()',
+  'file.move(src, dest, overwrite?)': 'EasyClick move() · AutoJS files.move()',
+  'storages.create(name)': 'EasyClick storage() · AutoJS storages.create()',
+  'store.putString': 'EasyClick putString()/putInt() · AutoJS put()',
+  'store.getString': 'EasyClick getString()/getInt() · AutoJS get()',
+  'http.get(url, options?)': 'EasyClick httpGet() · AutoJS http.get()',
+  'http.post(url, body?, options?)': 'EasyClick httpPost() · AutoJS http.post()',
+  'http.postJSON(url, body?, options?)': 'EasyClick httpPostJson() · AutoJS http.post()',
+  'http.downloadFile(url, path, options?)': 'EasyClick downloadFile() · AutoJS http.download()',
+  'http.request(url, options?)': 'EasyClick 通用请求',
+  'media.saveImage(path)': 'EasyClick 保存图片到相册',
+  'media.saveScreenshot()': 'EasyClick 截图存相册',
+  'setTimeout(fn, ms, ...args)': 'EasyClick setTimeout()/clearTimeout()',
+  'setInterval(fn, ms)': 'EasyClick setInterval()/clearInterval()',
+  'time()': 'EasyClick time()/random() · AutoJS Date.now()/random()',
+  'console.time(label)': 'AutoJS console.time()/timeEnd()',
+  'setScreenMetrics(width, height)': 'EasyClick setScreenMetrics() · AutoJS setScreenMetrics()',
+  'getScreenMetrics()': 'EasyClick getScreenMetrics() · AutoJS getScreenMetrics()',
+  'metrics.point(x, y)': 'EasyClick 分辨率坐标适配',
+  'device.width': 'AutoJS device.width/height',
+  'auto.getChild(selector, index)': 'EasyClick getChild() · AutoJS child()',
+  'auto.getSiblings(selector)': 'AutoJS siblings()',
+  'auto.clickCenter(selector)': 'AutoJS 点击控件中心',
+  'auto.clickRandom(selector)': '随机点击（防检测）',
+  'swipeToPoint(x1, y1, x2, y2, duration?)': 'EasyClick swipeToPoint()',
+  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
+  'uuid()': 'EasyClick uuid()',
+  'base64.encode(str)': 'EasyClick base64.encode()/decode()'
+};
 function card(api) {
+  const ref = REFS[api.sig.split(' / ')[0].trim()];
+  const refLine = ref ? `<div class="ref"><b>对标</b> ${esc(ref)}</div>` : '';
   const params = (api.params || []).map(([n, t, d]) =>
     `<div class="param"><code class="pname">${esc(n)}</code><span class="ptype">${esc(t)}</span><span class="pdesc">${esc(d)}</span></div>`).join('');
   return `<article class="card" data-search="${esc(api.sig + ' ' + api.title)}">
@@ -33,6 +114,7 @@ function card(api) {
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">${esc(api.desc)}</p>
+  ${refLine}
   ${params ? `<div class="params"><b>参数</b>${params}</div>` : ''}
   <div class="ret"><b>返回值</b> <span>${esc(api.returns)}</span></div>
   <pre><code>${esc(api.example)}</code></pre>
@@ -90,6 +172,8 @@ button.copy.done{background:#16a34a}
 .ptype{color:#67e8f9;font-size:12px}
 .pdesc{color:var(--muted)}
 .ret{font-size:13px;color:var(--text)}
+.ref{font-size:12px;color:var(--muted);margin:8px 0 4px}
+.ref b{color:#fbbf24;font-weight:600;margin-right:6px}
 pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;margin:10px 0 0}
 pre code{font:12.5px/1.6 ui-monospace,Consolas,monospace;color:#a5f3fc;white-space:pre}
 .empty{color:var(--muted)}
@@ -129,7 +213,7 @@ main();</code></pre>
 ${sections}
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 与 EasyClick/AutoScript 风格对齐 · 双击 index.html 即可打开</footer>
+<footer>AutoSDK 离线函数参考 · 共 ${APIS.length} 个函数 · 对标 EasyClick/AutoScript · 生成于 ${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}-${String(new Date().getDate()).padStart(2,"0")} · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');
@@ -161,6 +245,10 @@ document.addEventListener('click', async ev => {
   btn.classList.add('done');
   toast.classList.add('show');
   setTimeout(() => { btn.textContent = old; btn.classList.remove('done'); toast.classList.remove('show'); }, 1200);
+});
+document.addEventListener('keydown', ev => {
+  if (ev.key === '/' && document.activeElement !== q) { ev.preventDefault(); q.focus(); }
+  if (ev.key === 'Escape' && document.activeElement === q) { q.value = ''; q.dispatchEvent(new Event('input')); }
 });
 </script>
 </body>
@@ -694,5 +782,76 @@ APIS.push({ cat:'timer', sig:'console.time(label) / console.timeEnd(label)', tit
 }
 main();` });
 
+APIS.push({ cat:'metrics', sig:'setScreenMetrics(width, height)', title:'设置设计分辨率', desc:'按设计稿宽高设置坐标基准（EasyClick/AutoJS 同款），之后用 metrics.point 把设计坐标换算为真机坐标；未设置时按 1:1。', params:[['width','number','设计稿宽度（px）'],['height','number','设计稿高度（px）']], returns:'boolean 是否设置成功', example:`function main(){
+  const ok = setScreenMetrics(390, 844);
+  logd("已设置设计分辨率: " + ok);
+  const m = getScreenMetrics();
+  logd("缩放比例: " + m.scaleX.toFixed(2) + "x" + m.scaleY.toFixed(2));
+}
+main();` });
+APIS.push({ cat:'metrics', sig:'getScreenMetrics()', title:'获取屏幕与缩放信息', desc:'返回设计分辨率、真机分辨率与 X/Y 缩放比例；未调用 setScreenMetrics 时按 1:1。', params:[], returns:'{width,height,screenWidth,screenHeight,scaleX,scaleY}', example:`function main(){
+  setScreenMetrics(390, 844);
+  const m = getScreenMetrics();
+  logd("真机: " + m.screenWidth + "x" + m.screenHeight);
+  logd("缩放: " + m.scaleX + "x" + m.scaleY);
+}
+main();` });
+APIS.push({ cat:'metrics', sig:'metrics.point(x, y) / metrics.x(v) / metrics.y(v)', title:'设计坐标转真机坐标', desc:'把设计稿坐标换算成当前真机坐标，适合多机型分辨率适配；也可直接读取 device.width/height/scale。', params:[['x','number','设计横坐标'],['y','number','设计纵坐标'],['v','number','设计值']], returns:'{x,y} 或 number', example:`function main(){
+  setScreenMetrics(390, 844);
+  const p = metrics.point(195, 100);
+  logd("真机坐标: " + p.x + "," + p.y);
+  logd("真机X: " + metrics.x(195));
+}
+main();` });
+APIS.push({ cat:'metrics', sig:'device.width / device.height / device.scale', title:'设备尺寸快捷属性', desc:'等效 device.getScreenWidth()/getScreenHeight()/getScale() 的函数式属性。', params:[], returns:'number', example:`function main(){
+  logd("宽: " + device.width() + " 高: " + device.height() + " 缩放: " + device.scale());
+}
+main();` });
+
+APIS.push({ cat:'touch', sig:'auto.getChild(selector, index)', title:'取第 N 个子节点', desc:'返回父节点的第 index 个子节点（从 0 开始），越界返回 null。', params:[['selector','object|string','父节点选择器'],['index','number','子节点索引']], returns:'object|null', example:`function main(){
+  const parent = findElement({text: "列表"});
+  const first = auto.getChild(parent, 0);
+  logd("第一个子节点: " + (first ? JSON.stringify(first) : "null"));
+}
+main();` });
+APIS.push({ cat:'touch', sig:'auto.getSiblings(selector) / getPreviousSiblings / getNextSiblings', title:'兄弟节点', desc:'getSiblings 返回全部兄弟；getPreviousSiblings/getNextSiblings 按文档顺序返回之前/之后的兄弟节点。', params:[['selector','object|string','节点']], returns:'object[]', example:`function main(){
+  const node = findElement({text: "当前项"});
+  logd("兄弟数量: " + auto.getSiblings(node).length);
+  logd("前序兄弟: " + auto.getPreviousSiblings(node).length);
+}
+main();` });
+APIS.push({ cat:'touch', sig:'auto.clickCenter(selector)', title:'点击节点中心', desc:'读取节点 bounds 后点击其中心点，比坐标点击更稳。', params:[['selector','object|string','节点']], returns:'boolean', example:`function main(){
+  const ok = auto.clickCenter({text: "登录"});
+  logd("点击中心: " + ok);
+}
+main();` });
+APIS.push({ cat:'touch', sig:'auto.clickRandom(selector)', title:'随机点点击', desc:'在节点范围内随机取点点击，模拟真人操作、降低被风控识别概率；坐标已取整。', params:[['selector','object|string','节点']], returns:'boolean', example:`function main(){
+  const ok = auto.clickRandom({text: "开始"});
+  logd("随机点击: " + ok);
+}
+main();` });
+APIS.push({ cat:'touch', sig:'swipeToPoint(x1, y1, x2, y2, duration?)', title:'滑动（别名）', desc:'swipe 的兼容别名，行为完全一致。', params:[['x1','number','起点X'],['y1','number','起点Y'],['x2','number','终点X'],['y2','number','终点Y'],['duration','number','毫秒']], returns:'boolean', example:`function main(){
+  const ok = swipeToPoint(200, 600, 200, 200, 300);
+  logd("滑动: " + ok);
+}
+main();` });
+
+APIS.push({ cat:'http', sig:'http.getJSON(url, options?)', title:'GET 并解析 JSON', desc:'等价 http.get(url, {parseJson:true})，直接返回解析后的对象。', params:[['url','string','地址'],['options','object','可选 headers/timeout 等']], returns:'object|string|number', example:`function main(){
+  const data = http.getJSON("https://api.example.com/v1/status");
+  logd("status: " + JSON.stringify(data));
+}
+main();` });
+
+APIS.push({ cat:'timer', sig:'uuid() / uniqueId()', title:'随机 UUID', desc:'返回随机 v4 UUID 字符串，可用于任务 ID、文件名等。', params:[], returns:'string', example:`function main(){
+  const id = uuid();
+  logd("任务ID: " + id);
+}
+main();` });
+APIS.push({ cat:'timer', sig:'base64.encode(str) / base64.decode(str)', title:'Base64 编解码', desc:'UTF-8 安全的 Base64 编解码；可配合 http bodyBase64、media.saveImageBase64 使用。', params:[['str','string','文本或 Base64']], returns:'string', example:`function main(){
+  const enc = base64.encode("你好 AutoSDK");
+  logd("编码: " + enc);
+  logd("解码: " + base64.decode(enc));
+}
+main();` });
 writeFileSync(join(root, 'docs', 'api-reference.html'), render(), 'utf8');
 console.log('Generated docs/api-reference.html with ' + APIS.length + ' functions.');

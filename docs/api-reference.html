@@ -39,6 +39,8 @@ button.copy.done{background:#16a34a}
 .ptype{color:#67e8f9;font-size:12px}
 .pdesc{color:var(--muted)}
 .ret{font-size:13px;color:var(--text)}
+.ref{font-size:12px;color:var(--muted);margin:8px 0 4px}
+.ref b{color:#fbbf24;font-weight:600;margin-right:6px}
 pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;margin:10px 0 0}
 pre code{font:12.5px/1.6 ui-monospace,Consolas,monospace;color:#a5f3fc;white-space:pre}
 .empty{color:var(--muted)}
@@ -54,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>5</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>17</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>6</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>12</span></a><a href="#file" style="--c:#4f46e5">文件<span>21</span></a><a href="#storage" style="--c:#0d9488">存储<span>5</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>5</span></a><a href="#media" style="--c:#db2777">相册媒体<span>5</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>5</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>5</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>22</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>6</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>12</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>4</span></a><a href="#file" style="--c:#4f46e5">文件<span>21</span></a><a href="#storage" style="--c:#0d9488">存储<span>5</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>6</span></a><a href="#media" style="--c:#db2777">相册媒体<span>5</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>7</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -87,6 +89,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">打印调试日志，等价于 console.log。</p>
+  <div class="ref"><b>对标</b> EasyClick logd() · AutoJS log()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">message</code><span class="ptype">any</span><span class="pdesc">要打印的内容</span></div></div>
   <div class="ret"><b>返回值</b> <span>void</span></div>
   <pre><code>function main(){
@@ -104,6 +107,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">console 系列输出日志；调试服务器会把它们实时发到 VS Code 输出面板。</p>
+  <div class="ref"><b>对标</b> EasyClick logi()/logw()/loge() · AutoJS console.*</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">message</code><span class="ptype">any</span><span class="pdesc">内容</span></div></div>
   <div class="ret"><b>返回值</b> <span>void</span></div>
   <pre><code>function main(){
@@ -120,6 +124,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">在手机上显示短暂悬浮提示（宿主 App 主窗口）。</p>
+  <div class="ref"><b>对标</b> EasyClick toast() · AutoJS toast()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">message</code><span class="ptype">string</span><span class="pdesc">提示文字</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean 是否成功显示</span></div>
   <pre><code>function main(){
@@ -134,6 +139,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">toast 提示的同时写入一条日志。</p>
+  <div class="ref"><b>对标</b> EasyClick toastLog() · AutoJS toast()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">message</code><span class="ptype">string</span><span class="pdesc">提示文字</span></div></div>
   <div class="ret"><b>返回值</b> <span>void</span></div>
   <pre><code>function main(){
@@ -149,6 +155,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">协作式暂停毫秒数，可被停止按钮中断，不会死循环占满 CPU。</p>
+  <div class="ref"><b>对标</b> EasyClick sleep() · AutoJS sleep()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">milliseconds</code><span class="ptype">number</span><span class="pdesc">毫秒</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -160,13 +167,14 @@ main();</code></pre>
 </article>
 </section>
 <section id="touch" class="cat" style="--c:#7c3aed">
-  <h2><span class="tag">触摸与节点</span><i>17</i></h2>
+  <h2><span class="tag">触摸与节点</span><i>22</i></h2>
   <article class="card" data-search="click(selector) 点击节点">
   <header class="card-head">
     <h4><code>click(selector)</code> <span class="cname">点击节点</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">点击第一个匹配的控件节点。</p>
+  <div class="ref"><b>对标</b> EasyClick click() · AutoJS click()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">节点选择器或节点句柄</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -181,6 +189,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">在屏幕坐标 (x, y) 处点击。</p>
+  <div class="ref"><b>对标</b> EasyClick clickPoint() · AutoJS click(x, y)</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">纵坐标</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -195,6 +204,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">在坐标处双击，interval 为两次点击间隔秒数。</p>
+  <div class="ref"><b>对标</b> EasyClick doubleClickPoint() · AutoJS click(x, y, true)</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">纵坐标</span></div><div class="param"><code class="pname">interval</code><span class="ptype">number</span><span class="pdesc">可选，间隔秒数</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -209,6 +219,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">长按匹配节点；需要适配器支持真实触摸注入。</p>
+  <div class="ref"><b>对标</b> EasyClick longClick() · AutoJS longClick()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div><div class="param"><code class="pname">duration</code><span class="ptype">number</span><span class="pdesc">可选，按住秒数</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -223,6 +234,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">从 (x1,y1) 滑动到 (x2,y2)，duration 为秒数。</p>
+  <div class="ref"><b>对标</b> EasyClick swipe() · AutoJS swipe()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">x1</code><span class="ptype">number</span><span class="pdesc">起点横坐标</span></div><div class="param"><code class="pname">y1</code><span class="ptype">number</span><span class="pdesc">起点纵坐标</span></div><div class="param"><code class="pname">x2</code><span class="ptype">number</span><span class="pdesc">终点横坐标</span></div><div class="param"><code class="pname">y2</code><span class="ptype">number</span><span class="pdesc">终点纵坐标</span></div><div class="param"><code class="pname">duration</code><span class="ptype">number</span><span class="pdesc">可选，秒数</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -237,6 +249,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">向匹配的输入框填入文字（替换原内容）。</p>
+  <div class="ref"><b>对标</b> EasyClick inputText() · AutoJS setText()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">输入框选择器</span></div><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">要输入的文字</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -251,6 +264,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">EasyClick 兼容别名，等价于 input()。</p>
+  <div class="ref"><b>对标</b> EasyClick inputText() 别名</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">输入框选择器</span></div><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">文字</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -265,6 +279,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">读取第一个匹配节点的文本。</p>
+  <div class="ref"><b>对标</b> EasyClick getText() · AutoJS text()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
   <div class="ret"><b>返回值</b> <span>string|null</span></div>
   <pre><code>function main(){
@@ -279,6 +294,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">判断是否有匹配的节点。</p>
+  <div class="ref"><b>对标</b> EasyClick exists() · AutoJS exists()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -296,6 +312,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">返回第一个匹配的稳定节点描述（含句柄、文本、类型、坐标）。</p>
+  <div class="ref"><b>对标</b> EasyClick getNode() · AutoJS findOne()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoNode|null</span></div>
   <pre><code>function main(){
@@ -315,6 +332,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">返回所有匹配的节点描述数组。</p>
+  <div class="ref"><b>对标</b> EasyClick getNodes() · AutoJS findOnce()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoNode[]</span></div>
   <pre><code>function main(){
@@ -332,6 +350,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">轮询等待匹配节点，默认 10 秒超时。</p>
+  <div class="ref"><b>对标</b> EasyClick waitNode() · AutoJS waitFor()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div><div class="param"><code class="pname">timeoutMs</code><span class="ptype">number</span><span class="pdesc">可选，毫秒</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -347,6 +366,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">读取节点的属性，如 type、label、enabled。</p>
+  <div class="ref"><b>对标</b> EasyClick getAttribute() · AutoJS attr()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div><div class="param"><code class="pname">name</code><span class="ptype">string</span><span class="pdesc">属性名</span></div></div>
   <div class="ret"><b>返回值</b> <span>any</span></div>
   <pre><code>function main(){
@@ -361,6 +381,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">返回节点的 {x, y, width, height} 点坐标系矩形。</p>
+  <div class="ref"><b>对标</b> EasyClick getBounds() · AutoJS bounds()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoRect|null</span></div>
   <pre><code>function main(){
@@ -375,6 +396,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">返回节点的直接子节点描述数组。</p>
+  <div class="ref"><b>对标</b> EasyClick getChildren() · AutoJS children()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoNode[]</span></div>
   <pre><code>function main(){
@@ -389,6 +411,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">返回节点的父节点描述。</p>
+  <div class="ref"><b>对标</b> EasyClick getParent() · AutoJS parent()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoNode|null</span></div>
   <pre><code>function main(){
@@ -403,12 +426,90 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">将匹配节点滚动到可见区域。</p>
+  <div class="ref"><b>对标</b> EasyClick scrollTo() · AutoJS scrollForward()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">选择器</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
   const ok = scrollIntoView({text: "底部按钮"});
   logd("滚动: " + ok);
   if (ok) click({text: "底部按钮"});
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="auto.getChild(selector, index) 取第 N 个子节点">
+  <header class="card-head">
+    <h4><code>auto.getChild(selector, index)</code> <span class="cname">取第 N 个子节点</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回父节点的第 index 个子节点（从 0 开始），越界返回 null。</p>
+  <div class="ref"><b>对标</b> EasyClick getChild() · AutoJS child()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">父节点选择器</span></div><div class="param"><code class="pname">index</code><span class="ptype">number</span><span class="pdesc">子节点索引</span></div></div>
+  <div class="ret"><b>返回值</b> <span>object|null</span></div>
+  <pre><code>function main(){
+  const parent = findElement({text: "列表"});
+  const first = auto.getChild(parent, 0);
+  logd("第一个子节点: " + (first ? JSON.stringify(first) : "null"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="auto.getSiblings(selector) / getPreviousSiblings / getNextSiblings 兄弟节点">
+  <header class="card-head">
+    <h4><code>auto.getSiblings(selector) / getPreviousSiblings / getNextSiblings</code> <span class="cname">兄弟节点</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">getSiblings 返回全部兄弟；getPreviousSiblings/getNextSiblings 按文档顺序返回之前/之后的兄弟节点。</p>
+  <div class="ref"><b>对标</b> AutoJS siblings()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">节点</span></div></div>
+  <div class="ret"><b>返回值</b> <span>object[]</span></div>
+  <pre><code>function main(){
+  const node = findElement({text: "当前项"});
+  logd("兄弟数量: " + auto.getSiblings(node).length);
+  logd("前序兄弟: " + auto.getPreviousSiblings(node).length);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="auto.clickCenter(selector) 点击节点中心">
+  <header class="card-head">
+    <h4><code>auto.clickCenter(selector)</code> <span class="cname">点击节点中心</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取节点 bounds 后点击其中心点，比坐标点击更稳。</p>
+  <div class="ref"><b>对标</b> AutoJS 点击控件中心</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">节点</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = auto.clickCenter({text: "登录"});
+  logd("点击中心: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="auto.clickRandom(selector) 随机点点击">
+  <header class="card-head">
+    <h4><code>auto.clickRandom(selector)</code> <span class="cname">随机点点击</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在节点范围内随机取点点击，模拟真人操作、降低被风控识别概率；坐标已取整。</p>
+  <div class="ref"><b>对标</b> 随机点击（防检测）</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">节点</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = auto.clickRandom({text: "开始"});
+  logd("随机点击: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="swipeToPoint(x1, y1, x2, y2, duration?) 滑动（别名）">
+  <header class="card-head">
+    <h4><code>swipeToPoint(x1, y1, x2, y2, duration?)</code> <span class="cname">滑动（别名）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">swipe 的兼容别名，行为完全一致。</p>
+  <div class="ref"><b>对标</b> EasyClick swipeToPoint()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x1</code><span class="ptype">number</span><span class="pdesc">起点X</span></div><div class="param"><code class="pname">y1</code><span class="ptype">number</span><span class="pdesc">起点Y</span></div><div class="param"><code class="pname">x2</code><span class="ptype">number</span><span class="pdesc">终点X</span></div><div class="param"><code class="pname">y2</code><span class="ptype">number</span><span class="pdesc">终点Y</span></div><div class="param"><code class="pname">duration</code><span class="ptype">number</span><span class="pdesc">毫秒</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = swipeToPoint(200, 600, 200, 200, 300);
+  logd("滑动: " + ok);
 }
 main();</code></pre>
 </article>
@@ -421,6 +522,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">截取当前屏幕，返回 PNG 的 Base64 字符串。</p>
+  <div class="ref"><b>对标</b> EasyClick screenshot() · AutoJS captureScreen()</div>
   
   <div class="ret"><b>返回值</b> <span>string PNG base64</span></div>
   <pre><code>function main(){
@@ -435,6 +537,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">在屏幕截图中查找模板图片，返回匹配位置与相似度。</p>
+  <div class="ref"><b>对标</b> EasyClick findImage() · AutoJS findImage()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">templatePath</code><span class="ptype">string</span><span class="pdesc">模板图片路径（沙盒内，支持 png/jpg）</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，region/threshold 等</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoMatch {found, x, y, similarity}</span></div>
   <pre><code>function main(){
@@ -454,6 +557,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">在指定区域内查找第一个匹配的颜色点。</p>
+  <div class="ref"><b>对标</b> EasyClick findColor() · AutoJS findColor()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">color</code><span class="ptype">string|[r,g,b]</span><span class="pdesc">颜色，如 "#ff0000"</span></div><div class="param"><code class="pname">region</code><span class="ptype">object</span><span class="pdesc">可选，{x,y,width,height}</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，tolerance 等</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoMatch {found, x, y}</span></div>
   <pre><code>function main(){
@@ -468,6 +572,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">按基准色 + 相对偏移点组合查找，比单点更稳。</p>
+  <div class="ref"><b>对标</b> EasyClick findMultiColor() · AutoJS findMultiColor()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">color</code><span class="ptype">string</span><span class="pdesc">基准颜色</span></div><div class="param"><code class="pname">offsets</code><span class="ptype">array</span><span class="pdesc">偏移点数组 [{dx,dy,color}]</span></div><div class="param"><code class="pname">region</code><span class="ptype">object</span><span class="pdesc">可选</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoMatch</span></div>
   <pre><code>function main(){
@@ -485,6 +590,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">读取截图上某一点的像素颜色。</p>
+  <div class="ref"><b>对标</b> EasyClick getPixelColor() · AutoJS images.pixel()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">纵坐标</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoPixelColor {hex, r, g, b, a}</span></div>
   <pre><code>function main(){
@@ -499,6 +605,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">一次截图内比对多个点的颜色是否全部匹配。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">points</code><span class="ptype">array</span><span class="pdesc">[{x,y,color,tolerance?}]</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -516,6 +623,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">EasyClick 兼容别名，等价于 compareColors()。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">points</code><span class="ptype">array</span><span class="pdesc">颜色点数组</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -530,6 +638,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">用设备端 Vision 识别屏幕文字，返回带坐标的文本项。</p>
+  <div class="ref"><b>对标</b> EasyClick ocr() · AutoJS OCR（MLKit）</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，{x,y,width,height,mode}</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoOCRItem[]</span></div>
   <pre><code>function main(){
@@ -546,6 +655,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">image 命名空间提供图色函数别名，便于移植。</p>
+  
   
   <div class="ret"><b>返回值</b> <span>同对应函数</span></div>
   <pre><code>function main(){
@@ -565,6 +675,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">通过支持生命周期能力的适配器启动 App。</p>
+  <div class="ref"><b>对标</b> EasyClick launchApp() · AutoJS launchApp()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">App 的 Bundle ID</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -579,6 +690,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">把已安装的 App 带到前台。</p>
+  <div class="ref"><b>对标</b> EasyClick activateApp() · AutoJS app.launch()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">Bundle ID</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -593,6 +705,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">结束指定 App 的进程。</p>
+  <div class="ref"><b>对标</b> EasyClick closeApp() · AutoJS app.close()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">Bundle ID</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -607,6 +720,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">读取 WDA 应用状态码（4 表示前台运行）。</p>
+  <div class="ref"><b>对标</b> EasyClick getAppState()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">Bundle ID</span></div></div>
   <div class="ret"><b>返回值</b> <span>number</span></div>
   <pre><code>function main(){
@@ -621,6 +735,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">打开 http(s) 链接或安全的自定义 URL Scheme。</p>
+  <div class="ref"><b>对标</b> EasyClick openUrl() · AutoJS app.openUrl()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">链接</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -635,6 +750,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">WDA 适配器支持的系统级操作。</p>
+  <div class="ref"><b>对标</b> EasyClick home()/lock()/unlock() · AutoJS home()</div>
   
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -653,6 +769,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">返回设备/屏幕/电池/系统等完整信息字典。</p>
+  <div class="ref"><b>对标</b> EasyClick getDeviceInfo()</div>
   
   <div class="ret"><b>返回值</b> <span>object {model, systemVersion, screenWidth, batteryLevel, ...}</span></div>
   <pre><code>function main(){
@@ -670,6 +787,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">读取屏幕逻辑宽高（点）。</p>
+  <div class="ref"><b>对标</b> EasyClick getScreenWidth()/getScreenHeight() · AutoJS device.width/height</div>
   
   <div class="ret"><b>返回值</b> <span>number</span></div>
   <pre><code>function main(){
@@ -686,6 +804,7 @@ main();</code></pre>
   </header>
   <p class="desc">读取屏幕像素密度 scale。</p>
   
+  
   <div class="ret"><b>返回值</b> <span>number</span></div>
   <pre><code>function main(){
   const s = device.getScale();
@@ -700,6 +819,7 @@ main();</code></pre>
   </header>
   <p class="desc">读取公开的 iOS 设备信息。</p>
   
+  
   <div class="ret"><b>返回值</b> <span>string</span></div>
   <pre><code>function main(){
   logd(device.getModel() + " iOS " + device.getOSVersion());
@@ -713,6 +833,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">读取电量百分比与是否充电。</p>
+  <div class="ref"><b>对标</b> EasyClick getBattery()/isCharging()</div>
   
   <div class="ret"><b>返回值</b> <span>number|boolean</span></div>
   <pre><code>function main(){
@@ -727,6 +848,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">读取当前界面方向。</p>
+  <div class="ref"><b>对标</b> EasyClick getScreenOrientation()</div>
   
   <div class="ret"><b>返回值</b> <span>string</span></div>
   <pre><code>function main(){
@@ -741,6 +863,7 @@ main();</code></pre>
   </header>
   <p class="desc">读取进程可见的内存总量/空闲/已用（字节）。</p>
   
+  
   <div class="ret"><b>返回值</b> <span>object {totalBytes, freeBytes, appUsedBytes}</span></div>
   <pre><code>function main(){
   const m = device.getMemoryInfo();
@@ -754,6 +877,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">读取或写入系统剪贴板（文本上限 1 MiB）。</p>
+  <div class="ref"><b>对标</b> EasyClick getClipboard()/setClipboard() · AutoJS setClip()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">写入的文字（set 时）</span></div></div>
   <div class="ret"><b>返回值</b> <span>string|null / boolean</span></div>
   <pre><code>function main(){
@@ -770,6 +894,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">读取或设置亮度（0~1）。</p>
+  <div class="ref"><b>对标</b> EasyClick getScreenBrightness()/setScreenBrightness()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">v</code><span class="ptype">number</span><span class="pdesc">亮度 0~1（set 时）</span></div></div>
   <div class="ret"><b>返回值</b> <span>number / boolean</span></div>
   <pre><code>function main(){
@@ -785,6 +910,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">读取系统音量（0~1，只读）。</p>
+  <div class="ref"><b>对标</b> EasyClick getVolume()</div>
   
   <div class="ret"><b>返回值</b> <span>number</span></div>
   <pre><code>function main(){
@@ -798,6 +924,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">触发系统振动（时长是建议值，系统会封顶）。</p>
+  <div class="ref"><b>对标</b> EasyClick vibrate()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">可选，毫秒</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -813,12 +940,81 @@ main();</code></pre>
   </header>
   <p class="desc">查看当前适配器与各模块开关状态，常用于脚本内判断。</p>
   
+  
   <div class="ret"><b>返回值</b> <span>object</span></div>
   <pre><code>function main(){
   const cap = auto.capabilities();
   logd("HTTP: " + cap.http + " 文件: " + cap.fileRead + "/" + cap.fileWrite);
   logd("相册写入: " + cap.mediaLibraryWrite + " 系统控制: " + cap.systemControl);
   if (cap.http) logd("网络已启用");
+}
+main();</code></pre>
+</article>
+</section>
+<section id="metrics" class="cat" style="--c:#0ea5e9">
+  <h2><span class="tag">坐标与屏幕</span><i>4</i></h2>
+  <article class="card" data-search="setScreenMetrics(width, height) 设置设计分辨率">
+  <header class="card-head">
+    <h4><code>setScreenMetrics(width, height)</code> <span class="cname">设置设计分辨率</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">按设计稿宽高设置坐标基准（EasyClick/AutoJS 同款），之后用 metrics.point 把设计坐标换算为真机坐标；未设置时按 1:1。</p>
+  <div class="ref"><b>对标</b> EasyClick setScreenMetrics() · AutoJS setScreenMetrics()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">width</code><span class="ptype">number</span><span class="pdesc">设计稿宽度（px）</span></div><div class="param"><code class="pname">height</code><span class="ptype">number</span><span class="pdesc">设计稿高度（px）</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean 是否设置成功</span></div>
+  <pre><code>function main(){
+  const ok = setScreenMetrics(390, 844);
+  logd("已设置设计分辨率: " + ok);
+  const m = getScreenMetrics();
+  logd("缩放比例: " + m.scaleX.toFixed(2) + "x" + m.scaleY.toFixed(2));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="getScreenMetrics() 获取屏幕与缩放信息">
+  <header class="card-head">
+    <h4><code>getScreenMetrics()</code> <span class="cname">获取屏幕与缩放信息</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回设计分辨率、真机分辨率与 X/Y 缩放比例；未调用 setScreenMetrics 时按 1:1。</p>
+  <div class="ref"><b>对标</b> EasyClick getScreenMetrics() · AutoJS getScreenMetrics()</div>
+  
+  <div class="ret"><b>返回值</b> <span>{width,height,screenWidth,screenHeight,scaleX,scaleY}</span></div>
+  <pre><code>function main(){
+  setScreenMetrics(390, 844);
+  const m = getScreenMetrics();
+  logd("真机: " + m.screenWidth + "x" + m.screenHeight);
+  logd("缩放: " + m.scaleX + "x" + m.scaleY);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="metrics.point(x, y) / metrics.x(v) / metrics.y(v) 设计坐标转真机坐标">
+  <header class="card-head">
+    <h4><code>metrics.point(x, y) / metrics.x(v) / metrics.y(v)</code> <span class="cname">设计坐标转真机坐标</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把设计稿坐标换算成当前真机坐标，适合多机型分辨率适配；也可直接读取 device.width/height/scale。</p>
+  <div class="ref"><b>对标</b> EasyClick 分辨率坐标适配</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">设计横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">设计纵坐标</span></div><div class="param"><code class="pname">v</code><span class="ptype">number</span><span class="pdesc">设计值</span></div></div>
+  <div class="ret"><b>返回值</b> <span>{x,y} 或 number</span></div>
+  <pre><code>function main(){
+  setScreenMetrics(390, 844);
+  const p = metrics.point(195, 100);
+  logd("真机坐标: " + p.x + "," + p.y);
+  logd("真机X: " + metrics.x(195));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.width / device.height / device.scale 设备尺寸快捷属性">
+  <header class="card-head">
+    <h4><code>device.width / device.height / device.scale</code> <span class="cname">设备尺寸快捷属性</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">等效 device.getScreenWidth()/getScreenHeight()/getScale() 的函数式属性。</p>
+  <div class="ref"><b>对标</b> AutoJS device.width/height</div>
+  
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  logd("宽: " + device.width() + " 高: " + device.height() + " 缩放: " + device.scale());
 }
 main();</code></pre>
 </article>
@@ -831,6 +1027,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">返回当前配置的 AutoSDK 文件沙盒绝对路径。</p>
+  <div class="ref"><b>对标</b> EasyClick 沙盒根目录</div>
   
   <div class="ret"><b>返回值</b> <span>string</span></div>
   <pre><code>function main(){
@@ -844,6 +1041,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">把相对路径拼接成沙盒内绝对路径。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">相对路径，如 data/1.txt</span></div></div>
   <div class="ret"><b>返回值</b> <span>string</span></div>
   <pre><code>function main(){
@@ -857,6 +1055,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">判断文件或文件夹是否存在。</p>
+  <div class="ref"><b>对标</b> EasyClick exists() · AutoJS files.exists()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -870,6 +1069,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">把沙盒文件读取为 UTF-8 字符串（别名 readText）。</p>
+  <div class="ref"><b>对标</b> EasyClick readFile() · AutoJS files.read()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
   <div class="ret"><b>返回值</b> <span>string</span></div>
   <pre><code>function main(){
@@ -887,6 +1087,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">读取文件并以 Base64 字符串返回（可用于图片等二进制）。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
   <div class="ret"><b>返回值</b> <span>string</span></div>
   <pre><code>function main(){
@@ -901,6 +1102,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">原子写入 UTF-8 文本（覆盖，别名 writeText）。</p>
+  <div class="ref"><b>对标</b> EasyClick writeFile() · AutoJS files.write()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">内容</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -916,6 +1118,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">把 Base64 解码后写入文件。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">base64</code><span class="ptype">string</span><span class="pdesc">Base64 内容</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -931,6 +1134,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">在文件末尾追加文本（不换行）。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">内容</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -945,6 +1149,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">在文件末尾追加一行（自动换行）。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">line</code><span class="ptype">string</span><span class="pdesc">行内容</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -958,6 +1163,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">把字符串数组按行写入文件。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">lines</code><span class="ptype">array</span><span class="pdesc">行数组</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -971,6 +1177,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">把文件按行读取为数组（别名 readAllLines）。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
   <div class="ret"><b>返回值</b> <span>string[]</span></div>
   <pre><code>function main(){
@@ -985,6 +1192,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">按下标读取一行（从 0 开始），越界返回 null。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">index</code><span class="ptype">number</span><span class="pdesc">行下标</span></div></div>
   <div class="ret"><b>返回值</b> <span>string|null</span></div>
   <pre><code>function main(){
@@ -999,6 +1207,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">删除指定下标的一行。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div><div class="param"><code class="pname">index</code><span class="ptype">number</span><span class="pdesc">行下标</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1013,6 +1222,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">创建空文件（已存在则清空）。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1027,6 +1237,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">递归创建目录（可多级）。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">目录路径</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1041,6 +1252,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">返回目录项数组（名字、大小、是否目录、修改时间）。</p>
+  <div class="ref"><b>对标</b> EasyClick list() · AutoJS files.listDir()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">目录路径，可空=沙盒根</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoFileEntry[]</span></div>
   <pre><code>function main(){
@@ -1057,6 +1269,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">只返回目录下的名字数组（EasyClick 风格）。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">目录路径</span></div></div>
   <div class="ret"><b>返回值</b> <span>string[]</span></div>
   <pre><code>function main(){
@@ -1071,6 +1284,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">删除文件或目录（含递归目录树，别名 deleteAllFile）。</p>
+  <div class="ref"><b>对标</b> EasyClick remove() · AutoJS files.remove()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1086,6 +1300,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">复制文件或目录，overwrite 控制是否覆盖。</p>
+  <div class="ref"><b>对标</b> EasyClick copy() · AutoJS files.copy()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">src</code><span class="ptype">string</span><span class="pdesc">源路径</span></div><div class="param"><code class="pname">dest</code><span class="ptype">string</span><span class="pdesc">目标路径</span></div><div class="param"><code class="pname">overwrite</code><span class="ptype">boolean</span><span class="pdesc">可选，默认 false</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1100,6 +1315,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">移动文件或目录（跨目录改名）。</p>
+  <div class="ref"><b>对标</b> EasyClick move() · AutoJS files.move()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">src</code><span class="ptype">string</span><span class="pdesc">源路径</span></div><div class="param"><code class="pname">dest</code><span class="ptype">string</span><span class="pdesc">目标路径</span></div><div class="param"><code class="pname">overwrite</code><span class="ptype">boolean</span><span class="pdesc">可选</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1114,6 +1330,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">把文件/目录改成新名字（同一目录内）。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">原路径</span></div><div class="param"><code class="pname">newName</code><span class="ptype">string</span><span class="pdesc">新名字</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1131,6 +1348,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">打开一个命名 JSON 存储（不存在则创建），返回存储对象。</p>
+  <div class="ref"><b>对标</b> EasyClick storage() · AutoJS storages.create()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">name</code><span class="ptype">string</span><span class="pdesc">存储名</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoStorage</span></div>
   <pre><code>function main(){
@@ -1146,6 +1364,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">按类型写入键值（JSON 安全）。</p>
+  <div class="ref"><b>对标</b> EasyClick putString()/putInt() · AutoJS put()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">key</code><span class="ptype">string</span><span class="pdesc">键</span></div><div class="param"><code class="pname">value</code><span class="ptype">any</span><span class="pdesc">值</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1164,6 +1383,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">按类型读取，可给默认值；不存在返回 null/默认值。</p>
+  <div class="ref"><b>对标</b> EasyClick getString()/getInt() · AutoJS get()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">key</code><span class="ptype">string</span><span class="pdesc">键</span></div><div class="param"><code class="pname">default</code><span class="ptype">any</span><span class="pdesc">可选默认值</span></div></div>
   <div class="ret"><b>返回值</b> <span>any</span></div>
   <pre><code>function main(){
@@ -1181,6 +1401,7 @@ main();</code></pre>
   </header>
   <p class="desc">返回全部键值或全部键名。</p>
   
+  
   <div class="ret"><b>返回值</b> <span>object | string[]</span></div>
   <pre><code>function main(){
   const s = storages.create("settings");
@@ -1195,6 +1416,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">判断键是否存在、删除单个键、清空整个存储。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">key</code><span class="ptype">string</span><span class="pdesc">键</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1208,13 +1430,14 @@ main();</code></pre>
 </article>
 </section>
 <section id="http" class="cat" style="--c:#9333ea">
-  <h2><span class="tag">网络HTTP</span><i>5</i></h2>
+  <h2><span class="tag">网络HTTP</span><i>6</i></h2>
   <article class="card" data-search="http.get(url, options?) GET 请求">
   <header class="card-head">
     <h4><code>http.get(url, options?)</code> <span class="cname">GET 请求</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">发送同步 GET 请求（需宿主配置 allowNetwork）。</p>
+  <div class="ref"><b>对标</b> EasyClick httpGet() · AutoJS http.get()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">http(s) 地址</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，headers/timeout 等</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoHTTPResponse {status, body, json, headers}</span></div>
   <pre><code>function main(){
@@ -1232,6 +1455,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">发送同步 POST 请求（body 可为字符串或对象）。</p>
+  <div class="ref"><b>对标</b> EasyClick httpPost() · AutoJS http.post()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">地址</span></div><div class="param"><code class="pname">body</code><span class="ptype">any</span><span class="pdesc">可选请求体</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoHTTPResponse</span></div>
   <pre><code>function main(){
@@ -1247,6 +1471,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">EasyClick 兼容别名，等价于 http.post。</p>
+  <div class="ref"><b>对标</b> EasyClick httpPostJson() · AutoJS http.post()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">地址</span></div><div class="param"><code class="pname">body</code><span class="ptype">any</span><span class="pdesc">对象</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoHTTPResponse</span></div>
   <pre><code>function main(){
@@ -1262,6 +1487,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">把响应下载到沙盒文件；requireSuccess 可要求 2xx。</p>
+  <div class="ref"><b>对标</b> EasyClick downloadFile() · AutoJS http.download()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">地址</span></div><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒目标路径</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1277,12 +1503,28 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">http 本体可调用，另有 httpGet/httpPost/httpGetDefault/httpPostJSON/downloadFileDefault 等别名。</p>
+  <div class="ref"><b>对标</b> EasyClick 通用请求</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">地址</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">method/headers/body 等</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoHTTPResponse</span></div>
   <pre><code>function main(){
   if (!auto.capabilities().http) return;
   const res = http.request("https://example.com", {method: "GET", timeout: 5000});
   logd("状态: " + res.status);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="http.getJSON(url, options?) GET 并解析 JSON">
+  <header class="card-head">
+    <h4><code>http.getJSON(url, options?)</code> <span class="cname">GET 并解析 JSON</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">等价 http.get(url, {parseJson:true})，直接返回解析后的对象。</p>
+  <div class="ref"><b>对标</b> EasyClick httpGetJson() · AutoJS http.get()+JSON</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">地址</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选 headers/timeout 等</span></div></div>
+  <div class="ret"><b>返回值</b> <span>object|string|number</span></div>
+  <pre><code>function main(){
+  const data = http.getJSON("https://api.example.com/v1/status");
+  logd("status: " + JSON.stringify(data));
 }
 main();</code></pre>
 </article>
@@ -1295,6 +1537,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">把沙盒内图片写入系统相册；首次调用会弹 iOS 授权。</p>
+  <div class="ref"><b>对标</b> EasyClick 保存图片到相册</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内图片路径，png/jpg</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1309,6 +1552,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">直接把 Base64 图片写入相册，可配合截图。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">base64</code><span class="ptype">string</span><span class="pdesc">PNG/JPEG 的 Base64</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1324,6 +1568,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">把沙盒内视频文件写入系统相册。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内视频路径</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1338,6 +1583,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">截图并直接保存到相册（一步完成）。</p>
+  <div class="ref"><b>对标</b> EasyClick 截图存相册</div>
   
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
@@ -1353,6 +1599,7 @@ main();</code></pre>
   </header>
   <p class="desc">saveImageToAlbum、saveImageBase64ToAlbum、saveVideoToAlbum、saveScreenshotToAlbum 全局可用；image 模块另有 saveToAlbum/saveBase64ToAlbum/saveScreenshotToAlbum。</p>
   
+  
   <div class="ret"><b>返回值</b> <span>同对应函数</span></div>
   <pre><code>function main(){
   const ok = saveScreenshotToAlbum();
@@ -1362,13 +1609,14 @@ main();</code></pre>
 </article>
 </section>
 <section id="timer" class="cat" style="--c:#64748b">
-  <h2><span class="tag">定时器与工具</span><i>5</i></h2>
+  <h2><span class="tag">定时器与工具</span><i>7</i></h2>
   <article class="card" data-search="setTimeout(fn, ms, ...args) / clearTimeout(id) 延时执行">
   <header class="card-head">
     <h4><code>setTimeout(fn, ms, ...args) / clearTimeout(id)</code> <span class="cname">延时执行</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">延时后执行一次回调；脚本结束前会排空定时器。</p>
+  <div class="ref"><b>对标</b> EasyClick setTimeout()/clearTimeout()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">fn</code><span class="ptype">function</span><span class="pdesc">回调</span></div><div class="param"><code class="pname">ms</code><span class="ptype">number</span><span class="pdesc">毫秒</span></div><div class="param"><code class="pname">id</code><span class="ptype">number</span><span class="pdesc">定时器 id</span></div></div>
   <div class="ret"><b>返回值</b> <span>number / void</span></div>
   <pre><code>function main(){
@@ -1384,6 +1632,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">周期性执行回调，可取消；脚本停止时自动清空。</p>
+  <div class="ref"><b>对标</b> EasyClick setInterval()/clearInterval()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">fn</code><span class="ptype">function</span><span class="pdesc">回调</span></div><div class="param"><code class="pname">ms</code><span class="ptype">number</span><span class="pdesc">间隔毫秒</span></div><div class="param"><code class="pname">id</code><span class="ptype">number</span><span class="pdesc">定时器 id</span></div></div>
   <div class="ret"><b>返回值</b> <span>number / void</span></div>
   <pre><code>function main(){
@@ -1402,6 +1651,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">EasyClick 兼容别名。</p>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">id</code><span class="ptype">number</span><span class="pdesc">定时器 id</span></div></div>
   <div class="ret"><b>返回值</b> <span>void</span></div>
   <pre><code>function main(){
@@ -1416,6 +1666,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">time 返回毫秒时间戳；random/randomInt 返回闭区间随机整数。</p>
+  <div class="ref"><b>对标</b> EasyClick time()/random() · AutoJS Date.now()/random()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">min</code><span class="ptype">number</span><span class="pdesc">最小值</span></div><div class="param"><code class="pname">max</code><span class="ptype">number</span><span class="pdesc">最大值</span></div></div>
   <div class="ret"><b>返回值</b> <span>number</span></div>
   <pre><code>function main(){
@@ -1430,6 +1681,7 @@ main();</code></pre>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">console 风格计时，timeEnd 打印并返回耗时毫秒。</p>
+  <div class="ref"><b>对标</b> AutoJS console.time()/timeEnd()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">label</code><span class="ptype">string</span><span class="pdesc">可选标签</span></div></div>
   <div class="ret"><b>返回值</b> <span>number|null</span></div>
   <pre><code>function main(){
@@ -1440,10 +1692,41 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="uuid() / uniqueId() 随机 UUID">
+  <header class="card-head">
+    <h4><code>uuid() / uniqueId()</code> <span class="cname">随机 UUID</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回随机 v4 UUID 字符串，可用于任务 ID、文件名等。</p>
+  <div class="ref"><b>对标</b> EasyClick uuid()</div>
+  
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  const id = uuid();
+  logd("任务ID: " + id);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="base64.encode(str) / base64.decode(str) Base64 编解码">
+  <header class="card-head">
+    <h4><code>base64.encode(str) / base64.decode(str)</code> <span class="cname">Base64 编解码</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">UTF-8 安全的 Base64 编解码；可配合 http bodyBase64、media.saveImageBase64 使用。</p>
+  <div class="ref"><b>对标</b> EasyClick base64.encode()/decode()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">str</code><span class="ptype">string</span><span class="pdesc">文本或 Base64</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  const enc = base64.encode("你好 AutoSDK");
+  logd("编码: " + enc);
+  logd("解码: " + base64.decode(enc));
+}
+main();</code></pre>
+</article>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 与 EasyClick/AutoScript 风格对齐 · 双击 index.html 即可打开</footer>
+<footer>AutoSDK 离线函数参考 · 共 102 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');
@@ -1475,6 +1758,10 @@ document.addEventListener('click', async ev => {
   btn.classList.add('done');
   toast.classList.add('show');
   setTimeout(() => { btn.textContent = old; btn.classList.remove('done'); toast.classList.remove('show'); }, 1200);
+});
+document.addEventListener('keydown', ev => {
+  if (ev.key === '/' && document.activeElement !== q) { ev.preventDefault(); q.focus(); }
+  if (ev.key === 'Escape' && document.activeElement === q) { q.value = ''; q.dispatchEvent(new Event('input')); }
 });
 </script>
 </body>

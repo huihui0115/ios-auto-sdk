@@ -1,6 +1,6 @@
 # AutoScript vs AutoSDK
 
-Audit date: 2026-08-04
+Audit date: 2026-08-05
 
 > AutoScript（用户常简称为 ascript）是一款面向 iOS 用户的 JavaScript
 > 自动化脚本工具，以独立 App 形态分发（TrollStore/免越狱通道），自带脚本
@@ -39,6 +39,10 @@ Audit date: 2026-08-04
 | 系统配置开关 | 工具内开关 | allowSystemControl（默认开）等配置项 |
 | 相册/媒体 | 保存图片/视频/截图到相册 | ✅ media.saveImage / saveImageBase64 / saveVideo / saveScreenshot，iOS 授权弹窗 + allowMediaLibrary 开关 |
 | 内存信息 | 内存占用/可用 | ✅ device.getMemoryInfo（total/free/appUsed 字节） |
+| 分辨率适配 | setScreenMetrics / getScreenMetrics | ✅ setScreenMetrics(width,height) + metrics.point(x,y) + device.width/height |
+| 随机/中心点击 | 无标准封装 | ✅ auto.clickCenter / auto.clickRandom（坐标取整，防检测） |
+| 工具函数 | uuid / base64 编码 | ✅ uuid()/uniqueId()、base64.encode/decode（UTF-8 安全） |
+| JSON 快捷请求 | httpGetJson | ✅ http.getJSON（parseJson:true） |
 | 文件移动 | move / rename / writeLines | ✅ file.move / rename / writeLines（沙盒内，预算同 copy） |
 
 ## 缺失但仍需要通道的部分
