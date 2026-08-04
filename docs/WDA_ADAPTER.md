@@ -42,6 +42,20 @@ const state = auto.app.state("com.example.target");
 
 The same methods are available as `auto.launchApp`, `auto.activateApp`,
 `auto.terminateApp`, and `auto.appState`.
+System actions are exposed on `auto.app` and `device`:
+
+```javascript
+auto.app.homeScreen();   // POST /wda/homescreen
+auto.app.lock();         // POST /wda/lock
+auto.app.unlock();       // POST /wda/unlock
+device.volumeUp();       // POST /wda/pressButton {name: "volumeUp"}
+device.volumeDown();     // POST /wda/pressButton {name: "volumeDown"}
+device.isScreenOn();     // GET /wda/locked (inverted)
+```
+
+All of these require `allowSystemControl: @YES` (the default). Host
+adapters that cannot inject hardware events report an
+`AutoSDKErrorAutomationUnavailable` error instead of failing silently.
 
 ## Resource controls
 

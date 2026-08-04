@@ -48,6 +48,7 @@ auto.click({ label: "登录", type: "Button" }); // 点击（宿主内）
 device.setClipboard("text");                  // 系统剪贴板
 auto.openURL("https://example.com");          // 打开 URL
 app.homeScreen();                             // 回主屏幕（需 WDA 适配器）
+device.volumeUp();                             // 音量加（需 WDA 适配器）
 ```
 
 完整 API 参考：

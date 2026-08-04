@@ -254,7 +254,7 @@ auto.click({ label: "AutoSDK Scripts", type: "Button" });
   <ol>
     <li>手机上有 WDA 兼容 Runner（如 WebDriverAgent，需单独签名运行）。</li>
     <li>App 设置页打开 <b>Use WDA adapter</b>，填 Runner URL（默认 <code>http://127.0.0.1:8100</code>）和目标 App 的 Bundle ID → Apply。</li>
-    <li>之后 <code>auto.click</code> / <code>app.homeScreen()</code> / <code>app.lock()</code> 等走 WDA 执行。</li>
+    <li>之后 <code>auto.click</code> / <code>app.homeScreen()</code> / <code>app.lock()</code> / <code>device.volumeUp()</code> / <code>device.volumeDown()</code> / <code>device.isScreenOn()</code> 等走 WDA 执行。</li>
   </ol>
   <div class="note warn">TrollStore 环境不保证每个 iOS 版本都能跑起 WDA Runner；跨 App 自动化能力取决于你的 Runner。</div>
 
