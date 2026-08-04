@@ -31,9 +31,9 @@ dependency. Configure the device URL and token through **AutoSDK: Configure
 Device Connection**. The command keeps
 the token in VS Code SecretStorage and binds it to the configured URL and
 workspace. Changing either requires configuring the connection again, which
-prevents another workspace from redirecting a saved token. `autosdk.debugToken`
-is read only by the configure command for migration and is never used by
-runtime connections:
+prevents another workspace from redirecting a saved token. The legacy plaintext
+`autosdk.debugToken` setting is never read; saving a connection removes any
+leftover value from the workspace and global settings:
 
 ```json
 {

@@ -70,6 +70,10 @@ static id<AutoAutomationAdapter> AutoTemplateAutomationAdapter(void) {
     config[@"debugLogging"] = @YES;
 #endif
     [engine configureWithConfig:config];
+    [engine registerNativeMethod:@"toast" handler:^id(NSArray *args) {
+        NSLog(@"toast: %@", args.firstObject);
+        return @YES;
+    }];
 
     self.window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     ScriptListViewController *scripts = [ScriptListViewController new];

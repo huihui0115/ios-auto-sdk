@@ -39,8 +39,10 @@ async function connectionCredentials(settings, secrets, scope) {
 }
 
 async function tokenForConfiguration(settings, secrets, scope) {
+  // SecretStorage is the only credential source; the legacy plaintext
+  // autosdk.debugToken setting is never read (it is removed on save).
   const secretToken = await secrets.get(workspaceTokenSecretKey(scope));
-  return String(secretToken || settings.get('debugToken') || '');
+  return String(secretToken || '');
 }
 
 async function bindTokenToUrl(secrets, token, url, scope) {

@@ -9,6 +9,7 @@
 - 全局 `auto` API：点击、滑动、输入、稳定节点查询、图色、截图、OCR、沙盒文件、命名存储、设备信息和受控 HTTP
 - Native 方法注册：`registerNativeMethod:handler:`
 - 取消、超时、JS 异常和适配器错误统一转换为 `NSError`，成功结果包含 `value` 和 `logs`
+- 可中断脚本：`scriptTimeout` 到期或 `stopScript` 可打断纯 JS 死循环（`interruptibleScripts` 可关闭）
 - CocoaPods 和 Swift Package Manager 接入骨架
 - 基于公共 API 的 `AutoUIKitAdapter`，可直接自动化宿主 App 自己的 UIKit 视图
 
@@ -41,7 +42,7 @@ AutoEngine *engine = AutoEngine.sharedEngine;
 }];
 ```
 
-常用配置项：`scriptTimeout`（秒，默认 300）、`maxScriptBytes`（默认 5 MB、硬上限 64 MB）、`maxLogEntries`、`maxLogMessageLength`、`maxLogBytes`、`allowRemoteScripts`（默认 `NO`）、`allowedRemoteScriptHosts`、`remoteScriptTimeout`、`allowNetwork`（默认 `NO`）、`allowedNetworkHosts`、`maxHTTPRequestBytes`、`maxHTTPResponseBytes`、`allowFileAccess`、`allowFileWrite`、`fileRoot`、`maxFileReadBytes`、`maxFileWriteBytes`、`maxFileCopyBytes`、`maxFileListItems`、`maxFileOperationItems`、`maxFileLineCount`、`allowStorage`、`maxStorageBytes`、`maxStorageEntries` 和 `debugLogging`。文件与存储默认只能访问 App 沙盒中的 AutoSDK 专用范围。
+常用配置项：`scriptTimeout`（秒，默认 300）、`maxScriptBytes`（默认 5 MB、硬上限 64 MB）、`maxLogEntries`、`maxLogMessageLength`、`maxLogBytes`、`allowRemoteScripts`（默认 `NO`）、`allowedRemoteScriptHosts`、`remoteScriptTimeout`、`allowNetwork`（默认 `NO`）、`allowedNetworkHosts`、`maxHTTPRequestBytes`、`maxHTTPResponseBytes`、`allowFileAccess`、`allowFileWrite`、`fileRoot`、`maxFileReadBytes`、`maxFileWriteBytes`、`maxFileCopyBytes`、`maxFileListItems`、`maxFileOperationItems`、`maxFileLineCount`、`allowStorage`、`maxStorageBytes`、`maxStorageEntries`、`debugLogging` 和 `interruptibleScripts`（默认开启，允许用执行时限打断纯 JS 死循环）。文件与存储默认只能访问 App 沙盒中的 AutoSDK 专用范围。
 
 ### 本地调试服务器
 
@@ -92,12 +93,14 @@ console.log(device.getDeviceInfo(), auto.capabilities());
 auto.toast("自定义方法由 Native 注册");
 ```
 
+`setTimeout`/`setInterval` 在脚本主代码返回后继续执行，`runScript` 的完成回调会等定时器队列排空后才触发；`setInterval` 会持续运行，需调用 `stopScript`（或等待 `scriptTimeout` 超时）才会停止。`scriptTimeout` 是包含定时器回调在内的总执行预算。
+
 `findImage` 使用适配器实现的模板相似度匹配，`findColor` 使用 RGBA 容差扫描；`AutoUIKitAdapter` 的 `ocr` 使用系统 Vision 框架离线执行。`AutoWDAHTTPAdapter` 会把 WDA 截图拉回 SDK 进程后执行图色和 Vision OCR，不需要 OpenCV，但仍然需要单独可用的 WDA Runner。
 
 节点对象是带稳定弱关联句柄的可序列化描述，不会强持有 UIKit 对象；可以把 `findElement` 返回值再次传给 `getText`、`getBounds`、`getParent` 等 API。视图销毁后句柄自动失效。HTTP 默认关闭，需显式配置 `allowNetwork: @YES`，请求仅允许 `http` 和 `https`。
 
 节点 API 的字段和返回结构见 [`docs/NODE_OPERATIONS.md`](docs/NODE_OPERATIONS.md)，HTTP 请求见 [`docs/HTTP_API.md`](docs/HTTP_API.md)。
-文件、存储和设备模块见 [`docs/FILE_STORAGE_DEVICE_API.md`](docs/FILE_STORAGE_DEVICE_API.md)。与 EasyClick iOS USB/脱机版官方文档的逐类差距和真实完成度见 [`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)。
+文件、存储和设备模块见 [`docs/FILE_STORAGE_DEVICE_API.md`](docs/FILE_STORAGE_DEVICE_API.md)。与 EasyClick iOS USB/脱机版官方文档的逐类差距和真实完成度见 [`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)。脚本执行的整体语义（输入分类、执行生命周期、超时与中断、定时器排空、错误码）见 [`docs/SCRIPT_EXECUTION.md`](docs/SCRIPT_EXECUTION.md)。
 
 默认禁止远程脚本。只有显式配置 `@{"allowRemoteScripts": @YES}` 后，`http://` 或 `https://` URL 才会被加载；生产环境建议只允许 HTTPS，并在适配器或宿主层做签名校验。
 
@@ -127,3 +130,5 @@ xcodebuild -scheme AutoSDK -destination 'generic/platform=iOS' build
 VS Code 插件源码位于 [`vscode-extension`](vscode-extension)。它支持 JS/TS 脚本发送与停止、截图保存、宿主 App 节点 JSON 快照、API 补全、代码片段，以及等待并下载 GitHub Actions 构建产物。安装及手机连接限制见 [`vscode-extension/README.md`](vscode-extension/README.md)。
 
 通过 USB 时可在 VS Code 执行 **AutoSDK: Start USB Tunnel**，插件会管理自身启动的 `iproxy` 进程；也可手动执行 `iproxy 9001 9001`。通过 Wi-Fi 时可直接配置 TemplateApp 显示的 `ws://手机IP:9001` 和 debug token。
+
+版本更新记录见 [`CHANGELOG.md`](CHANGELOG.md)。

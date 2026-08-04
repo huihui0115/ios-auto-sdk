@@ -1221,6 +1221,144 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [self waitForExpectationsWithTimeout:2 handler:nil];
 }
 
+- (void)testPureJSLoopIsInterruptedByScriptTimeout {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    AutoTestAdapter *adapter = [AutoTestAdapter new];
+    [engine initWithConfig:@{ @"scriptTimeout": @0.5, @"interruptibleScripts": @YES }];
+    [engine setAutomationAdapter:adapter];
+
+    XCTestExpectation *timedOut = [self expectationWithDescription:@"pure JS loop timeout"];
+    [engine runScript:@"while(true){}" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorScriptTimeout);
+        [timedOut fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:5 handler:nil];
+
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    XCTestExpectation *nextRun = [self expectationWithDescription:@"run after pure JS timeout"];
+    [engine runScript:@"40+2;" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"value"], @42);
+        [nextRun fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testTimerCallbackLoopIsInterruptedByScriptTimeout {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    AutoTestAdapter *adapter = [AutoTestAdapter new];
+    [engine initWithConfig:@{ @"scriptTimeout": @0.5, @"interruptibleScripts": @YES }];
+    [engine setAutomationAdapter:adapter];
+
+    XCTestExpectation *timedOut = [self expectationWithDescription:@"timer loop timeout"];
+    [engine runScript:@"setTimeout(function(){ while(true){} }, 0); 1;" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorScriptTimeout);
+        [timedOut fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:5 handler:nil];
+
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    XCTestExpectation *nextRun = [self expectationWithDescription:@"run after timer loop timeout"];
+    [engine runScript:@"42;" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"value"], @42);
+        [nextRun fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testAmbiguousInputDistinguishesPathsFromSource {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+
+    XCTestExpectation *divisionExpectation = [self expectationWithDescription:@"division expression"];
+    [engine runScript:@"1/2" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"value"], @0.5);
+        [divisionExpectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    XCTestExpectation *pathExpectation = [self expectationWithDescription:@"separator path rejection"];
+    [engine runScript:@"scripts/nested.js" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorScriptNotFound);
+        [pathExpectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testTrailingJsCommentIsNotTreatedAsMissingPath {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+
+    XCTestExpectation *singleLine = [self expectationWithDescription:@"one-line source ending in .js"];
+    [engine runScript:@"console.log('x'); // main.js" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"success"], @YES);
+        [singleLine fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    XCTestExpectation *multiLine = [self expectationWithDescription:@"source whose last line is a .js comment"];
+    [engine runScript:@"var answer = 42; // run.js" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"value"], @42);
+        [multiLine fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testStopBeforeEvaluationInterruptsPureJSLoop {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @1 }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+
+    XCTestExpectation *stopped = [self expectationWithDescription:@"pure JS loop stopped before evaluation"];
+    [engine runScript:@"while (true) {}" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorScriptCancelled);
+        [stopped fulfill];
+    }];
+    // runScript: has already passed its synchronous stop check, so this stop
+    // deterministically lands between the start check and the execution-time
+    // limit installation.
+    [engine stopScript];
+    [self waitForExpectationsWithTimeout:3 handler:nil];
+}
+
+- (void)testOversizedScriptResultsAreBounded {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+
+    XCTestExpectation *largeArray = [self expectationWithDescription:@"oversized array result is replaced by a marker"];
+    [engine runScript:@"Array.from({length: 60000}, function(_, i){ return i; })" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        NSDictionary *value = result[@"value"];
+        XCTAssertEqualObjects(value[@"__autosdkTruncated"], @YES);
+        XCTAssertEqualObjects(value[@"reason"], @"elementCount");
+        XCTAssertEqualObjects(value[@"count"], @60000);
+        [largeArray fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    XCTestExpectation *smallArray = [self expectationWithDescription:@"small arrays pass through unchanged"];
+    [engine runScript:@"[1, 2, 3]" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"value"], (@[@1, @2, @3]));
+        [smallArray fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
 - (void)testScriptBridgeRejectsNonFiniteCoordinates {
     AutoEngine *engine = AutoEngine.sharedEngine;
     [engine initWithConfig:@{ @"scriptTimeout": @5 }];
@@ -1240,7 +1378,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [engine initWithConfig:@{ @"scriptTimeout": @5 }];
     [engine setAutomationAdapter:[AutoTestAdapter new]];
     XCTestExpectation *expectation = [self expectationWithDescription:@"HTTP aliases"];
-    NSString *script = @"({autoGlobal:auto.http===http,requestSelf:http.request===http,autoRequest:auto.http.request===http,getAliases:http.get===http.httpGet&&http.get===http.httpGetDefault,postAliases:http.post===http.httpPost&&http.post===http.postJSON,downloadAlias:http.downloadFile===http.downloadFileDefault,storageAlias:auto.storage===storages.create,methods:[typeof http.get,typeof http.post,typeof http.downloadFile].join(','),lengths:[http.length,http.get.length,auto.click.length,file.readFile.length].join(',')})";
+    NSString *script = @"({autoGlobal:auto.http===http,requestSelf:http.request===http,autoRequest:auto.http.request===http,getAliases:http.get===http.httpGet&&http.get===http.httpGetDefault,postAliases:http.post===http.httpPost&&http.post===http.postJSON,downloadAlias:http.downloadFile===http.downloadFileDefault,storageAlias:auto.storage===storages.create,methods:[typeof http.get,typeof http.post,typeof http.downloadFile].join(','),lengths:[http.length,http.get.length,auto.click.length,file.readFile.length].join(','),proxyReserved:auto.then===undefined&&auto.toJSON===undefined&&auto.toString===undefined&&auto.valueOf===undefined&&auto.catch===undefined&&auto.hasOwnProperty===undefined&&auto.__proto__===undefined,proxyStringifyOk:(function(){try{JSON.stringify(auto);return true;}catch(e){return false;}})()})";
     [engine runScript:script completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(error);
         XCTAssertEqualObjects(result[@"value"][@"autoGlobal"], @YES);
@@ -1252,6 +1390,8 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"][@"storageAlias"], @YES);
         XCTAssertEqualObjects(result[@"value"][@"methods"], @"function,function,function");
         XCTAssertEqualObjects(result[@"value"][@"lengths"], @"2,2,1,1");
+        XCTAssertEqualObjects(result[@"value"][@"proxyReserved"], @YES);
+        XCTAssertEqualObjects(result[@"value"][@"proxyStringifyOk"], @YES);
         [expectation fulfill];
     }];
     [self waitForExpectationsWithTimeout:2 handler:nil];
@@ -1293,6 +1433,14 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertNil(result);
         XCTAssertEqual(error.code, AutoSDKErrorScriptReadFailed);
         [remoteExpectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+
+    XCTestExpectation *pathExpectation = [self expectationWithDescription:@"missing path"];
+    [engine runScript:@"missing.js" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorScriptNotFound);
+        [pathExpectation fulfill];
     }];
     [self waitForExpectationsWithTimeout:2 handler:nil];
 

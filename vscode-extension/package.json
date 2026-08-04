@@ -98,11 +98,6 @@
           "default": "ws://127.0.0.1:9001",
           "description": "Direct Wi-Fi or USB-forwarded WebSocket URL for the iPhone's AutoSDK debug server."
         },
-        "autosdk.debugToken": {
-          "type": "string",
-          "default": "",
-          "description": "Deprecated plaintext migration value. The configure command moves it to URL- and workspace-bound SecretStorage; runtime connections ignore this setting."
-        },
         "autosdk.connectionTimeout": {
           "type": "number",
           "default": 300000,

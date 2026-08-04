@@ -220,7 +220,18 @@ check(extensionPackage.contributes?.configuration?.properties?.['autosdk.connect
       extensionPackage.contributes?.configuration?.properties?.['autosdk.buildTimeout']?.maximum === 21600,
       'VS Code extension timeouts must be bounded');
 
+const extensionSource = read('vscode-extension/extension.js');
+const contributedCommandIds = extensionPackage.contributes?.commands?.map(item => item.command) || [];
+for (const command of contributedCommandIds) {
+  check(extensionSource.includes("registerCommand('" + command + "'"),
+        'Extension must register contributed command ' + command);
+}
+const inspectorSource = read('vscode-extension/media/inspector.js');
+check(/type === 'selectorResult'[\s\S]{0,800}state\.match = null[\s\S]{0,200}elements\.selection\.hidden = true/.test(inspectorSource),
+      'Inspector selector results must clear stale match overlays and region selections');
+
 const engineSource = read('Sources/AutoSDK/AutoEngine.m');
+const bootstrapSource = read('Sources/AutoSDK/AutoBootstrapScript.m');
 check(engineSource.includes('waitPollInterval') && engineSource.includes('pollInterval * 1.5'), 'waitFor must use bounded polling backoff');
 check(engineSource.includes('AutoPayloadHasFiniteNumbers') && engineSource.includes('maxScreenshotBytes'), 'script numeric inputs and screenshots must be bounded');
 check(engineSource.includes('maximumTotalBytes') && engineSource.includes('retainedMessageBytes') &&
@@ -229,19 +240,30 @@ check(engineSource.includes('maximumTotalBytes') && engineSource.includes('retai
 check(engineSource.includes('fileWriteEnabled = fileReadEnabled &&') &&
       engineSource.includes('@"fileWrite": @(fileWriteEnabled)'),
       'File-write capability must require both file access and file-write permission');
-check(engineSource.includes('activeTimerCount>=10000') && engineSource.includes("RangeError('Too many active timers')"), 'JavaScript timers must be bounded');
-check(engineSource.includes('activeTimers[id]') && engineSource.includes('delete activeTimers[id]'), 'Timers must support cancellation from inside an active interval callback');
-check(engineSource.includes('function pushTimer') && engineSource.includes('function popTimer') &&
-      !engineSource.includes('timers.sort(') && !engineSource.includes('timers.shift()'),
+check(bootstrapSource.includes('activeTimerCount>=10000') && bootstrapSource.includes("RangeError('Too many active timers')"), 'JavaScript timers must be bounded');
+check(bootstrapSource.includes('activeTimers[id]') && bootstrapSource.includes('delete activeTimers[id]'), 'Timers must support cancellation from inside an active interval callback');
+check(bootstrapSource.includes('function pushTimer') && bootstrapSource.includes('function popTimer') &&
+      !bootstrapSource.includes('timers.sort(') && !bootstrapSource.includes('timers.shift()'),
       'Timer draining must use a bounded priority heap instead of repeated full-array sorting');
-check(engineSource.includes('cancelled[id]=true') && engineSource.includes('delete cancelled[timer.id]'), 'Queued timer cancellation must not leak cancellation markers');
-check(engineSource.includes('function ensureRunning()') && engineSource.includes('guardMethods(base)') &&
-      engineSource.includes('ensureRunning();return bridge.invokeNative'),
+check(bootstrapSource.includes('cancelled[id]=true') && bootstrapSource.includes('delete cancelled[timer.id]'), 'Queued timer cancellation must not leak cancellation markers');
+check(bootstrapSource.includes('function ensureRunning()') && bootstrapSource.includes('guardMethods(base)') &&
+      bootstrapSource.includes('ensureRunning();return bridge.invokeNative'),
       'Script stop must reject subsequent automation and native bridge calls');
-check(engineSource.includes('delete g.__bridge;delete g.__console') &&
+check(bootstrapSource.includes('delete g.__bridge;delete g.__console') &&
       engineSource.includes('[drainTimers callWithArguments:@[]]') &&
-      !engineSource.includes('evaluateScript:@"__autoDrainTimers();"'),
+      !bootstrapSource.includes('evaluateScript:@"__autoDrainTimers();"'),
       'Bootstrap internals and timer draining must not remain user-overridable globals');
+check(engineSource.includes('hasSuffix:@".js"') && engineSource.includes('!containsWhitespace') &&
+      engineSource.includes('!containsCodeCharacters'),
+      'Path detection must not reject inline source that merely ends in .js');
+check(engineSource.includes('AutoJSContextGroupSetExecutionTimeLimit(group, 0.001, NULL, NULL)') &&
+      engineSource.includes('if ([self shouldStop])'),
+      'Installed script interruption must re-check the stop flag so stopScript cannot race the install');
+check(engineSource.includes('__autosdkTruncated') && engineSource.includes('AutoMaxResultNodes'),
+      'Script result conversion must be bounded');
+check(engineSource.includes('dispatch_source_set_event_handler(watchdog') &&
+      engineSource.includes('dispatch_source_cancel(watchdog)'),
+      'The script timeout watchdog must be a cancellable one-shot timer, not a blocked thread');
 check(!engineSource.includes('[[context.exception toString] toObject]'), 'JavaScript exception formatting must not send toObject to NSString');
 check(engineSource.includes('com.autosdk.javascript') && engineSource.includes('AutoMainThreadAdapterProxy'), 'JavaScript execution must stay off the UI thread while UIKit calls are marshalled safely');
 check(read('Sources/AutoSDK/include/AutoEngine.h').includes('configureWithConfig:') &&
@@ -249,22 +271,33 @@ check(read('Sources/AutoSDK/include/AutoEngine.h').includes('configureWithConfig
       engineSource.includes('[self configureWithConfig:config]'),
       'Configuration API must avoid treating the legacy void initWithConfig selector as an ARC initializer');
 check(engineSource.includes('AutoValidatedHostAllowlist') &&
-      engineSource.includes('hasHostAllowlist ? allowedHosts : @[url.host]'),
-      'HTTP redirects must use a bounded validated allowlist and default to the original host');
-check(engineSource.includes('originalScheme') && engineSource.includes('isEqualToString:@"https"'), 'HTTP redirects must reject HTTPS downgrade');
+      engineSource.includes('hasHostAllowlist ? allowedHosts : nil'),
+      'HTTP redirects must use a validated allowlist when configured and otherwise follow same-scheme redirects');
+const httpSupportSource = read('Sources/AutoSDK/AutoHTTPSupport.m');
+check(httpSupportSource.includes('originalScheme') && httpSupportSource.includes('isEqualToString:@"https"'), 'HTTP redirects must reject HTTPS downgrade');
+check(read('Sources/AutoSDK/AutoHTTPSupport.h').includes('AutoHTTPRedirectRouter') &&
+      engineSource.includes('#import "AutoHTTPSupport.h"'),
+      'Shared HTTP redirect routing must be imported by the engine');
+check(engineSource.includes('AutoHTTPSharedSession()') && engineSource.includes('AutoHTTPSharedRouter()') &&
+      engineSource.includes('dispatch_once') && engineSource.includes('ephemeralSessionConfiguration'),
+      'HTTP requests must reuse one shared keep-alive session created exactly once');
+check(engineSource.includes('setPolicy:policy forTask:') && engineSource.includes('removePolicyForTask:'),
+      'Per-task redirect policies must be registered before resume and removed after completion');
+check(!engineSource.includes('[session invalidateAndCancel]') && !engineSource.includes('finishTasksAndInvalidate'),
+      'The shared HTTP session must never be invalidated per request');
 check(engineSource.includes('maxHTTPRequestBytes') && engineSource.includes('countOfBytesExpectedToReceive'), 'HTTP request and response memory must be bounded before decoding');
-check(engineSource.includes('AutoHTTPDataDelegate') && engineSource.includes('receivedData.length > self.maximumResponseBytes - data.length'), 'HTTP response chunks must be bounded before accumulation');
-check(engineSource.includes('responseData = redirectDelegate.receivedData') &&
-      engineSource.includes('redirectDelegate.receivedData = nil') &&
-      !engineSource.includes('responseData = [redirectDelegate.receivedData copy]'),
-      'HTTP response completion must transfer its bounded buffer without a second full-size copy');
+check(engineSource.includes('responseData.length > maximumResponseBytes') &&
+      engineSource.includes('countOfBytesExpectedToReceive') && engineSource.includes('countOfBytesReceived'),
+      'HTTP response bytes must be bounded during transfer and again before decoding');
+check(!engineSource.includes('AutoHTTPDataDelegate') && !engineSource.includes('AutoHTTPRedirectDelegate'),
+      'Legacy per-request HTTP delegate classes must be removed in favor of the shared session');
 check(engineSource.includes('downloadTaskWithRequest:request') && engineSource.includes('AutoScriptInstallDownloadedFile'), 'HTTP file downloads must bypass in-memory base64 transport');
 check(engineSource.includes('[manager removeItemAtURL:stagingURL error:nil]'),
       'Failed HTTP staging copies must remove partial temporary files');
 check(engineSource.includes('includeBody') && engineSource.includes('includeBase64') && engineSource.includes('parseJSON'), 'HTTP response representations must be independently optional');
 check(engineSource.includes('requestHeaders.count > 128') && engineSource.includes('length] > 8192'), 'HTTP request headers must be bounded');
 check(engineSource.includes('responseHeaderBytes') && engineSource.includes('headers.count >= 256'), 'HTTP response header copies must be bounded');
-check(engineSource.includes('downloadTaskWithURL') && engineSource.includes('NSDataReadingMappedIfSafe'), 'Remote scripts must use a size-monitored temporary download');
+check(engineSource.includes('downloadTaskWithRequest:remoteRequest') && engineSource.includes('NSDataReadingMappedIfSafe'), 'Remote scripts must use a size-monitored temporary download on the shared session');
 check(engineSource.includes('cancelBeforeStart = self.stopRequested') && engineSource.includes('self.activeAdapter = runAdapter'), 'Script cancellation and adapter selection must use the active run snapshot');
 check(engineSource.includes('[scriptAdapter cancelCurrentOperations]'), 'Script timeouts must cancel active native adapter work');
 check(engineSource.includes('executionFinished') &&
@@ -299,7 +332,7 @@ check(scriptSupport.includes('maxStorageEntries') &&
       scriptSupport.includes('data.length > maximumBytes') &&
       scriptSupport.includes('removeObjectForKey:defaultsKey'),
       'Script storage must bound entries before decoding and remain recoverable when corrupt');
-check(engineSource.includes('x1:x1,y1:y1,x2:x2,y2:y2') && engineSource.includes('g.app=appApi'), 'AutoBootstrapScript is missing swipe coordinates or app lifecycle bindings');
+check(bootstrapSource.includes('x1:x1,y1:y1,x2:x2,y2:y2') && bootstrapSource.includes('g.app=appApi'), 'AutoBootstrapScript is missing swipe coordinates or app lifecycle bindings');
 const uiKitAdapter = read('Sources/AutoSDK/AutoUIKitAdapter.m');
 check(uiKitAdapter.includes('AutoUIKitHandleRegistry') && uiKitAdapter.includes('strongToWeakObjectsMapTable'), 'UIKit node handles must use a weak direct lookup registry');
 check(uiKitAdapter.includes('expression ?: NSNull.null') && uiKitAdapter.includes('length] > 1024'), 'UIKit regex cache must retain invalid bounded patterns');
@@ -373,18 +406,20 @@ check(debugServerSource.includes('AutoDebugRequestTimeout') &&
       'Debug request deadlines must cover one-hour scripts and honor bounded client budgets');
 check(scriptSupport.includes('AutoFileOperationLock') && scriptSupport.includes('@synchronized (AutoFileOperationLock())'), 'Sandbox file operations must serialize size checks and mutations');
 check(scriptSupport.includes('maxFileCopyBytes') && scriptSupport.includes('maxFileListItems') && scriptSupport.includes('maxFileOperationItems'), 'Sandbox directory operations must have byte and item budgets');
-check(scriptSupport.includes('maxFileLineCount') && engineSource.includes("callFile('readLines'"), 'Line reads must be bounded before creating JavaScript strings');
+check(scriptSupport.includes('maxFileLineCount') && bootstrapSource.includes("callFile('readLines'"), 'Line reads must be bounded before creating JavaScript strings');
 check(scriptSupport.includes('.autosdk-download-') && scriptSupport.includes('removeItemAtURL:staging'), 'Staged copies and downloads must be cleaned up on failure');
 check(!read('Examples/TemplateApp/App/AppDelegate.m').includes('debug token: %@'), 'Template must not write the complete debug token to the system log');
 check(!read('Examples/TemplateApp/README.md').includes('debug token: %@') && !read('Examples/TemplateApp/README.md').includes('per-launch token'), 'Template documentation must not recommend logging or rotating the installation token every launch');
 check(!read('docs/DEBUG_PROTOCOL.md').includes('debug token: %@'), 'Debug protocol documentation must not recommend logging the complete token');
 check(templatePlist.includes('NSLocalNetworkUsageDescription') && templatePlist.includes('AutoSDKDebugAllowWiFi'), 'Template must declare and configure local-network debugging');
-const bootstrapStart = engineSource.indexOf('static NSString *AutoBootstrapScript(void)');
-const bootstrapReturn = engineSource.indexOf('return @"', bootstrapStart);
-const bootstrapEnd = engineSource.indexOf('\n}', bootstrapReturn);
+const bootstrapStart = bootstrapSource.indexOf('NSString *AutoBootstrapScript(void) {');
+const bootstrapReturn = bootstrapSource.indexOf('return @"', bootstrapStart);
+const bootstrapTerminator = '"})(this);"';
+const bootstrapTerminatorAt = bootstrapSource.indexOf(bootstrapTerminator, bootstrapReturn);
+const bootstrapEnd = bootstrapTerminatorAt >= 0 ? bootstrapTerminatorAt + bootstrapTerminator.length : -1;
 check(bootstrapStart >= 0 && bootstrapReturn >= 0 && bootstrapEnd >= 0, 'Unable to locate AutoBootstrapScript');
 if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
-  const bootstrapBlock = engineSource.slice(bootstrapReturn, bootstrapEnd);
+  const bootstrapBlock = bootstrapSource.slice(bootstrapReturn, bootstrapEnd);
   const literals = [...bootstrapBlock.matchAll(/@?"((?:\\.|[^"\\])*)"/g)];
   try {
     const script = literals.map(match => JSON.parse(`"${match[1]}"`)).join('');

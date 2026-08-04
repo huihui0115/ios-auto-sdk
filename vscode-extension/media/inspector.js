@@ -321,6 +321,10 @@
       const nodes = Array.isArray(message.nodes) ? message.nodes : [];
       state.nodes = nodes;
       state.selectedIndex = nodes.length ? 0 : -1;
+      state.match = null;
+      state.regionStart = null;
+      state.region = null;
+      elements.selection.hidden = true;
       elements.details.textContent = nodes.length ? JSON.stringify(nodes[0], null, 2) : 'No matching nodes.';
       renderNodes();
       renderOverlays();

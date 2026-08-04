@@ -16,6 +16,11 @@ temporary allocations and repeated WDA work.
   successful capture/request. Slow WDA calls therefore do not consume the
   cache lifetime before the value becomes usable. Changing a cache duration
   immediately releases the previous cached value.
+- All HTTP and remote-script requests reuse one engine-wide `NSURLSession`
+  with keep-alive connections instead of creating an ephemeral session per
+  request. TLS sessions and connection pools survive between calls, so
+  repeated `auto.http` traffic no longer pays a new handshake for every
+  request. Per-task redirect policies keep the same allowlist semantics.
 - Vision, PNG decoding, source parsing, and pixel matching run inside local
   autorelease pools. This keeps temporary UIKit/CoreGraphics objects from
   accumulating until the next event-loop turn.
@@ -37,15 +42,29 @@ temporary allocations and repeated WDA work.
   retained message text by default. `maxLogEntries`, `maxLogMessageLength`,
   and `maxLogBytes` have hard caps of 10,000, 256 KiB, and 32 MiB so an
   accidental diagnostic configuration cannot exhaust phone memory.
+- Script results are bounded to 24 nesting levels, 50,000 container entries
+  and 1 MiB per string; oversized nodes become `__autosdkTruncated` markers.
+- Script sleeps and element polling pump the run loop with a real thread
+  sleep fallback. JavaScriptCore's modern execution-time limit is dispatched
+  on a GCD queue, so the script thread's run loop has no sources; without the
+  fallback a naive runMode: pump would busy-spin a CPU core for the whole
+  sleep. Old runtimes that attach a CFRunLoopTimer still block in runMode: and
+  never take the sleep path.
 - The JavaScript timer queue accepts at most 10,000 active timers and clamps a
   delay/interval to one hour, preventing accidental loops from retaining an
   unbounded number of callbacks. Clearing a queued timer removes its cancellation
   marker immediately, so repeated create/clear cycles do not grow retained state.
+  One `runScript` keeps executing until the timer queue drains, so
+  `setInterval` keeps running until `stopScript` or `scriptTimeout`.
+  `scriptTimeout` is the total execution budget and includes timer callbacks.
 - Automation, file, storage, HTTP, device, image, app, console, native extension,
   and timer entry points check script cancellation before crossing the bridge.
   A loop that repeatedly calls SDK APIs therefore exits on its next call after
-  `stopScript`; JavaScript that never calls any SDK API remains subject to the
-  public JavaScriptCore hard-interruption limitation.
+  `stopScript`. Pure-JavaScript loops (including loops inside timer
+  callbacks) are interrupted by the JavaScriptCore execution-time limit when
+  `scriptTimeout` elapses or when `stopScript` is called; this hard
+  interruption is configurable via `interruptibleScripts` (defaults to YES)
+  and is skipped on runtimes that do not export the weak-linked symbols.
 - Regex selectors use a bounded 128-entry `NSCache` in both adapters, avoiding
   recompilation for every view or source-tree node. Invalid expressions are
   cached as failures and patterns over 1,024 characters are rejected, avoiding

@@ -48,7 +48,7 @@ test('a secret token is returned only for its URL and workspace', async () => {
   );
 });
 
-test('plaintext legacy tokens are available only to the configure form', async () => {
+test('legacy plaintext debugToken settings are never read', async () => {
   const secrets = secretStorage({ 'autosdk.debugToken': 'unbound-legacy-secret' });
   const values = settings({ debugUrl: 'ws://phone.local:9001', debugToken: 'plaintext-secret' });
 
@@ -56,7 +56,7 @@ test('plaintext legacy tokens are available only to the configure form', async (
     await connectionCredentials(values, secrets, 'workspace-a'),
     { url: 'ws://phone.local:9001/', token: '' }
   );
-  assert.equal(await tokenForConfiguration(values, secrets, 'workspace-a'), 'plaintext-secret');
+  assert.equal(await tokenForConfiguration(values, secrets, 'workspace-a'), '');
 });
 
 test('the configure form does not prefill another workspace token', async () => {

@@ -2,9 +2,26 @@
 #import "include/AutoDebugServer.h"
 #import "include/AutoSDKError.h"
 #import "AutoScriptSupport.h"
+#import "AutoBootstrapScript.h"
+#import "AutoHTTPSupport.h"
 #import <JavaScriptCore/JavaScriptCore.h>
 #import <UIKit/UIKit.h>
 #include <math.h>
+
+// JavaScriptCore exports these execution-time-limit symbols since iOS 9, but
+// they are not part of the public SDK headers. They are weak-linked so the
+// binary still loads on platforms that remove the symbols, and the calls are
+// skipped when unavailable. This gives the runtime the only reliable way to
+// interrupt a pure-JavaScript loop when scriptTimeout elapses (or on stop).
+extern void JSContextGroupSetExecutionTimeLimit(JSContextGroupRef group,
+                                                double limit,
+                                                JSContextRef context,
+                                                JSObjectRef failCallback) __attribute__((weak_import));
+extern void JSContextGroupClearExecutionTimeLimit(JSContextGroupRef group) __attribute__((weak_import));
+// Weak-linked symbols are only resolvable through their exported names; the
+// Auto-prefixed aliases keep the null-check pattern readable at call sites.
+#define AutoJSContextGroupSetExecutionTimeLimit JSContextGroupSetExecutionTimeLimit
+#define AutoJSContextGroupClearExecutionTimeLimit JSContextGroupClearExecutionTimeLimit
 
 @protocol AutoJSExport <JSExport>
 - (id)invokeClick:(JSValue *)selector;
@@ -65,22 +82,11 @@
 @property (nonatomic, assign) NSUInteger retainedMessageBytes;
 @end
 
-@interface AutoHTTPRedirectDelegate : NSObject <NSURLSessionTaskDelegate>
-@property (nonatomic, copy) NSArray<NSString *> *allowedHosts;
-@property (nonatomic, assign) BOOL followsRedirects;
-@end
-
-@interface AutoHTTPDataDelegate : AutoHTTPRedirectDelegate <NSURLSessionDataDelegate>
-@property (nonatomic, assign) NSUInteger maximumResponseBytes;
-@property (nonatomic, strong) NSMutableData *receivedData;
-@property (nonatomic, strong) NSHTTPURLResponse *response;
-@property (nonatomic, strong) NSError *requestError;
-@property (nonatomic, strong) dispatch_semaphore_t completionSemaphore;
-@property (nonatomic, assign) BOOL responseTooLarge;
-@end
 
 @interface AutoMainThreadAdapterProxy : NSProxy
 @property (nonatomic, strong) id target;
+@property (atomic, strong, nullable) NSDictionary *cachedCapabilities;
+@property (atomic, assign) BOOL capabilitiesLoaded;
 + (instancetype)proxyWithTarget:(id)target;
 @end
 
@@ -100,6 +106,8 @@
 @property (nonatomic, strong) dispatch_queue_t scriptQueue;
 @property (nonatomic, strong) dispatch_queue_t debugAdapterQueue;
 @property (nonatomic, assign) BOOL stopRequested;
+@property (nonatomic, assign) JSContextGroupRef activeScriptInterruptGroup;
+@property (nonatomic, assign) JSGlobalContextRef activeScriptInterruptGlobalRef;
 - (void)loadScript:(NSString *)value config:(NSDictionary *)config completion:(void (^)(NSString * _Nullable source, NSError * _Nullable error))completion;
 - (void)evaluateScript:(NSString *)source config:(NSDictionary *)config adapter:(id<AutoAutomationAdapter>)adapter completion:(AutoScriptCompletion)completion;
 - (void)finishWithResult:(NSDictionary * _Nullable)result error:(NSError * _Nullable)error completion:(AutoScriptCompletion)completion;
@@ -126,6 +134,88 @@ static NSError *AutoMakeError(AutoSDKErrorCode code, NSString *message, NSError 
     NSMutableDictionary *info = [@{NSLocalizedDescriptionKey: message} mutableCopy];
     if (underlying) info[NSUnderlyingErrorKey] = underlying;
     return [NSError errorWithDomain:AutoSDKErrorDomain code:code userInfo:info];
+}
+
+// Pumps the current run loop for at most duration seconds. The script
+// thread's run loop usually has no sources (JavaScriptCore's modern execution
+// time limit is dispatched on a GCD queue), so runMode: returns immediately
+// and a naive pump would busy-spin a CPU core. When no source was serviced,
+// fall back to a real thread sleep for the remainder of the slice.
+static void AutoPumpRunLoopWithSleepFallback(NSTimeInterval duration) {
+    if (duration <= 0) return;
+    NSDate *sliceStart = [NSDate date];
+    BOOL handled = [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                                             beforeDate:[NSDate dateWithTimeIntervalSinceNow:duration]];
+    if (!handled) {
+        NSTimeInterval elapsed = -[sliceStart timeIntervalSinceNow];
+        NSTimeInterval sleepRemainder = duration - elapsed;
+        if (sleepRemainder > 0.001) {
+            [NSThread sleepForTimeInterval:sleepRemainder];
+        }
+    }
+}
+
+// Bounds the Objective-C copy of a script's evaluated result so a script
+// cannot force an unbounded bridge allocation (e.g. `new Array(1e8)`).
+// Oversized top-level arrays and strings are detected before conversion;
+// oversized nested nodes are replaced during the walk. Replaced nodes carry
+// an `__autosdkTruncated` marker dictionary.
+static const NSUInteger AutoMaxResultDepth = 24;
+static const NSUInteger AutoMaxResultNodes = 50000;
+static const NSUInteger AutoMaxResultStringLength = 1024 * 1024;
+
+static id AutoBoundedResultObject(id object, NSUInteger depth);
+
+static id AutoBoundedJSResult(JSValue *value) {
+    if (!value || value.isUndefined || value.isNull) return [NSNull null];
+    @try {
+        if (value.isArray) {
+            double length = [value[@"length"] toDouble];
+            if (isfinite(length) && length > (double)AutoMaxResultNodes) {
+                return @{ @"__autosdkTruncated": @YES, @"reason": @"elementCount", @"count": @((NSUInteger)length) };
+            }
+        } else if (value.isString) {
+            double length = [value[@"length"] toDouble];
+            if (isfinite(length) && length > (double)AutoMaxResultStringLength) {
+                return @{ @"__autosdkTruncated": @YES, @"reason": @"stringLength", @"length": @((NSUInteger)length) };
+            }
+        }
+    } @catch (__unused NSException *exception) {
+        // Exotic values fall through to the post-conversion walk.
+    }
+    return AutoBoundedResultObject([value toObject] ?: [NSNull null], 0);
+}
+
+static id AutoBoundedResultObject(id object, NSUInteger depth) {
+    if (depth > AutoMaxResultDepth) {
+        return @{ @"__autosdkTruncated": @YES, @"reason": @"maxDepth", @"depth": @(depth - 1) };
+    }
+    if ([object isKindOfClass:NSString.class]) {
+        NSString *string = object;
+        if (string.length <= AutoMaxResultStringLength) return string;
+        return @{ @"__autosdkTruncated": @YES, @"reason": @"stringLength", @"length": @(string.length) };
+    }
+    if ([object isKindOfClass:NSArray.class]) {
+        NSArray *array = object;
+        if (array.count > AutoMaxResultNodes) {
+            return @{ @"__autosdkTruncated": @YES, @"reason": @"elementCount", @"count": @(array.count) };
+        }
+        NSMutableArray *bounded = [NSMutableArray arrayWithCapacity:array.count];
+        for (id item in array) [bounded addObject:AutoBoundedResultObject(item, depth + 1)];
+        return bounded;
+    }
+    if ([object isKindOfClass:NSDictionary.class]) {
+        NSDictionary *dictionary = object;
+        if (dictionary.count > AutoMaxResultNodes) {
+            return @{ @"__autosdkTruncated": @YES, @"reason": @"entryCount", @"count": @(dictionary.count) };
+        }
+        NSMutableDictionary *bounded = [NSMutableDictionary dictionaryWithCapacity:dictionary.count];
+        for (id key in dictionary) {
+            if ([key isKindOfClass:NSString.class]) bounded[key] = AutoBoundedResultObject(dictionary[key], depth + 1);
+        }
+        return bounded;
+    }
+    return object;
 }
 
 static BOOL AutoHTTPHeaderNameIsValid(NSString *name) {
@@ -315,123 +405,118 @@ static NSString *AutoDebugAssetPath(NSString *name) {
     return [@"debug-assets" stringByAppendingPathComponent:name];
 }
 
-static NSString *AutoBootstrapScript(void) {
-    return @"(function(g){"
-            "var bridge=g.__bridge,consoleBridge=g.__console,apply=Reflect.apply;delete g.__bridge;delete g.__console;"
-            "function ensureRunning(){if(bridge.invokeIsStopped())throw new Error('Script cancelled.');}"
-            "function guarded(fn){return new Proxy(fn,{apply:function(target,self,args){ensureRunning();return apply(target,self,args);}});}"
-            "function guardMethods(object){Object.keys(object).forEach(function(key){if(typeof object[key]==='function')object[key]=guarded(object[key]);});return object;}"
-            "function callFile(operation,data){ensureRunning();data=data||{};data.operation=operation;return bridge.invokeFile(data);}"
-            "function storage(name){ensureRunning();function op(operation,key,value,defaultValue){ensureRunning();return bridge.invokeStorage({name:String(name),operation:operation,key:key,value:value,defaultValue:defaultValue});}"
-            "return {keys:function(){return op('keys');},all:function(){return op('all');},put:function(k,v){return op('put',String(k),v);},putString:function(k,v){return op('put',String(k),String(v));},putInt:function(k,v){return op('put',String(k),Math.trunc(Number(v)));},putBoolean:function(k,v){return op('put',String(k),Boolean(v));},putFloat:function(k,v){return op('put',String(k),Number(v));},get:function(k,d){return op('get',String(k),null,d);},getString:function(k,d){var v=op('get',String(k),null,d==null?'':d);return v==null?null:String(v);},getInt:function(k,d){return Math.trunc(Number(op('get',String(k),null,d||0)));},getBoolean:function(k,d){return Boolean(op('get',String(k),null,d||false));},getFloat:function(k,d){return Number(op('get',String(k),null,d||0));},remove:function(k){return op('remove',String(k));},contains:function(k){return op('contains',String(k));},clear:function(){return op('clear');}};}"
-            "var fileApi={sandboxDir:function(){return callFile('sandboxDir');},getSandBoxDir:function(){return callFile('sandboxDir');},resolvePath:function(p){return callFile('resolvePath',{path:String(p||'')});},getSandBoxFilePath:function(p){return callFile('resolvePath',{path:String(p||'')});},exists:function(p){return callFile('exists',{path:String(p||'')});},readText:function(p){return callFile('readText',{path:String(p)});},readFile:function(p){return callFile('readText',{path:String(p)});},readBase64:function(p){return callFile('readBase64',{path:String(p)});},readLines:function(p){return callFile('readLines',{path:String(p)});},readAllLines:function(p){return fileApi.readLines(p);},readLine:function(p,index){var lines=fileApi.readLines(p);return index>=0&&index<lines.length?lines[index]:null;},writeText:function(p,t){return callFile('writeText',{path:String(p),text:String(t)});},writeFile:function(p,t){return callFile('writeText',{path:String(p),text:String(t)});},writeBase64:function(p,t){return callFile('writeBase64',{path:String(p),text:String(t)});},create:function(p){return callFile('writeText',{path:String(p),text:''});},appendText:function(p,t){return callFile('appendText',{path:String(p),text:String(t)});},appendLine:function(p,t){return callFile('appendText',{path:String(p),text:String(t)+'\\n'});},deleteLine:function(p,index){var lines=fileApi.readLines(p);if(index<0||index>=lines.length)return false;lines.splice(index,1);return fileApi.writeFile(p,lines.join('\\n'));},list:function(p){return callFile('list',{path:String(p||'')});},listDir:function(p){return callFile('list',{path:String(p||'')}).map(function(v){return v.name;});},mkdir:function(p){return callFile('mkdir',{path:String(p)});},mkdirs:function(p){return callFile('mkdir',{path:String(p)});},remove:function(p){return callFile('remove',{path:String(p)});},deleteAllFile:function(p){return callFile('remove',{path:String(p)});},copy:function(a,b,overwrite){return callFile('copy',{path:String(a),destination:String(b),overwrite:Boolean(overwrite)});}};"
-            "var httpApi=function(url,options){ensureRunning();options=options||{};return bridge.invokeHTTP({url:String(url),method:options.method||'GET',headers:options.headers||{},body:options.body,bodyBase64:options.bodyBase64,followRedirects:options.followRedirects,timeout:options.timeout==null?30000:options.timeout,includeBody:options.includeBody,includeBase64:options.includeBase64,parseJson:options.parseJson,downloadPath:options.downloadPath,requireSuccess:options.requireSuccess});};"
-            "httpApi.request=httpApi;httpApi.get=function(url,options){options=Object.assign({},options||{}, {method:'GET'});return httpApi(url,options);};httpApi.httpGet=httpApi.get;httpApi.httpGetDefault=httpApi.get;httpApi.post=function(url,body,options){options=Object.assign({},options||{}, {method:'POST',body:body});return httpApi(url,options);};httpApi.httpPost=httpApi.post;httpApi.postJSON=httpApi.post;httpApi.downloadFile=function(url,path,options){options=Object.assign({},options||{}, {method:'GET',downloadPath:String(path)});return Boolean(httpApi(url,options));};httpApi.downloadFileDefault=httpApi.downloadFile;"
-            "var deviceApi={info:function(){return bridge.invokeDevice({operation:'info'});},getDeviceInfo:function(){return deviceApi.info();},getScreenWidth:function(){return bridge.invokeDevice({operation:'screenWidth'});},getScreenHeight:function(){return bridge.invokeDevice({operation:'screenHeight'});},getScale:function(){return bridge.invokeDevice({operation:'scale'});},getModel:function(){return bridge.invokeDevice({operation:'model'});},getOSVersion:function(){return bridge.invokeDevice({operation:'osVersion'});},getDeviceName:function(){return bridge.invokeDevice({operation:'name'});},getBattery:function(){return bridge.invokeDevice({operation:'battery'});},isCharging:function(){return bridge.invokeDevice({operation:'isCharging'});},getOrientation:function(){return bridge.invokeDevice({operation:'orientation'});}};"
-            "guardMethods(fileApi);guardMethods(deviceApi);guardMethods(httpApi);httpApi=guarded(httpApi);httpApi.request=httpApi;httpApi.httpGet=httpApi.get;httpApi.httpGetDefault=httpApi.get;httpApi.httpPost=httpApi.post;httpApi.postJSON=httpApi.post;httpApi.downloadFileDefault=httpApi.downloadFile;"
-            "var timerId=1,timers=[],cancelled={},activeTimers={},activeTimerCount=0;function timerLess(a,b){return a.due<b.due||(a.due===b.due&&a.id<b.id);}function pushTimer(timer){var index=timers.length;timers.push(timer);while(index>0){var parent=(index-1)>>1;if(!timerLess(timers[index],timers[parent]))break;var swap=timers[parent];timers[parent]=timers[index];timers[index]=swap;index=parent;}}function popTimer(){var first=timers[0],last=timers.pop();if(timers.length){timers[0]=last;var index=0;for(;;){var left=index*2+1,right=left+1,smallest=index;if(left<timers.length&&timerLess(timers[left],timers[smallest]))smallest=left;if(right<timers.length&&timerLess(timers[right],timers[smallest]))smallest=right;if(smallest===index)break;var swap=timers[index];timers[index]=timers[smallest];timers[smallest]=swap;index=smallest;}}return first;}function scheduleTimer(fn,ms,repeat,args){if(typeof fn!=='function')throw new TypeError('Timer callback must be a function');if(activeTimerCount>=10000)throw new RangeError('Too many active timers');var delay=Math.min(3600000,Math.max(0,Number(ms)||0)),id=timerId++;activeTimers[id]=true;activeTimerCount++;pushTimer({id:id,fn:fn,due:Date.now()+delay,interval:delay,repeat:repeat,args:args});return id;}function cancelTimer(id){ensureRunning();if(!activeTimers[id])return;delete activeTimers[id];activeTimerCount--;cancelled[id]=true;}"
-            "var drainTimers=function(){while(timers.length&&!bridge.invokeIsStopped()){var timer=timers[0],wait=timer.due-Date.now();if(wait>0){if(!bridge.invokeSleep(Math.min(wait,50)))break;continue;}popTimer();if(cancelled[timer.id]){delete cancelled[timer.id];continue;}apply(timer.fn,g,timer.args);if(timer.repeat&&activeTimers[timer.id]){timer.due=Date.now()+Math.max(1,timer.interval);pushTimer(timer);}else{if(activeTimers[timer.id]){delete activeTimers[timer.id];activeTimerCount--;}delete cancelled[timer.id];}}timers=[];cancelled={};activeTimers={};activeTimerCount=0;};"
-            "var consoleTimers={};function formatLog(args){return Array.prototype.map.call(args,function(v){if(typeof v==='string')return v;try{return JSON.stringify(v);}catch(e){return String(v);}}).join(' ');}var consoleApi={log:function(){consoleBridge.log(formatLog(arguments));},debug:function(){consoleBridge.log(formatLog(arguments));},info:function(){consoleBridge.log(formatLog(arguments));},warn:function(){consoleBridge.warn(formatLog(arguments));},error:function(){consoleBridge.error(formatLog(arguments));},time:function(label){consoleTimers[String(label||'default')]=Date.now();},timeEnd:function(label){label=String(label||'default');var start=consoleTimers[label];if(start==null)return null;delete consoleTimers[label];var elapsed=Date.now()-start;consoleBridge.log(label+': '+elapsed+'ms');return elapsed;}};guardMethods(consoleApi);"
-            "var base={click:function(s){return bridge.invokeClick(s);},clickPoint:function(x,y){return bridge.invokeClickPoint({x:x,y:y});},doubleClickPoint:function(x,y,interval){return bridge.invokeDoubleClickPoint({x:x,y:y,interval:interval});},longClick:function(s,d){return bridge.invokeLongClick({selector:s,duration:d});},swipe:function(x1,y1,x2,y2,d){return bridge.invokeSwipe({x1:x1,y1:y1,x2:x2,y2:y2,duration:d});},input:function(s,t){return bridge.invokeInput({selector:s,text:t});},setText:function(s,t){return bridge.invokeInput({selector:s,text:t});},sleep:function(ms){return bridge.invokeSleep(ms);},getText:function(s){return bridge.invokeGetText(s);},screenshot:function(){return bridge.invokeScreenshot();},findImage:function(p,o){return bridge.invokeFindImage({templatePath:p,options:o||{}});},findColor:function(c,r,o){return bridge.invokeFindColor({color:c,region:r||{},options:o||{}});},getPixelColor:function(x,y){return bridge.invokePixelColor({x:x,y:y});},compareColors:function(points,o){return bridge.invokeCompareColors({points:points||[],options:o||{}});},cmpColor:function(points,o){return bridge.invokeCompareColors({points:points||[],options:o||{}});},findMultiColor:function(c,offsets,r,o){return bridge.invokeFindMultiColor({color:c,offsets:offsets||[],region:r||{},options:o||{}});},ocr:function(r){return bridge.invokeOCR(r);},http:httpApi,httpGet:httpApi.get,httpPost:httpApi.post,exists:function(s){return bridge.invokeExists(s);},findElement:function(s){return bridge.invokeFindElement(s);},findElements:function(s){return bridge.invokeFindElements(s);},waitFor:function(s,t){return bridge.invokeWaitFor({selector:s,timeout:t==null?10000:t});},getAttribute:function(s,a){return bridge.invokeGetAttribute({selector:s,attribute:a});},getBounds:function(s){return bridge.invokeGetBounds(s);},getChildren:function(s){return bridge.invokeGetChildren(s);},getParent:function(s){return bridge.invokeGetParent(s);},scrollIntoView:function(s){return bridge.invokeScrollIntoView(s);},launchApp:function(id){return bridge.invokeApp({operation:'launch',bundleId:id});},activateApp:function(id){return bridge.invokeApp({operation:'activate',bundleId:id});},terminateApp:function(id){return bridge.invokeApp({operation:'terminate',bundleId:id});},appState:function(id){return bridge.invokeApp({operation:'state',bundleId:id});},file:fileApi,storage:storage,device:deviceApi,capabilities:function(){return bridge.invokeCapabilities();},time:function(){return Date.now();},randomInt:function(min,max){min=Math.ceil(Number(min));max=Math.floor(Number(max));if(max<min){var t=min;min=max;max=t;}return Math.floor(Math.random()*(max-min+1))+min;}};"
-            "base.getChild=function(s,index){var children=base.getChildren(s);return children&&index>=0&&index<children.length?children[index]:null;};"
-            "base.getSiblings=function(s){var parent=base.getParent(s);if(!parent)return[];var children=base.getChildren(parent)||[];var handle=s&&s.handle?s.handle:(s&&s.selector?s.selector.handle:null);return children.filter(function(n){return !handle||n.handle!==handle;});};"
-            "base.getPreviousSiblings=function(s){var parent=base.getParent(s);if(!parent)return[];var children=base.getChildren(parent)||[];var index=s&&typeof s.index==='number'?s.index:-1;return index<0?[]:children.filter(function(n){return n.index<index;});};"
-            "base.getNextSiblings=function(s){var parent=base.getParent(s);if(!parent)return[];var children=base.getChildren(parent)||[];var index=s&&typeof s.index==='number'?s.index:-1;return index<0?[]:children.filter(function(n){return n.index>index;});};"
-            "base.clickCenter=function(s){var b=base.getBounds(s);return b?base.clickPoint(b.centerX==null?b.x+b.width/2:b.centerX,b.centerY==null?b.y+b.height/2:b.centerY):false;};"
-            "base.clickRandom=function(s){var b=base.getBounds(s);if(!b)return false;var inset=Math.min(4,b.width/4,b.height/4);return base.clickPoint(b.x+inset+Math.random()*Math.max(0,b.width-inset*2),b.y+inset+Math.random()*Math.max(0,b.height-inset*2));};"
-            "guardMethods(base);base.http=httpApi;base.httpGet=httpApi.get;base.httpPost=httpApi.post;base.storage=storage;"
-            "var imageApi={findImage:base.findImage,findColor:base.findColor,findMultiColor:base.findMultiColor,cmpColor:base.cmpColor,pixel:base.getPixelColor,screenshot:base.screenshot};"
-            "var appApi={launch:base.launchApp,activate:base.activateApp,terminate:base.terminateApp,state:base.appState};base.app=appApi;"
-            "g.console=consoleApi;g.auto=new Proxy(base,{get:function(target,key){if(key in target)return target[key];return function(){ensureRunning();return bridge.invokeNative({name:String(key),arguments:Array.prototype.slice.call(arguments)});};}});g.file=fileApi;g.storages={create:storage};g.device=deviceApi;g.http=httpApi;g.image=imageApi;g.app=appApi;g.clickPoint=base.clickPoint;g.doubleClickPoint=base.doubleClickPoint;g.swipeToPoint=base.swipe;g.sleep=base.sleep;g.time=base.time;g.random=base.randomInt;g.logd=consoleApi.debug;g.logi=consoleApi.info;g.logw=consoleApi.warn;g.loge=consoleApi.error;g.setTimeout=function(fn,ms){ensureRunning();return scheduleTimer(fn,ms,false,Array.prototype.slice.call(arguments,2));};g.clearTimeout=cancelTimer;g.cancelTimeout=cancelTimer;g.setInterval=function(fn,ms){ensureRunning();return scheduleTimer(fn,ms,true,Array.prototype.slice.call(arguments,2));};g.clearInterval=cancelTimer;g.cancelInterval=cancelTimer;return drainTimers;"
-            "})(this);";
+// The engine reuses one keep-alive NSURLSession for every invokeHTTP and
+// remote-script request instead of creating an ephemeral session per request,
+// so TLS sessions and HTTP connections survive between calls. Redirect
+// enforcement stays per-task through AutoHTTPRedirectRouter; the session
+// itself is never invalidated per request.
+static AutoHTTPRedirectRouter *AutoHTTPSharedRouter(void) {
+    static AutoHTTPRedirectRouter *router = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{ router = [AutoHTTPRedirectRouter new]; });
+    return router;
 }
 
-@implementation AutoHTTPRedirectDelegate
+static NSURLSession *AutoHTTPSharedSession(void) {
+    static NSURLSession *session = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSURLSessionConfiguration *configuration = NSURLSessionConfiguration.ephemeralSessionConfiguration;
+        configuration.URLCache = nil;
+        configuration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
+        configuration.HTTPCookieStorage = nil;
+        configuration.timeoutIntervalForRequest = 120;
+        configuration.timeoutIntervalForResource = 120;
+        NSOperationQueue *delegateQueue = [NSOperationQueue new];
+        delegateQueue.maxConcurrentOperationCount = 1;
+        delegateQueue.name = @"com.autosdk.http-session";
+        session = [NSURLSession sessionWithConfiguration:configuration
+                                                delegate:AutoHTTPSharedRouter()
+                                           delegateQueue:delegateQueue];
+    });
+    return session;
+}
 
-- (void)URLSession:(NSURLSession *)session
-              task:(NSURLSessionTask *)task
-willPerformHTTPRedirection:(NSHTTPURLResponse *)response
-        newRequest:(NSURLRequest *)request
- completionHandler:(void (^)(NSURLRequest * _Nullable))completionHandler {
-    if (!self.followsRedirects) {
-        completionHandler(nil);
-        return;
+// Builds and validates the NSURLRequest for one invokeHTTP call. All request
+// sizing, header, method and body checks live here so the data and download
+// paths share identical validation. Returns nil and fills *error on failure.
+static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDictionary *config, NSError **error) {
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    request.HTTPMethod = [data[@"method"] isKindOfClass:NSString.class] ? [data[@"method"] uppercaseString] : @"GET";
+    NSSet *methods = [NSSet setWithArray:@[@"GET", @"POST", @"PUT", @"PATCH", @"DELETE", @"HEAD", @"OPTIONS"]];
+    if (![methods containsObject:request.HTTPMethod]) {
+        if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Unsupported HTTP method.", nil);
+        return nil;
     }
-    NSString *scheme = request.URL.scheme.lowercaseString;
-    if (![scheme isEqualToString:@"http"] && ![scheme isEqualToString:@"https"]) {
-        completionHandler(nil);
-        return;
-    }
-    NSString *originalScheme = task.originalRequest.URL.scheme.lowercaseString;
-    if ([originalScheme isEqualToString:@"https"] && [scheme isEqualToString:@"http"]) {
-        completionHandler(nil);
-        return;
-    }
-    if (self.allowedHosts.count > 0) {
-        BOOL allowed = NO;
-        for (NSString *host in self.allowedHosts) {
-            if (request.URL.host.length > 0 && [request.URL.host caseInsensitiveCompare:host] == NSOrderedSame) { allowed = YES; break; }
+    double timeoutMilliseconds = AutoFiniteDouble(data[@"timeout"], 0);
+    NSTimeInterval timeout = (isfinite(timeoutMilliseconds) && timeoutMilliseconds > 0)
+        ? MIN(timeoutMilliseconds / 1000.0, 120.0)
+        : 30.0;
+    request.timeoutInterval = timeout;
+    NSUInteger maximumRequestBytes = AutoConfiguredByteLimit(config, @"maxHTTPRequestBytes",
+                                                            10 * 1024 * 1024, 64 * 1024 * 1024);
+    if ([data[@"headers"] isKindOfClass:NSDictionary.class]) {
+        NSDictionary *requestHeaders = data[@"headers"];
+        if (requestHeaders.count > 128) {
+            if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP requests accept at most 128 headers.", nil);
+            return nil;
         }
-        completionHandler(allowed ? request : nil);
-        return;
+        for (id rawKey in requestHeaders) {
+            id value = requestHeaders[rawKey];
+            if (![rawKey isKindOfClass:NSString.class] || [(NSString *)rawKey length] == 0 || [(NSString *)rawKey length] > 256 ||
+                !AutoHTTPHeaderNameIsValid(rawKey) || ![value isKindOfClass:NSString.class] || [(NSString *)value length] > 8192 ||
+                [rawKey rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location != NSNotFound ||
+                [value rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location != NSNotFound) {
+                if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP header names or values are invalid or too long.", nil);
+                return nil;
+            }
+            [request setValue:value forHTTPHeaderField:rawKey];
+        }
     }
-    completionHandler(request);
-    (void)session;
-    (void)task;
-    (void)response;
-}
-
-@end
-
-@implementation AutoHTTPDataDelegate
-
-- (instancetype)init {
-    self = [super init];
-    if (self) _receivedData = [NSMutableData data];
-    return self;
-}
-
-- (void)URLSession:(NSURLSession *)session
-          dataTask:(NSURLSessionDataTask *)dataTask
-didReceiveResponse:(NSURLResponse *)response
- completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
-    self.response = [response isKindOfClass:NSHTTPURLResponse.class] ? (NSHTTPURLResponse *)response : nil;
-    long long expected = response.expectedContentLength;
-    if (self.maximumResponseBytes > 0 && expected > 0 && (uint64_t)expected > self.maximumResponseBytes) {
-        self.responseTooLarge = YES;
-        self.requestError = AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP response exceeds maxHTTPResponseBytes.", nil);
-        completionHandler(NSURLSessionResponseCancel);
-        return;
+    id body = data[@"body"];
+    NSString *bodyBase64 = [data[@"bodyBase64"] isKindOfClass:NSString.class] ? data[@"bodyBase64"] : nil;
+    if (bodyBase64) {
+        NSUInteger maximumEncodedLength = (maximumRequestBytes / 3) * 4 + 4;
+        if (bodyBase64.length > maximumEncodedLength) {
+            if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body exceeds maxHTTPRequestBytes.", nil);
+            return nil;
+        }
+        request.HTTPBody = [[NSData alloc] initWithBase64EncodedString:bodyBase64 options:0];
+        if (!request.HTTPBody) {
+            if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"bodyBase64 is invalid.", nil);
+            return nil;
+        }
+    } else if ([body isKindOfClass:NSString.class]) {
+        if ([(NSString *)body lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > maximumRequestBytes) {
+            if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body exceeds maxHTTPRequestBytes.", nil);
+            return nil;
+        }
+        request.HTTPBody = [body dataUsingEncoding:NSUTF8StringEncoding];
+    } else if ([body isKindOfClass:NSDictionary.class] || [body isKindOfClass:NSArray.class]) {
+        NSError *bodyError = nil;
+        @try {
+            if (![NSJSONSerialization isValidJSONObject:body]) {
+                if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body is not valid JSON.", nil);
+                return nil;
+            }
+            request.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:&bodyError];
+        } @catch (NSException *exception) {
+            if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed,
+                                             exception.reason ?: @"Request body is not valid JSON.", nil);
+            return nil;
+        }
+        if (bodyError) {
+            if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body is not valid JSON.", bodyError);
+            return nil;
+        }
+        if (![request valueForHTTPHeaderField:@"Content-Type"]) [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
     }
-    completionHandler(NSURLSessionResponseAllow);
-    (void)session;
-    (void)dataTask;
-}
-
-- (void)URLSession:(NSURLSession *)session
-          dataTask:(NSURLSessionDataTask *)dataTask
-    didReceiveData:(NSData *)data {
-    if (self.responseTooLarge) return;
-    if (data.length > self.maximumResponseBytes || self.receivedData.length > self.maximumResponseBytes - data.length) {
-        self.responseTooLarge = YES;
-        self.requestError = AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP response exceeds maxHTTPResponseBytes.", nil);
-        [dataTask cancel];
-        return;
+    if (request.HTTPBody.length > maximumRequestBytes) {
+        if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body exceeds maxHTTPRequestBytes.", nil);
+        return nil;
     }
-    [self.receivedData appendData:data];
-    (void)session;
+    return request;
 }
-
-- (void)URLSession:(NSURLSession *)session
-              task:(NSURLSessionTask *)task
-didCompleteWithError:(NSError *)error {
-    if (error && !self.requestError) self.requestError = error;
-    if (self.completionSemaphore) dispatch_semaphore_signal(self.completionSemaphore);
-    (void)session;
-    (void)task;
-}
-
-@end
 
 @implementation AutoMainThreadAdapterProxy
 
@@ -451,9 +536,20 @@ didCompleteWithError:(NSError *)error {
     [invocation retainArguments];
     SEL selector = invocation.selector;
     id<AutoAutomationAdapter> automationTarget = (id<AutoAutomationAdapter>)target;
-    NSDictionary *capabilities = [automationTarget respondsToSelector:@selector(capabilities)]
-        ? [automationTarget capabilities]
-        : nil;
+    NSDictionary *capabilities = nil;
+    if (!self.capabilitiesLoaded) {
+        @synchronized (self) {
+            if (!self.capabilitiesLoaded) {
+                self.capabilitiesLoaded = YES;
+                self.cachedCapabilities = [automationTarget respondsToSelector:@selector(capabilities)]
+                    ? [automationTarget capabilities]
+                    : nil;
+            }
+            capabilities = self.cachedCapabilities;
+        }
+    } else {
+        capabilities = self.cachedCapabilities;
+    }
     BOOL handlesVisualThreads = AutoBoolean(capabilities[@"handlesVisualOperationThreads"], NO);
     BOOL backgroundVisualOperation = handlesVisualThreads && (selector == @selector(screenshotWithError:) ||
         selector == @selector(findImageAtPath:options:error:) ||
@@ -491,7 +587,10 @@ didCompleteWithError:(NSError *)error {
 }
 
 - (BOOL)ensureScriptRunning {
-    if (![self.engine shouldStop]) return YES;
+    if (![self.engine shouldStop]) {
+        self.lastError = nil;
+        return YES;
+    }
     [self failure:AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil)];
     JSContext *context = JSContext.currentContext;
     if (context && !context.exception) {
@@ -594,7 +693,7 @@ didCompleteWithError:(NSError *)error {
         : 0;
     NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:seconds];
     while (![self.engine shouldStop] && [deadline timeIntervalSinceNow] > 0) {
-        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:MIN(0.02, [deadline timeIntervalSinceNow])]];
+        AutoPumpRunLoopWithSleepFallback(MIN(0.02, [deadline timeIntervalSinceNow]));
     }
     return [self.engine shouldStop] ? [self failure:AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil)] : @YES;
 }
@@ -725,83 +824,23 @@ didCompleteWithError:(NSError *)error {
         }
         if (!allowed) return [self failure:AutoMakeError(AutoSDKErrorNetworkDisabled, @"The request host is not in allowedNetworkHosts.", nil)];
     }
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
-    request.HTTPMethod = [data[@"method"] isKindOfClass:NSString.class] ? [data[@"method"] uppercaseString] : @"GET";
-    NSSet *methods = [NSSet setWithArray:@[@"GET", @"POST", @"PUT", @"PATCH", @"DELETE", @"HEAD", @"OPTIONS"]];
-    if (![methods containsObject:request.HTTPMethod]) return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"Unsupported HTTP method.", nil)];
-    double timeoutMilliseconds = AutoFiniteDouble(data[@"timeout"], 0);
-    NSTimeInterval timeout = (isfinite(timeoutMilliseconds) && timeoutMilliseconds > 0)
-        ? MIN(timeoutMilliseconds / 1000.0, 120.0)
-        : 30.0;
-    request.timeoutInterval = timeout;
-    NSUInteger maximumRequestBytes = AutoConfiguredByteLimit(self.config, @"maxHTTPRequestBytes",
-                                                               10 * 1024 * 1024, 64 * 1024 * 1024);
     NSUInteger maximumResponseBytes = AutoConfiguredByteLimit(self.config, @"maxHTTPResponseBytes",
-                                                                10 * 1024 * 1024, 64 * 1024 * 1024);
-    if ([data[@"headers"] isKindOfClass:NSDictionary.class]) {
-        NSDictionary *requestHeaders = data[@"headers"];
-        if (requestHeaders.count > 128) {
-            return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP requests accept at most 128 headers.", nil)];
-        }
-        for (id rawKey in requestHeaders) {
-            id value = requestHeaders[rawKey];
-            if (![rawKey isKindOfClass:NSString.class] || [(NSString *)rawKey length] == 0 || [(NSString *)rawKey length] > 256 ||
-                !AutoHTTPHeaderNameIsValid(rawKey) || ![value isKindOfClass:NSString.class] || [(NSString *)value length] > 8192 ||
-                [rawKey rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location != NSNotFound ||
-                [value rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location != NSNotFound) {
-                return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP header names or values are invalid or too long.", nil)];
-            }
-            [request setValue:value forHTTPHeaderField:rawKey];
-        }
-    }
-    id body = data[@"body"];
-    NSString *bodyBase64 = [data[@"bodyBase64"] isKindOfClass:NSString.class] ? data[@"bodyBase64"] : nil;
-    if (bodyBase64) {
-        NSUInteger maximumEncodedLength = (maximumRequestBytes / 3) * 4 + 4;
-        if (bodyBase64.length > maximumEncodedLength) {
-            return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body exceeds maxHTTPRequestBytes.", nil)];
-        }
-        request.HTTPBody = [[NSData alloc] initWithBase64EncodedString:bodyBase64 options:0];
-        if (!request.HTTPBody) return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"bodyBase64 is invalid.", nil)];
-    } else if ([body isKindOfClass:NSString.class]) {
-        if ([(NSString *)body lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > maximumRequestBytes) {
-            return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body exceeds maxHTTPRequestBytes.", nil)];
-        }
-        request.HTTPBody = [body dataUsingEncoding:NSUTF8StringEncoding];
-    }
-    else if ([body isKindOfClass:NSDictionary.class] || [body isKindOfClass:NSArray.class]) {
-        NSError *bodyError = nil;
-        @try {
-            if (![NSJSONSerialization isValidJSONObject:body]) {
-                return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body is not valid JSON.", nil)];
-            }
-            request.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:&bodyError];
-        } @catch (NSException *exception) {
-            return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed,
-                                               exception.reason ?: @"Request body is not valid JSON.", nil)];
-        }
-        if (bodyError) return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body is not valid JSON.", bodyError)];
-        if (![request valueForHTTPHeaderField:@"Content-Type"]) [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    }
-    if (request.HTTPBody.length > maximumRequestBytes) {
-        return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body exceeds maxHTTPRequestBytes.", nil)];
-    }
+                                                               10 * 1024 * 1024, 64 * 1024 * 1024);
+    NSError *requestBuildError = nil;
+    NSURLRequest *request = AutoBuildHTTPRequest(data, url, self.config, &requestBuildError);
+    if (!request) return [self failure:requestBuildError];
     __block NSData *responseData = nil;
     __block NSHTTPURLResponse *httpResponse = nil;
     __block NSError *requestError = nil;
     dispatch_semaphore_t finished = dispatch_semaphore_create(0);
-    AutoHTTPDataDelegate *redirectDelegate = [AutoHTTPDataDelegate new];
-    redirectDelegate.allowedHosts = hasHostAllowlist ? allowedHosts : @[url.host];
-    redirectDelegate.followsRedirects = AutoBoolean(data[@"followRedirects"], YES);
-    NSURLSessionConfiguration *sessionConfiguration = NSURLSessionConfiguration.ephemeralSessionConfiguration;
-    sessionConfiguration.URLCache = nil;
-    sessionConfiguration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfiguration delegate:redirectDelegate delegateQueue:nil];
+    AutoHTTPRedirectPolicy *policy = [AutoHTTPRedirectPolicy new];
+    policy.followsRedirects = AutoBoolean(data[@"followRedirects"], YES);
+    policy.allowedHosts = hasHostAllowlist ? allowedHosts : nil;
+    NSURLSession *session = AutoHTTPSharedSession();
+    AutoHTTPRedirectRouter *router = AutoHTTPSharedRouter();
     NSString *downloadPath = [data[@"downloadPath"] isKindOfClass:NSString.class] ? data[@"downloadPath"] : nil;
     if (downloadPath) {
-        NSError *destinationError = nil;
         if (downloadPath.length == 0 || !AutoScriptValidateDownloadDestination(downloadPath, self.config ?: @{}, &destinationError)) {
-            [session invalidateAndCancel];
             return [self failure:destinationError ?: AutoMakeError(AutoSDKErrorFileOperationFailed, @"Download destination is invalid.", nil)];
         }
         NSUInteger maximumDownloadBytes = MIN(maximumResponseBytes,
@@ -857,6 +896,7 @@ didCompleteWithError:(NSError *)error {
             }
             if (staged) [NSFileManager.defaultManager removeItemAtURL:staged error:nil];
         };
+        [router setPolicy:policy forTask:downloadTask];
         [downloadTask resume];
         NSDate *downloadDeadline = [NSDate dateWithTimeIntervalSinceNow:request.timeoutInterval + 1];
         BOOL downloadCompleted = NO;
@@ -871,21 +911,21 @@ didCompleteWithError:(NSError *)error {
                 [downloadTask cancel];
                 break;
             }
-            if (!downloadCompleted) [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+            if (!downloadCompleted) AutoPumpRunLoopWithSleepFallback(0.01);
         }
         if (downloadTooLarge) {
             abandonDownload();
-            [session invalidateAndCancel];
+            [router removePolicyForTask:downloadTask];
             return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP download exceeds its configured byte limit.", nil)];
         }
         if (!downloadCompleted) {
             abandonDownload();
             [downloadTask cancel];
-            [session invalidateAndCancel];
+            [router removePolicyForTask:downloadTask];
             return [self failure:AutoMakeError([self.engine shouldStop] ? AutoSDKErrorScriptCancelled : AutoSDKErrorNetworkFailed,
                                                [self.engine shouldStop] ? @"Script cancelled." : @"HTTP download timed out.", nil)];
         }
-        [session finishTasksAndInvalidate];
+        [router removePolicyForTask:downloadTask];
         if ([self.engine shouldStop]) {
             abandonDownload();
             return [self failure:AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", requestError)];
@@ -905,9 +945,18 @@ didCompleteWithError:(NSError *)error {
         if (!installed || requestError) return [self failure:requestError ?: AutoMakeError(AutoSDKErrorFileOperationFailed, @"Unable to install the HTTP download.", nil)];
         return @(installed);
     }
-    redirectDelegate.maximumResponseBytes = maximumResponseBytes;
-    redirectDelegate.completionSemaphore = finished;
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request];
+    // The shared session buffers completion-handler data tasks, so the byte
+    // limit is enforced by the polling loop below (countOfBytes*) and then
+    // re-checked against the completed buffer before any representation is
+    // decoded. Cancelling on overrun also releases the buffered body.
+    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
+        completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+            httpResponse = [response isKindOfClass:NSHTTPURLResponse.class] ? (NSHTTPURLResponse *)response : nil;
+            requestError = error;
+            responseData = data;
+            dispatch_semaphore_signal(finished);
+        }];
+    [router setPolicy:policy forTask:task];
     [task resume];
     NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:request.timeoutInterval + 1];
     BOOL completed = NO;
@@ -922,26 +971,19 @@ didCompleteWithError:(NSError *)error {
             [task cancel];
             break;
         }
-        if (!completed) [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+        if (!completed) AutoPumpRunLoopWithSleepFallback(0.01);
     }
     if (responseTooLarge) {
-        [session invalidateAndCancel];
+        [router removePolicyForTask:task];
         return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP response exceeds maxHTTPResponseBytes.", nil)];
     }
     if (!completed) {
         [task cancel];
-        [session invalidateAndCancel];
+        [router removePolicyForTask:task];
         return [self failure:AutoMakeError([self.engine shouldStop] ? AutoSDKErrorScriptCancelled : AutoSDKErrorNetworkFailed, [self.engine shouldStop] ? @"Script cancelled." : @"HTTP request timed out.", nil)];
     }
-    [session finishTasksAndInvalidate];
-    // Transfer ownership of the completed buffer instead of retaining a second
-    // full-size response while text/base64/JSON representations are produced.
-    responseData = redirectDelegate.receivedData;
-    redirectDelegate.receivedData = nil;
-    httpResponse = redirectDelegate.response;
-    requestError = redirectDelegate.requestError;
-    responseTooLarge = responseTooLarge || redirectDelegate.responseTooLarge;
-    if (responseTooLarge) return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP response exceeds maxHTTPResponseBytes.", nil)];
+    [router removePolicyForTask:task];
+    if (responseData.length > maximumResponseBytes) return [self failure:AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP response exceeds maxHTTPResponseBytes.", nil)];
     if (requestError) {
         if ([self.engine shouldStop] && requestError.code == NSURLErrorCancelled) {
             return [self failure:AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", requestError)];
@@ -1040,7 +1082,7 @@ didCompleteWithError:(NSError *)error {
         NSTimeInterval remaining = [deadline timeIntervalSinceNow];
         if (remaining <= 0) break;
         NSTimeInterval delay = MIN(pollInterval, remaining);
-        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:delay]];
+        AutoPumpRunLoopWithSleepFallback(delay);
         pollInterval = MIN(0.25, pollInterval * 1.5);
     }
     if ([self.engine shouldStop]) return [self failure:AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil)];
@@ -1212,7 +1254,11 @@ didCompleteWithError:(NSError *)error {
     id object = AutoJSObject(value);
     NSString *message = [object isKindOfClass:NSString.class] ? object : [object description];
     if (message.length > self.maximumMessageLength) {
-        message = [[message substringToIndex:self.maximumMessageLength] stringByAppendingString:@"..."];
+        NSUInteger limit = self.maximumMessageLength;
+        NSRange lastCharacter = [message rangeOfComposedCharacterSequenceAtIndex:limit - 1];
+        NSUInteger cut = lastCharacter.location + lastCharacter.length;
+        if (cut > limit) cut = lastCharacter.location;
+        message = [[message substringToIndex:cut] stringByAppendingString:@"..."];
     }
     NSUInteger messageBytes = [message lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     @synchronized (self) {
@@ -1431,6 +1477,7 @@ didCompleteWithError:(NSError *)error {
     NSMutableDictionary *result = [@{ @"runtime": @"JavaScriptCore",
                                       @"timers": @YES,
                                       @"parallelWorkers": @NO,
+                                      @"interruptibleScripts": @(AutoPermission(config, @"interruptibleScripts", YES)),
                                       @"http": @(AutoBoolean(config[@"allowNetwork"], NO)),
                                       @"fileRead": @(fileReadEnabled),
                                       @"fileWrite": @(fileWriteEnabled),
@@ -1865,6 +1912,7 @@ didCompleteWithError:(NSError *)error {
     }
     if ([adapter respondsToSelector:@selector(cancelCurrentOperations)]) [adapter cancelCurrentOperations];
     [task cancel];
+    [self requestScriptInterruptionForStop];
 }
 
 - (void)requestStop {
@@ -1873,6 +1921,68 @@ didCompleteWithError:(NSError *)error {
 
 - (BOOL)shouldStop {
     @synchronized (self) { return self.stopRequested; }
+}
+
+- (BOOL)installScriptInterruptionForContext:(JSContext *)context timeout:(NSTimeInterval)timeout {
+    if (!AutoJSContextGroupSetExecutionTimeLimit || timeout <= 0) return NO;
+    JSGlobalContextRef globalRef = context.JSGlobalContextRef;
+    JSContextGroupRef group = JSContextGetGroup(globalRef);
+    if (!group) return NO;
+    @synchronized (self) {
+        self.activeScriptInterruptGroup = group;
+        self.activeScriptInterruptGlobalRef = globalRef;
+    }
+    JSContextGroupRetain(group);
+    JSGlobalContextRetain(globalRef);
+    // The last two arguments are ABI-sensitive across JSC versions: older
+    // runtimes expect (JSContextRef, JSObjectRef failCallback) while newer
+    // runtimes expect a C JSShouldTerminateCallback plus opaque data. Passing
+    // NULL/NULL is safe on both and makes JSC terminate execution by default
+    // when the limit fires. The wall-clock watchdog below still maps the
+    // termination to AutoSDKErrorScriptTimeout.
+    AutoJSContextGroupSetExecutionTimeLimit(group, timeout, NULL, NULL);
+    if ([self shouldStop]) {
+        // stopScript may have run between this method's start and the limit
+        // installation (or while the group references were stored), so the
+        // near-zero stop limit would have been missed or overwritten. Re-apply
+        // it so a pure-JS loop starting right now terminates immediately
+        // instead of running until the full scriptTimeout.
+        AutoJSContextGroupSetExecutionTimeLimit(group, 0.001, NULL, NULL);
+    }
+    return YES;
+}
+
+- (void)clearScriptInterruptionForContext:(JSContext *)context {
+    if (context) {
+        JSContextGroupRef group = JSContextGetGroup(context.JSGlobalContextRef);
+        if (AutoJSContextGroupClearExecutionTimeLimit && group) AutoJSContextGroupClearExecutionTimeLimit(group);
+    }
+    JSContextGroupRef ownedGroup = NULL;
+    JSGlobalContextRef ownedGlobal = NULL;
+    @synchronized (self) {
+        ownedGroup = self.activeScriptInterruptGroup;
+        ownedGlobal = self.activeScriptInterruptGlobalRef;
+        self.activeScriptInterruptGroup = NULL;
+        self.activeScriptInterruptGlobalRef = NULL;
+    }
+    if (ownedGroup) JSContextGroupRelease(ownedGroup);
+    if (ownedGlobal) JSGlobalContextRelease(ownedGlobal);
+}
+
+- (void)requestScriptInterruptionForStop {
+    JSContextGroupRef group = NULL;
+    JSGlobalContextRef globalRef = NULL;
+    @synchronized (self) {
+        group = self.activeScriptInterruptGroup;
+        globalRef = self.activeScriptInterruptGlobalRef;
+        if (group) JSContextGroupRetain(group);
+        if (globalRef) JSGlobalContextRetain(globalRef);
+    }
+    if (group && AutoJSContextGroupSetExecutionTimeLimit) {
+        AutoJSContextGroupSetExecutionTimeLimit(group, 0.001, NULL, NULL);
+    }
+    if (group) JSContextGroupRelease(group);
+    if (globalRef) JSGlobalContextRelease(globalRef);
 }
 
 - (void)runScript:(NSString *)scriptPathOrSource completion:(AutoScriptCompletion)completion {
@@ -1947,21 +2057,22 @@ didCompleteWithError:(NSError *)error {
                 return;
             }
         }
-        AutoHTTPRedirectDelegate *redirectDelegate = [AutoHTTPRedirectDelegate new];
-        redirectDelegate.allowedHosts = hasHostAllowlist ? allowedHosts : @[url.host];
-        redirectDelegate.followsRedirects = YES;
-        NSURLSessionConfiguration *sessionConfiguration = NSURLSessionConfiguration.ephemeralSessionConfiguration;
+        AutoHTTPRedirectPolicy *policy = [AutoHTTPRedirectPolicy new];
+        policy.followsRedirects = YES;
+        policy.allowedHosts = hasHostAllowlist ? allowedHosts : nil;
         NSTimeInterval remoteTimeout = AutoFiniteDouble(config[@"remoteScriptTimeout"], 0);
-        sessionConfiguration.timeoutIntervalForRequest = (isfinite(remoteTimeout) && remoteTimeout > 0) ? MIN(120, remoteTimeout) : 30;
-        sessionConfiguration.timeoutIntervalForResource = sessionConfiguration.timeoutIntervalForRequest;
-        NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfiguration delegate:redirectDelegate delegateQueue:nil];
+        NSMutableURLRequest *remoteRequest = [NSMutableURLRequest requestWithURL:url];
+        remoteRequest.timeoutInterval = (isfinite(remoteTimeout) && remoteTimeout > 0) ? MIN(120, remoteTimeout) : 30;
+        NSURLSession *session = AutoHTTPSharedSession();
+        AutoHTTPRedirectRouter *router = AutoHTTPSharedRouter();
+        __weak NSURLSessionDownloadTask *weakTask = nil;
         NSObject *sizeLimitLock = [NSObject new];
         __block BOOL sizeLimitExceeded = NO;
         __block dispatch_source_t sizeMonitor = nil;
-        NSURLSessionDownloadTask *task = [session downloadTaskWithURL:url completionHandler:^(NSURL *location, NSURLResponse *response, NSError *error) {
+        NSURLSessionDownloadTask *task = [session downloadTaskWithRequest:remoteRequest completionHandler:^(NSURL *location, NSURLResponse *response, NSError *error) {
             if (sizeMonitor) dispatch_source_cancel(sizeMonitor);
             @synchronized (self) { self.scriptTask = nil; }
-            [session finishTasksAndInvalidate];
+            [router removePolicyForTask:weakTask];
             BOOL exceeded = NO;
             @synchronized (sizeLimitLock) { exceeded = sizeLimitExceeded; }
             if (exceeded) {
@@ -2000,7 +2111,7 @@ didCompleteWithError:(NSError *)error {
             NSString *source = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
             completion(source, source ? nil : AutoMakeError(AutoSDKErrorScriptReadFailed, @"Script is not valid UTF-8.", nil));
         }];
-        __weak NSURLSessionDownloadTask *weakTask = task;
+        weakTask = task;
         sizeMonitor = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0,
                                              dispatch_get_global_queue(QOS_CLASS_UTILITY, 0));
         dispatch_source_set_timer(sizeMonitor, DISPATCH_TIME_NOW,
@@ -2017,6 +2128,7 @@ didCompleteWithError:(NSError *)error {
                 [activeTask cancel];
             }
         });
+        [router setPolicy:policy forTask:task];
         BOOL cancelBeforeStart = NO;
         @synchronized (self) {
             self.scriptTask = task;
@@ -2034,6 +2146,22 @@ didCompleteWithError:(NSError *)error {
         if (bundlePath) path = bundlePath, isPath = YES;
     }
     if (!isPath) {
+        NSString *trimmedValue = [value stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        BOOL containsPathSeparator = [trimmedValue containsString:@"/"] || [trimmedValue containsString:@"\\"];
+        BOOL containsWhitespace = [trimmedValue rangeOfCharacterFromSet:NSCharacterSet.whitespaceAndNewlineCharacterSet].location != NSNotFound;
+        BOOL hasAlphabeticCharacter = [trimmedValue rangeOfCharacterFromSet:NSCharacterSet.letterCharacterSet].location != NSNotFound;
+        NSCharacterSet *codeCharacters = [NSCharacterSet characterSetWithCharactersInString:@"(){};=+*%<>!?&|^'\"`,"];
+        BOOL containsCodeCharacters = [trimmedValue rangeOfCharacterFromSet:codeCharacters].location != NSNotFound;
+        BOOL looksLikePath = [trimmedValue hasPrefix:@"/"] || [trimmedValue hasPrefix:@"./"] ||
+                             [trimmedValue hasPrefix:@"../"] || [trimmedValue hasPrefix:@"~/"] ||
+                             [trimmedValue hasPrefix:@"file:"] ||
+                             ([trimmedValue.lowercaseString hasSuffix:@".js"] &&
+                              !containsWhitespace && !containsCodeCharacters) ||
+                             (containsPathSeparator && !containsWhitespace && hasAlphabeticCharacter && !containsCodeCharacters);
+        if (looksLikePath) {
+            completion(nil, AutoMakeError(AutoSDKErrorScriptNotFound, @"Script path does not exist.", nil));
+            return;
+        }
         if ([value lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > maxBytes) {
             completion(nil, AutoMakeError(AutoSDKErrorScriptTooLarge, @"Script exceeds the configured size limit.", nil));
             return;
@@ -2097,33 +2225,46 @@ didCompleteWithError:(NSError *)error {
     }
     NSTimeInterval timeout = AutoFiniteDouble(config[@"scriptTimeout"], 0);
     timeout = (isfinite(timeout) && timeout > 0) ? MIN(timeout, 3600.0) : 300.0;
-    dispatch_semaphore_t finished = dispatch_semaphore_create(0);
     NSObject *executionState = [NSObject new];
     NSTimeInterval executionDeadline = NSProcessInfo.processInfo.systemUptime + timeout;
     __block BOOL executionFinished = NO;
     __block BOOL timedOut = NO;
-    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-        if (dispatch_semaphore_wait(finished, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC))) != 0) {
+    // One-shot dispatch timer instead of a blocking wait, so a long-running
+    // script does not occupy a global utility thread for the whole budget.
+    // The JavaScriptCore execution-time limit installed below interrupts
+    // pure-JS loops at the same deadline.
+    dispatch_source_t watchdog = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0,
+                                                        dispatch_get_global_queue(QOS_CLASS_UTILITY, 0));
+    if (watchdog) {
+        dispatch_source_set_timer(watchdog,
+                                  dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC)),
+                                  DISPATCH_TIME_FOREVER,
+                                  (uint64_t)(0.05 * NSEC_PER_SEC));
+        dispatch_source_set_event_handler(watchdog, ^{
             @synchronized (executionState) {
-                if (!executionFinished) {
-                    timedOut = YES;
-                    [self requestStop];
-                    if ([scriptAdapter respondsToSelector:@selector(cancelCurrentOperations)]) {
-                        [scriptAdapter cancelCurrentOperations];
-                    }
-                }
+                if (!executionFinished) timedOut = YES;
             }
-        }
-    });
+            [self requestStop];
+            if ([scriptAdapter respondsToSelector:@selector(cancelCurrentOperations)]) {
+                [scriptAdapter cancelCurrentOperations];
+            }
+            dispatch_source_cancel(watchdog);
+        });
+        dispatch_resume(watchdog);
+    }
+    BOOL interruptibleScripts = AutoPermission(config, @"interruptibleScripts", YES);
+    if (interruptibleScripts && timeout > 0) {
+        [self installScriptInterruptionForContext:context timeout:timeout];
+    }
     JSValue *value = [context evaluateScript:source ?: @""];
     if (!context.exception && ![self shouldStop]) [drainTimers callWithArguments:@[]];
+    [self clearScriptInterruptionForContext:context];
     BOOL didTimeOut = NO;
     @synchronized (executionState) {
         executionFinished = YES;
-        if (NSProcessInfo.processInfo.systemUptime >= executionDeadline) timedOut = YES;
-        didTimeOut = timedOut;
+        if (timedOut || NSProcessInfo.processInfo.systemUptime >= executionDeadline) didTimeOut = YES;
     }
-    dispatch_semaphore_signal(finished);
+    if (watchdog) dispatch_source_cancel(watchdog);
     NSError *error = nil;
     if (didTimeOut) error = AutoMakeError(AutoSDKErrorScriptTimeout, @"Script execution timed out.", nil);
     else if ([self shouldStop]) error = AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil);
@@ -2139,7 +2280,7 @@ didCompleteWithError:(NSError *)error {
         error = [NSError errorWithDomain:error.domain code:error.code userInfo:userInfo];
     }
     NSDictionary *result = error ? nil : @{@"success": @YES,
-                                           @"value": AutoJSObject(value),
+                                           @"value": AutoBoundedJSResult(value),
                                            @"logs": [console.entries copy],
                                            @"durationMs": @([[NSDate date] timeIntervalSinceDate:startDate] * 1000.0)};
     [self finishWithResult:result error:error completion:completion];
