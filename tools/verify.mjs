@@ -657,7 +657,7 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
 }
 
 const workflow = read('.github/workflows/ios-build.yml');
-for (const requiredText of ['workflow_dispatch:', 'requestId:', 'xcodebuild test', 'CODE_SIGNING_ALLOWED=NO', 'actions/upload-artifact@v4']) {
+for (const requiredText of ['workflow_dispatch:', 'requestId:', 'xcodebuild test', 'CODE_SIGNING_ALLOWED=NO', 'actions/upload-artifact@v5']) {
   check(workflow.includes(requiredText), `.github/workflows/ios-build.yml is missing ${requiredText}`);
 }
 check(workflow.includes("github.event_name == 'workflow_dispatch' && (inputs.requestId || github.run_id) || github.ref"),

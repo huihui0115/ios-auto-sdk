@@ -25,8 +25,8 @@ jobs:
   build:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
       - name: Validate package and developer tools
@@ -43,7 +43,7 @@ jobs:
         working-directory: vscode-extension
         run: npx --yes @vscode/vsce package --out autosdk-vscode-0.4.0.vsix
       - name: Upload VS Code extension artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: autosdk-vscode
           path: vscode-extension/autosdk-vscode-0.4.0.vsix
@@ -94,7 +94,7 @@ jobs:
           done
       - name: Upload test diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: AutoSDKTests-xcresult
           path: ${{ runner.temp }}/AutoSDKTests.xcresult
@@ -121,7 +121,7 @@ jobs:
           cp -R "$app" dist/Payload/AutoSDKTemplate.app
           (cd dist && zip -qry AutoSDKTemplate.ipa Payload)
       - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: AutoSDKTemplate-TrollStore
           path: dist/AutoSDKTemplate.ipa
@@ -162,7 +162,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Upload documentation site
         uses: actions/upload-pages-artifact@v3
         with:
@@ -182,7 +182,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
       - name: Upload docs artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: autosdk-docs
           path: docs
