@@ -136,9 +136,11 @@ written for AutoScript/Auto.js port over with minimal changes:
   `console.info` / `console.warn` / `console.error`.
 - Timing: `setTimeout` / `setInterval` / `clearTimeout` /
   `clearInterval` (aliases `cancelTimeout` / `cancelInterval`), plus
-  `time` (`Date.now()`) and `random` / `randomInt` (inclusive range).
+  `time` / `timeEnd` (console-style timing: `time(label)` starts a timer,
+  `timeEnd(label)` prints and returns elapsed ms), and `random` /
+  `randomInt` (inclusive range).
 - Touch: `clickPoint`, `doubleClickPoint`, `swipeToPoint` (alias of
-  `swipe`), `sleep`.
+  `swipe`), `input` / `setText` (aliases: selector + text), `sleep`.
 - Image: `image.findImage`, `image.findColor`, `image.findMultiColor`,
   `image.cmpColor`, `image.pixel` (alias of `getPixelColor`),
   `image.screenshot`.
