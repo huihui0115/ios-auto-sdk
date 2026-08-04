@@ -40,7 +40,8 @@ jobs:
           ./vscode-extension/node_modules/.bin/tsc -p jsconfig.json --noEmit
           plutil -lint Examples/TemplateApp/App/Info.plist
       - name: Package VS Code extension
-        run: npx --yes @vscode/vsce package --out vscode-extension/autosdk-vscode-0.4.0.vsix
+        working-directory: vscode-extension
+        run: npx --yes @vscode/vsce package --out autosdk-vscode-0.4.0.vsix
       - name: Upload VS Code extension artifact
         uses: actions/upload-artifact@v4
         with:
@@ -157,6 +158,23 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
+      - name: Check GitHub Pages availability
+        id: pages-check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/pages" >/dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Deploy to GitHub Pages
+        if: steps.pages-check.outputs.enabled == 'true'
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autosdk-docs
+          path: docs
+          if-no-files-found: error
