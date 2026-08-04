@@ -18,10 +18,7 @@
         _scriptName = [name copy];
         NSString *initial = source;
         if (initial.length == 0) {
-            initial = @"// AutoSDK script
-const info = device.getDeviceInfo();
-console.log("device:", info.model);
-";
+            initial = @"// AutoSDK script\nconst info = device.getDeviceInfo();\nconsole.log('device:', info.model);\n";
         }
         _initialSource = [initial copy];
     }
