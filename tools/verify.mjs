@@ -78,7 +78,7 @@ function checkBalancedSource(path) {
   check(stack.length === 0, `${path}: unbalanced delimiter '${stack.at(-1)}'`);
 }
 
-for (const path of ['tools/auto-sdk.mjs', 'tools/debug-client.mjs', 'vscode-extension/extension.js', 'vscode-extension/device-client.js', 'vscode-extension/script-tools.js', 'vscode-extension/usb-tunnel.js', 'vscode-extension/inspector-view.js', 'vscode-extension/media/inspector.js']) {
+for (const path of ['tools/auto-sdk.mjs', 'tools/debug-client.mjs', 'vscode-extension/extension.js', 'vscode-extension/device-client.js', 'vscode-extension/script-tools.js', 'vscode-extension/usb-tunnel.js', 'vscode-extension/inspector-view.js', 'vscode-extension/media/inspector.js', 'tools/init-project.mjs', 'tools/doctor.mjs']) {
   checkNodeSyntax(path);
 }
 const debugClientSource = read('tools/debug-client.mjs');
@@ -92,12 +92,17 @@ check(buildTool.includes('MAX_CAPTURE_BYTES') && buildTool.includes('produced mo
       'Remote build helper command output must have a bounded capture buffer');
 check(buildTool.includes('MAX_ARTIFACT_ENTRIES') && buildTool.includes('scheme must not contain path separators'),
       'Build tooling must bound IPA entry counts and keep archive paths inside the output directory');
+check(buildTool.includes("process.platform !== 'darwin'") &&
+      buildTool.includes('auto-sdk build-remote'),
+      'Local build must reject non-macOS hosts with a build-remote hint');
 const debugClient = read('tools/debug-client.mjs');
 check(debugClient.includes('MAX_SCRIPT_BYTES') && debugClient.includes('metadata.size > MAX_SCRIPT_BYTES') &&
       debugClient.includes('MAX_RESPONSE_BYTES') && debugClient.includes('response.ok !== true'),
       'Debug CLI must bound script files and reject malformed or oversized responses');
 
 const rootPackage = parseJSON('package.json');
+check(rootPackage.scripts?.init && rootPackage.scripts?.doctor && rootPackage.scripts?.docs,
+      'package.json must expose init/doctor/docs scripts');
 const rootLock = parseJSON('package-lock.json');
 const extensionPackage = parseJSON('vscode-extension/package.json');
 const extensionLock = parseJSON('vscode-extension/package-lock.json');
@@ -619,6 +624,9 @@ for (const requiredText of ['workflow_dispatch:', 'requestId:', 'xcodebuild test
 }
 check(workflow.includes("github.event_name == 'workflow_dispatch' && (inputs.requestId || github.run_id) || github.ref"),
       'Concurrent remote build requests must not cancel each other');
+check(workflow.includes('@vscode/vsce package') && workflow.includes('autosdk-vscode-0.4.0.vsix') &&
+      workflow.includes('upload-pages-artifact@v3') && workflow.includes('deploy-pages@v4'),
+      'CI must package the VS Code extension and deploy docs to GitHub Pages');
 const templateProject = read('Examples/TemplateApp/project.yml');
 check(templateProject.includes('AutoSDKTests:') && templateProject.includes('bundle.unit-test'), 'Template XcodeGen project must include the XCTest target');
 check(!/^\t/m.test(workflow), '.github/workflows/ios-build.yml contains tab indentation');
@@ -634,6 +642,10 @@ check(typeDefinitions.includes('interface AutoMediaAPI') &&
       'Type definitions must describe the photo-library media API');
 
 check(read('LICENSE').includes('AUTOSDK SOFTWARE LICENSE'), 'Root LICENSE file must describe the commercial SDK license');
+check(read('vscode-extension/LICENSE.txt').includes('AUTOSDK SOFTWARE LICENSE'),
+      'Extension license must reference the repository root license');
+check(read('docs/index.html').includes('AutoSDK 文档中心'),
+      'docs/index.html landing page must exist for GitHub Pages');
 check(read('Sources/AutoSDK/AutoBootstrapScript.m').includes('bridge.invokeTouch({fingers:normalized})') &&
       bootstrapSource.includes('base.gesture=function(actions)') &&
       bootstrapSource.includes('base.multiGesture=function(fingers)') &&
@@ -656,7 +668,7 @@ check(read('Sources/AutoSDK/AutoWDAHTTPAdapter.m').includes('@"/actions" method:
 check(read('Sources/AutoSDK/AutoEngine.m').includes('invokeTouch:(JSValue *)payload') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('performMultiTouch:fingers error:&error'),
       'Engine must bridge invokeTouch to the adapter performMultiTouch');
-for (const scriptPath of ['Examples/TemplateApp/Scripts/hello.js', 'Examples/TemplateApp/Scripts/demo-api.js']) {
+for (const scriptPath of ['Examples/TemplateApp/Scripts/hello.js', 'Examples/TemplateApp/Scripts/demo-api.js', 'Examples/TemplateApp/Scripts/gesture-demo.js', 'Examples/TemplateApp/Scripts/vision-demo.js', 'Examples/TemplateApp/Scripts/media-demo.js']) {
   try {
     new vm.Script(read(scriptPath), { filename: scriptPath });
   } catch (error) {
@@ -666,6 +678,10 @@ for (const scriptPath of ['Examples/TemplateApp/Scripts/hello.js', 'Examples/Tem
 check(read('Examples/TemplateApp/Scripts/hello.js').includes('device.setClipboard') &&
       read('Examples/TemplateApp/Scripts/demo-api.js').includes('auto.capabilities().http'),
       'Template bundled scripts must exercise device/system APIs and guard HTTP by capability');
+check(read('Examples/TemplateApp/Scripts/gesture-demo.js').includes('multiTouch === true') &&
+      read('Examples/TemplateApp/Scripts/vision-demo.js').includes('.ocr === true') &&
+      read('Examples/TemplateApp/Scripts/media-demo.js').includes('mediaLibraryWrite === true'),
+      'Template bundled scripts must cover gesture, vision and photo-library demos with capability guards');
 
 for (const path of [...sourceFiles('Sources/AutoSDK'), ...sourceFiles('Tests'), ...sourceFiles('Examples/TemplateApp/App')]) {
   const source = read(path);

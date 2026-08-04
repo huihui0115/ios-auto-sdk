@@ -11,6 +11,7 @@ Windows 流程见 [`WINDOWS_TROLLSTORE.md`](WINDOWS_TROLLSTORE.md)。
 - 一台 Windows 电脑（写脚本 + 调试，可选装 VS Code 插件）
 
 ## 1. 构建模板 App（约 4 分钟）
+> 不想自己构建？直接到仓库 [Releases 页](https://github.com/huihui0115/ios-auto-sdk/releases) 下载最新 AutoSDKTemplate.ipa（TrollStore 可直接安装）和 VS Code 插件 vsix，跳过本节直接进入「安装到 iPhone」。
 
 ```powershell
 # 把仓库推到自己的 GitHub 仓库后
@@ -33,7 +34,9 @@ node tools/auto-sdk.mjs build-remote --repo 你的账号/你的仓库 --output .
 GitHub 重新构建安装。两个现成示例：
 
 - `hello.js`：首次运行演示（设备信息、沙盒文件、存储、定时器、系统能力）
-- `demo-api.js`：API 全家桶演示（不依赖特定界面，直接看返回结果）
+- `demo-api.js`：API 全家桶演示（不依赖特定界面，直接看返回结果）- `gesture-demo.js`：滑动、自定义手势、多指与捏合（需 WDA `multiTouch`）
+- `vision-demo.js`：截图、取色、找色、多色比较、OCR、模板找图
+- `media-demo.js`：把截图/图片写入 iOS 相册（需 `mediaLibraryWrite`）
 
 脚本风格与 AutoScript/Auto.js 高度一致：
 

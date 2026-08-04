@@ -39,6 +39,14 @@ jobs:
           npm test --prefix vscode-extension
           ./vscode-extension/node_modules/.bin/tsc -p jsconfig.json --noEmit
           plutil -lint Examples/TemplateApp/App/Info.plist
+      - name: Package VS Code extension
+        run: npx --yes @vscode/vsce package --out vscode-extension/autosdk-vscode-0.4.0.vsix
+      - name: Upload VS Code extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autosdk-vscode
+          path: vscode-extension/autosdk-vscode-0.4.0.vsix
+          if-no-files-found: error
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate template project
@@ -131,4 +139,24 @@ jobs:
             --title "AutoSDK ${tag}" \
             --notes-file "$notes" \
             dist/AutoSDKTemplate.ipa \
+            vscode-extension/autosdk-vscode-0.4.0.vsix \
             || gh release edit "$tag" --notes-file "$notes" --title "AutoSDK ${tag}"
+
+  docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload documentation site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -2,6 +2,7 @@ AutoSDK Script Tools
 
 Copyright (c) 2026 AutoSDK. All rights reserved.
 
-This software is proprietary and unlicensed for redistribution. Use,
-modification, or distribution requires prior written permission from the
-copyright holder.
+The AutoSDK Script Tools extension is distributed as part of the AutoSDK
+repository and is licensed under the same terms as the repository root
+LICENSE file ("AUTOSDK SOFTWARE LICENSE"). Redistribution or commercial
+use without a separate written agreement is not permitted.

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoSDK 文档中心</title>
+<style>
+  :root {
+    --bg: #0f1419; --panel: #171e26; --panel2: #1d2731; --line: #2a3642;
+    --text: #e6edf3; --muted: #9aa7b4; --accent: #3fb6ff; --accent2: #7ee787;
+    --warn: #f0b429;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; line-height: 1.7;
+  }
+  header.hero {
+    padding: 48px 24px 32px; text-align: center;
+    background: linear-gradient(135deg, #0f1f2e, #12222e 55%, #0f1419);
+    border-bottom: 1px solid var(--line);
+  }
+  header.hero h1 { margin: 0 0 8px; font-size: 30px; }
+  header.hero p { margin: 0 auto; color: var(--muted); max-width: 720px; }
+  .badges { margin-top: 16px; }
+  .badges a {
+    display: inline-block; margin: 4px; padding: 8px 16px; border-radius: 999px;
+    background: var(--panel2); color: var(--text); text-decoration: none;
+    border: 1px solid var(--line); font-size: 14px;
+  }
+  .badges a:hover { border-color: var(--accent); color: var(--accent); }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
+  h2 { font-size: 20px; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-top: 36px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
+  .card {
+    display: block; padding: 16px 18px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; text-decoration: none; color: var(--text);
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .card h3 { margin: 0 0 6px; font-size: 16px; color: var(--accent); }
+  .card p { margin: 0; color: var(--muted); font-size: 13px; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 24px; border-top: 1px solid var(--line); }
+  code { background: var(--panel2); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <h1>AutoSDK 文档中心</h1>
+  <p>面向第三方 iOS App 的客户端自动化 SDK：JavaScript 脚本 + 真机调试 + TrollStore 免签名安装。</p>
+  <div class="badges">
+    <a href="guide/index.html">📖 图文教程（安装 → 连接 → 第一行代码 → 调试）</a>
+    <a href="api-reference.html">🧩 API 参考（可直接复制调用）</a>
+    <a href="https://github.com/huihui0115/ios-auto-sdk/releases">⬇️ 下载 IPA / VS Code 插件</a>
+    <a href="https://github.com/huihui0115/ios-auto-sdk">🔗 GitHub 仓库</a>
+  </div>
+</header>
+<main>
+  <h2>🚀 快速上手</h2>
+  <div class="grid">
+    <a class="card" href="guide/index.html"><h3>📖 本地图文教程</h3><p>从零开始：构建/下载 IPA → TrollStore 安装 → 连接 VS Code → 写第一行代码 → 调试。</p></a>
+    <a class="card" href="api-reference.html"><h3>🧩 API 参考</h3><p>按分类整理的完整 API 列表，每条都带参数说明和可直接复制的调用代码。</p></a>
+    <a class="card" href="QUICK_START.md"><h3>⚡ 10 分钟快速开始</h3><p>第三方用户拿到仓库后最短路线上手：写脚本 → 构建 IPA → 安装 → 调试运行。</p></a>
+    <a class="card" href="WINDOWS_TROLLSTORE.md"><h3>🪟 Windows 完整流程</h3><p>无 Mac 环境下的构建、连接、调试完整步骤（GitHub Actions 远程构建）。</p></a>
+  </div>
+
+  <h2>📚 API 文档</h2>
+  <div class="grid">
+    <a class="card" href="FILE_STORAGE_DEVICE_API.md"><h3>📁 文件 / 存储 / 设备</h3><p>沙盒文件读写、命名存储、设备信息与系统控制。</p></a>
+    <a class="card" href="HTTP_API.md"><h3>🌐 网络 HTTP</h3><p>get/post/request/downloadFile，含超时、重定向、Base64 响应。</p></a>
+    <a class="card" href="NODE_OPERATIONS.md"><h3>🖱️ 节点操作</h3><p>节点查询、点击、输入、滚动、截图与图色匹配。</p></a>
+    <a class="card" href="SCRIPT_EXECUTION.md"><h3>⚙️ 脚本执行</h3><p>超时、定时器、错误码、取消与协作式中断语义。</p></a>
+  </div>
+
+  <h2>🔌 架构与对比</h2>
+  <div class="grid">
+    <a class="card" href="WDA_ADAPTER.md"><h3>🤖 WDA 适配器</h3><p>跨 App 自动化：XCUITest / WebDriverAgent 桥接。</p></a>
+    <a class="card" href="UIKIT_ADAPTER.md"><h3>🏗️ UIKit 适配器</h3><p>自动化宿主 App 自身 UIKit 视图。</p></a>
+    <a class="card" href="DEBUG_PROTOCOL.md"><h3>🔌 调试协议</h3><p>WebSocket 调试服务器协议、Token 与命令格式。</p></a>
+    <a class="card" href="AUTOSCRIPT_COMPARISON.md"><h3>⚖️ 与 AutoScript 对比</h3><p>定位、能力、API 差异分析。</p></a>
+    <a class="card" href="EASYCLICK_COMPARISON.md"><h3>⚖️ 与 EasyClick 对比</h3><p>函数封装、调试体验、分发方式对比。</p></a>
+    <a class="card" href="LUA_FRAMEWORK_AUDIT.md"><h3>⚖️ 与 Lua 框架对比</h3><p>语言生态与扩展性审计。</p></a>
+  </div>
+
+  <h2>📦 市场与发布</h2>
+  <div class="grid">
+    <a class="card" href="MARKET_RELEASE.md"><h3>🏷️ 市场发布检查</h3><p>上架前的打包、许可、文档检查清单。</p></a>
+    <a class="card" href="PERFORMANCE.md"><h3>⚡ 性能报告</h3><p>图色匹配、节点查询等关键路径的性能数据。</p></a>
+    <a class="card" href="TROLLSTORE_WDA_LUA.md"><h3>🛠️ TrollStore / WDA / Lua</h3><p>免签名安装与运行环境部署说明。</p></a>
+  </div>
+
+  <h2>💡 快速参考</h2>
+  <div class="grid">
+    <a class="card" href="guide/index.html"><h3>第一行代码</h3><p><code>auto.toast("hello"); device.getDeviceInfo();</code></p></a>
+    <a class="card" href="api-reference.html"><h3>常用全局函数</h3><p><code>click / swipe / sleep / toast / http / file / storages / device / media</code></p></a>
+  </div>
+</main>
+<footer>AutoSDK · 离线文档（双击 docs/index.html 即可本地浏览） · GitHub Pages 自动部署</footer>
+</body>
+</html>

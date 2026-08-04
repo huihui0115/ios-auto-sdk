@@ -6,6 +6,17 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-05
+
+### Added
+
+- **CI 产物与在线文档。** 构建工作流额外打包 VS Code 插件（`autosdk-vscode-0.4.0.vsix`）并上传为构建工件、随 Release 发布；新增 GitHub Pages job 把 `docs/` 自动部署到 <https://huihui0115.github.io/ios-auto-sdk/>，`docs/index.html` 作为文档中心落地页。
+- **一键品牌化。** `npm run init -- --bundle-id com.yourname.app --name "My App"` 一键修改模板工程的 bundle identifier 与显示名（`tools/init-project.mjs`）。
+- **环境诊断。** `npm run doctor` 检查 Node/git/gh/iproxy、脚本语法、文档完整性、vsix、版本 tag 与本地 IPA（`tools/doctor.mjs`）。
+- **示例脚本补全。** 新增 `gesture-demo.js`（滑动/手势/多指/捏合）、`vision-demo.js`（截图/取色/找色/多色比较/OCR/找图）、`media-demo.js`（截图与图片写入相册），全部按 capability 守卫。
+- **平台提示与许可统一。** 本地 `build` 在非 macOS 上直接报错并提示改用 `build-remote`；`vscode-extension/LICENSE.txt` 改为引用仓库根 LICENSE。
+- **下载直达链接。** README 与 `docs/QUICK_START.md` 增加 GitHub Releases 下载入口。
+
 ### Added
 
 - **Multi-touch gesture API.** New `auto.gesture(actions)`, `auto.multiGesture(fingers)`

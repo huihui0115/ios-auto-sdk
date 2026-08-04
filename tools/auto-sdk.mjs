@@ -17,7 +17,8 @@ const ZIP_CENTRAL_DIRECTORY_ENTRY = 0x02014b50;
 function usage() {
   console.error(`Usage:
   auto-sdk build --project <path> --bundle-id <id> --output <ipa> [--scheme <name>] [--configuration <name>]
-  auto-sdk build-remote --output <ipa> [--repo <owner/name>] [--workflow <name-or-file>] [--ref <branch>] [--artifact <name>] [--timeout <seconds>]`);
+  auto-sdk build-remote --output <ipa> [--repo <owner/name>] [--workflow <name-or-file>] [--ref <branch>] [--artifact <name>] [--timeout <seconds>]
+  NOTE: local builds require macOS with Xcode. On Windows/Linux use: auto-sdk build-remote`);
 }
 
 function parseArgs(argv) {
@@ -328,6 +329,9 @@ async function main() {
     usage();
     process.exitCode = 2;
     return;
+  }
+  if (process.platform !== 'darwin') {
+    throw new Error('Local builds require macOS with Xcode. On Windows or Linux use: auto-sdk build-remote');
   }
   const project = resolve(required(args, 'project'));
   const output = resolve(required(args, 'output'));

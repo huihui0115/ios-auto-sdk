@@ -1,6 +1,8 @@
 # AutoSDK
 
 这是一个面向第三方 iOS App 的客户端自动化 SDK MVP。它不是最终 App，也不包含后台设备管理或结果回传服务。
+> ⬇️ 预编译下载：GitHub [Releases](https://github.com/huihui0115/ios-auto-sdk/releases) 提供模板 App 的 TrollStore IPA（AutoSDKTemplate.ipa）与 VS Code 插件（utosdk-vscode-*.vsix），不想自己构建可直接下载安装。
+> 🌐 在线文档：<https://huihui0115.github.io/ios-auto-sdk/>（docs/ 自动部署到 GitHub Pages）。
 
 ## 当前能力
 
