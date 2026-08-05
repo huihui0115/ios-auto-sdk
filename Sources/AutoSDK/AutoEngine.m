@@ -12,6 +12,7 @@
 #import <objc/message.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AudioToolbox/AudioToolbox.h>
+#import <WebKit/WebKit.h>
 #import <mach/mach.h>
 #include <math.h>
 
@@ -122,6 +123,9 @@
 @property (nonatomic, strong) NSMutableArray<AVAudioPlayer *> *audioPlayers;
 @property (nonatomic, strong) NSMutableArray<AutoAsyncThread *> *asyncThreads;
 @property (nonatomic, assign) BOOL audioStopWhenScriptEnd;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, id> *webViews;
+@property (nonatomic, assign) NSUInteger webViewSequence;
+@property (atomic, copy) NSString *currentScriptSource;
 - (void)loadScript:(NSString *)value config:(NSDictionary *)config completion:(void (^)(NSString * _Nullable source, NSError * _Nullable error))completion;
 - (void)evaluateScript:(NSString *)source config:(NSDictionary *)config adapter:(id<AutoAutomationAdapter>)adapter completion:(AutoScriptCompletion)completion;
 - (void)finishWithResult:(NSDictionary * _Nullable)result error:(NSError * _Nullable)error completion:(AutoScriptCompletion)completion;
@@ -433,6 +437,20 @@ static void AutoShowToast(NSString *message) {
             }];
         });
     }];
+}
+
+static UIWindow *AutoEngineMainWindow(void) {
+    if (!NSThread.isMainThread) return nil;
+    if (@available(iOS 13.0, *)) {
+        for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+            if (![scene isKindOfClass:UIWindowScene.class]) continue;
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            if (windowScene.activationState != UISceneActivationStateForegroundActive) continue;
+            UIWindow *window = windowScene.windows.firstObject;
+            if (window) return window;
+        }
+    }
+    return UIApplication.sharedApplication.keyWindow;
 }
 
 static const NSUInteger AutoDebugScriptByteLimit = 768 * 1024;
@@ -823,28 +841,30 @@ static id AutoEngineHandleAudio(AutoEngine *engine, NSString *name, NSArray *arg
     }
     return @(started);
 }
-static BOOL AutoEnsurePhotoLibraryWriteAccess(AutoEngine *engine,
-                                              NSDictionary *config,
-                                              NSError **error) {
-    PHAuthorizationStatus status = [PHPhotoLibrary authorizationStatusForAccessLevel:PHAccessLevelAddOnly];
+static BOOL AutoEnsurePhotoLibraryAccess(AutoEngine *engine,
+                                         NSDictionary *config,
+                                         PHAccessLevel accessLevel,
+                                         NSString *usageDescriptionKey,
+                                         NSError **error) {
+    PHAuthorizationStatus status = [PHPhotoLibrary authorizationStatusForAccessLevel:accessLevel];
     if (status == PHAuthorizationStatusAuthorized || status == PHAuthorizationStatusLimited) return YES;
     if (status == PHAuthorizationStatusDenied || status == PHAuthorizationStatusRestricted) {
         if (error) *error = AutoMakeError(AutoSDKErrorFileAccessDenied,
-                                          @"Photo library write access was denied. Enable Photos access in Settings.", nil);
+                                          @"Photo library access was denied. Enable Photos access in Settings.", nil);
         return NO;
     }
 
-    id usageDescription = [NSBundle.mainBundle objectForInfoDictionaryKey:@"NSPhotoLibraryAddUsageDescription"];
+    id usageDescription = [NSBundle.mainBundle objectForInfoDictionaryKey:usageDescriptionKey];
     if (![usageDescription isKindOfClass:NSString.class] || [usageDescription length] == 0) {
         if (error) *error = AutoMakeError(AutoSDKErrorInvalidConfiguration,
-                                          @"NSPhotoLibraryAddUsageDescription is required to save media.", nil);
+                                          [NSString stringWithFormat:@"%@ is required for this media operation.", usageDescriptionKey], nil);
         return NO;
     }
 
     __block PHAuthorizationStatus requestedStatus = PHAuthorizationStatusNotDetermined;
     dispatch_semaphore_t finished = dispatch_semaphore_create(0);
     dispatch_async(dispatch_get_main_queue(), ^{
-        [PHPhotoLibrary requestAuthorizationForAccessLevel:PHAccessLevelAddOnly handler:^(PHAuthorizationStatus newStatus) {
+        [PHPhotoLibrary requestAuthorizationForAccessLevel:accessLevel handler:^(PHAuthorizationStatus newStatus) {
             requestedStatus = newStatus;
             dispatch_semaphore_signal(finished);
         }];
@@ -866,8 +886,28 @@ static BOOL AutoEnsurePhotoLibraryWriteAccess(AutoEngine *engine,
     }
     if (requestedStatus == PHAuthorizationStatusAuthorized || requestedStatus == PHAuthorizationStatusLimited) return YES;
     if (error) *error = AutoMakeError(AutoSDKErrorFileAccessDenied,
-                                      @"Photo library write access was denied. Enable Photos access in Settings.", nil);
+                                      @"Photo library access was denied. Enable Photos access in Settings.", nil);
     return NO;
+}
+
+static BOOL AutoEnsurePhotoLibraryWriteAccess(AutoEngine *engine,
+                                              NSDictionary *config,
+                                              NSError **error) {
+    return AutoEnsurePhotoLibraryAccess(engine,
+                                        config,
+                                        PHAccessLevelAddOnly,
+                                        @"NSPhotoLibraryAddUsageDescription",
+                                        error);
+}
+
+static BOOL AutoEnsurePhotoLibraryReadWriteAccess(AutoEngine *engine,
+                                                  NSDictionary *config,
+                                                  NSError **error) {
+    return AutoEnsurePhotoLibraryAccess(engine,
+                                        config,
+                                        PHAccessLevelReadWrite,
+                                        @"NSPhotoLibraryUsageDescription",
+                                        error);
 }
 
 static NSString *AutoDebugScriptName(id value) {
@@ -1285,6 +1325,37 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             });
         }
         return AutoPhotoAuthorizationStatusString(status);
+    }
+    if ([operation isEqualToString:@"deleteallphotos"] ||
+        [operation isEqualToString:@"deleteallvideos"] ||
+        [operation isEqualToString:@"deleteallmedia"]) {
+        BOOL deletePhotos = YES;
+        BOOL deleteVideos = YES;
+        if ([operation isEqualToString:@"deleteallphotos"]) deleteVideos = NO;
+        else if ([operation isEqualToString:@"deleteallvideos"]) deletePhotos = NO;
+        if (!AutoEnsurePhotoLibraryReadWriteAccess(self.engine, self.config ?: @{}, &error)) {
+            return [self failure:error];
+        }
+        if (![self ensureScriptRunning]) return @NO;
+        __block NSUInteger deletedCount = 0;
+        __block NSError *deleteError = nil;
+        BOOL changed = [PHPhotoLibrary.sharedPhotoLibrary performChangesAndWait:^{
+            PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsWithOptions:nil];
+            NSMutableArray<PHAsset *> *targets = [NSMutableArray array];
+            [assets enumerateObjectsUsingBlock:^(PHAsset *asset, NSUInteger idx, BOOL *stop) {
+                if (deletePhotos && asset.mediaType == PHAssetMediaTypeImage) [targets addObject:asset];
+                else if (deleteVideos && asset.mediaType == PHAssetMediaTypeVideo) [targets addObject:asset];
+            }];
+            deletedCount = targets.count;
+            if (targets.count > 0) {
+                [PHAssetChangeRequest deleteAssets:targets];
+            }
+        } error:&deleteError];
+        if (!changed || deleteError) {
+            return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed,
+                                               @"Unable to delete media from the photo library.", deleteError)];
+        }
+        return @{ @"deleted": @(deletedCount) };
     }
     NSURL *sourceURL = nil;
     UIImage *sourceImage = nil;
@@ -2068,12 +2139,24 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     __block AutoNativeMethodHandler handler = nil;
     @synchronized (self.engine) { handler = [self.engine.nativeMethods[name] copy]; }
     if (!handler) {
-        if ([name isEqualToString:@"md5"] || [name isEqualToString:@"sha1"]) {
+        if ([name isEqualToString:@"md5"] || [name isEqualToString:@"sha1"] ||
+            [name isEqualToString:@"sha256"] || [name isEqualToString:@"sha512"]) {
             id argument = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? [nativePayload[@"arguments"] firstObject] : nil;
             NSString *input = [argument isKindOfClass:NSString.class] ? argument : [argument description];
             NSData *inputData = [input dataUsingEncoding:NSUTF8StringEncoding];
             if (!inputData) return @"";
-            return [name isEqualToString:@"md5"] ? AutoScriptMD5Hex(inputData) : AutoScriptSHA1Hex(inputData);
+            if ([name isEqualToString:@"md5"]) return AutoScriptMD5Hex(inputData);
+            if ([name isEqualToString:@"sha1"]) return AutoScriptSHA1Hex(inputData);
+            if ([name isEqualToString:@"sha256"]) return AutoScriptSHA256Hex(inputData);
+            return AutoScriptSHA512Hex(inputData);
+        }
+        if ([name isEqualToString:@"aes128Encrypt"] || [name isEqualToString:@"aes128Decrypt"]) {
+            NSArray *aesArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            NSString *text = aesArgs.count > 0 && [aesArgs[0] isKindOfClass:NSString.class] ? aesArgs[0] : @"";
+            NSString *key = aesArgs.count > 1 && [aesArgs[1] isKindOfClass:NSString.class] ? aesArgs[1] : @"";
+            return [name isEqualToString:@"aes128Encrypt"]
+                ? AutoScriptAES128EncryptBase64(text, key)
+                : AutoScriptAES128DecryptBase64(text, key);
         }
         if ([name isEqualToString:@"playMp3"] || [name isEqualToString:@"stopMp3"]) {
             id audioResult = AutoEngineHandleAudio(self.engine, name,
@@ -2088,6 +2171,56 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             AutoShowToast(text);
             return @YES;
         }
+        if ([name isEqualToString:@"alert"]) {
+            NSArray *args = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            id message = args.count > 0 ? args[0] : nil;
+            id titleValue = args.count > 1 ? args[1] : nil;
+            NSString *text = [message isKindOfClass:NSString.class] ? message : [message description];
+            NSString *title = [titleValue isKindOfClass:NSString.class] ? titleValue : @"AutoSDK";
+            if (text.length == 0) text = @"";
+            dispatch_async(dispatch_get_main_queue(), ^{
+                UIWindow *window = nil;
+                if (@available(iOS 13.0, *)) {
+                    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+                        if (![scene isKindOfClass:UIWindowScene.class]) continue;
+                        UIWindowScene *windowScene = (UIWindowScene *)scene;
+                        if (windowScene.activationState != UISceneActivationStateForegroundActive) continue;
+                        window = windowScene.windows.firstObject;
+                        if (window) break;
+                    }
+                }
+                if (!window) window = UIApplication.sharedApplication.keyWindow;
+                UIViewController *presenter = window.rootViewController;
+                if (!presenter) return;
+                UIAlertController *alert = [UIAlertController alertControllerWithTitle:title
+                                                                               message:text
+                                                                        preferredStyle:UIAlertControllerStyleAlert];
+                [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+                [presenter presentViewController:alert animated:YES completion:nil];
+            });
+            return @YES;
+        }
+        if ([name isEqualToString:@"exit"]) {
+            [self.engine stopScript];
+            return @YES;
+        }
+        if ([name isEqualToString:@"restartScript"]) {
+            NSString *restartSource = self.engine.currentScriptSource;
+            if (restartSource.length == 0) {
+                return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"restartScript requires a script that was started from source.", nil)];
+            }
+            [self.engine stopScript];
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)), dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+                [self.engine runScript:restartSource completion:nil];
+            });
+            return @YES;
+        }
+        if ([name isEqualToString:@"webViewInit"] || [name isEqualToString:@"webViewShow"] ||
+            [name isEqualToString:@"webViewHidden"] || [name isEqualToString:@"webViewEval"] ||
+            [name isEqualToString:@"webViewRelease"]) {
+            NSArray *webArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            return [self handleWebViewOperation:name arguments:webArgs];
+        }
         return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, [NSString stringWithFormat:@"Native method '%@' is not registered.", name], nil)];
     }
     id object = nativePayload[@"arguments"] ?: @[];
@@ -2100,6 +2233,102 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         }
     });
     return [value isKindOfClass:NSError.class] ? [self failure:value] : value;
+}
+
+- (id)handleWebViewOperation:(NSString *)name arguments:(NSArray *)args {
+    __block id result = nil;
+    __block NSError *blockError = nil;
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if ([name isEqualToString:@"webViewEval"]) {
+            NSString *token = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"";
+            NSString *js = args.count > 1 && [args[1] isKindOfClass:NSString.class] ? args[1] : @"";
+            WKWebView *webView = nil;
+            @synchronized (self.engine) { webView = self.engine.webViews[token]; }
+            if (!webView) {
+                blockError = AutoMakeError(AutoSDKErrorAutomationFailed, @"webView.eval requires a valid webView token.", nil);
+                dispatch_semaphore_signal(semaphore);
+                return;
+            }
+            [webView evaluateJavaScript:js completionHandler:^(id value, NSError *evalError) {
+                result = value ?: [NSNull null];
+                blockError = evalError;
+                dispatch_semaphore_signal(semaphore);
+            }];
+            return;
+        }
+        result = [self performWebViewOperationOnMain:name arguments:args];
+        if ([result isKindOfClass:NSError.class]) {
+            blockError = result;
+            result = nil;
+        }
+        dispatch_semaphore_signal(semaphore);
+    });
+    NSTimeInterval deadline = NSProcessInfo.processInfo.systemUptime + 15.0;
+    while (dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC))) != 0) {
+        if ([self.engine shouldStop]) {
+            return [self failure:AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil)];
+        }
+        if (NSProcessInfo.processInfo.systemUptime >= deadline) {
+            return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"Timed out waiting for the web view operation.", nil)];
+        }
+    }
+    if (blockError) return [self failure:blockError];
+    return result;
+}
+
+- (id)performWebViewOperationOnMain:(NSString *)name arguments:(NSArray *)args {
+    if ([name isEqualToString:@"webViewInit"]) {
+        NSString *urlString = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"about:blank";
+        WKWebView *created = [[WKWebView alloc] initWithFrame:CGRectZero];
+        created.backgroundColor = UIColor.whiteColor;
+        created.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        NSURL *url = [NSURL URLWithString:urlString];
+        if (url) {
+            [created loadRequest:[NSURLRequest requestWithURL:url]];
+        }
+        @synchronized (self.engine) {
+            if (!self.engine.webViews) self.engine.webViews = [NSMutableDictionary dictionary];
+            self.engine.webViewSequence += 1;
+            NSString *token = [NSString stringWithFormat:@"webview-%lu", (unsigned long)self.engine.webViewSequence];
+            self.engine.webViews[token] = created;
+            return token;
+        }
+    }
+    NSString *token = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"";
+    WKWebView *webView = nil;
+    @synchronized (self.engine) { webView = self.engine.webViews[token]; }
+    if (!webView) {
+        return AutoMakeError(AutoSDKErrorAutomationFailed, @"webView operation requires a valid token from webView.init.", nil);
+    }
+    if ([name isEqualToString:@"webViewShow"]) {
+        UIWindow *window = AutoEngineMainWindow();
+        if (!window) {
+            return AutoMakeError(AutoSDKErrorAutomationUnavailable, @"No active window is available to show the web view.", nil);
+        }
+        UIView *container = window.rootViewController.view ?: window;
+        CGFloat x = args.count > 1 && [args[1] isKindOfClass:NSNumber.class] ? [args[1] doubleValue] : 0;
+        CGFloat y = args.count > 2 && [args[2] isKindOfClass:NSNumber.class] ? [args[2] doubleValue] : 100;
+        CGFloat width = args.count > 3 && [args[3] isKindOfClass:NSNumber.class] && [args[3] doubleValue] > 0
+            ? [args[3] doubleValue] : CGRectGetWidth(window.bounds);
+        CGFloat height = args.count > 4 && [args[4] isKindOfClass:NSNumber.class] && [args[4] doubleValue] > 0
+            ? [args[4] doubleValue] : MAX(0, CGRectGetHeight(window.bounds) - y);
+        webView.frame = CGRectMake(x, y, width, height);
+        if (webView.superview != container) {
+            [container addSubview:webView];
+        }
+        return @YES;
+    }
+    if ([name isEqualToString:@"webViewHidden"]) {
+        [webView removeFromSuperview];
+        return @YES;
+    }
+    if ([name isEqualToString:@"webViewRelease"]) {
+        [webView removeFromSuperview];
+        @synchronized (self.engine) { [self.engine.webViews removeObjectForKey:token]; }
+        return @YES;
+    }
+    return AutoMakeError(AutoSDKErrorAutomationFailed, @"Unknown web view operation.", nil);
 }
 
 - (id)invokeExecAsync:(JSValue *)payload {
@@ -3206,6 +3435,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 }
 
 - (void)evaluateScript:(NSString *)source config:(NSDictionary *)config adapter:(id<AutoAutomationAdapter>)scriptAdapter completion:(AutoScriptCompletion)completion {
+    self.currentScriptSource = source ?: @"";
     @autoreleasepool {
     NSDate *startDate = [NSDate date];
     JSContext *context = [JSContext new];

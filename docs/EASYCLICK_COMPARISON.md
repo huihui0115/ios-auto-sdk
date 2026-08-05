@@ -26,7 +26,7 @@ unavailable.
 | OCR/AI vision | phone/controller OCR APIs, multiple OCR engines, YOLO, and AI-agent workflows | on-device Apple Vision OCR with confidence and screen-point bounds | No selectable OCR model, custom model, YOLO runtime, AI agent, or batch image-object API |
 | Input/app control | input-method APIs, helper APIs, Home/app lifecycle and process operations | host text replacement plus WDA app launch/activate/terminate/state/current helpers, installed-app list, prefix launch, and home-screen/lock/unlock endpoints | No system input method or UIKit-adapter cross-app lifecycle control |
 | Device | screen/model/OS/battery, app list, serial, orientation, charging | public device/app/screen/battery/orientation information (incl. 宽x高 text), installed-app list, clipboard/brightness/volume/vibration, and WDA home-screen/lock/unlock | No serial number, reboot, install/uninstall, or process control |
-| Media | save images/videos to the camera roll through the agent | add-only Photos writes for sandbox images, base64 images, videos and screenshots (`media.*`), plus region screenshot (`screenshotRegion`), gated by `allowMediaLibrary` and an iOS authorization prompt; requires `NSPhotoLibraryAddUsageDescription` | No album-object API, batch import, photo picker, or camera/QR capture |
+| Media | save images/videos to the camera roll through the agent | add-only Photos writes for sandbox images, base64 images, videos and screenshots (`media.*`), region screenshot (`screenshotRegion`), gated by `allowMediaLibrary` and an iOS authorization prompt; requires `NSPhotoLibraryAddUsageDescription`. **Round 8:** `media.deleteAllPhotos/deleteAllVideos/deleteAllMedia` clear the camera roll (read-write Photos access, returns deleted count) | No album-object API, batch import, photo picker, or camera/QR capture |
 | Files | sandbox file CRUD, lines, copy, Excel | UTF-8/base64 reads, atomic write, append, list, mkdir, copy and remove below a confined root | No Excel, ZIP, random-access line editing, file upload picker, or access outside the configured sandbox root |
 | Storage | named typed key-value stores | named persistent JSON stores plus EasyClick-style typed wrappers | No database/JDBC layer; 1 MiB default namespace limit |
 | HTTP | generic requests, GET/POST/JSON, download, WebSocket | guarded HTTP methods, JSON/binary responses, host allowlist, response limit, sandbox download | Synchronous JS facade, no multipart/form upload, cookie jar API, proxy API, or script WebSocket client |
@@ -87,7 +87,7 @@ The following surfaces must not be described as production-complete yet:
 | 文件 | 26 | 沙盒 CRUD、行操作、复制/移动/重命名、stat/getSize/时间戳/类型判断 |
 | 存储 | 5 | 命名 typed store |
 | 网络HTTP | 6 | get/post/postJSON/getJSON/download/通用请求 |
-| 相册媒体 | 8 | saveImage/saveImageBase64/saveVideo/saveScreenshot/playMp3/stopMp3/相册权限 |
+| 相册媒体 | 10 | saveImage/saveImageBase64/saveVideo/saveScreenshot/deleteAllPhotos/deleteAllVideos/deleteAllMedia/playMp3/stopMp3/相册权限 |
 | 定时器与工具 | 7 | 定时器、uuid、base64、time/random |
 
 本次新增：`setScreenMetrics`/`getScreenMetrics`/`metrics.point`（EasyClick 分辨率适配）、

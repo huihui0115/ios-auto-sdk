@@ -52,6 +52,8 @@
 	<string>Connect Visual Studio Code to AutoSDK on this iPhone for local development.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Save images and videos created by automation scripts to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Automation scripts may read and delete photos and videos in your photo library when you call media.deleteAllPhotos/deleteAllVideos/deleteAllMedia.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>

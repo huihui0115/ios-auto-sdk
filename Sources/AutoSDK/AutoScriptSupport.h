@@ -14,6 +14,10 @@ BOOL AutoScriptValidateDownloadDestination(NSString *path,
 NSUInteger AutoScriptMaximumDownloadBytes(NSDictionary<NSString *, id> *config);
 NSString * _Nullable AutoScriptMD5Hex(NSData *data);
 NSString * _Nullable AutoScriptSHA1Hex(NSData *data);
+NSString * _Nullable AutoScriptSHA256Hex(NSData *data);
+NSString * _Nullable AutoScriptSHA512Hex(NSData *data);
+NSString * _Nullable AutoScriptAES128EncryptBase64(NSString *plaintext, NSString *key);
+NSString * _Nullable AutoScriptAES128DecryptBase64(NSString *base64, NSString *key);
 BOOL AutoScriptInstallDownloadedFile(NSURL *temporaryURL,
                                      NSString *path,
                                      NSDictionary<NSString *, id> *config,

@@ -10,7 +10,10 @@
 - JavaScriptCore 执行本地脚本、Bundle 脚本和远程 URL
 - 全局 `auto` API：点击、滑动、输入、稳定节点查询、图色、截图、OCR、沙盒文件、命名存储、设备信息和受控 HTTP
 - 系统能力（`allowSystemControl` 可开关）：剪贴板读写、屏幕亮度、系统音量、振动、打开 URL；WDA Runner 额外支持主屏幕/锁屏/解锁、音量键、屏幕状态
-- 相册写入（`allowMediaLibrary` 可开关）：保存沙盒图片、视频、Base64 图片或当前截图到 iOS“照片”
+- 相册（`allowMediaLibrary` 可开关）：保存沙盒图片、视频、Base64 图片或截图到 iOS“照片”，并支持 `media.deleteAllPhotos/deleteAllVideos/deleteAllMedia` 清空相册（返回删除数量）
+- plist 读写：`file.readPlist/writePlist` 与全局 `plist.read/plist.write`（XML plist）
+- 悬浮 webView：`webView.init/show/hidden/eval/release`（WKWebView）
+- 加密与字符串：`strings.aes128Encrypt/aes128Decrypt`、`sha256/sha512` 及 20+ 字符串工具
 - Native 方法注册：`registerNativeMethod:handler:`
 - 取消、超时、JS 异常和适配器错误统一转换为 `NSError`，成功结果包含 `value` 和 `logs`
 - 脚本可取消：`stopScript`/`scriptTimeout` 在桥接调用、`auto.sleep` 和定时器回调处协作式中断脚本
@@ -18,6 +21,7 @@
 - 基于公共 API 的 `AutoUIKitAdapter`，可直接自动化宿主 App 自己的 UIKit 视图
 
 > 📖 中文图文教程（离线网页版，双击即开）：[docs/guide/index.html](docs/guide/index.html)（安装 → 连接 → 第一行代码 → 调试）。
+> 🆚 对标文档：[`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)（EasyClick）、[`docs/TROLLAUTOSCRIPT_COMPARISON.md`](docs/TROLLAUTOSCRIPT_COMPARISON.md)（TrollAutoScript）、[`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)（AutoScript）。
 > 🚀 想快速上手？先看 [`docs/QUICK_START.md`](docs/QUICK_START.md)（第三方 10 分钟跑通
 > 「写脚本 → 构建 IPA → 安装 → 调试」）。与 AutoScript 的定位/能力对比见
 > [`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)。

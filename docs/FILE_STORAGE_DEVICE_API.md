@@ -159,6 +159,12 @@ media.saveScreenshot();
 media.saveVideo("videos/result.mp4");
 ```
 
+`media.deleteAllPhotos()`, `media.deleteAllVideos()` and `media.deleteAllMedia()`
+delete every photo/video/media in the system Photos library and return the number
+of deleted assets. They need the read-write Photos permission (the first call
+shows the iOS authorization prompt) and the `NSPhotoLibraryUsageDescription` key
+in the host `Info.plist`.
+
 `media.saveImage` and `media.saveVideo` accept files below the AutoSDK file
 sandbox. `media.saveImageBase64` accepts strict base64 image data, which makes
 it convenient to persist the result of `auto.screenshot()`. All methods return

@@ -6,6 +6,25 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Round 8: 相册清空 + 对标 TrollAutoScript 补齐常用函数。** 新增
+  `media.deleteAllPhotos()/deleteAllVideos()/deleteAllMedia()`（读写真机权限、返回删除数量，全局简写同名）；
+  新增字符串工具 `strings.*`（trim/ltrim/rtrim/split/chars/toHex/fromHex/isUpper/isLower/isNumber/
+  isIntrger/isLetter/isChinese/isEmail/isLink/base64Encode/base64Decode）与全局简写；新增
+  `sha256()/sha512()`（CommonCrypto）；新增 `alert(message,title?)` 原生弹窗与 `exit()` 停止脚本；
+  新增文件行操作 `file.lineCount/getLineText/insertLineText/resetLineText`。新增
+  [`docs/TROLLAUTOSCRIPT_COMPARISON.md`](docs/TROLLAUTOSCRIPT_COMPARISON.md) 模块级对标表，
+  本地 API 文档同步更新（189 个函数）。
+
+### Added
+
+- **Round 9: plist / webView / AES-128。** 新增 `file.readPlist/writePlist` 与全局 `plist.read/plist.write`
+  （XML plist，NSData→base64、NSDate→毫秒）；新增 `webView.init/show/hidden/eval/release` 悬浮
+  WKWebView（对标 TrollAutoScript webView 模块）；新增 `strings.aes128Encrypt/aes128Decrypt`
+  （AES-128-ECB+PKCS7，CommonCrypto）与全局简写；新增 `restartScript()` 停止后重跑当前
+  脚本（引擎记录当前脚本源码）。本地 API 文档同步更新（192 个函数）。
+
 ### Changed
 
 - **Timers wait in one native sleep instead of 50 ms slices.** A one-second

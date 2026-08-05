@@ -40,6 +40,9 @@ Audit date: 2026-08-05
 | 提示/日志 | toast / toastLog | ✅ 内置 toast 悬浮提示 + toastLog，宿主可覆盖注册 |
 | 系统配置开关 | 工具内开关 | allowSystemControl（默认开）等配置项 |
 | 相册/媒体 | 保存图片/视频/截图到相册 | ✅ media.saveImage / saveImageBase64 / saveVideo / saveScreenshot，iOS 授权弹窗 + allowMediaLibrary 开关 |
+| 相册清空 | 一键清空相册 | ✅ media.deleteAllPhotos / deleteAllVideos / deleteAllMedia（读写真机权限，返回删除数量） |
+| 字符串工具 | trim/split/哈希/字符判断 | ✅ strings.trim..base64Decode 等 20+ 函数与全局简写，含 sha256/sha512 |
+| 弹窗/退出 | 提示框、停止脚本 | ✅ alert(message,title?)、exit() |
 | 内存信息 | 内存占用/可用 | ✅ device.getMemoryInfo（total/free/appUsed 字节） |
 | 分辨率适配 | setScreenMetrics / getScreenMetrics | ✅ setScreenMetrics(width,height) + metrics.point(x,y) + device.width/height |
 | 多指手势 | 双指缩放/自定义复杂手势 | ✅ auto.gesture / multiGesture / pinch（WDA 适配器真实触摸注入，capabilities.multiTouch）|

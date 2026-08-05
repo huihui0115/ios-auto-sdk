@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>33</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>15</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>23</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>34</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>9</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>18</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>33</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>15</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>23</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>36</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>10</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>19</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>8</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -1655,8 +1655,42 @@ main();</code></pre>
 </article>
 </section>
 <section id="file" class="cat" style="--c:#4f46e5">
-  <h2><span class="tag">文件</span><i>34</i></h2>
-  <article class="card" data-search="file.writeText(path, text) 写文本">
+  <h2><span class="tag">文件</span><i>36</i></h2>
+  <article class="card" data-search="file.lineCount(path) / getLineText(path, index) / insertLineText(path, index, text) / resetLineText(path, index, text) 文件行操作">
+  <header class="card-head">
+    <h4><code>file.lineCount(path) / getLineText(path, index) / insertLineText(path, index, text) / resetLineText(path, index, text)</code> <span class="cname">文件行操作</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">按行读取与编辑文本文件：lineCount 返回总行数，getLineText 读取指定行，insertLineText 在指定位置插入一行，resetLineText 替换指定行。全局简写 lineCount/getLineText/insertLineText/resetLineText 同样可用。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内文件路径</span></div><div class="param"><code class="pname">index</code><span class="ptype">number</span><span class="pdesc">行号，从 0 开始</span></div><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">行文本</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number | string | boolean</span></div>
+  <pre><code>function main(){
+  logd("总行数: " + file.lineCount("data.txt"));
+  logd("第 1 行: " + file.getLineText("data.txt", 1));
+  file.insertLineText("data.txt", 0, "标题行");
+  file.resetLineText("data.txt", 2, "新内容");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.readPlist(path) / file.writePlist(path, value) / plist.read(path) / plist.write(path, value) plist 读写">
+  <header class="card-head">
+    <h4><code>file.readPlist(path) / file.writePlist(path, value) / plist.read(path) / plist.write(path, value)</code> <span class="cname">plist 读写</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">readPlist 把 XML/二进制 plist 读成普通对象（NSData 转 base64 字符串、NSDate 转毫秒时间戳）；writePlist 把 JSON 可序列化对象写成 XML plist。全局 plist.read/plist.write 与 readPlist/writePlist 简写同样可用。对标 TrollAutoScript plist.read/plist.write。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内文件路径</span></div><div class="param"><code class="pname">value</code><span class="ptype">object</span><span class="pdesc">要写入的 JSON 对象/数组</span></div></div>
+  <div class="ret"><b>返回值</b> <span>object | boolean</span></div>
+  <pre><code>function main(){
+  const cfg = file.readPlist("config.plist");
+  logd(JSON.stringify(cfg));
+  file.writePlist("config.plist", { count: 3, name: "AutoSDK" });
+  plist.write("backup.plist", cfg);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.writeText(path, text) 写文本">
   <header class="card-head">
     <h4><code>file.writeText(path, text)</code> <span class="cname">写文本</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -2491,7 +2525,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="media" class="cat" style="--c:#db2777">
-  <h2><span class="tag">相册媒体</span><i>9</i></h2>
+  <h2><span class="tag">相册媒体</span><i>10</i></h2>
   <article class="card" data-search="saveImageToAlbum(path) / saveImageBase64ToAlbum(base64) / saveScreenshotToAlbum() / saveVideoToAlbum(path) 相册全局简写">
   <header class="card-head">
     <h4><code>saveImageToAlbum(path) / saveImageBase64ToAlbum(base64) / saveScreenshotToAlbum() / saveVideoToAlbum(path)</code> <span class="cname">相册全局简写</span></h4>
@@ -2619,6 +2653,23 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="media.deleteAllPhotos() / deleteAllVideos() / deleteAllMedia() 清空相册">
+  <header class="card-head">
+    <h4><code>media.deleteAllPhotos() / deleteAllVideos() / deleteAllMedia()</code> <span class="cname">清空相册</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">删除系统相册中的媒体：deleteAllPhotos 删除全部照片，deleteAllVideos 删除全部视频，deleteAllMedia 同时删除照片与视频。需要相册读写权限（首次调用弹出系统授权），返回实际删除数量。全局简写 deleteAllPhotos() / deleteAllVideos() / deleteAllMedia() 同样可用。</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>number 实际删除的媒体数量</span></div>
+  <pre><code>function main(){
+  const n = media.deleteAllPhotos();
+  logd("已删除照片: " + n);
+  const m = deleteAllVideos();
+  logd("已删除视频: " + m);
+}
+main();</code></pre>
+</article>
 <article class="card" data-search="auto.saveImageToAlbum / image.saveToAlbum 等别名 相册别名">
   <header class="card-head">
     <h4><code>auto.saveImageToAlbum / image.saveToAlbum 等别名</code> <span class="cname">相册别名</span></h4>
@@ -2636,7 +2687,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="timer" class="cat" style="--c:#64748b">
-  <h2><span class="tag">定时器与工具</span><i>18</i></h2>
+  <h2><span class="tag">定时器与工具</span><i>19</i></h2>
   <article class="card" data-search="clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id) 取消定时器">
   <header class="card-head">
     <h4><code>clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id)</code> <span class="cname">取消定时器</span></h4>
@@ -2699,12 +2750,12 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="md5(text) / sha1(text) 哈希">
+<article class="card" data-search="md5(text) / sha1(text) / sha256(text) / sha512(text) 哈希">
   <header class="card-head">
-    <h4><code>md5(text) / sha1(text)</code> <span class="cname">哈希</span></h4>
+    <h4><code>md5(text) / sha1(text) / sha256(text) / sha512(text)</code> <span class="cname">哈希</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">对字符串计算 MD5 或 SHA1 十六进制摘要，可用于请求签名、文件去重。</p>
+  <p class="desc">对字符串计算 MD5/SHA1/SHA256/SHA512 十六进制摘要，可用于请求签名、文件去重。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">任意字符串</span></div></div>
   <div class="ret"><b>返回值</b> <span>string</span></div>
@@ -2807,6 +2858,21 @@ main();</code></pre>
   <pre><code>function main(){
   setClipboard("hello");
   logd(getClipboard());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="alert(message, title?) / exit() / restartScript() 弹窗与退出">
+  <header class="card-head">
+    <h4><code>alert(message, title?) / exit() / restartScript()</code> <span class="cname">弹窗与退出</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">alert 弹出系统提示框（标题默认 AutoSDK，点击 OK 关闭，不阻塞脚本）；exit 立即停止当前脚本；restartScript 停止后重新运行当前脚本（适合守护进程）。对标 TrollAutoScript sys.alert / os.exit / restartScript。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">message</code><span class="ptype">string</span><span class="pdesc">提示内容</span></div><div class="param"><code class="pname">title</code><span class="ptype">string</span><span class="pdesc">可选，标题，默认 AutoSDK</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  alert("任务完成", "AutoSDK");
+  exit();
 }
 main();</code></pre>
 </article>
@@ -2924,9 +2990,139 @@ main();</code></pre>
 main();</code></pre>
 </article>
 </section>
+<section id="strings" class="cat" style="--c:#a21caf">
+  <h2><span class="tag">字符串工具</span><i>8</i></h2>
+  <article class="card" data-search="webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.release(token) webView 悬浮网页">
+  <header class="card-head">
+    <h4><code>webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.release(token)</code> <span class="cname">webView 悬浮网页</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在 App 内创建并显示一个悬浮 WKWebView：init 创建（返回 token），show 指定位置尺寸显示，hidden 隐藏，eval 在页面执行 JS 并返回结果，release 释放。对标 TrollAutoScript webView.init/show/hidden/eval/release。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">可选，首页网址，默认 about:blank</span></div><div class="param"><code class="pname">token</code><span class="ptype">string</span><span class="pdesc">webView.init 返回的标识</span></div><div class="param"><code class="pname">x/y/width/height</code><span class="ptype">number</span><span class="pdesc">可选，显示位置与尺寸</span></div><div class="param"><code class="pname">js</code><span class="ptype">string</span><span class="pdesc">要执行的 JavaScript</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string token | boolean | unknown</span></div>
+  <pre><code>function main(){
+  const token = webView.init("https://example.com");
+  webView.show(token, 0, 100, 390, 600);
+  const title = webView.eval(token, "document.title");
+  logd("title: " + title);
+  webView.hidden(token);
+  webView.release(token);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="strings.aes128Encrypt(text, key) / strings.aes128Decrypt(base64, key) AES-128 加解密">
+  <header class="card-head">
+    <h4><code>strings.aes128Encrypt(text, key) / strings.aes128Decrypt(base64, key)</code> <span class="cname">AES-128 加解密</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">AES-128-ECB + PKCS7 填充，key 取前 16 字节（不足补零），密文为 base64。全局 aes128Encrypt/aes128Decrypt 简写同样可用。对标 TrollAutoScript string.aes128Encrypt/aes128Decrypt。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">明文或 base64 密文</span></div><div class="param"><code class="pname">key</code><span class="ptype">string</span><span class="pdesc">密钥，取前 16 字节</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  const encrypted = strings.aes128Encrypt("hello", "mykey");
+  logd(encrypted);
+  logd(strings.aes128Decrypt(encrypted, "mykey"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="trim(text) / ltrim(text) / rtrim(text) 去除空白">
+  <header class="card-head">
+    <h4><code>trim(text) / ltrim(text) / rtrim(text)</code> <span class="cname">去除空白</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">trim 去掉首尾空白，ltrim 去掉开头空白，rtrim 去掉结尾空白。对标 TrollAutoScript string.trim/ltrim/rtrim。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">任意字符串</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd("[" + trim("  a b  ") + "]");
+  logd("[" + ltrim("  a") + "]");
+  logd("[" + rtrim("a  ") + "]");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="split(text, sep?) / chars(text) 分割与逐字">
+  <header class="card-head">
+    <h4><code>split(text, sep?) / chars(text)</code> <span class="cname">分割与逐字</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">split 按分隔符分割（默认逗号），chars 将字符串拆成单字数组。对标 TrollAutoScript string.split/chars。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">任意字符串</span></div><div class="param"><code class="pname">sep</code><span class="ptype">string</span><span class="pdesc">可选，分隔符，默认 ,</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string[]</span></div>
+  <pre><code>function main(){
+  logd(JSON.stringify(split("a,b,c")));
+  logd(JSON.stringify(chars("abc")));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="toHex(text) / fromHex(hex) 十六进制互转">
+  <header class="card-head">
+    <h4><code>toHex(text) / fromHex(hex)</code> <span class="cname">十六进制互转</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">toHex 把字符串转成十六进制（每字符两位），fromHex 反向还原。对标 TrollAutoScript string.toHex/fromHex。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">任意字符串</span></div><div class="param"><code class="pname">hex</code><span class="ptype">string</span><span class="pdesc">十六进制文本</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(toHex("A"));
+  logd(fromHex("41"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="isUpper(text) / isLower(text) / isLetter(text) / isNumber(text) / isIntrger(text) 字符类别判断">
+  <header class="card-head">
+    <h4><code>isUpper(text) / isLower(text) / isLetter(text) / isNumber(text) / isIntrger(text)</code> <span class="cname">字符类别判断</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">判断字符串是否全为大写字母/小写字母/字母/纯数字/整数（可带负号）。对标 TrollAutoScript string.isUpper/isLower/isLetter/isNumber/isIntrger。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">任意字符串</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  logd(isUpper("ABC") + "," + isLower("abc") + "," + isLetter("aB"));
+  logd(isNumber("007") + "," + isIntrger("-12"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="isChinese(text) / isEmail(text) / isLink(text) 中文/邮箱/链接判断">
+  <header class="card-head">
+    <h4><code>isChinese(text) / isEmail(text) / isLink(text)</code> <span class="cname">中文/邮箱/链接判断</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">isChinese 判断是否全为汉字，isEmail 判断是否为邮箱地址，isLink 判断是否以 http:// 或 https:// 开头。对标 TrollAutoScript string.isChinese/isEmail/isLink。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">任意字符串</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  logd(isChinese("中文"));
+  logd(isEmail("user@example.com"));
+  logd(isLink("https://example.com"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="strings.md5(text) / strings.sha1(text) / strings.sha256(text) / strings.sha512(text) / strings.base64Encode(text) / strings.base64Decode(text) 字符串哈希与编码">
+  <header class="card-head">
+    <h4><code>strings.md5(text) / strings.sha1(text) / strings.sha256(text) / strings.sha512(text) / strings.base64Encode(text) / strings.base64Decode(text)</code> <span class="cname">字符串哈希与编码</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">strings 模块提供字符串级别的 md5/sha1/sha256/sha512 哈希与 base64 编解码（全局也有 sha256/sha512 简写）。对标 TrollAutoScript string.md5/sha1/sha256/sha512/base64Encode/base64Decode。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">任意字符串</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(strings.sha256("hello"));
+  logd(strings.base64Encode("hello"));
+}
+main();</code></pre>
+</article>
+</section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 180 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 192 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

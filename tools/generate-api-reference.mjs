@@ -22,7 +22,8 @@ const CATEGORIES = [
   { id: 'storage',  name: '存储', color: '#0d9488' },
   { id: 'http',     name: '网络HTTP', color: '#9333ea' },
   { id: 'media',    name: '相册媒体', color: '#db2777' },
-  { id: 'timer',    name: '定时器与工具', color: '#64748b' }
+  { id: 'timer',    name: '定时器与工具', color: '#64748b' },
+  { id: 'strings',  name: '字符串工具', color: '#a21caf' }
 ];
 
 const REFS = {
@@ -246,6 +247,20 @@ APIS.push({ cat:'logs', sig:'logi(message) / logw(message) / loge(message)', tit
 main();` });
 
 // ==== 补齐：文件常用操作 ====
+APIS.push({ cat:'file', sig:'file.lineCount(path) / getLineText(path, index) / insertLineText(path, index, text) / resetLineText(path, index, text)', title:'文件行操作', desc:'按行读取与编辑文本文件：lineCount 返回总行数，getLineText 读取指定行，insertLineText 在指定位置插入一行，resetLineText 替换指定行。全局简写 lineCount/getLineText/insertLineText/resetLineText 同样可用。', params:[['path','string','沙盒内文件路径'],['index','number','行号，从 0 开始'],['text','string','行文本']], returns:'number | string | boolean', example:`function main(){
+  logd("总行数: " + file.lineCount("data.txt"));
+  logd("第 1 行: " + file.getLineText("data.txt", 1));
+  file.insertLineText("data.txt", 0, "标题行");
+  file.resetLineText("data.txt", 2, "新内容");
+}
+main();` });
+APIS.push({ cat:'file', sig:'file.readPlist(path) / file.writePlist(path, value) / plist.read(path) / plist.write(path, value)', title:'plist 读写', desc:'readPlist 把 XML/二进制 plist 读成普通对象（NSData 转 base64 字符串、NSDate 转毫秒时间戳）；writePlist 把 JSON 可序列化对象写成 XML plist。全局 plist.read/plist.write 与 readPlist/writePlist 简写同样可用。对标 TrollAutoScript plist.read/plist.write。', params:[['path','string','沙盒内文件路径'],['value','object','要写入的 JSON 对象/数组']], returns:'object | boolean', example:`function main(){
+  const cfg = file.readPlist("config.plist");
+  logd(JSON.stringify(cfg));
+  file.writePlist("config.plist", { count: 3, name: "AutoSDK" });
+  plist.write("backup.plist", cfg);
+}
+main();` });
 APIS.push({ cat:'file', sig:'file.writeText(path, text)', title:'写文本', desc:'把文本写入沙盒文件（自动建目录）。', params:[['path','string','沙盒内路径'],['text','string','文本内容']], returns:'boolean', example:`function main(){
   file.writeText("data/note.txt", "hello");
   logd(file.readText("data/note.txt"));
@@ -374,7 +389,7 @@ APIS.push({ cat:'media', sig:'media.requestPhotoAuthorization() / media.getPhoto
   logd("请求后: " + status);
   if (status === "authorized" || status === "limited") saveImageToAlbum("images/a.png");
 }
-main();` });APIS.push({ cat:'timer', sig:'md5(text) / sha1(text)', title:'哈希', desc:'对字符串计算 MD5 或 SHA1 十六进制摘要，可用于请求签名、文件去重。', params:[['text','string','任意字符串']], returns:'string', example:`function main(){
+main();` });APIS.push({ cat:'timer', sig:'md5(text) / sha1(text) / sha256(text) / sha512(text)', title:'哈希', desc:'对字符串计算 MD5/SHA1/SHA256/SHA512 十六进制摘要，可用于请求签名、文件去重。', params:[['text','string','任意字符串']], returns:'string', example:`function main(){
   logd("md5: " + md5("hello"));
   logd("sha1: " + sha1("hello"));
 }
@@ -1199,12 +1214,71 @@ APIS.push({ cat:'media', sig:'media.saveScreenshot()', title:'截图存相册', 
   logd("截图已存相册: " + ok);
 }
 main();` });
+APIS.push({ cat:'media', sig:'media.deleteAllPhotos() / deleteAllVideos() / deleteAllMedia()', title:'清空相册', desc:'删除系统相册中的媒体：deleteAllPhotos 删除全部照片，deleteAllVideos 删除全部视频，deleteAllMedia 同时删除照片与视频。需要相册读写权限（首次调用弹出系统授权），返回实际删除数量。全局简写 deleteAllPhotos() / deleteAllVideos() / deleteAllMedia() 同样可用。', params:[], returns:'number 实际删除的媒体数量', example:`function main(){
+  const n = media.deleteAllPhotos();
+  logd("已删除照片: " + n);
+  const m = deleteAllVideos();
+  logd("已删除视频: " + m);
+}
+main();` });
 APIS.push({ cat:'media', sig:'auto.saveImageToAlbum / image.saveToAlbum 等别名', title:'相册别名', desc:'saveImageToAlbum、saveImageBase64ToAlbum、saveVideoToAlbum、saveScreenshotToAlbum 全局可用；image 模块另有 saveToAlbum/saveBase64ToAlbum/saveScreenshotToAlbum。', params:[], returns:'同对应函数', example:`function main(){
   const ok = saveScreenshotToAlbum();
   logd("别名调用: " + ok);
 }
 main();` });
 
+APIS.push({ cat:'strings', sig:'webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.release(token)', title:'webView 悬浮网页', desc:'在 App 内创建并显示一个悬浮 WKWebView：init 创建（返回 token），show 指定位置尺寸显示，hidden 隐藏，eval 在页面执行 JS 并返回结果，release 释放。对标 TrollAutoScript webView.init/show/hidden/eval/release。', params:[['url','string','可选，首页网址，默认 about:blank'],['token','string','webView.init 返回的标识'],['x/y/width/height','number','可选，显示位置与尺寸'],['js','string','要执行的 JavaScript']], returns:'string token | boolean | unknown', example:`function main(){
+  const token = webView.init("https://example.com");
+  webView.show(token, 0, 100, 390, 600);
+  const title = webView.eval(token, "document.title");
+  logd("title: " + title);
+  webView.hidden(token);
+  webView.release(token);
+}
+main();` });
+APIS.push({ cat:'strings', sig:'strings.aes128Encrypt(text, key) / strings.aes128Decrypt(base64, key)', title:'AES-128 加解密', desc:'AES-128-ECB + PKCS7 填充，key 取前 16 字节（不足补零），密文为 base64。全局 aes128Encrypt/aes128Decrypt 简写同样可用。对标 TrollAutoScript string.aes128Encrypt/aes128Decrypt。', params:[['text','string','明文或 base64 密文'],['key','string','密钥，取前 16 字节']], returns:'string', example:`function main(){
+  const encrypted = strings.aes128Encrypt("hello", "mykey");
+  logd(encrypted);
+  logd(strings.aes128Decrypt(encrypted, "mykey"));
+}
+main();` });
+APIS.push({ cat:'timer', sig:'alert(message, title?) / exit() / restartScript()', title:'弹窗与退出', desc:'alert 弹出系统提示框（标题默认 AutoSDK，点击 OK 关闭，不阻塞脚本）；exit 立即停止当前脚本；restartScript 停止后重新运行当前脚本（适合守护进程）。对标 TrollAutoScript sys.alert / os.exit / restartScript。', params:[['message','string','提示内容'],['title','string','可选，标题，默认 AutoSDK']], returns:'boolean', example:`function main(){
+  alert("任务完成", "AutoSDK");
+  exit();
+}
+main();` });
+APIS.push({ cat:'strings', sig:'trim(text) / ltrim(text) / rtrim(text)', title:'去除空白', desc:'trim 去掉首尾空白，ltrim 去掉开头空白，rtrim 去掉结尾空白。对标 TrollAutoScript string.trim/ltrim/rtrim。', params:[['text','string','任意字符串']], returns:'string', example:`function main(){
+  logd("[" + trim("  a b  ") + "]");
+  logd("[" + ltrim("  a") + "]");
+  logd("[" + rtrim("a  ") + "]");
+}
+main();` });
+APIS.push({ cat:'strings', sig:'split(text, sep?) / chars(text)', title:'分割与逐字', desc:'split 按分隔符分割（默认逗号），chars 将字符串拆成单字数组。对标 TrollAutoScript string.split/chars。', params:[['text','string','任意字符串'],['sep','string','可选，分隔符，默认 ,']], returns:'string[]', example:`function main(){
+  logd(JSON.stringify(split("a,b,c")));
+  logd(JSON.stringify(chars("abc")));
+}
+main();` });
+APIS.push({ cat:'strings', sig:'toHex(text) / fromHex(hex)', title:'十六进制互转', desc:'toHex 把字符串转成十六进制（每字符两位），fromHex 反向还原。对标 TrollAutoScript string.toHex/fromHex。', params:[['text','string','任意字符串'],['hex','string','十六进制文本']], returns:'string', example:`function main(){
+  logd(toHex("A"));
+  logd(fromHex("41"));
+}
+main();` });
+APIS.push({ cat:'strings', sig:'isUpper(text) / isLower(text) / isLetter(text) / isNumber(text) / isIntrger(text)', title:'字符类别判断', desc:'判断字符串是否全为大写字母/小写字母/字母/纯数字/整数（可带负号）。对标 TrollAutoScript string.isUpper/isLower/isLetter/isNumber/isIntrger。', params:[['text','string','任意字符串']], returns:'boolean', example:`function main(){
+  logd(isUpper("ABC") + "," + isLower("abc") + "," + isLetter("aB"));
+  logd(isNumber("007") + "," + isIntrger("-12"));
+}
+main();` });
+APIS.push({ cat:'strings', sig:'isChinese(text) / isEmail(text) / isLink(text)', title:'中文/邮箱/链接判断', desc:'isChinese 判断是否全为汉字，isEmail 判断是否为邮箱地址，isLink 判断是否以 http:// 或 https:// 开头。对标 TrollAutoScript string.isChinese/isEmail/isLink。', params:[['text','string','任意字符串']], returns:'boolean', example:`function main(){
+  logd(isChinese("中文"));
+  logd(isEmail("user@example.com"));
+  logd(isLink("https://example.com"));
+}
+main();` });
+APIS.push({ cat:'strings', sig:'strings.md5(text) / strings.sha1(text) / strings.sha256(text) / strings.sha512(text) / strings.base64Encode(text) / strings.base64Decode(text)', title:'字符串哈希与编码', desc:'strings 模块提供字符串级别的 md5/sha1/sha256/sha512 哈希与 base64 编解码（全局也有 sha256/sha512 简写）。对标 TrollAutoScript string.md5/sha1/sha256/sha512/base64Encode/base64Decode。', params:[['text','string','任意字符串']], returns:'string', example:`function main(){
+  logd(strings.sha256("hello"));
+  logd(strings.base64Encode("hello"));
+}
+main();` });
 APIS.push({ cat:'timer', sig:'setTimeout(fn, ms, ...args) / clearTimeout(id)', title:'延时执行', desc:'延时后执行一次回调；脚本结束前会排空定时器。', params:[['fn','function','回调'],['ms','number','毫秒'],['id','number','定时器 id']], returns:'number / void', example:`function main(){
   const id = setTimeout(() => { logd("延时执行"); }, 500);
   clearTimeout(id);

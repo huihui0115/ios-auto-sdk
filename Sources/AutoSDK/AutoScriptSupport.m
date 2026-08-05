@@ -1,6 +1,7 @@
 #import "AutoScriptSupport.h"
 #import "include/AutoSDKError.h"
 #import <CommonCrypto/CommonDigest.h>
+#import <CommonCrypto/CommonCryptor.h>
 #import <ImageIO/ImageIO.h>
 #include <math.h>
 #include <string.h>
@@ -32,6 +33,66 @@ NSString *AutoScriptSHA1Hex(NSData *data) {
     unsigned char digest[CC_SHA1_DIGEST_LENGTH] = {0};
     CC_SHA1(data.bytes, (CC_LONG)data.length, digest);
     return AutoHexFromBytes(digest, CC_SHA1_DIGEST_LENGTH);
+}
+
+NSString *AutoScriptSHA256Hex(NSData *data) {
+    if (data.length == 0) return @"";
+    unsigned char digest[CC_SHA256_DIGEST_LENGTH] = {0};
+    CC_SHA256(data.bytes, (CC_LONG)data.length, digest);
+    return AutoHexFromBytes(digest, CC_SHA256_DIGEST_LENGTH);
+}
+
+NSString *AutoScriptSHA512Hex(NSData *data) {
+    if (data.length == 0) return @"";
+    unsigned char digest[CC_SHA512_DIGEST_LENGTH] = {0};
+    CC_SHA512(data.bytes, (CC_LONG)data.length, digest);
+    return AutoHexFromBytes(digest, CC_SHA512_DIGEST_LENGTH);
+}
+
+NSString *AutoScriptAES128EncryptBase64(NSString *plaintext, NSString *key) {
+    if (plaintext.length == 0) return @"";
+    NSData *keyData = [key dataUsingEncoding:NSUTF8StringEncoding];
+    unsigned char fixedKey[kCCKeySizeAES128] = {0};
+    NSUInteger copyLength = MIN(keyData.length, kCCKeySizeAES128);
+    if (copyLength > 0) memcpy(fixedKey, keyData.bytes, copyLength);
+    NSData *input = [plaintext dataUsingEncoding:NSUTF8StringEncoding];
+    size_t bufferSize = input.length + kCCBlockSizeAES128;
+    NSMutableData *buffer = [NSMutableData dataWithLength:bufferSize];
+    size_t written = 0;
+    CCCryptorStatus status = CCCrypt(kCCEncrypt,
+                                     kCCAlgorithmAES128,
+                                     kCCOptionPKCS7Padding | kCCOptionECBMode,
+                                     fixedKey, kCCKeySizeAES128,
+                                     NULL,
+                                     input.bytes, input.length,
+                                     buffer.mutableBytes, bufferSize,
+                                     &written);
+    if (status != kCCSuccess) return @"";
+    return [[buffer subdataWithRange:NSMakeRange(0, written)] base64EncodedStringWithOptions:0];
+}
+
+NSString *AutoScriptAES128DecryptBase64(NSString *base64, NSString *key) {
+    if (base64.length == 0) return @"";
+    NSData *keyData = [key dataUsingEncoding:NSUTF8StringEncoding];
+    unsigned char fixedKey[kCCKeySizeAES128] = {0};
+    NSUInteger copyLength = MIN(keyData.length, kCCKeySizeAES128);
+    if (copyLength > 0) memcpy(fixedKey, keyData.bytes, copyLength);
+    NSData *input = [[NSData alloc] initWithBase64EncodedString:base64 options:0];
+    if (!input) return @"";
+    size_t bufferSize = input.length + kCCBlockSizeAES128;
+    NSMutableData *buffer = [NSMutableData dataWithLength:bufferSize];
+    size_t written = 0;
+    CCCryptorStatus status = CCCrypt(kCCDecrypt,
+                                     kCCAlgorithmAES128,
+                                     kCCOptionPKCS7Padding | kCCOptionECBMode,
+                                     fixedKey, kCCKeySizeAES128,
+                                     NULL,
+                                     input.bytes, input.length,
+                                     buffer.mutableBytes, bufferSize,
+                                     &written);
+    if (status != kCCSuccess) return @"";
+    NSData *decrypted = [buffer subdataWithRange:NSMakeRange(0, written)];
+    return [[NSString alloc] initWithData:decrypted encoding:NSUTF8StringEncoding] ?: @"";
 }
 static BOOL AutoConfigAllows(NSDictionary *config, NSString *key, BOOL defaultValue) {
     id value = config[key];
@@ -1224,12 +1285,75 @@ static BOOL AutoLoadZipArchive(NSURL *url, NSDictionary *config,
     return YES;
 }
 
+static id AutoPlistToJSONValue(id value, NSError **error) {
+    if ([value isKindOfClass:NSDictionary.class]) {
+        NSMutableDictionary *result = [NSMutableDictionary dictionaryWithCapacity:[(NSDictionary *)value count]];
+        for (id key in value) {
+            if (![key isKindOfClass:NSString.class]) {
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"plist dictionary keys must be strings.", nil);
+                return nil;
+            }
+            id converted = AutoPlistToJSONValue(value[key], error);
+            if (!converted) return nil;
+            result[key] = converted;
+        }
+        return result;
+    }
+    if ([value isKindOfClass:NSArray.class]) {
+        NSMutableArray *result = [NSMutableArray arrayWithCapacity:[(NSArray *)value count]];
+        for (id item in value) {
+            id converted = AutoPlistToJSONValue(item, error);
+            if (!converted) return nil;
+            [result addObject:converted];
+        }
+        return result;
+    }
+    if ([value isKindOfClass:NSData.class]) return [value base64EncodedStringWithOptions:0];
+    if ([value isKindOfClass:NSDate.class]) return @([value timeIntervalSince1970] * 1000.0);
+    if ([value isKindOfClass:NSNumber.class] || [value isKindOfClass:NSString.class] || [value isKindOfClass:NSNull.class]) return value;
+    if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"plist contains an unsupported value type.", nil);
+    return nil;
+}
+
+static BOOL AutoJSONValueToPlist(id value, id *converted, NSError **error) {
+    if ([value isKindOfClass:NSDictionary.class]) {
+        NSMutableDictionary *result = [NSMutableDictionary dictionaryWithCapacity:[(NSDictionary *)value count]];
+        for (id key in value) {
+            if (![key isKindOfClass:NSString.class]) {
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"plistWrite dictionary keys must be strings.", nil);
+                return NO;
+            }
+            id child = nil;
+            if (!AutoJSONValueToPlist(value[key], &child, error)) return NO;
+            result[key] = child;
+        }
+        *converted = result;
+        return YES;
+    }
+    if ([value isKindOfClass:NSArray.class]) {
+        NSMutableArray *result = [NSMutableArray arrayWithCapacity:[(NSArray *)value count]];
+        for (id item in value) {
+            id child = nil;
+            if (!AutoJSONValueToPlist(item, &child, error)) return NO;
+            [result addObject:child];
+        }
+        *converted = result;
+        return YES;
+    }
+    if ([value isKindOfClass:NSString.class] || [value isKindOfClass:NSNumber.class] || [value isKindOfClass:NSNull.class]) {
+        *converted = value;
+        return YES;
+    }
+    if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"plistWrite value must contain only JSON-serializable values.", nil);
+    return NO;
+}
+
 id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
                            NSDictionary<NSString *,id> *config,
                            NSError **error) {
     @synchronized (AutoFileOperationLock()) {
     NSString *operation = [payload[@"operation"] isKindOfClass:NSString.class] ? payload[@"operation"] : @"";
-    NSSet *writeOperations = [NSSet setWithArray:@[@"writeText", @"writeBase64", @"appendText", @"mkdir", @"remove", @"copy", @"imageProcess", @"zip", @"unzip"]];
+    NSSet *writeOperations = [NSSet setWithArray:@[@"writeText", @"writeBase64", @"appendText", @"mkdir", @"remove", @"copy", @"imageProcess", @"zip", @"unzip", @"plistWrite"]];
     BOOL writes = [writeOperations containsObject:operation];
     if (!AutoRequireFileAccess(config, writes, error)) return nil;
     if ([operation isEqualToString:@"sandboxDir"]) return AutoFileRoot(config, error).path;
@@ -1609,6 +1733,58 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
             return nil;
         }
         return @YES;
+    }
+
+    if ([operation isEqualToString:@"plistRead"] || [operation isEqualToString:@"plistWrite"]) {
+        NSUInteger maximum = AutoSupportByteLimit(config, @"maxFileReadBytes", 10 * 1024 * 1024, 64 * 1024 * 1024);
+        NSError *plistIOError = nil;
+        NSData *data = nil;
+        if ([operation isEqualToString:@"plistRead"]) {
+            NSDictionary *attributes = [manager attributesOfItemAtPath:url.path error:nil];
+            if ([attributes[NSFileSize] unsignedLongLongValue] > maximum) {
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"File exceeds maxFileReadBytes.", nil);
+                return nil;
+            }
+            data = [NSData dataWithContentsOfURL:url options:NSDataReadingMappedIfSafe error:&plistIOError];
+            if (!data || data.length > maximum) {
+                NSString *message = data ? @"File exceeds maxFileReadBytes." : @"Unable to read file.";
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, message, plistIOError);
+                return nil;
+            }
+        } else {
+            id rawValue = payload[@"value"];
+            id converted = nil;
+            if (!AutoJSONValueToPlist(rawValue, &converted, error)) return nil;
+            data = [NSPropertyListSerialization dataWithPropertyList:converted
+                                                              format:NSPropertyListXMLFormat_v1_0
+                                                             options:0
+                                                               error:&plistIOError];
+            if (!data || data.length > maximum) {
+                NSString *message = data ? @"Value exceeds maxFileWriteBytes." : @"Unable to serialize the value as a plist.";
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, message, plistIOError);
+                return nil;
+            }
+        }
+        if ([operation isEqualToString:@"plistWrite"]) {
+            NSError *directoryError = nil;
+            if (![manager createDirectoryAtURL:url.URLByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:&directoryError]) {
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to create the parent directory.", directoryError);
+                return nil;
+            }
+            NSError *writeError = nil;
+            if (![data writeToURL:url options:NSDataWritingAtomic error:&writeError]) {
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to write file.", writeError);
+                return nil;
+            }
+            return @YES;
+        }
+        NSError *parseError = nil;
+        id plist = [NSPropertyListSerialization propertyListWithData:data options:0 format:NULL error:&parseError];
+        if (!plist) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"File is not a valid plist.", parseError);
+            return nil;
+        }
+        return AutoPlistToJSONValue(plist, error);
     }
 
     if ([operation isEqualToString:@"list"]) {

@@ -229,6 +229,12 @@ interface AutoFileAPI {
   readLines(path: string): string[];
   readAllLines(path: string): string[];
   readLine(path: string, index: number): string | null;
+  lineCount(path: string): number;
+  getLineText(path: string, index: number): string | null;
+  insertLineText(path: string, index: number, text: string): boolean;
+  resetLineText(path: string, index: number, text: string): boolean;
+  readPlist(path: string): unknown;
+  writePlist(path: string, value: unknown): boolean;
   writeText(path: string, text: string): boolean;
   writeFile(path: string, text: string): boolean;
   writeBase64(path: string, base64: string): boolean;
@@ -328,6 +334,9 @@ interface AutoMediaAPI {
   saveImageBase64(base64: string): boolean;
   saveVideo(path: string): boolean;
   saveScreenshot(): boolean;
+  deleteAllPhotos(): number;
+  deleteAllVideos(): number;
+  deleteAllMedia(): number;
   requestPhotoAuthorization(): AutoPhotoAuthorizationStatus;
   getPhotoAuthorizationStatus(): AutoPhotoAuthorizationStatus;
 }
@@ -416,6 +425,15 @@ interface AutoAPI {
   randomString(length?: number, chars?: string): string;
   md5(text: string): string;
   sha1(text: string): string;
+  sha256(text: string): string;
+  sha512(text: string): string;
+  alert(message: string, title?: string): boolean;
+  exit(): boolean;
+  restartScript(): boolean;
+  aes128Encrypt(text: string, key: string): string;
+  aes128Decrypt(base64: string, key: string): string;
+  readPlist(path: string): unknown;
+  writePlist(path: string, value: unknown): boolean;
   playMp3(path: string, volume?: number, queue?: boolean, stopWhenScriptEnd?: boolean): boolean;
   stopMp3(): boolean;
   randomCharNumber(length?: number): string;
@@ -425,6 +443,9 @@ interface AutoAPI {
   saveImageBase64ToAlbum(base64: string): boolean;
   saveVideoToAlbum(path: string): boolean;
   saveScreenshotToAlbum(): boolean;
+  deleteAllPhotos(): number;
+  deleteAllVideos(): number;
+  deleteAllMedia(): number;
   findImage(path: string, options?: AutoImageOptions): AutoMatch;
   findColor(color: AutoColor, region?: AutoRect, options?: AutoColorSearchOptions): AutoMatch;
   getPixelColor(x: number, y: number): AutoPixelColor;
@@ -456,6 +477,45 @@ interface AutoAPI {
   getOneNodeInfo(selector: AutoSelectorLike): unknown;
   getNodeInfo(selector: AutoSelectorLike): unknown;
   [nativeMethod: string]: any;
+}
+
+interface AutoStringsAPI {
+  trim(text: string): string;
+  ltrim(text: string): string;
+  rtrim(text: string): string;
+  split(text: string, separator?: string): string[];
+  chars(text: string): string[];
+  toHex(text: string): string;
+  fromHex(hex: string): string;
+  isUpper(text: string): boolean;
+  isLower(text: string): boolean;
+  isNumber(text: string): boolean;
+  isIntrger(text: string): boolean;
+  isLetter(text: string): boolean;
+  isChinese(text: string): boolean;
+  isEmail(text: string): boolean;
+  isLink(text: string): boolean;
+  md5(text: string): string;
+  sha1(text: string): string;
+  sha256(text: string): string;
+  sha512(text: string): string;
+  base64Encode(text: string): string;
+  base64Decode(base64: string): string;
+  aes128Encrypt(text: string, key: string): string;
+  aes128Decrypt(base64: string, key: string): string;
+}
+
+interface AutoPlistAPI {
+  read(path: string): unknown;
+  write(path: string, value: unknown): boolean;
+}
+
+interface AutoWebViewAPI {
+  init(url?: string): string;
+  show(token: string, x?: number, y?: number, width?: number, height?: number): boolean;
+  hidden(token: string): boolean;
+  eval(token: string, js: string): unknown;
+  release(token: string): boolean;
 }
 
 interface AutoThread {
@@ -552,6 +612,40 @@ declare function sleep(milliseconds: number): boolean;
 declare function saveImageToAlbum(path: string): boolean;
 declare function saveImageBase64ToAlbum(base64: string): boolean;
 declare function saveVideoToAlbum(path: string): boolean;
+declare function deleteAllPhotos(): number;
+declare function deleteAllVideos(): number;
+declare function deleteAllMedia(): number;
+declare function sha256(text: string): string;
+declare function sha512(text: string): string;
+declare function alert(message: string, title?: string): boolean;
+declare function exit(): boolean;
+declare function restartScript(): boolean;
+declare function trim(text: string): string;
+declare function ltrim(text: string): string;
+declare function rtrim(text: string): string;
+declare function split(text: string, separator?: string): string[];
+declare function chars(text: string): string[];
+declare function toHex(text: string): string;
+declare function fromHex(hex: string): string;
+declare function isUpper(text: string): boolean;
+declare function isLower(text: string): boolean;
+declare function isNumber(text: string): boolean;
+declare function isIntrger(text: string): boolean;
+declare function isLetter(text: string): boolean;
+declare function isChinese(text: string): boolean;
+declare function isEmail(text: string): boolean;
+declare function isLink(text: string): boolean;
+declare function lineCount(path: string): number;
+declare function getLineText(path: string, index: number): string | null;
+declare function insertLineText(path: string, index: number, text: string): boolean;
+declare function resetLineText(path: string, index: number, text: string): boolean;
+declare function readPlist(path: string): unknown;
+declare function writePlist(path: string, value: unknown): boolean;
+declare function aes128Encrypt(text: string, key: string): string;
+declare function aes128Decrypt(base64: string, key: string): string;
+declare const plist: AutoPlistAPI;
+declare const webView: AutoWebViewAPI;
+declare const strings: AutoStringsAPI;
 declare function saveScreenshotToAlbum(): boolean;
 declare function time(): number;
 declare function random(min: number, max?: number): number;
