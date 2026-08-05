@@ -334,6 +334,12 @@ check(read('Sources/AutoSDK/AutoScriptSupport.m').includes('CFStringTransform') 
       read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCFStringTransformToLatin') &&
       read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCFStringTransformStripCombiningMarks'),
       'toPinYin must use the system Latin transform with combining marks stripped');
+check(bootstrapSource.includes('formatDate:function') && bootstrapSource.includes('sleepRandom=function') &&
+      bootstrapSource.includes('startWith:function') && bootstrapSource.includes('padZero:function') &&
+      bootstrapSource.includes('isInstalled:function') && bootstrapSource.includes('getTotalMemory=function') &&
+      bootstrapSource.includes('getLineCount=fileApi.lineCount') && bootstrapSource.includes('g.formatDate=stringsApi.formatDate') &&
+      bootstrapSource.includes('g.sleepRandom=base.sleepRandom') && bootstrapSource.includes('g.isInstalled=appApi.isInstalled'),
+      'Bootstrap must expose date formatting, sleepRandom, string helpers, isInstalled and memory aliases');
 check(engineSource.includes('deviceMemoryInfo') && engineSource.includes('isEqualToString:@"memory"'),
       'Engine must expose device memory information');
 check(engineSource.includes('isEqualToString:@"toast"') && engineSource.includes('AutoShowToast'),

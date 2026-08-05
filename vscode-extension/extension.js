@@ -176,6 +176,19 @@ const API_COMPLETIONS = [
   ['exit()', 'Stop the current script immediately.'],
   ['restartScript()', 'Stop and re-run the current script.'],
   ['sha256(text) / sha512(text) / md5(text) / sha1(text)', 'Global hash aliases.'],
+  ['formatDate(timestamp, pattern)', 'Format a millisecond timestamp as readable text (yyyy/MM/dd/HH/mm/ss/SSS/E).'],
+  ['dateFormat(timestamp, pattern)', 'Alias of formatDate.'],
+  ['sleepRandom(min, max)', 'Sleep a random number of milliseconds in an inclusive range.'],
+  ['strings.startWith(text, prefix) / endWith(text, suffix) / contains(text, sub)', 'EasyClick-style string predicates.'],
+  ['strings.indexOf(text, sub, from?) / lastIndexOf(text, sub)', 'Find a substring position.'],
+  ['strings.substring(text, start, end?) / replaceAll(text, search, replacement)', 'Slice or replace substrings.'],
+  ['strings.toUpperCase(text) / toLowerCase(text)', 'Change letter case.'],
+  ['strings.join(array, sep) / repeat(text, count) / length(text)', 'Combine and measure strings.'],
+  ['strings.padZero(text, length) / padStart(text, length, pad?) / padEnd(text, length, pad?)', 'Pad a string to a fixed width.'],
+  ['strings.format(pattern, ...args)', 'Format with %s/%d/%f placeholders.'],
+  ['app.isInstalled(bundleId)', 'Check whether an app is installed via the WDA app list.'],
+  ['device.getTotalMemory() / getAvailableMemory() / getUsedMemory()', 'Memory aliases over getMemoryInfo().'],
+  ['file.getLineCount(path)', 'Alias of file.lineCount.'],
   ['aes128Encrypt(text, key) / aes128Decrypt(base64, key)', 'Global AES-128 aliases.']
 ];
 

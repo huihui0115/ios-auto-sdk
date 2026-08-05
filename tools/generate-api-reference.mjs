@@ -470,6 +470,59 @@ APIS.push({ cat:'touch', sig:'node.keep(node) / node.unkeep(node) / keepNode(nod
   const kept = node.unkeep(node);
 }
 main();` });
+
+APIS.push({ cat:'timer', sig:'formatDate(timestamp?, pattern?) / dateFormat(...) / strings.formatDate(...)', title:'日期格式化', desc:'把毫秒时间戳格式化为易读文本，pattern 支持 yyyy/MM/dd/HH/mm/ss/SSS 与 E（中文星期，如 "三"）。默认 "yyyy-MM-dd HH:mm:ss"。与 time() 配合可生成日志时间戳、文件名。', params:[['timestamp','number','可选，毫秒时间戳，默认当前时间'],['pattern','string','可选，格式串，默认 yyyy-MM-dd HH:mm:ss']], returns:'string', example:`function main(){
+  logd(formatDate());                      // 2026-08-05 12:00:00
+  logd(formatDate(time(), "yyyy/MM/dd"));  // 2026/08/05
+  logd(dateFormat(time(), "MM-dd E"));     // 08-05 三
+  logd(strings.formatDate(time(), "HH:mm:ss"));
+}
+main();` });
+APIS.push({ cat:'timer', sig:'sleepRandom(min, max?)', title:'随机睡眠', desc:'在闭区间 [min, max] 内随机睡一个毫秒数，模拟真人操作节奏；只传一个参数时按 sleepRandom(0, max) 处理。', params:[['min','number','最小毫秒数'],['max','number','可选，最大毫秒数']], returns:'boolean', example:`function main(){
+  sleepRandom(300, 800);
+  sleepRandom(1000); // 0~1000ms
+}
+main();` });
+APIS.push({ cat:'app', sig:'app.isInstalled(bundleId) / isInstalled(bundleId)', title:'应用是否已安装', desc:'通过已安装应用列表（WDA /wda/apps）判断指定 bundleId 是否安装；适配器不支持 appList 时返回 false。', params:[['bundleId','string','应用 bundle id']], returns:'boolean', example:`function main(){
+  if (app.isInstalled("com.apple.mobilesafari")) {
+    logd("Safari 已安装");
+  }
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.getTotalMemory() / getAvailableMemory() / getUsedMemory()', title:'内存别名', desc:'getTotalMemory 返回物理内存字节数；getAvailableMemory 返回系统空闲内存；getUsedMemory 返回本 App 内存占用（phys_footprint）。等价 getMemoryInfo() 的三个字段。', params:[], returns:'number | null', example:`function main(){
+  logd("总内存: " + device.getTotalMemory());
+  logd("空闲: " + device.getAvailableMemory());
+  logd("占用: " + device.getUsedMemory());
+}
+main();` });
+APIS.push({ cat:'file', sig:'file.getLineCount(path)', title:'行数（别名）', desc:'file.lineCount 的别名，返回文本文件总行数。', params:[['path','string','沙盒内文件路径']], returns:'number', example:`function main(){
+  const n = file.getLineCount("data/log.txt");
+  logd("行数: " + n);
+}
+main();` });
+APIS.push({ cat:'strings', sig:'strings.startWith/endWith/contains/indexOf/lastIndexOf/substring/replaceAll', title:'字符串查找与截取', desc:'EasyClick 风格字符串操作：startWith/endWith 判断前后缀，contains 包含判断，indexOf/lastIndexOf 查找位置，substring 截取（end 可省略），replaceAll 全局替换。全局 startWith/endWith/contains 简写可用。', params:[['text','string','源字符串'],['prefix/suffix/sub','string','目标片段'],['start/end','number','截取区间']], returns:'boolean | number | string', example:`function main(){
+  logd(startWith("hello world", "hello"));      // true
+  logd(endWith("hello world", "world"));        // true
+  logd(contains("hello", "ell"));               // true
+  logd(strings.indexOf("abab", "b"));           // 1
+  logd(strings.lastIndexOf("abab", "b"));       // 3
+  logd(strings.substring("hello", 1, 3));       // el
+  logd(strings.replaceAll("a-b-c", "-", "+"));  // a+b+c
+}
+main();` });
+APIS.push({ cat:'strings', sig:'strings.toUpperCase/toLowerCase/join/repeat/length/format', title:'字符串转换与组合', desc:'toUpperCase/toLowerCase 大小写转换；join 数组拼接为字符串；repeat 重复拼接；length 返回字符数；format(pattern, ...args) 支持 %s/%d/%f 占位符。', params:[['text','string','源字符串'],['array','any[]','要拼接的数组'],['pattern','string','含 %s/%d/%f 的格式串']], returns:'string | number', example:`function main(){
+  logd(strings.toUpperCase("aB"));               // AB
+  logd(strings.join(["a", "b"], "-"));           // a-b
+  logd(strings.repeat("ab", 3));                 // ababab
+  logd(strings.length("中文abc"));                // 5
+  logd(strings.format("id=%d name=%s", 1, "tom")); // id=1 name=tom
+}
+main();` });
+APIS.push({ cat:'strings', sig:'strings.padZero/padStart/padEnd', title:'字符串补位', desc:'padZero 左侧补零（数字补零最常用）；padStart/padEnd 用指定字符补位，默认补空格。', params:[['text','string|number','源值'],['length','number','目标长度'],['pad','string','可选，补位字符']], returns:'string', example:`function main(){
+  logd(padZero(7, 3));                 // 007
+  logd(strings.padEnd("7", 3, "x"));   // 7xx
+}
+main();` });
 function render() {
   const sidebar = CATEGORIES.map(c => `<a href="#${c.id}" style="--c:${c.color}">${esc(c.name)}<span>${APIS.filter(a => a.cat === c.id).length}</span></a>`).join('');
   const sections = CATEGORIES.map(c => {

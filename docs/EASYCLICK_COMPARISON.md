@@ -72,7 +72,7 @@ The following surfaces must not be described as production-complete yet:
 
 ## 函数级覆盖清单（2026-08-05）
 
-交互式速查 `docs/api-reference.html` 收录 198 个可运行示例，分 13 个分类，
+交互式速查 `docs/api-reference.html` 收录 206 个可运行示例，分 13 个分类，
 每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
 
 | 分类 | 函数数 | 亮点 |
@@ -80,17 +80,19 @@ The following surfaces must not be described as production-complete yet:
 | 日志与调试 | 8 | console 分级、toast/toastLog、alert/exit/restartScript、sleep |
 | 触摸与节点 | 34 | 坐标/节点点击、滑动/手势/pinch、输入、节点查询（getChild/getSiblings/clickCenter/clickRandom）、node.keep/unkeep |
 | 图色与OCR | 15 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素、OCR |
-| App与应用控制 | 15 | launch/activate/terminate/state/openURL/homeScreen/current/appList/锁屏解锁 |
-| 设备与系统 | 23 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID |
+| App与应用控制 | 16 | launch/activate/terminate/state/openURL/homeScreen/current/appList/isInstalled/锁屏解锁 |
+| 设备与系统 | 24 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID |
 | 坐标与屏幕 | 5 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
-| 文件 | 36 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
+| 文件 | 37 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
 | 存储 | 10 | 命名 typed store |
 | 网络HTTP | 9 | get/post/postJSON/getJSON/download/通用请求 |
 | 相册媒体 | 10 | saveImage/saveImageBase64/saveVideo/saveScreenshot/deleteAllPhotos/deleteAllVideos/deleteAllMedia/playMp3/stopMp3/相册权限 |
-| 定时器与工具 | 19 | 定时器、execAsync/execSync 线程、uuid、base64、sha 系列、AES-128、random |
-| 字符串工具 | 11 | trim/split/chars/hex/类型判断/拼音 toPinYin/BOM 清洗/Unicode 还原 |
+| 定时器与工具 | 21 | 定时器、execAsync/execSync 线程、uuid、base64、sha 系列、AES-128、random |
+| 字符串工具 | 14 | trim/split/chars/hex/类型判断/拼音 toPinYin/BOM 清洗/Unicode 还原 |
 | 悬浮窗口 | 2 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 
-本轮新增（对标 TrollAutoScript）：`toPinYin`（系统级拼音转换）、`screenDraw.*` 悬浮绘制、
+本轮新增（Round 12）：`formatDate/dateFormat`（yyyy/MM/dd/HH/mm/ss/SSS/E 星期）、`sleepRandom` 随机睡眠、
+`strings.*` 查找/截取/补位/format 系列、`app.isInstalled`、内存别名；
+（Round 11 对标 TrollAutoScript）：`toPinYin`、`screenDraw.*` 悬浮绘制、
 `floatBall.*` 悬浮球与 `setFloatBallPoint`、`node.keep/unkeep`、`stripUtf8Bom`/`fromUnicode`；
 同时修复了文档生成器中 14 处历史中文损坏条目。

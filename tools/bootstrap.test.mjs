@@ -117,7 +117,7 @@ function createSandbox() {
         case 'brightnessSet': return true;
         case 'volumeGet': return 0.4;
         case 'vibrate': return true;
-        case 'memory': return { free: 100, total: 1000 };
+        case 'memory': return { totalBytes: 8000000000, freeBytes: 2000000000, appUsedBytes: 300000000 };
         case 'volumeUp': return true;
         case 'volumeDown': return true;
         case 'isScreenOn': return true;
@@ -797,6 +797,45 @@ test('toPinYin, stripUtf8Bom, fromUnicode, screenDraw, floatBall and node keep h
   assert.equal(sandbox.unkeepNode(node2), node2);
   assert.equal(sandbox.node.keptCount(), 0);
   assert.equal(typeof sandbox.node, 'object');
+});
+
+test('date formatting, sleepRandom, string helpers, isInstalled and memory aliases', () => {
+  const { sandbox, calls } = boot();
+  // dateFormat
+  assert.equal(sandbox.formatDate(1700000000000, 'yyyy'), '2023');
+  assert.equal(sandbox.dateFormat(1700000000000, 'MM/dd'), '11/15');
+  assert.equal(sandbox.formatDate(0, 'HH:mm:ss'), '08:00:00');
+  assert.equal(sandbox.strings.formatDate(1700000000000, 'yyyy-MM-dd E').length, '2023-11-15 三'.length);
+  // sleepRandom
+  const sleepMs = (() => { const before = calls.sleep.length; sandbox.sleepRandom(30, 40); return calls.sleep.at(-1); })();
+  assert.ok(sleepMs >= 30 && sleepMs <= 40, 'sleepRandom must sleep within the inclusive range');
+  // string helpers
+  assert.equal(sandbox.startWith('hello world', 'hello'), true);
+  assert.equal(sandbox.startWith('hello', 'x'), false);
+  assert.equal(sandbox.endWith('hello world', 'world'), true);
+  assert.equal(sandbox.contains('hello', 'ell'), true);
+  assert.equal(sandbox.strings.indexOf('abab', 'b'), 1);
+  assert.equal(sandbox.strings.lastIndexOf('abab', 'b'), 3);
+  assert.equal(sandbox.strings.substring('hello', 1, 3), 'el');
+  assert.equal(sandbox.strings.replaceAll('a-b-c', '-', '+'), 'a+b+c');
+  assert.equal(sandbox.strings.toUpperCase('aB'), 'AB');
+  assert.equal(sandbox.strings.toLowerCase('aB'), 'ab');
+  assert.equal(sandbox.strings.join(['a', 'b'], '-'), 'a-b');
+  assert.equal(sandbox.strings.repeat('ab', 3), 'ababab');
+  assert.equal(sandbox.strings.length('中文abc'), 5);
+  assert.equal(sandbox.padZero(7, 3), '007');
+  assert.equal(sandbox.strings.padStart('7', 3, '0'), '007');
+  assert.equal(sandbox.strings.padEnd('7', 3, 'x'), '7xx');
+  assert.equal(sandbox.strings.format('id=%d name=%s', 1, 'tom'), 'id=1 name=tom');
+  // app.isInstalled via appList
+  assert.equal(sandbox.app.isInstalled('com.example.host'), true);
+  assert.equal(sandbox.app.isInstalled('com.apple.safari'), false);
+  assert.equal(typeof sandbox.isInstalled, 'function');
+  // memory aliases
+  assert.equal(sandbox.device.getTotalMemory(), 8000000000);
+  assert.equal(sandbox.device.getAvailableMemory(), 2000000000);
+  assert.equal(sandbox.device.getUsedMemory(), 300000000);
+  assert.equal(typeof sandbox.file.getLineCount, 'function');
 });
 
 test('unknown auto.* methods fall back to invokeNative', () => {

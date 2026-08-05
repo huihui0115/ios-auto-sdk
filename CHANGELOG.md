@@ -8,6 +8,17 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **Round 12: 日期格式化 / 随机睡眠 / 字符串增强 / 应用与内存别名。** 新增
+  `formatDate(timestamp?, pattern?)` 与 `dateFormat`、`strings.formatDate`（支持
+  yyyy/MM/dd/HH/mm/ss/SSS/E 中文星期）；新增 `sleepRandom(min, max)` 随机睡眠；
+  `strings.*` 新增 startWith/endWith/contains/indexOf/lastIndexOf/substring/
+  replaceAll/toUpperCase/toLowerCase/join/repeat/length/padZero/padStart/padEnd/
+  format（%s/%d/%f），全局简写 startWith/endWith/contains/padZero；新增
+  `app.isInstalled(bundleId)` 与全局 `isInstalled`（WDA 已装应用列表）；新增
+  `device.getTotalMemory/getAvailableMemory/getUsedMemory` 内存别名与
+  `file.getLineCount` 别名。本地 API 文档同步更新（206 个函数）。
+
+### Added
 - **Round 11: 拼音 / 悬浮绘制 / 悬浮球 / 节点保持。** 新增 `toPinYin(text)`（系统级
   CFStringTransform 拼音转换，无第三方依赖，"你好"→"nihao"）与 `strings.toPinYin`；
   新增 `screenDraw.*` 悬浮绘制（init/setBorderWidth/setBorderColor/setTitle/show/

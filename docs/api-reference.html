@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>34</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>15</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>23</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>36</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>10</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>19</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>11</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>2</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>34</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>16</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>24</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>37</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>10</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>2</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -1005,7 +1005,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="app" class="cat" style="--c:#16a34a">
-  <h2><span class="tag">App与应用控制</span><i>15</i></h2>
+  <h2><span class="tag">App与应用控制</span><i>16</i></h2>
   <article class="card" data-search="app.launch(bundleId) 启动应用">
   <header class="card-head">
     <h4><code>app.launch(bundleId)</code> <span class="cname">启动应用</span></h4>
@@ -1077,6 +1077,22 @@ main();</code></pre>
   app.lock();
   auto.sleep(1000);
   app.unlock();
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="app.isInstalled(bundleId) / isInstalled(bundleId) 应用是否已安装">
+  <header class="card-head">
+    <h4><code>app.isInstalled(bundleId) / isInstalled(bundleId)</code> <span class="cname">应用是否已安装</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">通过已安装应用列表（WDA /wda/apps）判断指定 bundleId 是否安装；适配器不支持 appList 时返回 false。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">应用 bundle id</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  if (app.isInstalled("com.apple.mobilesafari")) {
+    logd("Safari 已安装");
+  }
 }
 main();</code></pre>
 </article>
@@ -1233,7 +1249,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="device" class="cat" style="--c:#dc2626">
-  <h2><span class="tag">设备与系统</span><i>23</i></h2>
+  <h2><span class="tag">设备与系统</span><i>24</i></h2>
   <article class="card" data-search="device.getOSVersion() 系统版本">
   <header class="card-head">
     <h4><code>device.getOSVersion()</code> <span class="cname">系统版本</span></h4>
@@ -1322,6 +1338,22 @@ main();</code></pre>
   device.setBrightness(0.5);
   auto.sleep(500);
   device.setBrightness(device.getBrightness());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getTotalMemory() / getAvailableMemory() / getUsedMemory() 内存别名">
+  <header class="card-head">
+    <h4><code>device.getTotalMemory() / getAvailableMemory() / getUsedMemory()</code> <span class="cname">内存别名</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">getTotalMemory 返回物理内存字节数；getAvailableMemory 返回系统空闲内存；getUsedMemory 返回本 App 内存占用（phys_footprint）。等价 getMemoryInfo() 的三个字段。</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>number | null</span></div>
+  <pre><code>function main(){
+  logd("总内存: " + device.getTotalMemory());
+  logd("空闲: " + device.getAvailableMemory());
+  logd("占用: " + device.getUsedMemory());
 }
 main();</code></pre>
 </article>
@@ -1672,7 +1704,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="file" class="cat" style="--c:#4f46e5">
-  <h2><span class="tag">文件</span><i>36</i></h2>
+  <h2><span class="tag">文件</span><i>37</i></h2>
   <article class="card" data-search="file.lineCount(path) / getLineText(path, index) / insertLineText(path, index, text) / resetLineText(path, index, text) 文件行操作">
   <header class="card-head">
     <h4><code>file.lineCount(path) / getLineText(path, index) / insertLineText(path, index, text) / resetLineText(path, index, text)</code> <span class="cname">文件行操作</span></h4>
@@ -1778,6 +1810,21 @@ main();</code></pre>
   <pre><code>function main(){
   const lines = file.readAllLines("data/list.txt");
   for (const line of lines) logd(line);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.getLineCount(path) 行数（别名）">
+  <header class="card-head">
+    <h4><code>file.getLineCount(path)</code> <span class="cname">行数（别名）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">file.lineCount 的别名，返回文本文件总行数。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内文件路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  const n = file.getLineCount("data/log.txt");
+  logd("行数: " + n);
 }
 main();</code></pre>
 </article>
@@ -2704,7 +2751,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="timer" class="cat" style="--c:#64748b">
-  <h2><span class="tag">定时器与工具</span><i>19</i></h2>
+  <h2><span class="tag">定时器与工具</span><i>21</i></h2>
   <article class="card" data-search="clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id) 取消定时器">
   <header class="card-head">
     <h4><code>clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id)</code> <span class="cname">取消定时器</span></h4>
@@ -2878,6 +2925,38 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="formatDate(timestamp?, pattern?) / dateFormat(...) / strings.formatDate(...) 日期格式化">
+  <header class="card-head">
+    <h4><code>formatDate(timestamp?, pattern?) / dateFormat(...) / strings.formatDate(...)</code> <span class="cname">日期格式化</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把毫秒时间戳格式化为易读文本，pattern 支持 yyyy/MM/dd/HH/mm/ss/SSS 与 E（中文星期，如 "三"）。默认 "yyyy-MM-dd HH:mm:ss"。与 time() 配合可生成日志时间戳、文件名。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">timestamp</code><span class="ptype">number</span><span class="pdesc">可选，毫秒时间戳，默认当前时间</span></div><div class="param"><code class="pname">pattern</code><span class="ptype">string</span><span class="pdesc">可选，格式串，默认 yyyy-MM-dd HH:mm:ss</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(formatDate());                      // 2026-08-05 12:00:00
+  logd(formatDate(time(), "yyyy/MM/dd"));  // 2026/08/05
+  logd(dateFormat(time(), "MM-dd E"));     // 08-05 三
+  logd(strings.formatDate(time(), "HH:mm:ss"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="sleepRandom(min, max?) 随机睡眠">
+  <header class="card-head">
+    <h4><code>sleepRandom(min, max?)</code> <span class="cname">随机睡眠</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在闭区间 [min, max] 内随机睡一个毫秒数，模拟真人操作节奏；只传一个参数时按 sleepRandom(0, max) 处理。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">min</code><span class="ptype">number</span><span class="pdesc">最小毫秒数</span></div><div class="param"><code class="pname">max</code><span class="ptype">number</span><span class="pdesc">可选，最大毫秒数</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  sleepRandom(300, 800);
+  sleepRandom(1000); // 0~1000ms
+}
+main();</code></pre>
+</article>
 <article class="card" data-search="alert(message, title?) / exit() / restartScript() 弹窗与退出">
   <header class="card-head">
     <h4><code>alert(message, title?) / exit() / restartScript()</code> <span class="cname">弹窗与退出</span></h4>
@@ -3008,8 +3087,61 @@ main();</code></pre>
 </article>
 </section>
 <section id="strings" class="cat" style="--c:#a21caf">
-  <h2><span class="tag">字符串工具</span><i>11</i></h2>
-  <article class="card" data-search="webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.release(token) webView 悬浮网页">
+  <h2><span class="tag">字符串工具</span><i>14</i></h2>
+  <article class="card" data-search="strings.startWith/endWith/contains/indexOf/lastIndexOf/substring/replaceAll 字符串查找与截取">
+  <header class="card-head">
+    <h4><code>strings.startWith/endWith/contains/indexOf/lastIndexOf/substring/replaceAll</code> <span class="cname">字符串查找与截取</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">EasyClick 风格字符串操作：startWith/endWith 判断前后缀，contains 包含判断，indexOf/lastIndexOf 查找位置，substring 截取（end 可省略），replaceAll 全局替换。全局 startWith/endWith/contains 简写可用。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">源字符串</span></div><div class="param"><code class="pname">prefix/suffix/sub</code><span class="ptype">string</span><span class="pdesc">目标片段</span></div><div class="param"><code class="pname">start/end</code><span class="ptype">number</span><span class="pdesc">截取区间</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean | number | string</span></div>
+  <pre><code>function main(){
+  logd(startWith("hello world", "hello"));      // true
+  logd(endWith("hello world", "world"));        // true
+  logd(contains("hello", "ell"));               // true
+  logd(strings.indexOf("abab", "b"));           // 1
+  logd(strings.lastIndexOf("abab", "b"));       // 3
+  logd(strings.substring("hello", 1, 3));       // el
+  logd(strings.replaceAll("a-b-c", "-", "+"));  // a+b+c
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="strings.toUpperCase/toLowerCase/join/repeat/length/format 字符串转换与组合">
+  <header class="card-head">
+    <h4><code>strings.toUpperCase/toLowerCase/join/repeat/length/format</code> <span class="cname">字符串转换与组合</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">toUpperCase/toLowerCase 大小写转换；join 数组拼接为字符串；repeat 重复拼接；length 返回字符数；format(pattern, ...args) 支持 %s/%d/%f 占位符。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">源字符串</span></div><div class="param"><code class="pname">array</code><span class="ptype">any[]</span><span class="pdesc">要拼接的数组</span></div><div class="param"><code class="pname">pattern</code><span class="ptype">string</span><span class="pdesc">含 %s/%d/%f 的格式串</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string | number</span></div>
+  <pre><code>function main(){
+  logd(strings.toUpperCase("aB"));               // AB
+  logd(strings.join(["a", "b"], "-"));           // a-b
+  logd(strings.repeat("ab", 3));                 // ababab
+  logd(strings.length("中文abc"));                // 5
+  logd(strings.format("id=%d name=%s", 1, "tom")); // id=1 name=tom
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="strings.padZero/padStart/padEnd 字符串补位">
+  <header class="card-head">
+    <h4><code>strings.padZero/padStart/padEnd</code> <span class="cname">字符串补位</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">padZero 左侧补零（数字补零最常用）；padStart/padEnd 用指定字符补位，默认补空格。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string|number</span><span class="pdesc">源值</span></div><div class="param"><code class="pname">length</code><span class="ptype">number</span><span class="pdesc">目标长度</span></div><div class="param"><code class="pname">pad</code><span class="ptype">string</span><span class="pdesc">可选，补位字符</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(padZero(7, 3));                 // 007
+  logd(strings.padEnd("7", 3, "x"));   // 7xx
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.release(token) webView 悬浮网页">
   <header class="card-head">
     <h4><code>webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.release(token)</code> <span class="cname">webView 悬浮网页</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -3224,7 +3356,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 198 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 206 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

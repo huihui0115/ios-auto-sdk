@@ -221,4 +221,28 @@ try {
 
 report;
 
+// 17. Date formatting, random sleep and string toolkit (round 12)
+try {
+  report.dateFormat = formatDate(time(), "yyyy-MM-dd HH:mm:ss");
+  report.dateCustom = dateFormat(time(), "MM-dd E");
+  const sleepBefore = Date.now();
+  sleepRandom(20, 40);
+  report.randomSleepMs = Date.now() - sleepBefore;
+  report.strings = {
+    startWith: startWith("hello world", "hello"),
+    contains: contains("hello", "ell"),
+    indexOf: strings.indexOf("abab", "b"),
+    replaceAll: strings.replaceAll("a-b-c", "-", "+"),
+    padZero: padZero(7, 3),
+    format: strings.format("id=%d name=%s", 1, "tom"),
+  };
+  report.appInstalled = app.isInstalled(getPackageName());
+  report.totalMemory = device.getTotalMemory();
+  report.lineCount = file.getLineCount !== undefined;
+} catch (e) {
+  report.round12Error = String(e);
+}
+
+report;
+
 report;
