@@ -547,6 +547,26 @@ interface AutoStringsAPI {
   base64Decode(base64: string): string;
   aes128Encrypt(text: string, key: string): string;
   aes128Decrypt(base64: string, key: string): string;
+  toPinYin(text: string): string;
+  stripUtf8Bom(text: string): string;
+  fromUnicode(text: string): string;
+  startWith(text: string, prefix: string): boolean;
+  endWith(text: string, suffix: string): boolean;
+  contains(text: string, sub: string): boolean;
+  indexOf(text: string, sub: string, from?: number): number;
+  lastIndexOf(text: string, sub: string): number;
+  substring(text: string, start: number, end?: number): string;
+  replaceAll(text: string, search: string, replacement: string): string;
+  toUpperCase(text: string): string;
+  toLowerCase(text: string): string;
+  join(array: string[], separator?: string): string;
+  repeat(text: string, count: number): string;
+  length(text: string): number;
+  padZero(text: string | number, length: number): string;
+  padStart(text: string, length: number, pad?: string): string;
+  padEnd(text: string, length: number, pad?: string): string;
+  format(pattern: string, ...args: unknown[]): string;
+  formatDate(timestamp?: number, pattern?: string): string;
 }
 
 interface AutoPlistAPI {

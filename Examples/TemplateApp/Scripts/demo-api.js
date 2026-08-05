@@ -188,7 +188,7 @@ try {
 try {
   file.writePlist("demo/config.plist", { count: 3, enabled: true, name: "AutoSDK" });
   const cfg = file.readPlist("demo/config.plist");
-  report.plist = cfg && cfg.count === 3 && cfg.name === "AutoSDK";
+  report.plist = cfg != null && typeof cfg === "object" && "count" in cfg && "name" in cfg && cfg.count === 3 && cfg.name === "AutoSDK";
   file.deleteAllFile("demo/config.plist");
 } catch (e) {
   report.plistError = String(e);
