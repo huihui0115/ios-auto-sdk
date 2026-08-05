@@ -69,6 +69,9 @@ function createSandbox() {
         case 'remove': delete files[data.path]; return true;
         case 'copy': files[data.destination] = files[data.path]; return true;
         case 'move': files[data.destination] = files[data.path]; delete files[data.path]; return true;
+        case 'zip': files[data.destination] = 'zip:' + (data.sources || []).join(','); return data.destination;
+        case 'unzip': return true;
+        case 'readFileInZip': return 'hello from zip';
         default: return { error: 'unhandled file operation ' + data.operation };
       }
     },
@@ -648,6 +651,26 @@ test('findNotColor and image processing pipeline', () => {
   assert.deepEqual(sandbox.image.getWidth('a.png'), 390);
   assert.deepEqual(sandbox.image.getHeight('a.png'), 844);
 });
+test('zip / unzip / readFileInZip helpers', () => {
+  const { sandbox, calls } = boot();
+  const zipPath = sandbox.file.zip('backup/scripts.zip', ['data/1.txt', 'logs']);
+  assert.equal(zipPath, 'backup/scripts.zip');
+  assert.deepEqual(calls.file.at(-1), { operation: 'zip', destination: 'backup/scripts.zip', sources: ['data/1.txt', 'logs'], passwd: '' });
+  assert.equal(sandbox.auto.file.zip('backup/a.zip', ['x.txt']), 'backup/a.zip');
+  assert.equal(typeof sandbox.zip, 'function');
+
+  assert.equal(sandbox.file.unzip('backup/scripts.zip', 'backup/out'), true);
+  assert.deepEqual(calls.file.at(-1), { operation: 'unzip', path: 'backup/scripts.zip', destination: 'backup/out', passwd: '' });
+  assert.equal(typeof sandbox.unzip, 'function');
+
+  assert.equal(sandbox.file.readFileInZip('backup/scripts.zip', 'data/1.txt'), 'hello from zip');
+  assert.deepEqual(calls.file.at(-1), { operation: 'readFileInZip', path: 'backup/scripts.zip', entry: 'data/1.txt', passwd: '' });
+  assert.equal(typeof sandbox.readFileInZip, 'function');
+
+  sandbox.file.zip('with-pass.zip', ['a.txt'], 'secret');
+  assert.deepEqual(calls.file.at(-1), { operation: 'zip', destination: 'with-pass.zip', sources: ['a.txt'], passwd: 'secret' });
+});
+
 test('unknown auto.* methods fall back to invokeNative', () => {
   const { sandbox, calls } = boot();
   sandbox.auto.someNativeThing('a', 2);

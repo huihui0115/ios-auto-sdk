@@ -256,6 +256,9 @@ interface AutoFileAPI {
   md5File(path: string): string;
   sha1(path: string): string;
   sha1File(path: string): string;
+  zip(destination: string, sources: string[], passwd?: string): string | null;
+  unzip(zipPath: string, destination: string, passwd?: string): boolean;
+  readFileInZip(zipPath: string, entry: string, passwd?: string): string | null;
 }
 
 interface AutoFileStat {
@@ -440,6 +443,9 @@ declare const auto: AutoAPI;
 declare function toast(message: string): boolean;
 declare function toastLog(message: string): void;
 declare const file: AutoFileAPI;
+declare const zip: AutoFileAPI["zip"];
+declare const unzip: AutoFileAPI["unzip"];
+declare const readFileInZip: AutoFileAPI["readFileInZip"];
 declare const storages: { create(name: string): AutoStorage };
 declare const device: AutoDeviceAPI;
 declare const media: AutoMediaAPI;

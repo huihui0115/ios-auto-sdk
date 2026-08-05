@@ -107,7 +107,7 @@ are not implemented.
 | --- | --- | --- |
 | randomInt / getRangeInt | ✅ `randomInt(min,max)` | 随机数 |
 | randomCharNumber | ✅ `randomString(n)` / `randomCharNumber(n)` | 随机字符串 |
-| zip / unzip / unzipWithEncode / readFileInZip | ❌ | 压缩 |
+| zip / unzip / unzipWithEncode / readFileInZip | ✅ `file.zip(dest, sources)` / `file.unzip(zipPath, dest)` / `file.readFileInZip(zipPath, entry)` | ZIP 打包/解压/读条目（中文文件名兼容，不支持加密） |
 | dataMd5 / fileMd5 | ✅ `md5(text)` / `sha1(text)` / `file.md5(path)` / `file.md5File(path)` | 字符串与文件哈希 |
 | playMp3 / stopMp3 | ✅ `playMp3(path, volume, queue, stopWhenScriptEnd)` / `stopMp3()` | 系统音频播放 |
 | deleteAllPhotos / deleteAllVideos | ❌ | 破坏性清空相册，未实现 |
@@ -117,5 +117,5 @@ are not implemented.
 ## 结论
 
 - AutoSDK 已覆盖 EasyClick iOS USB 约 70% 的常用可移植函数（触摸/节点/文件/存储/HTTP/OCR/设备信息）。
-- 剩余缺口集中在：真实并行线程、图像对象管线（裁剪/缩放/灰度）、Excel/zip、序列号等系统级能力、以及中控专属功能。
-- 图像对象管线（image.clip/scale/gray）是下一个最有价值的方向。
+- 剩余缺口集中在：真实并行线程、Excel 读取、序列号等系统级能力、以及中控专属功能。
+- 下一轮优先级：真实并行线程、Excel 读取、序列号等系统级能力。

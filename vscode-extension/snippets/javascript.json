@@ -122,6 +122,17 @@
     ],
     "description": "Crop, grayscale or binarize an image file"
   },
+  "AutoSDK zip archive": {
+    "prefix": "autozip",
+    "body": [
+      "const zipPath = file.zip('${1:backup/scripts.zip}', ['${2:data/1.txt}', '${3:logs}']);",
+      "logd('zip:', zipPath);",
+      "const ok = file.unzip('${1:backup/scripts.zip}', 'backup/out');",
+      "const text = file.readFileInZip('${1:backup/scripts.zip}', '${2:data/1.txt}');",
+      "logd('unzip:', ok, 'entry:', text);"
+    ],
+    "description": "Create, extract or read entries from a ZIP archive"
+  },
   "AutoSDK find not color": {
     "prefix": "autonotcolor",
     "body": [

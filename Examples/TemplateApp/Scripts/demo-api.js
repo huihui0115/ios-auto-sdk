@@ -127,6 +127,19 @@ if (file.exists("shots/sample.png")) {
 } else {
   report.image = "no sample";
 }
+// 10. ZIP archive (path-based, file gates apply)
+try {
+  file.writeText("demo/zip-note.txt", "zipped content " + Date.now());
+  const zipPath = file.zip("demo/backup.zip", ["demo/zip-note.txt"]);
+  report.zipCreated = zipPath != null;
+  report.zipUnzipped = file.unzip("demo/backup.zip", "demo/zip-out");
+  report.zipEntry = file.readFileInZip("demo/backup.zip", "demo/zip-note.txt");
+  file.deleteAllFile("demo/zip-note.txt");
+  file.deleteAllFile("demo/backup.zip");
+  file.deleteAllFile("demo/zip-out");
+} catch (e) {
+  report.zipError = String(e);
+}
 report.findNotColorSupported = typeof findNotColor === "function";
 
 report;

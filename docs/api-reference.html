@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>31</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>14</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>21</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>29</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>9</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>14</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>31</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>14</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>21</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>32</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>9</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>14</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -1582,7 +1582,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="file" class="cat" style="--c:#4f46e5">
-  <h2><span class="tag">文件</span><i>29</i></h2>
+  <h2><span class="tag">文件</span><i>32</i></h2>
   <article class="card" data-search="file.writeText(path, text) 写文本">
   <header class="card-head">
     <h4><code>file.writeText(path, text)</code> <span class="cname">写文本</span></h4>
@@ -2002,6 +2002,51 @@ main();</code></pre>
   <pre><code>function main(){
   const ok = file.rename("data/1.txt", "renamed.txt");
   logd("重命名: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.zip(dest, sources, passwd?) ?? ZIP">
+  <header class="card-head">
+    <h4><code>file.zip(dest, sources, passwd?)</code> <span class="cname">?? ZIP</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">???/??????? ZIP???????passwd ???????????????</p>
+  <div class="ref"><b>对标</b> EasyClick utils.zip()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">dest</code><span class="ptype">string</span><span class="pdesc">?? zip ??</span></div><div class="param"><code class="pname">sources</code><span class="ptype">string[]</span><span class="pdesc">??????/??????</span></div><div class="param"><code class="pname">passwd</code><span class="ptype">string</span><span class="pdesc">????????</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  const zipPath = file.zip("backup/scripts.zip", ["data/1.txt", "logs"]);
+  logd("????: " + zipPath);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.unzip(zipPath, dest, passwd?) ?? ZIP">
+  <header class="card-head">
+    <h4><code>file.unzip(zipPath, dest, passwd?)</code> <span class="cname">?? ZIP</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">? ZIP ??????????????????????????????</p>
+  <div class="ref"><b>对标</b> EasyClick utils.unzip()/unzipWithEncode()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">zipPath</code><span class="ptype">string</span><span class="pdesc">zip ??</span></div><div class="param"><code class="pname">dest</code><span class="ptype">string</span><span class="pdesc">??????</span></div><div class="param"><code class="pname">passwd</code><span class="ptype">string</span><span class="pdesc">????????</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = file.unzip("backup/scripts.zip", "backup/out");
+  logd("??: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.readFileInZip(zipPath, entry, passwd?) ?? ZIP ???">
+  <header class="card-head">
+    <h4><code>file.readFileInZip(zipPath, entry, passwd?)</code> <span class="cname">?? ZIP ???</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">?????????? zip ??????UTF-8 ????????????? Base64????? null?</p>
+  <div class="ref"><b>对标</b> EasyClick utils.readFileInZip()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">zipPath</code><span class="ptype">string</span><span class="pdesc">zip ??</span></div><div class="param"><code class="pname">entry</code><span class="ptype">string</span><span class="pdesc">????? data/1.txt</span></div><div class="param"><code class="pname">passwd</code><span class="ptype">string</span><span class="pdesc">????????</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string|null</span></div>
+  <pre><code>function main(){
+  const text = file.readFileInZip("backup/scripts.zip", "data/1.txt");
+  logd(text);
 }
 main();</code></pre>
 </article>
@@ -2712,7 +2757,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 166 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 169 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

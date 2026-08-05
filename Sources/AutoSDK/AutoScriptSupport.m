@@ -3,6 +3,7 @@
 #import <CommonCrypto/CommonDigest.h>
 #import <ImageIO/ImageIO.h>
 #include <math.h>
+#include <zlib.h>
 
 static NSError *AutoSupportError(AutoSDKErrorCode code, NSString *message, NSError *underlying) {
     NSMutableDictionary *info = [@{NSLocalizedDescriptionKey: message ?: @"Operation failed."} mutableCopy];
@@ -441,15 +442,573 @@ static CGImageRef AutoSupportImageRotate(CGImageRef source, NSInteger degrees) {
     CGContextRelease(context);
     return result;
 }
+
+// ===== ZIP archive support (raw DEFLATE via zlib, RFC 1951 containers) =====
+@interface AutoZipEntry : NSObject
+@property (nonatomic, copy) NSString *name;
+@property (nonatomic, assign) uint32_t method;
+@property (nonatomic, assign) uint32_t crc;
+@property (nonatomic, assign) uint32_t compressedSize;
+@property (nonatomic, assign) uint32_t uncompressedSize;
+@property (nonatomic, assign) uint32_t localOffset;
+@property (nonatomic, assign) BOOL isDirectory;
+@end
+@implementation AutoZipEntry
+@end
+
+static uint32_t AutoZipCRC32(const uint8_t *bytes, size_t length) {
+    static uint32_t table[256];
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        for (uint32_t i = 0; i < 256; i++) {
+            uint32_t crc = i;
+            for (int bit = 0; bit < 8; bit++) {
+                crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320u : crc >> 1;
+            }
+            table[i] = crc;
+        }
+    });
+    uint32_t crc = 0xFFFFFFFFu;
+    for (size_t i = 0; i < length; i++) {
+        crc = table[(crc ^ bytes[i]) & 0xFFu] ^ (crc >> 8);
+    }
+    return crc ^ 0xFFFFFFFFu;
+}
+
+static void AutoZipAppendUInt16(NSMutableData *data, uint16_t value) {
+    uint8_t bytes[2] = { (uint8_t)(value & 0xFF), (uint8_t)(value >> 8) };
+    [data appendBytes:bytes length:2];
+}
+
+static void AutoZipAppendUInt32(NSMutableData *data, uint32_t value) {
+    uint8_t bytes[4] = { (uint8_t)(value & 0xFF), (uint8_t)((value >> 8) & 0xFF),
+                         (uint8_t)((value >> 16) & 0xFF), (uint8_t)((value >> 24) & 0xFF) };
+    [data appendBytes:bytes length:4];
+}
+
+static uint16_t AutoZipReadUInt16(const uint8_t *bytes) {
+    return (uint16_t)(bytes[0] | (bytes[1] << 8));
+}
+
+static uint32_t AutoZipReadUInt32(const uint8_t *bytes) {
+    return (uint32_t)bytes[0] | ((uint32_t)bytes[1] << 8) |
+           ((uint32_t)bytes[2] << 16) | ((uint32_t)bytes[3] << 24);
+}
+
+static NSString *AutoZipDecodeName(NSData *nameData) {
+    NSString *utf8 = [[NSString alloc] initWithData:nameData encoding:NSUTF8StringEncoding];
+    if (utf8) return utf8;
+    NSStringEncoding gbk = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
+    return [[NSString alloc] initWithData:nameData encoding:gbk];
+}
+
+static void AutoZipDOSDateTime(NSDate *date, uint16_t *dosTime, uint16_t *dosDate) {
+    NSDateComponents *components = [[NSCalendar calendarWithIdentifier:NSCalendarIdentifierGregorian]
+        components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay |
+                    NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond
+           fromDate:date ?: [NSDate date]];
+    NSInteger year = components.year;
+    if (year < 1980) year = 1980;
+    if (year > 2107) year = 2107;
+    if (dosDate) *dosDate = (uint16_t)(((year - 1980) << 9) | (components.month << 5) | components.day);
+    if (dosTime) *dosTime = (uint16_t)((components.hour << 11) | (components.minute << 5) | (components.second / 2));
+}
+
+static NSData *AutoZipDeflateData(NSData *input, NSError **error) {
+    if (input.length > UINT32_MAX) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip entry is too large to compress.", nil);
+        return nil;
+    }
+    z_stream stream;
+    memset(&stream, 0, sizeof(stream));
+    if (deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -15, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to initialize the deflate compressor.", nil);
+        return nil;
+    }
+    NSMutableData *output = [NSMutableData dataWithCapacity:input.length / 2 + 64];
+    uint8_t buffer[64 * 1024];
+    stream.next_in = (Bytef *)input.bytes;
+    stream.avail_in = (uInt)input.length;
+    int result = Z_OK;
+    while (result != Z_STREAM_END) {
+        stream.next_out = buffer;
+        stream.avail_out = sizeof(buffer);
+        result = deflate(&stream, Z_FINISH);
+        if (result != Z_OK && result != Z_STREAM_END) break;
+        [output appendBytes:buffer length:sizeof(buffer) - stream.avail_out];
+    }
+    deflateEnd(&stream);
+    if (result != Z_STREAM_END) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to deflate the zip entry.", nil);
+        return nil;
+    }
+    return output;
+}
+
+static NSData *AutoZipInflateData(NSData *input, NSUInteger expectedSize, NSError **error) {
+    if (input.length > UINT32_MAX) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip entry is too large to decompress.", nil);
+        return nil;
+    }
+    z_stream stream;
+    memset(&stream, 0, sizeof(stream));
+    if (inflateInit2(&stream, -15) != Z_OK) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to initialize the inflate decompressor.", nil);
+        return nil;
+    }
+    NSUInteger capacity = expectedSize > 0 && expectedSize <= 256 * 1024 * 1024 ? expectedSize : 64 * 1024;
+    NSMutableData *output = [NSMutableData dataWithCapacity:capacity];
+    uint8_t buffer[64 * 1024];
+    stream.next_in = (Bytef *)input.bytes;
+    stream.avail_in = (uInt)input.length;
+    int result = Z_OK;
+    while (result != Z_STREAM_END) {
+        stream.next_out = buffer;
+        stream.avail_out = sizeof(buffer);
+        result = inflate(&stream, Z_NO_FLUSH);
+        if (result != Z_OK && result != Z_STREAM_END) break;
+        [output appendBytes:buffer length:sizeof(buffer) - stream.avail_out];
+        if (output.length > 512 * 1024 * 1024) {
+            result = Z_MEM_ERROR;
+            break;
+        }
+    }
+    inflateEnd(&stream);
+    if (result != Z_STREAM_END) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to inflate the zip entry.", nil);
+        return nil;
+    }
+    return output;
+}
+
+static BOOL AutoZipBuildArchive(NSArray *sources, NSDictionary *config, NSData **output, NSError **error) {
+    NSMutableArray<AutoZipEntry *> *entries = [NSMutableArray array];
+    NSMutableData *archive = [NSMutableData data];
+    NSFileManager *manager = NSFileManager.defaultManager;
+    NSUInteger maximumRead = AutoSupportByteLimit(config, @"maxFileReadBytes", 10 * 1024 * 1024, 64 * 1024 * 1024);
+    NSUInteger maximumWrite = AutoSupportByteLimit(config, @"maxFileWriteBytes", 10 * 1024 * 1024, 64 * 1024 * 1024);
+    __block NSError *buildError = nil;
+    __block NSUInteger entryCount = 0;
+    __block NSUInteger totalInputBytes = 0;
+    const NSUInteger maximumEntries = 2000;
+    const NSUInteger maximumDepth = 32;
+    __block void (^addPath)(NSURL *, NSString *, NSUInteger) = nil;
+    addPath = ^(NSURL *sourceURL, NSString *entryName, NSUInteger depth) {
+        if (buildError || entryCount >= maximumEntries) return;
+        NSDictionary *attributes = [manager attributesOfItemAtPath:sourceURL.path error:nil];
+        NSString *fileType = [attributes[NSFileType] isKindOfClass:NSString.class] ? attributes[NSFileType] : @"";
+        if ([fileType isEqualToString:NSFileTypeDirectory]) {
+            if (depth >= maximumDepth) {
+                buildError = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip folder nesting exceeds the depth limit.", nil);
+                return;
+            }
+            NSError *listError = nil;
+            NSArray<NSURL *> *contents = [manager contentsOfDirectoryAtURL:sourceURL
+                                                includingPropertiesForKeys:nil
+                                                                   options:NSDirectoryEnumerationSkipsHiddenFiles
+                                                                     error:&listError];
+            if (listError || !contents) {
+                buildError = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to enumerate the zip folder.", listError);
+                return;
+            }
+            AutoZipEntry *directoryEntry = [AutoZipEntry new];
+            directoryEntry.name = [entryName stringByAppendingString:@"/"];
+            directoryEntry.isDirectory = YES;
+            [entries addObject:directoryEntry];
+            entryCount += 1;
+            for (NSURL *child in contents) {
+                addPath(child, [entryName stringByAppendingPathComponent:child.lastPathComponent], depth + 1);
+                if (buildError) return;
+            }
+            return;
+        }
+        if (![fileType isEqualToString:NSFileTypeRegular]) {
+            buildError = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip sources must be regular files or directories.", nil);
+            return;
+        }
+        unsigned long long size = [attributes[NSFileSize] unsignedLongLongValue];
+        if (size > maximumRead) {
+            buildError = AutoSupportError(AutoSDKErrorFileOperationFailed, @"A zip source file exceeds maxFileReadBytes.", nil);
+            return;
+        }
+        totalInputBytes += (NSUInteger)size;
+        if (totalInputBytes > 512 * 1024 * 1024) {
+            buildError = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip input exceeds the 512 MB total limit.", nil);
+            return;
+        }
+        NSError *readError = nil;
+        NSData *fileData = [NSData dataWithContentsOfURL:sourceURL options:NSDataReadingMappedIfSafe error:&readError];
+        if (!fileData || fileData.length > maximumRead) {
+            buildError = AutoSupportError(AutoSDKErrorFileOperationFailed,
+                                          fileData ? @"A zip source file exceeds maxFileReadBytes." : @"Unable to read a zip source file.", readError);
+            return;
+        }
+        NSError *deflateError = nil;
+        NSData *compressed = AutoZipDeflateData(fileData, &deflateError);
+        if (deflateError) {
+            buildError = deflateError;
+            return;
+        }
+        BOOL storeRaw = compressed.length >= fileData.length;
+        NSData *payload = storeRaw ? fileData : compressed;
+        if (archive.length + 30 + entryName.length > UINT32_MAX) {
+            buildError = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip archive is too large.", nil);
+            return;
+        }
+        AutoZipEntry *entry = [AutoZipEntry new];
+        entry.name = entryName;
+        entry.method = storeRaw ? 0 : 8;
+        entry.crc = AutoZipCRC32(fileData.bytes, fileData.length);
+        entry.compressedSize = (uint32_t)payload.length;
+        entry.uncompressedSize = (uint32_t)fileData.length;
+        entry.localOffset = (uint32_t)archive.length;
+        [entries addObject:entry];
+        entryCount += 1;
+        AutoZipAppendUInt32(archive, 0x04034b50);
+        AutoZipAppendUInt16(archive, 20);
+        AutoZipAppendUInt16(archive, 0x0800);
+        AutoZipAppendUInt16(archive, entry.method);
+        uint16_t dosTime = 0, dosDate = 0;
+        AutoZipDOSDateTime(attributes[NSFileModificationDate], &dosTime, &dosDate);
+        AutoZipAppendUInt16(archive, dosTime);
+        AutoZipAppendUInt16(archive, dosDate);
+        AutoZipAppendUInt32(archive, entry.crc);
+        AutoZipAppendUInt32(archive, entry.compressedSize);
+        AutoZipAppendUInt32(archive, entry.uncompressedSize);
+        NSData *nameData = [entryName dataUsingEncoding:NSUTF8StringEncoding];
+        AutoZipAppendUInt16(archive, (uint16_t)nameData.length);
+        AutoZipAppendUInt16(archive, 0);
+        [archive appendData:nameData];
+        [archive appendData:payload];
+        if (archive.length > maximumWrite) {
+            buildError = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip output exceeds maxFileWriteBytes.", nil);
+            return;
+        }
+    };
+    for (id source in sources) {
+        if (buildError) break;
+        if (![source isKindOfClass:NSString.class] || [source length] == 0) {
+            buildError = AutoSupportError(AutoSDKErrorInvalidConfiguration, @"Zip sources must be non-empty paths.", nil);
+            break;
+        }
+        NSError *resolveError = nil;
+        NSURL *sourceURL = AutoResolveFilePath(source, config, NO, &resolveError);
+        if (!sourceURL) {
+            buildError = resolveError ?: AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to resolve a zip source path.", nil);
+            break;
+        }
+        addPath(sourceURL, sourceURL.lastPathComponent, 0);
+    }
+    if (buildError) {
+        if (error) *error = buildError;
+        return NO;
+    }
+    uint32_t centralOffset = (uint32_t)archive.length;
+    NSMutableData *central = [NSMutableData data];
+    uint16_t dosTime = 0, dosDate = 0;
+    AutoZipDOSDateTime(nil, &dosTime, &dosDate);
+    for (AutoZipEntry *entry in entries) {
+        NSData *nameData = [entry.name dataUsingEncoding:NSUTF8StringEncoding];
+        AutoZipAppendUInt32(central, 0x02014b50);
+        AutoZipAppendUInt16(central, 20);
+        AutoZipAppendUInt16(central, 20);
+        AutoZipAppendUInt16(central, 0x0800);
+        AutoZipAppendUInt16(central, entry.method);
+        AutoZipAppendUInt16(central, dosTime);
+        AutoZipAppendUInt16(central, dosDate);
+        AutoZipAppendUInt32(central, entry.crc);
+        AutoZipAppendUInt32(central, entry.compressedSize);
+        AutoZipAppendUInt32(central, entry.uncompressedSize);
+        AutoZipAppendUInt16(central, (uint16_t)nameData.length);
+        AutoZipAppendUInt16(central, 0);
+        AutoZipAppendUInt16(central, 0);
+        AutoZipAppendUInt16(central, 0);
+        AutoZipAppendUInt16(central, 0);
+        AutoZipAppendUInt32(central, entry.isDirectory ? 0x10 : 0);
+        AutoZipAppendUInt32(central, entry.localOffset);
+        [central appendData:nameData];
+    }
+    [archive appendData:central];
+    AutoZipAppendUInt32(archive, 0x06054b50);
+    AutoZipAppendUInt16(archive, 0);
+    AutoZipAppendUInt16(archive, 0);
+    AutoZipAppendUInt16(archive, (uint16_t)entries.count);
+    AutoZipAppendUInt16(archive, (uint16_t)entries.count);
+    AutoZipAppendUInt32(archive, (uint32_t)central.length);
+    AutoZipAppendUInt32(archive, centralOffset);
+    AutoZipAppendUInt16(archive, 0);
+    if (archive.length > maximumWrite) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip output exceeds maxFileWriteBytes.", nil);
+        return NO;
+    }
+    if (output) *output = archive;
+    return YES;
+}
+
+static BOOL AutoZipFindEndOfCentralDirectory(NSData *data, uint32_t *centralOffset, uint32_t *centralSize, uint16_t *entryCount, NSError **error) {
+    NSUInteger length = data.length;
+    if (length < 22) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip archive is too small.", nil);
+        return NO;
+    }
+    NSUInteger start = length > 65557 ? length - 65557 : 0;
+    const uint8_t *bytes = data.bytes;
+    for (NSInteger j = (NSInteger)length - 22; j >= (NSInteger)start; j--) {
+        if (bytes[j] == 0x50 && bytes[j + 1] == 0x4b && bytes[j + 2] == 0x05 && bytes[j + 3] == 0x06) {
+            if (centralOffset) *centralOffset = AutoZipReadUInt32(bytes + j + 16);
+            if (centralSize) *centralSize = AutoZipReadUInt32(bytes + j + 12);
+            if (entryCount) *entryCount = AutoZipReadUInt16(bytes + j + 10);
+            return YES;
+        }
+    }
+    if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip archive has no end-of-central-directory record.", nil);
+    return NO;
+}
+
+static BOOL AutoZipParseCentralDirectory(NSData *data, uint32_t centralOffset, uint32_t centralSize,
+                                         uint16_t entryCount, NSArray<AutoZipEntry *> **entries, NSError **error) {
+    const uint8_t *bytes = data.bytes;
+    NSUInteger length = data.length;
+    if (centralOffset > length || centralSize > length - centralOffset) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip central directory is out of bounds.", nil);
+        return NO;
+    }
+    NSUInteger cursor = centralOffset;
+    NSUInteger end = (NSUInteger)centralOffset + centralSize;
+    NSMutableArray<AutoZipEntry *> *result = [NSMutableArray array];
+    uint16_t parsed = 0;
+    while (cursor + 46 <= end && parsed < entryCount) {
+        if (AutoZipReadUInt32(bytes + cursor) != 0x02014b50) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip central directory is corrupt.", nil);
+            return NO;
+        }
+        uint16_t nameLength = AutoZipReadUInt16(bytes + cursor + 28);
+        uint16_t extraLength = AutoZipReadUInt16(bytes + cursor + 30);
+        uint16_t commentLength = AutoZipReadUInt16(bytes + cursor + 32);
+        if (cursor + 46 + nameLength + extraLength + commentLength > end) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip central directory is truncated.", nil);
+            return NO;
+        }
+        NSData *nameData = [NSData dataWithBytes:bytes + cursor + 46 length:nameLength];
+        NSString *name = AutoZipDecodeName(nameData);
+        if (!name) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip entry has an invalid name.", nil);
+            return NO;
+        }
+        AutoZipEntry *entry = [AutoZipEntry new];
+        entry.name = name;
+        entry.method = AutoZipReadUInt16(bytes + cursor + 10);
+        entry.crc = AutoZipReadUInt32(bytes + cursor + 16);
+        entry.compressedSize = AutoZipReadUInt32(bytes + cursor + 20);
+        entry.uncompressedSize = AutoZipReadUInt32(bytes + cursor + 24);
+        entry.localOffset = AutoZipReadUInt32(bytes + cursor + 42);
+        entry.isDirectory = (AutoZipReadUInt32(bytes + cursor + 38) & 0x10) != 0 || [name hasSuffix:@"/"];
+        [result addObject:entry];
+        parsed += 1;
+        cursor += 46 + nameLength + extraLength + commentLength;
+    }
+    if (parsed != entryCount) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip central directory has fewer entries than declared.", nil);
+        return NO;
+    }
+    if (entries) *entries = result;
+    return YES;
+}
+
+static NSData *AutoZipExtractEntryData(NSData *archive, AutoZipEntry *entry, NSUInteger maximumBytes, NSError **error) {
+    const uint8_t *bytes = archive.bytes;
+    NSUInteger length = archive.length;
+    if ((NSUInteger)entry.localOffset + 30 > length) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip entry local header is out of bounds.", nil);
+        return nil;
+    }
+    if (AutoZipReadUInt32(bytes + entry.localOffset) != 0x04034b50) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip entry local header is corrupt.", nil);
+        return nil;
+    }
+    uint16_t nameLength = AutoZipReadUInt16(bytes + entry.localOffset + 26);
+    uint16_t extraLength = AutoZipReadUInt16(bytes + entry.localOffset + 28);
+    NSUInteger dataOffset = (NSUInteger)entry.localOffset + 30 + nameLength + extraLength;
+    if (dataOffset + entry.compressedSize > length) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip entry data is truncated.", nil);
+        return nil;
+    }
+    if (entry.uncompressedSize > maximumBytes) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip entry exceeds the extraction byte limit.", nil);
+        return nil;
+    }
+    NSData *compressed = [NSData dataWithBytes:bytes + dataOffset length:entry.compressedSize];
+    if (entry.method == 0) {
+        if (entry.compressedSize != entry.uncompressedSize) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip stored entry size mismatch.", nil);
+            return nil;
+        }
+        return compressed;
+    }
+    if (entry.method != 8) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip compression method is not supported.", nil);
+        return nil;
+    }
+    NSData *inflated = AutoZipInflateData(compressed, entry.uncompressedSize, error);
+    if (!inflated) return nil;
+    if (inflated.length != entry.uncompressedSize) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip inflated entry size mismatch.", nil);
+        return nil;
+    }
+    if (AutoZipCRC32(inflated.bytes, inflated.length) != entry.crc) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip entry CRC32 mismatch.", nil);
+        return nil;
+    }
+    return inflated;
+}
+
+static NSArray *AutoZipListEntries(NSArray<AutoZipEntry *> *entries) {
+    NSMutableArray *result = [NSMutableArray arrayWithCapacity:entries.count];
+    for (AutoZipEntry *entry in entries) {
+        [result addObject:@{ @"name": entry.name ?: @"",
+                             @"size": @(entry.uncompressedSize),
+                             @"compressedSize": @(entry.compressedSize),
+                             @"method": @(entry.method),
+                             @"isDirectory": @(entry.isDirectory) }];
+    }
+    return result;
+}
+
+static id AutoZipReadEntry(NSData *archive, NSArray<AutoZipEntry *> *entries, NSString *entryName,
+                           NSUInteger maximumBytes, NSError **error) {
+    NSString *slashName = [entryName hasSuffix:@"/"] ? entryName : [entryName stringByAppendingString:@"/"];
+    for (AutoZipEntry *entry in entries) {
+        if ([entry.name isEqualToString:entryName] || [entry.name isEqualToString:slashName]) {
+            if (entry.isDirectory) return [NSNull null];
+            NSData *data = AutoZipExtractEntryData(archive, entry, maximumBytes, error);
+            if (!data) return nil;
+            NSString *text = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+            if (text) return text;
+            return [data base64EncodedStringWithOptions:0];
+        }
+    }
+    if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip entry was not found.", nil);
+    return nil;
+}
+
+static BOOL AutoZipExtract(NSData *archive, NSArray<AutoZipEntry *> *entries, NSString *destinationPath,
+                           NSDictionary *config, NSError **error) {
+    NSFileManager *manager = NSFileManager.defaultManager;
+    NSUInteger maximumEntry = AutoSupportByteLimit(config, @"maxZipExtractEntryBytes", 64 * 1024 * 1024, 512 * 1024 * 1024);
+    NSUInteger maximumTotal = AutoSupportByteLimit(config, @"maxZipExtractBytes", 128 * 1024 * 1024, 1024 * 1024 * 1024);
+    NSUInteger totalBytes = 0;
+    for (AutoZipEntry *entry in entries) {
+        NSArray<NSString *> *components = entry.name.pathComponents;
+        for (NSString *component in components) {
+            if ([component isEqualToString:@".."]) {
+                if (error) *error = AutoSupportError(AutoSDKErrorFileAccessDenied, @"Zip entry attempts to escape the destination directory.", nil);
+                return NO;
+            }
+        }
+        if ([entry.name hasPrefix:@"/"]) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileAccessDenied, @"Zip entry uses an absolute path.", nil);
+            return NO;
+        }
+        NSError *resolveError = nil;
+        NSURL *targetURL = AutoResolveFilePath([destinationPath stringByAppendingPathComponent:entry.name], config, NO, &resolveError);
+        if (!targetURL) {
+            if (error) *error = resolveError ?: AutoSupportError(AutoSDKErrorFileAccessDenied, @"Zip entry escapes the sandbox.", nil);
+            return NO;
+        }
+        if (entry.isDirectory) {
+            NSError *directoryError = nil;
+            if (![manager createDirectoryAtURL:targetURL withIntermediateDirectories:YES attributes:nil error:&directoryError]) {
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to create the zip entry directory.", directoryError);
+                return NO;
+            }
+            continue;
+        }
+        NSData *entryData = AutoZipExtractEntryData(archive, entry, maximumEntry, error);
+        if (!entryData) return NO;
+        totalBytes += entryData.length;
+        if (totalBytes > maximumTotal) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip extraction exceeds maxZipExtractBytes.", nil);
+            return NO;
+        }
+        NSError *directoryError = nil;
+        if (![manager createDirectoryAtURL:targetURL.URLByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:&directoryError]) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to create the extraction directory.", directoryError);
+            return NO;
+        }
+        NSError *writeError = nil;
+        if (![entryData writeToURL:targetURL options:NSDataWritingAtomic error:&writeError]) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to write the extracted zip entry.", writeError);
+            return NO;
+        }
+    }
+    return YES;
+}
+static BOOL AutoLoadZipArchive(NSURL *url, NSDictionary *config,
+                               NSArray<AutoZipEntry *> **entries, NSData **archiveData, NSError **error) {
+    NSUInteger maximum = AutoSupportByteLimit(config, @"maxZipArchiveBytes", 128 * 1024 * 1024, 1024 * 1024 * 1024);
+    NSDictionary *attributes = [NSFileManager.defaultManager attributesOfItemAtPath:url.path error:nil];
+    if ([attributes[NSFileSize] unsignedLongLongValue] > maximum) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip archive exceeds maxZipArchiveBytes.", nil);
+        return NO;
+    }
+    NSError *readError = nil;
+    NSData *data = [NSData dataWithContentsOfURL:url options:NSDataReadingMappedIfSafe error:&readError];
+    if (!data || data.length > maximum) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to read the zip archive.", readError);
+        return NO;
+    }
+    uint32_t centralOffset = 0, centralSize = 0;
+    uint16_t entryCount = 0;
+    if (!AutoZipFindEndOfCentralDirectory(data, &centralOffset, &centralSize, &entryCount, error)) return NO;
+    if (entryCount > 2000) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip archive has too many entries.", nil);
+        return NO;
+    }
+    NSArray<AutoZipEntry *> *parsedEntries = nil;
+    if (!AutoZipParseCentralDirectory(data, centralOffset, centralSize, entryCount, &parsedEntries, error)) return NO;
+    if (entries) *entries = parsedEntries;
+    if (archiveData) *archiveData = data;
+    return YES;
+}
+
 id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
                            NSDictionary<NSString *,id> *config,
                            NSError **error) {
     @synchronized (AutoFileOperationLock()) {
     NSString *operation = [payload[@"operation"] isKindOfClass:NSString.class] ? payload[@"operation"] : @"";
-    NSSet *writeOperations = [NSSet setWithArray:@[@"writeText", @"writeBase64", @"appendText", @"mkdir", @"remove", @"copy", @"imageProcess"]];
+    NSSet *writeOperations = [NSSet setWithArray:@[@"writeText", @"writeBase64", @"appendText", @"mkdir", @"remove", @"copy", @"imageProcess", @"zip", @"unzip"]];
     BOOL writes = [writeOperations containsObject:operation];
     if (!AutoRequireFileAccess(config, writes, error)) return nil;
     if ([operation isEqualToString:@"sandboxDir"]) return AutoFileRoot(config, error).path;
+    if ([operation isEqualToString:@"zip"]) {
+        NSString *zipDestination = AutoRequiredString(payload[@"destination"], @"destination", error);
+        if (!zipDestination) return nil;
+        NSArray *zipSources = [payload[@"sources"] isKindOfClass:NSArray.class] ? payload[@"sources"] : nil;
+        if (!zipSources || zipSources.count == 0) {
+            if (error) *error = AutoSupportError(AutoSDKErrorInvalidConfiguration, @"zip.sources must be a non-empty array of file paths.", nil);
+            return nil;
+        }
+        NSString *zipPasswd = [payload[@"passwd"] isKindOfClass:NSString.class] ? payload[@"passwd"] : @"";
+        if (zipPasswd.length > 0) {
+            if (error) *error = AutoSupportError(AutoSDKErrorInvalidConfiguration, @"Zip encryption is not supported; omit passwd.", nil);
+            return nil;
+        }
+        NSURL *zipDestinationURL = AutoResolveFilePath(zipDestination, config, NO, error);
+        if (!zipDestinationURL) return nil;
+        NSData *zipArchive = nil;
+        if (!AutoZipBuildArchive(zipSources, config, &zipArchive, error)) return nil;
+        NSError *zipDirectoryError = nil;
+        if (![NSFileManager.defaultManager createDirectoryAtURL:zipDestinationURL.URLByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:&zipDirectoryError]) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to create the zip destination directory.", zipDirectoryError);
+            return nil;
+        }
+        NSError *zipWriteError = nil;
+        if (![zipArchive writeToURL:zipDestinationURL options:NSDataWritingAtomic error:&zipWriteError]) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to write the zip archive.", zipWriteError);
+            return nil;
+        }
+        return zipDestinationURL.path;
+    }
 
     NSString *path = AutoRequiredString(payload[@"path"], @"path", error);
     if (!path) return nil;
@@ -460,6 +1019,37 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
 
     if ([operation isEqualToString:@"resolvePath"]) return url.path;
     if ([operation isEqualToString:@"exists"]) return @([manager fileExistsAtPath:url.path]);
+    if ([operation isEqualToString:@"unzip"]) {
+        NSString *zipPasswd = [payload[@"passwd"] isKindOfClass:NSString.class] ? payload[@"passwd"] : @"";
+        if (zipPasswd.length > 0) {
+            if (error) *error = AutoSupportError(AutoSDKErrorInvalidConfiguration, @"Zip encryption is not supported; omit passwd.", nil);
+            return nil;
+        }
+        NSString *zipDestination = AutoRequiredString(payload[@"destination"], @"destination", error);
+        if (!zipDestination) return nil;
+        NSURL *zipDestinationURL = AutoResolveFilePath(zipDestination, config, NO, error);
+        if (!zipDestinationURL) return nil;
+        NSData *zipArchive = nil;
+        NSArray<AutoZipEntry *> *zipEntries = nil;
+        if (!AutoLoadZipArchive(url, config, &zipEntries, &zipArchive, error)) return nil;
+        if (!AutoZipExtract(zipArchive, zipEntries, zipDestinationURL.path, config, error)) return nil;
+        return @YES;
+    }
+
+    if ([operation isEqualToString:@"readFileInZip"]) {
+        NSString *zipPasswd = [payload[@"passwd"] isKindOfClass:NSString.class] ? payload[@"passwd"] : @"";
+        if (zipPasswd.length > 0) {
+            if (error) *error = AutoSupportError(AutoSDKErrorInvalidConfiguration, @"Zip encryption is not supported; omit passwd.", nil);
+            return nil;
+        }
+        NSString *entryName = AutoRequiredString(payload[@"entry"], @"entry", error);
+        if (!entryName) return nil;
+        NSData *zipArchive = nil;
+        NSArray<AutoZipEntry *> *zipEntries = nil;
+        if (!AutoLoadZipArchive(url, config, &zipEntries, &zipArchive, error)) return nil;
+        NSUInteger zipEntryLimit = AutoSupportByteLimit(config, @"maxZipExtractEntryBytes", 64 * 1024 * 1024, 512 * 1024 * 1024);
+        return AutoZipReadEntry(zipArchive, zipEntries, entryName, zipEntryLimit, error);
+    }
 
     if ([operation isEqualToString:@"stat"]) {
         NSError *statError = nil;

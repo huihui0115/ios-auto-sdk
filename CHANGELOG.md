@@ -22,6 +22,18 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **EasyClick benchmark round 5: native ZIP engine.** New
+  file.zip(dest, sources) builds a ZIP archive from files and folders
+  (raw DEFLATE with CRC32, automatic store fallback, GBK/UTF-8 name
+  decoding); file.unzip(zipPath, dest) extracts with path-traversal
+  rejection and byte-budget limits; file.readFileInZip(zipPath, entry)
+  reads one entry without landing it (UTF-8 text, Base64 for binary,
+  null for directories). All three are also exposed as global zip() /
+  unzip() / readFileInZip(). Encrypted archives are rejected explicitly.
+  API reference grows to 169 documented functions.
+### Added
+
+
 - **File stat helpers and foreground-app query.** New file.stat(path) /
   getSize / getModifiedTime / isDir / isFile (single stat bridge
   call, bounded by the same file-access gates) and app.current() /

@@ -130,7 +130,10 @@ const REFS = {
   'image.pixelAt(src, x, y)': 'EasyClick image.pixelInImage()',
   'image.getWidth(path) / image.getHeight(path)': 'EasyClick image.getWidth()/getHeight()',  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
   'uuid()': 'EasyClick uuid()',
-  'base64.encode(str)': 'EasyClick base64.encode()/decode()'
+  'base64.encode(str)': 'EasyClick base64.encode()/decode()',
+  'file.zip(dest, sources, passwd?)': 'EasyClick utils.zip()',
+  'file.unzip(zipPath, dest, passwd?)': 'EasyClick utils.unzip()/unzipWithEncode()',
+  'file.readFileInZip(zipPath, entry, passwd?)': 'EasyClick utils.readFileInZip()'
 };
 function card(api) {
   const ref = REFS[api.sig.split(' / ')[0].trim()];
@@ -1038,6 +1041,21 @@ APIS.push({ cat:'file', sig:'file.rename(path, newName)', title:'重命名', des
 }
 main();` });
 
+APIS.push({ cat:'file', sig:'file.zip(dest, sources, passwd?)', title:'?? ZIP', desc:'???/??????? ZIP???????passwd ???????????????', params:[['dest','string','?? zip ??'],['sources','string[]','??????/??????'],['passwd','string','????????']], returns:'string', example:`function main(){
+  const zipPath = file.zip("backup/scripts.zip", ["data/1.txt", "logs"]);
+  logd("????: " + zipPath);
+}
+main();` });
+APIS.push({ cat:'file', sig:'file.unzip(zipPath, dest, passwd?)', title:'?? ZIP', desc:'? ZIP ??????????????????????????????', params:[['zipPath','string','zip ??'],['dest','string','??????'],['passwd','string','????????']], returns:'boolean', example:`function main(){
+  const ok = file.unzip("backup/scripts.zip", "backup/out");
+  logd("??: " + ok);
+}
+main();` });
+APIS.push({ cat:'file', sig:'file.readFileInZip(zipPath, entry, passwd?)', title:'?? ZIP ???', desc:'?????????? zip ??????UTF-8 ????????????? Base64????? null?', params:[['zipPath','string','zip ??'],['entry','string','????? data/1.txt'],['passwd','string','????????']], returns:'string|null', example:`function main(){
+  const text = file.readFileInZip("backup/scripts.zip", "data/1.txt");
+  logd(text);
+}
+main();` });
 APIS.push({ cat:'file', sig:'file.stat(path) / getSize / getModifiedTime / isDir / isFile', title:'文件状态查询', desc:'查询文件大小（字节）、修改时间（毫秒时间戳）、是否为目录/文件；路径不存在时 stat 返回 null。', params:[['path','string','路径']], returns:'object|null / number|null / boolean', example:`function main(){
   const s = file.stat("data/a.txt");
   if (s) logd("大小: " + s.size + " 修改: " + s.modifiedAtMs);

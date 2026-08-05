@@ -12,5 +12,6 @@ Pod::Spec.new do |s|
   s.source_files     = 'Sources/AutoSDK/**/*.{h,m}'
   s.public_header_files = 'Sources/AutoSDK/include/*.h'
   s.frameworks       = 'Foundation', 'UIKit', 'QuartzCore', 'JavaScriptCore', 'Network', 'Vision', 'AVFoundation', 'AudioToolbox', 'Photos', 'ImageIO'
+  s.libraries        = 'z'
   s.requires_arc     = true
 end
