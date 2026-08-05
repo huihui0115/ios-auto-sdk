@@ -134,6 +134,7 @@
 - (void)loadScript:(NSString *)value config:(NSDictionary *)config completion:(void (^)(NSString * _Nullable source, NSError * _Nullable error))completion;
 - (void)evaluateScript:(NSString *)source config:(NSDictionary *)config adapter:(id<AutoAutomationAdapter>)adapter completion:(AutoScriptCompletion)completion;
 - (void)finishWithResult:(NSDictionary * _Nullable)result error:(NSError * _Nullable)error completion:(AutoScriptCompletion)completion;
+- (void)cleanupOverlayUI;
 - (BOOL)shouldStop;
 - (void)requestStop;
 - (void)handleDebugRequest:(NSDictionary<NSString *, id> *)request response:(AutoDebugResponseHandler)response;
