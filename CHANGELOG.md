@@ -17,42 +17,21 @@ All notable changes to AutoSDK are documented here. The format follows
   TrollAutoScript node.keep/unkeep）；新增 `strings.stripUtf8Bom`/`strings.fromUnicode`
   （BOM 清洗、\uXXXX 还原）。修复文档生成器中 14 处历史中文损坏条目；本地 API 文档
   同步更新（198 个函数，新增悬浮窗口分类）。
-
-### Added
-
-- **Round 8: 相册清空 + 对标 TrollAutoScript 补齐常用函数。** 新增
-  `media.deleteAllPhotos()/deleteAllVideos()/deleteAllMedia()`（读写真机权限、返回删除数量，全局简写同名）；
-  新增字符串工具 `strings.*`（trim/ltrim/rtrim/split/chars/toHex/fromHex/isUpper/isLower/isNumber/
-  isIntrger/isLetter/isChinese/isEmail/isLink/base64Encode/base64Decode）与全局简写；新增
-  `sha256()/sha512()`（CommonCrypto）；新增 `alert(message,title?)` 原生弹窗与 `exit()` 停止脚本；
+- **Round 9: plist / webView / AES-128。** 新增 `file.readPlist/writePlist` 与全局
+  `plist.read/plist.write`（XML plist，NSData→base64、NSDate→毫秒）；新增
+  `webView.init/show/hidden/eval/release` 悬浮 WKWebView（对标 TrollAutoScript
+  webView 模块）；新增 `strings.aes128Encrypt/aes128Decrypt`（AES-128-ECB+PKCS7，
+  CommonCrypto）与全局简写；新增 `restartScript()` 停止后重跑当前脚本（引擎记录
+  当前脚本源码）。本地 API 文档同步更新（192 个函数）。
+- **Round 8: 相册清空 + 对标 TrollAutoScript。** 新增
+  `media.deleteAllPhotos()/deleteAllVideos()/deleteAllMedia()`（读写真机权限、返回
+  删除数量，全局简写同名）；新增字符串工具 `strings.*`（trim/ltrim/rtrim/split/
+  chars/toHex/fromHex/isUpper/isLower/isNumber/isIntrger/isLetter/isChinese/isEmail/
+  isLink/base64Encode/base64Decode）与全局简写；新增 `sha256()/sha512()`
+  （CommonCrypto）；新增 `alert(message,title?)` 原生弹窗与 `exit()` 停止脚本；
   新增文件行操作 `file.lineCount/getLineText/insertLineText/resetLineText`。新增
-  [`docs/TROLLAUTOSCRIPT_COMPARISON.md`](docs/TROLLAUTOSCRIPT_COMPARISON.md) 模块级对标表，
-  本地 API 文档同步更新（189 个函数）。
-
-### Added
-
-- **Round 9: plist / webView / AES-128。** 新增 `file.readPlist/writePlist` 与全局 `plist.read/plist.write`
-  （XML plist，NSData→base64、NSDate→毫秒）；新增 `webView.init/show/hidden/eval/release` 悬浮
-  WKWebView（对标 TrollAutoScript webView 模块）；新增 `strings.aes128Encrypt/aes128Decrypt`
-  （AES-128-ECB+PKCS7，CommonCrypto）与全局简写；新增 `restartScript()` 停止后重跑当前
-  脚本（引擎记录当前脚本源码）。本地 API 文档同步更新（192 个函数）。
-
-### Changed
-
-- **Timers wait in one native sleep instead of 50 ms slices.** A one-second
-  setTimeout now costs a single JSC-to-Objective-C round trip; the native
-  sleep keeps its 20 ms interruptible run-loop pump, so stop requests still
-  abort a pending wait promptly.
-- **setScreenMetrics fixes the coordinate mapping at setup time.** After
-  setScreenMetrics(w, h) the device size is captured once, so
-  metrics.point/x/y no longer cross the native bridge per call; call
-  setScreenMetrics again after a rotation to re-anchor the mapping.
-- **Sleep and wait loops avoid per-iteration NSDate allocations.** The
-  deadline is now a monotonic CFAbsoluteTimeGetCurrent value in
-  invokeSleep and invokeWaitFor.
-
-### Added
-
+  [`docs/TROLLAUTOSCRIPT_COMPARISON.md`](docs/TROLLAUTOSCRIPT_COMPARISON.md) 模块级
+  对标表，本地 API 文档同步更新（189 个函数）。
 - **EasyClick benchmark round 7: real parallel threads and quick helpers.** New
   execAsync(fn, ...args) runs a function in a fresh JSContext on a real
   background thread (sharing the automation bridge), returning an AutoThread
@@ -63,8 +42,6 @@ All notable changes to AutoSDK are documented here. The format follows
   calls, sleeps and timer boundaries. Also adds longClickPoint(x, y, ms),
   getRangeInt(min, max), getRatio(percent), and getOneNodeInfo/getNodeInfo
   aliases. API reference grows to 180 documented functions.
-### Added
-
 - **EasyClick benchmark round 6: Excel reading and device/app identity.** New
   file.readExcelAllRow(path, sheetIndex?) parses XLSX workbooks with a
   built-in ZIP+XML reader (shared strings, numeric cells, GBK-safe entry
@@ -76,8 +53,6 @@ All notable changes to AutoSDK are documented here. The format follows
   read the hardware serial), and getAppVersion()/getPackageName() expose
   the host app version and bundle id (also app.* and globals). API
   reference grows to 174 documented functions.
-### Added
-
 - **EasyClick benchmark round 5: native ZIP engine.** New
   file.zip(dest, sources) builds a ZIP archive from files and folders
   (raw DEFLATE with CRC32, automatic store fallback, GBK/UTF-8 name
@@ -87,9 +62,6 @@ All notable changes to AutoSDK are documented here. The format follows
   null for directories). All three are also exposed as global zip() /
   unzip() / readFileInZip(). Encrypted archives are rejected explicitly.
   API reference grows to 169 documented functions.
-### Added
-
-
 - **File stat helpers and foreground-app query.** New file.stat(path) /
   getSize / getModifiedTime / isDir / isFile (single stat bridge
   call, bounded by the same file-access gates) and app.current() /
@@ -102,9 +74,9 @@ All notable changes to AutoSDK are documented here. The format follows
   underlying swipe bridge call uses seconds, so the helpers convert units.
 - **Installed-app list.** New app.appList() / installedApps() returns
   [{bundleId, name}] through the WDA /wda/apps endpoint; adapters that
-  do not implement the new optional
-  installedApplicationsWithError: protocol method report an explicit
-  unavailable error. API reference grows to 149 documented functions.
+  do not implement the new optional installedApplicationsWithError:
+  protocol method report an explicit unavailable error. API reference
+  grows to 149 documented functions.
 - **EasyClick benchmark round: region screenshots, prefix launch, drag and utils.** New
   screenshotRegion(x, y, w, h) crops the screen capture natively (CoreGraphics)
   and returns the region PNG base64; launchAppByPrefix()/app.launchByPrefix()
@@ -142,14 +114,26 @@ All notable changes to AutoSDK are documented here. The format follows
   /wda/locked), gated by allowSystemControl; embedded adapters report
   unavailable instead of failing silently. API reference grows to 142
   documented functions.
-### Added
-
 - **Virtual-clock timer tests.** The bootstrap test sandbox now advances a
   virtual clock inside invokeSleep, so CI exercises the real wait-sleep-fire
   path deterministically, including interval cadence, one-shot sleeps, and
   stop-during-wait.
 - **Bootstrap size/time guard.** `tools/bootstrap.test.mjs` asserts the
   embedded runtime stays under 64 KB and parses in under 1 s.
+
+### Changed
+
+- **Timers wait in one native sleep instead of 50 ms slices.** A one-second
+  setTimeout now costs a single JSC-to-Objective-C round trip; the native
+  sleep keeps its 20 ms interruptible run-loop pump, so stop requests still
+  abort a pending wait promptly.
+- **setScreenMetrics fixes the coordinate mapping at setup time.** After
+  setScreenMetrics(w, h) the device size is captured once, so
+  metrics.point/x/y no longer cross the native bridge per call; call
+  setScreenMetrics again after a rotation to re-anchor the mapping.
+- **Sleep and wait loops avoid per-iteration NSDate allocations.** The
+  deadline is now a monotonic CFAbsoluteTimeGetCurrent value in
+  invokeSleep and invokeWaitFor.
 
 ## [1.2.1] - 2026-08-04
 

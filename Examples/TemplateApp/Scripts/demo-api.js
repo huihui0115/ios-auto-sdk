@@ -169,4 +169,56 @@ try {
 }
 report.findNotColorSupported = typeof findNotColor === "function";
 
+// 13. String toolkit: pinyin, BOM, Unicode, hashes and AES (round 8-11)
+try {
+  report.strings = {
+    trim: strings.trim("  hi  "),
+    toPinYin: toPinYin("你好世界"),
+    sha256: sha256("hello"),
+    isEmail: isEmail("a@b.com"),
+    fromUnicode: fromUnicode("\\u4f60\\u597d"),
+    stripBom: stripUtf8Bom("\uFEFFabc"),
+    aesRoundTrip: strings.aes128Decrypt(strings.aes128Encrypt("secret", "k"), "k") === "secret",
+  };
+} catch (e) {
+  report.stringsError = String(e);
+}
+
+// 14. Plist round trip
+try {
+  file.writePlist("demo/config.plist", { count: 3, enabled: true, name: "AutoSDK" });
+  const cfg = file.readPlist("demo/config.plist");
+  report.plist = cfg && cfg.count === 3 && cfg.name === "AutoSDK";
+  file.deleteAllFile("demo/config.plist");
+} catch (e) {
+  report.plistError = String(e);
+}
+
+// 15. Floating overlay: screenDraw rectangle + floatBall (round 11)
+try {
+  const draw = screenDraw.init();
+  screenDraw.setBorderColor(draw, "#00FF00");
+  screenDraw.setTitle(draw, "AutoSDK");
+  screenDraw.show(draw, 20, 100, 200, 120);
+  floatBall.show("运行中", 20, 240);
+  report.overlay = draw != null && floatBall.isShow();
+  sleep(1200);
+  screenDraw.hide(draw);
+  floatBall.hide();
+} catch (e) {
+  report.overlayError = String(e);
+}
+
+// 16. Node keep/unkeep registry
+try {
+  const kept = keepNode({ id: "demo-node" });
+  report.nodeKeep = node.keptCount() >= 1;
+  unkeepNode(kept);
+  report.nodeRelease = node.keptCount() === 0;
+} catch (e) {
+  report.nodeError = String(e);
+}
+
+report;
+
 report;
