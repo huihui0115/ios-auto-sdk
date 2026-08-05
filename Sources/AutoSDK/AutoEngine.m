@@ -1923,7 +1923,13 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     NSDictionary *mapping = @{ @"screenWidth": @"screenWidth", @"screenHeight": @"screenHeight",
                                @"scale": @"screenScale", @"model": @"model", @"osVersion": @"systemVersion",
                                @"name": @"name", @"battery": @"batteryLevel", @"isCharging": @"isCharging",
-                               @"orientation": @"orientation" };
+                               @"orientation": @"orientation", @"deviceId": @"deviceId",
+                               @"appVersion": @"appVersion", @"packageName": @"bundleId",
+                               @"bundleId": @"bundleId" };
+    if ([operation isEqualToString:@"serialNo"]) {
+        // Third-party iOS apps cannot read the hardware serial number.
+        return [NSNull null];
+    }
     NSString *key = mapping[operation];
     if (!key) return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"Unknown device operation.", nil)];
     NSDictionary *info = AutoValueOnMainThread(^id{ return [self.engine getDeviceInfo]; });

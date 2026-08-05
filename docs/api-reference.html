@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>31</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>14</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>21</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>32</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>9</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>14</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>31</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>15</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>23</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>34</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>9</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>14</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -958,7 +958,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="app" class="cat" style="--c:#16a34a">
-  <h2><span class="tag">App与应用控制</span><i>14</i></h2>
+  <h2><span class="tag">App与应用控制</span><i>15</i></h2>
   <article class="card" data-search="app.launch(bundleId) 启动应用">
   <header class="card-head">
     <h4><code>app.launch(bundleId)</code> <span class="cname">启动应用</span></h4>
@@ -1170,9 +1170,23 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="app.getAppVersion() / getPackageName() ??????/??">
+  <header class="card-head">
+    <h4><code>app.getAppVersion() / getPackageName()</code> <span class="cname">??????/??</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">???? App ?????CFBundleShortVersionString?? bundle id??????? getAppVersion()/getPackageName()?</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd("v" + getAppVersion() + " " + getPackageName());
+}
+main();</code></pre>
+</article>
 </section>
 <section id="device" class="cat" style="--c:#dc2626">
-  <h2><span class="tag">设备与系统</span><i>21</i></h2>
+  <h2><span class="tag">设备与系统</span><i>23</i></h2>
   <article class="card" data-search="device.getOSVersion() 系统版本">
   <header class="card-head">
     <h4><code>device.getOSVersion()</code> <span class="cname">系统版本</span></h4>
@@ -1495,6 +1509,35 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="device.getDeviceId() ??????">
+  <header class="card-head">
+    <h4><code>device.getDeviceId()</code> <span class="cname">??????</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">??????????identifierForVendor???????????????????????</p>
+  <div class="ref"><b>对标</b> EasyClick getDeviceId()</div>
+  
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd("deviceId: " + device.getDeviceId());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getDeviceAlias() / getSerialNo() ????/???">
+  <header class="card-head">
+    <h4><code>device.getDeviceAlias() / getSerialNo()</code> <span class="cname">????/???</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">getDeviceAlias ???????getSerialNo ? iOS ????????????????? null?</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>string | null</span></div>
+  <pre><code>function main(){
+  logd("alias: " + device.getDeviceAlias());
+  logd("serial: " + device.getSerialNo());
+}
+main();</code></pre>
+</article>
 </section>
 <section id="metrics" class="cat" style="--c:#0ea5e9">
   <h2><span class="tag">坐标与屏幕</span><i>5</i></h2>
@@ -1582,7 +1625,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="file" class="cat" style="--c:#4f46e5">
-  <h2><span class="tag">文件</span><i>32</i></h2>
+  <h2><span class="tag">文件</span><i>34</i></h2>
   <article class="card" data-search="file.writeText(path, text) 写文本">
   <header class="card-head">
     <h4><code>file.writeText(path, text)</code> <span class="cname">写文本</span></h4>
@@ -2047,6 +2090,36 @@ main();</code></pre>
   <pre><code>function main(){
   const text = file.readFileInZip("backup/scripts.zip", "data/1.txt");
   logd(text);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.readExcelAllRow(path, sheetIndex?) ?? Excel ????">
+  <header class="card-head">
+    <h4><code>file.readExcelAllRow(path, sheetIndex?)</code> <span class="cname">?? Excel ????</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">?? xlsx??? ZIP+XML ???? UTF-8 CSV???????????????????????????????????????</p>
+  <div class="ref"><b>对标</b> EasyClick file.readExcelAllRow()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">xlsx ? csv ??</span></div><div class="param"><code class="pname">sheetIndex</code><span class="ptype">number</span><span class="pdesc">????????? 0 ????? 0?CSV ???</span></div></div>
+  <div class="ret"><b>返回值</b> <span>Array&lt;object&gt;</span></div>
+  <pre><code>function main(){
+  const rows = file.readExcelAllRow("data/books.xlsx");
+  for (const r of rows) logd(r.name, r.age);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.readExcelRow(path, sheetIndex?, row?) ?? Excel ??">
+  <header class="card-head">
+    <h4><code>file.readExcelRow(path, sheetIndex?, row?)</code> <span class="cname">?? Excel ??</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">???????? row ??0 ?????????????? null?</p>
+  <div class="ref"><b>对标</b> EasyClick file.readExcelRow()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">xlsx ? csv ??</span></div><div class="param"><code class="pname">sheetIndex</code><span class="ptype">number</span><span class="pdesc">????? 0</span></div><div class="param"><code class="pname">row</code><span class="ptype">number</span><span class="pdesc">??? 0 ??</span></div></div>
+  <div class="ret"><b>返回值</b> <span>Array&lt;string|number&gt;|null</span></div>
+  <pre><code>function main(){
+  const cells = file.readExcelRow("data/books.xlsx", 0, 2);
+  logd(JSON.stringify(cells));
 }
 main();</code></pre>
 </article>
@@ -2757,7 +2830,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 169 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 174 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

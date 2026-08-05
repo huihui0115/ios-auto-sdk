@@ -140,6 +140,19 @@ try {
 } catch (e) {
   report.zipError = String(e);
 }
+// 11. Excel reading (xlsx/csv) and app identity
+try {
+  file.writeText("demo/data.csv", "name,age\nAlice,30\nBob,25\n");
+  const excelRows = file.readExcelAllRow("demo/data.csv");
+  report.excelRows = excelRows.length;
+  report.excelFirst = excelRows[0] ? excelRows[0].name : null;
+  report.deviceId = device.getDeviceId();
+  report.appVersion = getAppVersion();
+  report.packageName = getPackageName();
+  file.deleteAllFile("demo/data.csv");
+} catch (e) {
+  report.excelError = String(e);
+}
 report.findNotColorSupported = typeof findNotColor === "function";
 
 report;

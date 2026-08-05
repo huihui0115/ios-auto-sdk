@@ -3,6 +3,7 @@
 #import <CommonCrypto/CommonDigest.h>
 #import <ImageIO/ImageIO.h>
 #include <math.h>
+#include <string.h>
 #include <zlib.h>
 
 static NSError *AutoSupportError(AutoSDKErrorCode code, NSString *message, NSError *underlying) {
@@ -943,6 +944,267 @@ static BOOL AutoZipExtract(NSData *archive, NSArray<AutoZipEntry *> *entries, NS
     }
     return YES;
 }
+static NSData *AutoZipEntryDataByName(NSData *archive, NSArray<AutoZipEntry *> *entries, NSString *name, NSUInteger maximumBytes, NSError **error) {
+    for (AutoZipEntry *entry in entries) {
+        if (entry.isDirectory) continue;
+        if ([entry.name isEqualToString:name] || [entry.name hasSuffix:[@"/" stringByAppendingString:name]]) {
+            return AutoZipExtractEntryData(archive, entry, maximumBytes, error);
+        }
+    }
+    if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed,
+                                         [NSString stringWithFormat:@"Excel workbook part %@ is missing.", name], nil);
+    return nil;
+}
+
+// ===== Excel workbook support: XLSX (ZIP+XML) with a plain CSV fallback =====
+@interface AutoXLSXWorkbookScanner : NSObject <NSXMLParserDelegate>
+@property (nonatomic, strong) NSMutableArray<NSDictionary *> *sheets;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, NSString *> *targets;
+@property (nonatomic, assign) BOOL scanningRels;
+@end
+@implementation AutoXLSXWorkbookScanner
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        _sheets = [NSMutableArray array];
+        _targets = [NSMutableDictionary dictionary];
+    }
+    return self;
+}
+- (void)parser:(NSXMLParser *)parser didStartElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qualifiedName attributes:(NSDictionary<NSString *,NSString *> *)attributeDict {
+    if (self.scanningRels) {
+        if ([elementName isEqualToString:@"Relationship"]) {
+            NSString *relId = attributeDict[@"Id"] ?: attributeDict[@"id"];
+            NSString *target = attributeDict[@"Target"] ?: attributeDict[@"target"];
+            if (relId.length > 0 && target.length > 0) self.targets[relId] = target;
+        }
+        return;
+    }
+    if ([elementName isEqualToString:@"sheet"]) {
+        NSString *relId = attributeDict[@"r:id"] ?: attributeDict[@"id"];
+        NSString *name = attributeDict[@"name"] ?: @"";
+        [self.sheets addObject:@{ @"rId": relId ?: @"", @"name": name }];
+    }
+}
+@end
+
+@interface AutoXLSXParser : NSObject <NSXMLParserDelegate>
+@property (nonatomic, strong) NSMutableArray<NSMutableArray *> *rows;
+@property (nonatomic, assign) BOOL parsingShared;
+@property (nonatomic, strong) NSMutableArray<NSString *> *sharedStrings;
+@property (nonatomic, strong) NSMutableString *currentText;
+@property (nonatomic, assign) BOOL collectingText;
+@property (nonatomic, strong) NSMutableArray *currentRow;
+@property (nonatomic, assign) NSInteger currentColumn;
+@property (nonatomic, copy) NSString *cellType;
+@property (nonatomic, assign) BOOL insidePhonetic;
+@end
+@implementation AutoXLSXParser
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        _rows = [NSMutableArray array];
+        _sharedStrings = [NSMutableArray array];
+    }
+    return self;
+}
+- (void)parser:(NSXMLParser *)parser didStartElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qualifiedName attributes:(NSDictionary<NSString *,NSString *> *)attributeDict {
+    if (self.parsingShared) {
+        if ([elementName isEqualToString:@"si"]) {
+            self.currentText = [NSMutableString string];
+            self.collectingText = NO;
+            self.insidePhonetic = NO;
+        } else if ([elementName isEqualToString:@"rPh"] || [elementName isEqualToString:@"phoneticPr"]) {
+            self.insidePhonetic = YES;
+            self.collectingText = NO;
+        } else if ([elementName isEqualToString:@"t"] && !self.insidePhonetic) {
+            if (self.currentText == nil) self.currentText = [NSMutableString string];
+            self.collectingText = YES;
+        }
+        return;
+    }
+    if ([elementName isEqualToString:@"row"]) {
+        self.currentRow = [NSMutableArray array];
+        self.currentColumn = -1;
+        self.currentText = nil;
+        self.collectingText = NO;
+    } else if ([elementName isEqualToString:@"c"]) {
+        self.currentText = [NSMutableString string];
+        self.collectingText = NO;
+        self.cellType = attributeDict[@"t"] ?: @"";
+        NSString *reference = attributeDict[@"r"] ?: @"";
+        NSInteger column = -1;
+        for (NSUInteger i = 0; i < reference.length; i++) {
+            unichar c = [reference characterAtIndex:i];
+            if (c >= 'A' && c <= 'Z') column = column < 0 ? 0 : column, column = column * 26 + (c - 'A' + 1);
+            else if (c >= 'a' && c <= 'z') column = column < 0 ? 0 : column, column = column * 26 + (c - 'a' + 1);
+            else break;
+        }
+        self.currentColumn = column >= 0 ? column - 1 : self.currentColumn + 1;
+    } else if ([elementName isEqualToString:@"v"] || [elementName isEqualToString:@"t"]) {
+        if (self.currentText == nil) self.currentText = [NSMutableString string];
+        self.collectingText = YES;
+    }
+}
+- (void)parser:(NSXMLParser *)parser foundCharacters:(NSString *)string {
+    if (self.collectingText && self.currentText) [self.currentText appendString:string];
+}
+- (void)parser:(NSXMLParser *)parser didEndElement:(NSString *)elementName namespaceURI:(NSString *)namespaceURI qualifiedName:(NSString *)qualifiedName {
+    if ([elementName isEqualToString:@"t"]) self.collectingText = NO;
+    if (self.parsingShared) {
+        if ([elementName isEqualToString:@"rPh"] || [elementName isEqualToString:@"phoneticPr"]) {
+            self.insidePhonetic = NO;
+            self.collectingText = NO;
+        } else if ([elementName isEqualToString:@"si"]) {
+            [self.sharedStrings addObject:[self.currentText copy] ?: @""];
+            self.currentText = nil;
+            self.insidePhonetic = NO;
+        }
+        return;
+    }
+    if ([elementName isEqualToString:@"c"]) {
+        if (self.currentColumn < 0 || self.currentRow == nil) return;
+        NSString *text = self.currentText ? [self.currentText copy] : @"";
+        id value = text;
+        if ([self.cellType isEqualToString:@"s"]) {
+            NSInteger index = text.integerValue;
+            value = (index >= 0 && index < (NSInteger)self.sharedStrings.count) ? self.sharedStrings[index] : @"";
+        } else if ([self.cellType isEqualToString:@"b"]) {
+            value = [text isEqualToString:@"1"] ? @"true" : @"false";
+        } else if (self.cellType.length == 0 || [self.cellType isEqualToString:@"n"]) {
+            NSScanner *scanner = [NSScanner scannerWithString:text];
+            double number = 0;
+            if (text.length > 0 && [scanner scanDouble:&number] && scanner.isAtEnd) value = @(number);
+        }
+        while ((NSInteger)self.currentRow.count <= self.currentColumn) [self.currentRow addObject:@""];
+        self.currentRow[self.currentColumn] = value ?: @"";
+    } else if ([elementName isEqualToString:@"row"]) {
+        while (self.currentRow.count > 0 && [self.currentRow.lastObject isEqual:@""]) [self.currentRow removeLastObject];
+        [self.rows addObject:self.currentRow ?: [NSMutableArray array]];
+        self.currentRow = nil;
+    }
+}
+@end
+
+static NSArray *AutoExcelParseCSV(NSString *text, NSError **error) {
+    NSMutableArray *rows = [NSMutableArray array];
+    NSMutableArray *row = [NSMutableArray array];
+    NSMutableString *field = [NSMutableString string];
+    BOOL inQuotes = NO;
+    NSUInteger length = text.length;
+    for (NSUInteger i = 0; i < length; i++) {
+        unichar c = [text characterAtIndex:i];
+        if (inQuotes) {
+            if (c == '"') {
+                if (i + 1 < length && [text characterAtIndex:i + 1] == '"') {
+                    [field appendString:@"\""];
+                    i += 1;
+                } else {
+                    inQuotes = NO;
+                }
+            } else {
+                [field appendFormat:@"%C", c];
+            }
+        } else if (c == '"' && field.length == 0) {
+            inQuotes = YES;
+        } else if (c == ',') {
+            [row addObject:field];
+            field = [NSMutableString string];
+        } else if (c == '\n') {
+            [row addObject:field];
+            field = [NSMutableString string];
+            if (row.count > 0) [rows addObject:row];
+            row = [NSMutableArray array];
+        } else if (c != '\r') {
+            [field appendFormat:@"%C", c];
+        }
+    }
+    if (field.length > 0 || row.count > 0) {
+        [row addObject:field];
+        if (row.count > 0) [rows addObject:row];
+    }
+    return rows;
+}
+
+static NSArray *AutoExcelParseXLSX(NSData *archive, NSArray<AutoZipEntry *> *entries,
+                                   NSUInteger sheetIndex, NSDictionary *config, NSError **error) {
+    NSUInteger partLimit = AutoSupportByteLimit(config, @"maxExcelBytes", 32 * 1024 * 1024, 256 * 1024 * 1024);
+    NSError *partError = nil;
+    NSData *workbookData = AutoZipEntryDataByName(archive, entries, @"xl/workbook.xml", partLimit, &partError);
+    if (!workbookData) {
+        if (error) *error = partError;
+        return nil;
+    }
+    AutoXLSXWorkbookScanner *scanner = [AutoXLSXWorkbookScanner new];
+    NSXMLParser *workbookParser = [[NSXMLParser alloc] initWithData:workbookData];
+    workbookParser.delegate = scanner;
+    if (![workbookParser parse] || scanner.sheets.count == 0) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Excel workbook.xml is missing or invalid.", workbookParser.parserError);
+        return nil;
+    }
+    if (sheetIndex >= scanner.sheets.count) {
+        if (error) *error = AutoSupportError(AutoSDKErrorInvalidConfiguration, @"Excel sheet index is out of range.", nil);
+        return nil;
+    }
+    NSDictionary *sheet = scanner.sheets[sheetIndex];
+    NSString *relId = sheet[@"rId"];
+    NSString *target = nil;
+    if (relId.length > 0) {
+        NSData *relsData = AutoZipEntryDataByName(archive, entries, @"xl/_rels/workbook.xml.rels", partLimit, &partError);
+        if (relsData) {
+            AutoXLSXWorkbookScanner *relsScanner = [AutoXLSXWorkbookScanner new];
+            relsScanner.scanningRels = YES;
+            NSXMLParser *relsParser = [[NSXMLParser alloc] initWithData:relsData];
+            relsParser.delegate = relsScanner;
+            if ([relsParser parse]) target = relsScanner.targets[relId];
+        }
+    }
+    if (target.length == 0) target = [NSString stringWithFormat:@"worksheets/sheet%lu.xml", (unsigned long)(sheetIndex + 1)];
+    if ([target hasPrefix:@"/"]) target = [target substringFromIndex:1];
+    else if (![target hasPrefix:@"xl/"]) target = [@"xl/" stringByAppendingString:target];
+    NSRange queryRange = [target rangeOfString:@"?"];
+    if (queryRange.location != NSNotFound) target = [target substringToIndex:queryRange.location];
+
+    NSArray<NSString *> *sharedStrings = @[];
+    NSData *sharedData = AutoZipEntryDataByName(archive, entries, @"xl/sharedStrings.xml", partLimit, &partError);
+    if (sharedData) {
+        AutoXLSXParser *sharedParser = [AutoXLSXParser new];
+        sharedParser.parsingShared = YES;
+        NSXMLParser *sharedXMLParser = [[NSXMLParser alloc] initWithData:sharedData];
+        sharedXMLParser.delegate = sharedParser;
+        if ([sharedXMLParser parse]) sharedStrings = sharedParser.sharedStrings ?: @[];
+    }
+
+    NSData *sheetData = AutoZipEntryDataByName(archive, entries, target, partLimit, &partError);
+    if (!sheetData) {
+        if (error) *error = partError;
+        return nil;
+    }
+    AutoXLSXParser *sheetParser = [AutoXLSXParser new];
+    sheetParser.sharedStrings = [sharedStrings mutableCopy];
+    NSXMLParser *sheetXMLParser = [[NSXMLParser alloc] initWithData:sheetData];
+    sheetXMLParser.delegate = sheetParser;
+    if (![sheetXMLParser parse]) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Excel sheet XML is invalid.", sheetXMLParser.parserError);
+        return nil;
+    }
+    return sheetParser.rows ?: @[];
+}
+
+static BOOL AutoZipParseArchiveData(NSData *data, NSArray<AutoZipEntry *> **entries, NSError **error) {
+    uint32_t centralOffset = 0, centralSize = 0;
+    uint16_t entryCount = 0;
+    if (!AutoZipFindEndOfCentralDirectory(data, &centralOffset, &centralSize, &entryCount, error)) return NO;
+    if (entryCount > 2000) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip archive has too many entries.", nil);
+        return NO;
+    }
+    NSArray<AutoZipEntry *> *parsedEntries = nil;
+    if (!AutoZipParseCentralDirectory(data, centralOffset, centralSize, entryCount, &parsedEntries, error)) return NO;
+    if (entries) *entries = parsedEntries;
+    return YES;
+}
+
 static BOOL AutoLoadZipArchive(NSURL *url, NSDictionary *config,
                                NSArray<AutoZipEntry *> **entries, NSData **archiveData, NSError **error) {
     NSUInteger maximum = AutoSupportByteLimit(config, @"maxZipArchiveBytes", 128 * 1024 * 1024, 1024 * 1024 * 1024);
@@ -957,16 +1219,7 @@ static BOOL AutoLoadZipArchive(NSURL *url, NSDictionary *config,
         if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to read the zip archive.", readError);
         return NO;
     }
-    uint32_t centralOffset = 0, centralSize = 0;
-    uint16_t entryCount = 0;
-    if (!AutoZipFindEndOfCentralDirectory(data, &centralOffset, &centralSize, &entryCount, error)) return NO;
-    if (entryCount > 2000) {
-        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Zip archive has too many entries.", nil);
-        return NO;
-    }
-    NSArray<AutoZipEntry *> *parsedEntries = nil;
-    if (!AutoZipParseCentralDirectory(data, centralOffset, centralSize, entryCount, &parsedEntries, error)) return NO;
-    if (entries) *entries = parsedEntries;
+    if (!AutoZipParseArchiveData(data, entries, error)) return NO;
     if (archiveData) *archiveData = data;
     return YES;
 }
@@ -1049,6 +1302,58 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
         if (!AutoLoadZipArchive(url, config, &zipEntries, &zipArchive, error)) return nil;
         NSUInteger zipEntryLimit = AutoSupportByteLimit(config, @"maxZipExtractEntryBytes", 64 * 1024 * 1024, 512 * 1024 * 1024);
         return AutoZipReadEntry(zipArchive, zipEntries, entryName, zipEntryLimit, error);
+    }
+
+    if ([operation isEqualToString:@"readExcelAllRow"] || [operation isEqualToString:@"readExcelRow"]) {
+        NSUInteger maximum = AutoSupportByteLimit(config, @"maxExcelBytes", 32 * 1024 * 1024, 256 * 1024 * 1024);
+        NSDictionary *excelAttributes = [manager attributesOfItemAtPath:url.path error:nil];
+        if ([excelAttributes[NSFileSize] unsignedLongLongValue] > maximum) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Excel file exceeds maxExcelBytes.", nil);
+            return nil;
+        }
+        NSError *excelReadError = nil;
+        NSData *excelData = [NSData dataWithContentsOfURL:url options:NSDataReadingMappedIfSafe error:&excelReadError];
+        if (!excelData || excelData.length > maximum) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to read the Excel file.", excelReadError);
+            return nil;
+        }
+        NSArray *excelRows = nil;
+        if (excelData.length >= 4 && memcmp(excelData.bytes, "PK\x03\x04", 4) == 0) {
+            NSArray<AutoZipEntry *> *excelEntries = nil;
+            if (!AutoZipParseArchiveData(excelData, &excelEntries, error)) return nil;
+            NSUInteger sheetIndex = AutoSupportFiniteDouble(payload[@"sheetIndex"], 0);
+            if (sheetIndex > 100000) sheetIndex = 0;
+            excelRows = AutoExcelParseXLSX(excelData, excelEntries, sheetIndex, config, error);
+        } else {
+            NSString *excelText = [[NSString alloc] initWithData:excelData encoding:NSUTF8StringEncoding];
+            if (!excelText) {
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"CSV file is not valid UTF-8.", nil);
+                return nil;
+            }
+            excelRows = AutoExcelParseCSV(excelText, error);
+        }
+        if (!excelRows) return nil;
+        if ([operation isEqualToString:@"readExcelRow"]) {
+            NSInteger rowIndex = (NSInteger)AutoSupportFiniteDouble(payload[@"row"], -1);
+            if (rowIndex < 0 || rowIndex >= (NSInteger)excelRows.count) return [NSNull null];
+            return excelRows[rowIndex];
+        }
+        if (excelRows.count == 0) return @[];
+        NSArray *excelHeader = excelRows[0];
+        NSMutableArray *excelResult = [NSMutableArray arrayWithCapacity:excelRows.count - 1];
+        for (NSUInteger r = 1; r < excelRows.count; r++) {
+            NSArray *excelRow = excelRows[r];
+            NSMutableDictionary *record = [NSMutableDictionary dictionaryWithCapacity:excelHeader.count];
+            for (NSUInteger c = 0; c < excelRow.count; c++) {
+                NSString *key = (c < excelHeader.count && [(NSString *)excelHeader[c] length] > 0)
+                    ? excelHeader[c] : [NSString stringWithFormat:@"%lu", (unsigned long)c];
+                id value = excelRow[c];
+                if (value == nil || ([value isKindOfClass:NSString.class] && [(NSString *)value length] == 0)) continue;
+                record[key] = value;
+            }
+            [excelResult addObject:record];
+        }
+        return excelResult;
     }
 
     if ([operation isEqualToString:@"stat"]) {

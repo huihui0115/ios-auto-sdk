@@ -133,7 +133,12 @@ const REFS = {
   'base64.encode(str)': 'EasyClick base64.encode()/decode()',
   'file.zip(dest, sources, passwd?)': 'EasyClick utils.zip()',
   'file.unzip(zipPath, dest, passwd?)': 'EasyClick utils.unzip()/unzipWithEncode()',
-  'file.readFileInZip(zipPath, entry, passwd?)': 'EasyClick utils.readFileInZip()'
+  'file.readFileInZip(zipPath, entry, passwd?)': 'EasyClick utils.readFileInZip()',
+  'file.readExcelAllRow(path, sheetIndex?)': 'EasyClick file.readExcelAllRow()',
+  'file.readExcelRow(path, sheetIndex?, row?)': 'EasyClick file.readExcelRow()',
+  'device.getDeviceId()': 'EasyClick getDeviceId()',
+  'device.getDeviceAlias() / getSerialNo()': 'EasyClick getDeviceAlias()/getSerialNo()',
+  'app.getAppVersion() / getPackageName()': 'EasyClick version/ipaVersion/getPackageName()'
 };
 function card(api) {
   const ref = REFS[api.sig.split(' / ')[0].trim()];
@@ -1056,6 +1061,16 @@ APIS.push({ cat:'file', sig:'file.readFileInZip(zipPath, entry, passwd?)', title
   logd(text);
 }
 main();` });
+APIS.push({ cat:'file', sig:'file.readExcelAllRow(path, sheetIndex?)', title:'?? Excel ????', desc:'?? xlsx??? ZIP+XML ???? UTF-8 CSV???????????????????????????????????????', params:[['path','string','xlsx ? csv ??'],['sheetIndex','number','????????? 0 ????? 0?CSV ???']], returns:'Array<object>', example:`function main(){
+  const rows = file.readExcelAllRow("data/books.xlsx");
+  for (const r of rows) logd(r.name, r.age);
+}
+main();` });
+APIS.push({ cat:'file', sig:'file.readExcelRow(path, sheetIndex?, row?)', title:'?? Excel ??', desc:'???????? row ??0 ?????????????? null?', params:[['path','string','xlsx ? csv ??'],['sheetIndex','number','????? 0'],['row','number','??? 0 ??']], returns:'Array<string|number>|null', example:`function main(){
+  const cells = file.readExcelRow("data/books.xlsx", 0, 2);
+  logd(JSON.stringify(cells));
+}
+main();` });
 APIS.push({ cat:'file', sig:'file.stat(path) / getSize / getModifiedTime / isDir / isFile', title:'文件状态查询', desc:'查询文件大小（字节）、修改时间（毫秒时间戳）、是否为目录/文件；路径不存在时 stat 返回 null。', params:[['path','string','路径']], returns:'object|null / number|null / boolean', example:`function main(){
   const s = file.stat("data/a.txt");
   if (s) logd("大小: " + s.size + " 修改: " + s.modifiedAtMs);
@@ -1245,6 +1260,19 @@ APIS.push({ cat:'touch', sig:'swipeToPoint(x1, y1, x2, y2, duration?)', title:'�
 }
 main();` });
 
+APIS.push({ cat:'device', sig:'device.getDeviceId()', title:'??????', desc:'??????????identifierForVendor???????????????????????', params:[], returns:'string', example:`function main(){
+  logd("deviceId: " + device.getDeviceId());
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.getDeviceAlias() / getSerialNo()', title:'????/???', desc:'getDeviceAlias ???????getSerialNo ? iOS ????????????????? null?', params:[], returns:'string | null', example:`function main(){
+  logd("alias: " + device.getDeviceAlias());
+  logd("serial: " + device.getSerialNo());
+}
+main();` });
+APIS.push({ cat:'app', sig:'app.getAppVersion() / getPackageName()', title:'??????/??', desc:'???? App ?????CFBundleShortVersionString?? bundle id??????? getAppVersion()/getPackageName()?', params:[], returns:'string', example:`function main(){
+  logd("v" + getAppVersion() + " " + getPackageName());
+}
+main();` });
 APIS.push({ cat:'http', sig:'http.getJSON(url, options?)', title:'GET 并解析 JSON', desc:'等价 http.get(url, {parseJson:true})，直接返回解析后的对象。', params:[['url','string','地址'],['options','object','可选 headers/timeout 等']], returns:'object|string|number', example:`function main(){
   const data = http.getJSON("https://api.example.com/v1/status");
   logd("status: " + JSON.stringify(data));

@@ -72,6 +72,8 @@ function createSandbox() {
         case 'zip': files[data.destination] = 'zip:' + (data.sources || []).join(','); return data.destination;
         case 'unzip': return true;
         case 'readFileInZip': return 'hello from zip';
+        case 'readExcelAllRow': return [{ name: 'Alice', age: 30 }, { name: 'Bob', age: 25 }];
+        case 'readExcelRow': return ['Alice', 30];
         default: return { error: 'unhandled file operation ' + data.operation };
       }
     },
@@ -117,6 +119,10 @@ function createSandbox() {
         case 'volumeUp': return true;
         case 'volumeDown': return true;
         case 'isScreenOn': return true;
+        case 'deviceId': return 'ABCDEF12-3456-7890-ABCD-EF1234567890';
+        case 'serialNo': return null;
+        case 'appVersion': return '1.2.3';
+        case 'packageName': return 'com.example.host';
         default: return null;
       }
     },
@@ -287,6 +293,15 @@ test('device info and convenience accessors', () => {
   assert.equal(sandbox.device.getBattery(), 80);
   const info = sandbox.device.info();
   assert.equal(info.osVersion, '17.4');
+  assert.equal(sandbox.device.getDeviceId(), 'ABCDEF12-3456-7890-ABCD-EF1234567890');
+  assert.equal(sandbox.device.getDeviceAlias(), 'Test iPhone');
+  assert.equal(sandbox.device.getSerialNo(), null);
+  assert.equal(sandbox.device.getAppVersion(), '1.2.3');
+  assert.equal(sandbox.device.getPackageName(), 'com.example.host');
+  assert.equal(sandbox.auto.app.getAppVersion(), '1.2.3');
+  assert.equal(sandbox.auto.app.getPackageName(), 'com.example.host');
+  assert.equal(sandbox.getAppVersion(), '1.2.3');
+  assert.equal(sandbox.getPackageName(), 'com.example.host');
 });
 
 test('http.getJSON and http.get pass options to the bridge', () => {
@@ -669,6 +684,20 @@ test('zip / unzip / readFileInZip helpers', () => {
 
   sandbox.file.zip('with-pass.zip', ['a.txt'], 'secret');
   assert.deepEqual(calls.file.at(-1), { operation: 'zip', destination: 'with-pass.zip', sources: ['a.txt'], passwd: 'secret' });
+});
+
+test('readExcelAllRow / readExcelRow helpers', () => {
+  const { sandbox, calls } = boot();
+  const all = sandbox.file.readExcelAllRow('data/books.xlsx');
+  assert.deepEqual(all, [{ name: 'Alice', age: 30 }, { name: 'Bob', age: 25 }]);
+  assert.deepEqual(calls.file.at(-1), { operation: 'readExcelAllRow', path: 'data/books.xlsx', sheetIndex: 0 });
+
+  const row = sandbox.file.readExcelRow('data/books.xlsx', 1, 2);
+  assert.deepEqual(row, ['Alice', 30]);
+  assert.deepEqual(calls.file.at(-1), { operation: 'readExcelRow', path: 'data/books.xlsx', sheetIndex: 1, row: 2 });
+
+  assert.equal(sandbox.auto.file.readExcelAllRow('data/books.xlsx', 2).length, 2);
+  assert.deepEqual(calls.file.at(-1), { operation: 'readExcelAllRow', path: 'data/books.xlsx', sheetIndex: 2 });
 });
 
 test('unknown auto.* methods fall back to invokeNative', () => {

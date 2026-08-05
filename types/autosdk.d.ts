@@ -259,6 +259,8 @@ interface AutoFileAPI {
   zip(destination: string, sources: string[], passwd?: string): string | null;
   unzip(zipPath: string, destination: string, passwd?: string): boolean;
   readFileInZip(zipPath: string, entry: string, passwd?: string): string | null;
+  readExcelAllRow(path: string, sheetIndex?: number): Array<Record<string, string | number>>;
+  readExcelRow(path: string, sheetIndex?: number, row?: number): Array<string | number> | null;
 }
 
 interface AutoFileStat {
@@ -304,6 +306,11 @@ interface AutoDeviceAPI {
   getBattery(): number | null;
   isCharging(): boolean;
   getOrientation(): string;
+  getDeviceId(): string;
+  getDeviceAlias(): string;
+  getSerialNo(): string | null;
+  getAppVersion(): string;
+  getPackageName(): string;
   getMemoryInfo(): { totalBytes: number; freeBytes: number; appUsedBytes: number };
   getClipboard(): string | null;
   setClipboard(text: string): boolean;
@@ -354,6 +361,8 @@ interface AutoAppAPI {
   appList(): Array<{ bundleId: string; name: string }>;
   installedApps(): Array<{ bundleId: string; name: string }>;
   launchByPrefix(bundleIdPrefix: string): boolean;
+  getAppVersion(): string;
+  getPackageName(): string;
 }
 
 interface AutoAPI {
@@ -543,6 +552,8 @@ declare function randomCharNumber(length?: number): string;
 declare function screenshotRegion(x: number, y: number, width: number, height: number): string | null;
 declare function childCount(selector: AutoSelectorLike): number;
 declare function drag(x1: number, y1: number, x2: number, y2: number, durationMs?: number): boolean;
+declare function getAppVersion(): string;
+declare function getPackageName(): string;
 declare function launchAppByPrefix(bundleIdPrefix: string): boolean;
 declare function getScreenWidthHeightText(): string;
 declare function setScreenMetrics(width: number, height: number): boolean;

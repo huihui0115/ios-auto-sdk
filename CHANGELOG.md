@@ -22,6 +22,19 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **EasyClick benchmark round 6: Excel reading and device/app identity.** New
+  file.readExcelAllRow(path, sheetIndex?) parses XLSX workbooks with a
+  built-in ZIP+XML reader (shared strings, numeric cells, GBK-safe entry
+  lookup) or falls back to UTF-8 CSV, returning header-keyed objects;
+  file.readExcelRow(path, sheetIndex?, row?) returns one row as an array
+  (0-based, null when out of range), with the same 32 MiB budget gate.
+  device.getDeviceId() exposes identifierForVendor, getDeviceAlias()
+  mirrors the device name, getSerialNo() returns null (iOS sandbox cannot
+  read the hardware serial), and getAppVersion()/getPackageName() expose
+  the host app version and bundle id (also app.* and globals). API
+  reference grows to 174 documented functions.
+### Added
+
 - **EasyClick benchmark round 5: native ZIP engine.** New
   file.zip(dest, sources) builds a ZIP archive from files and folders
   (raw DEFLATE with CRC32, automatic store fallback, GBK/UTF-8 name

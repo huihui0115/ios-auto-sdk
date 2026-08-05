@@ -122,6 +122,16 @@
     ],
     "description": "Crop, grayscale or binarize an image file"
   },
+  "AutoSDK excel": {
+    "prefix": "autoexcel",
+    "body": [
+      "const rows = file.readExcelAllRow('${1:data/books.xlsx}', ${2:0});",
+      "for (const r of rows) logd(r.name, r.age);",
+      "const cells = file.readExcelRow('${1:data/books.xlsx}', ${2:0}, ${3:2});",
+      "logd(JSON.stringify(cells));"
+    ],
+    "description": "Read XLSX/CSV rows from the sandbox"
+  },
   "AutoSDK zip archive": {
     "prefix": "autozip",
     "body": [

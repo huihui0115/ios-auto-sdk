@@ -28,7 +28,7 @@ are not implemented.
 | press / ioHIDEvent / setAssistiveTouch | 🟡 `device.volumeUp/volumeDown` | 硬件键有限支持 |
 | uploadInsertImage / uploadInsertVideo | 🟡 `media.saveImage` / `saveVideo` | 相册写入 |
 | readAllUIConfig(2) / setAgentSetting / setAgentTimeout / fsyncFilePushPull | ❌ | 中控/代理侧功能 |
-| getCliArgs / version / ipaVersion | ❌ | 中控运行参数 |
+| getCliArgs / version / ipaVersion | 🟢 `getAppVersion()` 覆盖 version/ipaVersion | getCliArgs 仍为中控专属 |
 
 ## 节点（node-api）
 
@@ -49,7 +49,7 @@ are not implemented.
 | getScreenWidth / getScreenHeight / getScale / getScreenWidthHeightText | ✅ 全部 | 屏幕尺寸 |
 | getModel / getOSVersion / getDeviceName / getBattery / isCharging / getOrientation | ✅ 全部 | 设备属性 |
 | applist | ✅ `app.appList()` / `app.installedApps()` | 已安装应用 |
-| getDeviceId / getDeviceAlias / getSerialNo | ❌ | 序列号等 iOS 不可公开获取 |
+| getDeviceId / getDeviceAlias / getSerialNo | 🟢 `device.getDeviceId()` / `getDeviceAlias()`；`getSerialNo()` 返回 null | iOS 沙箱不可读硬件序列号 |
 
 ## 文件（file-api）
 
@@ -57,7 +57,7 @@ are not implemented.
 | --- | --- | --- |
 | getSandBoxDir / getSandBoxFilePath | ✅ `file.getSandBoxDir` / `file.getSandBoxFilePath` | 沙盒路径 |
 | readFile / writeFile / create / exists / appendLine / readLine / readAllLines / deleteLine / deleteAllFile / mkdirs / listDir / copy / move | ✅ 全部 | 文件 CRUD |
-| readExcelRow / readExcelAllRow | ❌ | Excel 解析 |
+| readExcelRow / readExcelAllRow | ✅ `file.readExcelRow(path, sheetIndex?, row?)` / `file.readExcelAllRow(path, sheetIndex?)` | xlsx 中文文件名、共享字符串、数字单元格 + CSV 兼容 |
 
 ## 网络（http-api）
 
@@ -117,5 +117,5 @@ are not implemented.
 ## 结论
 
 - AutoSDK 已覆盖 EasyClick iOS USB 约 70% 的常用可移植函数（触摸/节点/文件/存储/HTTP/OCR/设备信息）。
-- 剩余缺口集中在：真实并行线程、Excel 读取、序列号等系统级能力、以及中控专属功能。
-- 下一轮优先级：真实并行线程、Excel 读取、序列号等系统级能力。
+- 剩余缺口集中在：真实并行线程、中控专属功能（getCliArgs/节点抢取参数等）、以及破坏性相册清空。
+- 下一轮优先级：真实并行线程、中控协议接口、导出写入等。
