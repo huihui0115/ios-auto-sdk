@@ -3216,7 +3216,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     }
     id value = AutoWDAResponseValue(response);
     if (![value isKindOfClass:NSArray.class]) return @[];
-    NSUInteger maximum = MIN(value.count, (NSUInteger)1000);
+    NSUInteger maximum = MIN(((NSArray *)value).count, (NSUInteger)1000);
     NSMutableArray *result = [NSMutableArray arrayWithCapacity:MIN(maximum, (NSUInteger)128)];
     for (id item in value) {
         if (result.count >= maximum) break;
