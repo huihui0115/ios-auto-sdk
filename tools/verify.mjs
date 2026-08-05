@@ -738,6 +738,12 @@ for (const scriptPath of ['Examples/TemplateApp/Scripts/hello.js', 'Examples/Tem
 check(read('Examples/TemplateApp/Scripts/hello.js').includes('device.setClipboard') &&
       read('Examples/TemplateApp/Scripts/demo-api.js').includes('auto.capabilities().http'),
       'Template bundled scripts must exercise device/system APIs and guard HTTP by capability');
+check(wdaAdapter.includes('@"appList": @YES'),
+      'WDA adapter capabilities must advertise the installed-app list');
+check(read('Examples/TemplateApp/Scripts/demo-api.js').includes('swipeUp(0.4, 250)') &&
+      read('Examples/TemplateApp/Scripts/demo-api.js').includes('app.appList()') &&
+      read('Examples/TemplateApp/Scripts/demo-api.js').includes('caps.appList === true'),
+      'Template demo must exercise direction swipes and the installed-app list behind capability guards');
 check(read('Examples/TemplateApp/Scripts/gesture-demo.js').includes('multiTouch === true') &&
       read('Examples/TemplateApp/Scripts/vision-demo.js').includes('.ocr === true') &&
       read('Examples/TemplateApp/Scripts/media-demo.js').includes('mediaLibraryWrite === true'),

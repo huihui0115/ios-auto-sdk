@@ -59,4 +59,29 @@ if (auto.capabilities().http === true) {
   report.http = "disabled";
 }
 
+// 7. Direction swipes and installed-app list (guarded by capabilities)
+const caps = auto.capabilities();
+if (caps.swipe === true) {
+  try {
+    report.swipeUp = swipeUp(0.4, 250);
+    auto.sleep(300);
+    report.swipeDown = swipeDown(0.4, 250);
+  } catch (e) {
+    report.swipeError = String(e);
+  }
+} else {
+  report.swipe = "disabled";
+}
+if (caps.appList === true) {
+  try {
+    const apps = app.appList();
+    report.appCount = apps.length;
+    report.firstApp = apps.length > 0 ? apps[0].bundleId : null;
+  } catch (e) {
+    report.appListError = String(e);
+  }
+} else {
+  report.appList = "disabled";
+}
+
 report;
