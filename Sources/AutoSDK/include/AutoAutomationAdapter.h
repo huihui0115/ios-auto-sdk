@@ -70,6 +70,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)terminateApplicationWithBundleId:(NSString *)bundleId error:(NSError * _Nullable * _Nullable)error;
 - (nullable NSNumber *)applicationStateForBundleId:(NSString *)bundleId error:(NSError * _Nullable * _Nullable)error;
 - (nullable NSString *)currentApplicationWithError:(NSError * _Nullable * _Nullable)error;
+- (nullable NSArray<NSDictionary<NSString *, id> *> *)installedApplicationsWithError:(NSError * _Nullable * _Nullable)error;
 /** System-level UI actions. WDA runners expose these; most embedded adapters do not. */
 - (BOOL)pressButtonWithName:(NSString *)name error:(NSError * _Nullable * _Nullable)error;
 - (nullable NSNumber *)deviceLockedStateWithError:(NSError * _Nullable * _Nullable)error;

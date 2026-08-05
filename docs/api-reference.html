@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>25</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>12</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>20</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>27</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>7</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>11</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>29</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>13</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>20</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>27</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>7</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>11</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -217,7 +217,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="touch" class="cat" style="--c:#7c3aed">
-  <h2><span class="tag">触摸与节点</span><i>25</i></h2>
+  <h2><span class="tag">触摸与节点</span><i>29</i></h2>
   <article class="card" data-search="click(selector) 点击节点">
   <header class="card-head">
     <h4><code>click(selector)</code> <span class="cname">点击节点</span></h4>
@@ -342,6 +342,68 @@ main();</code></pre>
   <pre><code>function main(){
   const ok = swipe(190, 600, 190, 200, 0.4);
   logd("上滑: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="swipeUp(percent?, durationMs?) 上滑">
+  <header class="card-head">
+    <h4><code>swipeUp(percent?, durationMs?)</code> <span class="cname">上滑</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">从屏幕下方 72% 处向上滑动，默认滑动 30% 屏高。percent 为滑动距离占比（0～1，默认 0.5，实际滑动 0.6×percent 屏高），durationMs 为毫秒（默认 300）。</p>
+  <div class="ref"><b>对标</b> EasyClick swipe() 方向封装</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">percent</code><span class="ptype">number</span><span class="pdesc">可选，0～1，滑动距离占比</span></div><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">可选，毫秒</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = swipeUp(0.5, 300);   // 上滑半屏
+  logd("上滑: " + ok);
+  auto.sleep(500);
+  swipeDown(0.5);                 // 回滑
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="swipeDown(percent?, durationMs?) 下滑">
+  <header class="card-head">
+    <h4><code>swipeDown(percent?, durationMs?)</code> <span class="cname">下滑</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">从屏幕上方 28% 处向下滑动，默认滑动 30% 屏高。percent 为滑动距离占比，durationMs 为毫秒（默认 300）。</p>
+  <div class="ref"><b>对标</b> EasyClick swipe() 方向封装</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">percent</code><span class="ptype">number</span><span class="pdesc">可选，0～1，滑动距离占比</span></div><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">可选，毫秒</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  swipeDown(0.4, 250);
+  logd("下滑完成");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="swipeLeft(percent?, durationMs?) 左滑">
+  <header class="card-head">
+    <h4><code>swipeLeft(percent?, durationMs?)</code> <span class="cname">左滑</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">从屏幕右侧 72% 处向左滑动，默认滑动 30% 屏宽。percent 为滑动距离占比，durationMs 为毫秒（默认 300）。</p>
+  <div class="ref"><b>对标</b> EasyClick swipe() 方向封装</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">percent</code><span class="ptype">number</span><span class="pdesc">可选，0～1，滑动距离占比</span></div><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">可选，毫秒</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  swipeLeft(0.5);
+  logd("左滑完成");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="swipeRight(percent?, durationMs?) 右滑">
+  <header class="card-head">
+    <h4><code>swipeRight(percent?, durationMs?)</code> <span class="cname">右滑</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">从屏幕左侧 28% 处向右滑动，默认滑动 30% 屏宽。percent 为滑动距离占比，durationMs 为毫秒（默认 300）。</p>
+  <div class="ref"><b>对标</b> EasyClick swipe() 方向封装</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">percent</code><span class="ptype">number</span><span class="pdesc">可选，0～1，滑动距离占比</span></div><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">可选，毫秒</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  swipeRight(0.5);
+  logd("右滑完成");
 }
 main();</code></pre>
 </article>
@@ -770,7 +832,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="app" class="cat" style="--c:#16a34a">
-  <h2><span class="tag">App与应用控制</span><i>12</i></h2>
+  <h2><span class="tag">App与应用控制</span><i>13</i></h2>
   <article class="card" data-search="app.launch(bundleId) 启动应用">
   <header class="card-head">
     <h4><code>app.launch(bundleId)</code> <span class="cname">启动应用</span></h4>
@@ -948,6 +1010,22 @@ main();</code></pre>
   <pre><code>function main(){
   const current = app.current();
   logd("当前前台: " + current);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="app.appList() / installedApps() 已安装应用列表">
+  <header class="card-head">
+    <h4><code>app.appList() / installedApps()</code> <span class="cname">已安装应用列表</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回已安装应用的 {bundleId, name} 数组（WDA /wda/apps）。支持宿主注入的适配器也可实现；不支持时返回错误。</p>
+  <div class="ref"><b>对标</b> EasyClick getInstalledApps() · AutoJS app.getInstalledApps()</div>
+  
+  <div class="ret"><b>返回值</b> <span>Array&lt;{bundleId, name}&gt;</span></div>
+  <pre><code>function main(){
+  const apps = app.appList();
+  logd("已安装: " + apps.length + " 个应用");
+  for (const item of apps.slice(0, 10)) logd(item.bundleId + " → " + item.name);
 }
 main();</code></pre>
 </article>
@@ -2370,7 +2448,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 144 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 149 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

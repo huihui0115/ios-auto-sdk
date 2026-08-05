@@ -709,6 +709,22 @@ check(read('Sources/AutoSDK/include/AutoWDAHTTPAdapter.h').includes('performMult
 check(read('Sources/AutoSDK/AutoWDAHTTPAdapter.m').includes('@"/actions" method:@"POST" body:body') &&
       wdaAdapter.includes('@"multiTouch": @YES'),
       'WDA adapter must implement multi-touch gestures and report the capability');
+check(bootstrapSource.includes('base.swipeUp=function(percent,duration)') &&
+      bootstrapSource.includes('base.swipeDown=function(percent,duration)') &&
+      bootstrapSource.includes('base.swipeLeft=function(percent,duration)') &&
+      bootstrapSource.includes('base.swipeRight=function(percent,duration)') &&
+      bootstrapSource.includes('g.swipeUp=base.swipeUp') &&
+      bootstrapSource.includes('g.swipeRight=base.swipeRight'),
+      'Bootstrap must expose direction swipe helpers on auto and as globals');
+check(bootstrapSource.includes("operation:'appList'") &&
+      typeDefinitions.includes('appList(): Array<{ bundleId: string; name: string }>') &&
+      typeDefinitions.includes('installedApps(): Array<{ bundleId: string; name: string }>') &&
+      typeDefinitions.includes('declare function swipeUp(percent?: number, durationMs?: number): boolean') &&
+      typeDefinitions.includes('declare function swipeDown(percent?: number, durationMs?: number): boolean'),
+      'Type definitions must describe direction swipes and installed-app listing');
+check(wdaAdapter.includes('@"/wda/apps" method:@"GET"') &&
+      read('Sources/AutoSDK/AutoEngine.m').includes('installedApplicationsWithError:&error'),
+      'WDA adapter and engine must implement the installed-apps query');
 check(read('Sources/AutoSDK/AutoEngine.m').includes('invokeTouch:(JSValue *)payload') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('performMultiTouch:fingers error:&error'),
       'Engine must bridge invokeTouch to the adapter performMultiTouch');

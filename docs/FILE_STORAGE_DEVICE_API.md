@@ -187,7 +187,8 @@ written for AutoScript/Auto.js port over with minimal changes:
   `timeEnd(label)` prints and returns elapsed ms), and `random` /
   `randomInt` (inclusive range).
 - Touch: `clickPoint`, `doubleClickPoint`, `swipeToPoint` (alias of
-  `swipe`), `input` / `setText` (aliases: selector + text), `sleep`.
+  `swipe`), `swipeUp` / `swipeDown` / `swipeLeft` / `swipeRight` (direction
+  swipes), `input` / `setText` (aliases: selector + text), `sleep`.
 - Image: `image.findImage`, `image.findColor`, `image.findMultiColor`,
   `image.cmpColor`, `image.pixel` (alias of `getPixelColor`),
   `image.screenshot`.

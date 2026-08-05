@@ -22,14 +22,24 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
-- **File stat helpers and foreground-app query.** New ile.stat(path) /
+- **File stat helpers and foreground-app query.** New file.stat(path) /
   getSize / getModifiedTime / isDir / isFile (single stat bridge
-  call, bounded by the same file-access gates) and pp.current() /
+  call, bounded by the same file-access gates) and app.current() /
   currentApp() (WDA /wda/activeAppInfo; embedded adapters report
   unavailable). API reference grows to 144 documented functions.
+- **Direction swipe helpers.** New auto.swipeUp() / swipeDown() / swipeLeft()
+  / swipeRight() (also exposed as globals), each computing screen-relative
+  start/end coordinates from the device size, with a distance ratio
+  (percent, default 0.5) and a millisecond duration (default 300 ms). The
+  underlying swipe bridge call uses seconds, so the helpers convert units.
+- **Installed-app list.** New app.appList() / installedApps() returns
+  [{bundleId, name}] through the WDA /wda/apps endpoint; adapters that
+  do not implement the new optional
+  installedApplicationsWithError: protocol method report an explicit
+  unavailable error. API reference grows to 149 documented functions.
 - **Device volume keys and screen state.** New device.volumeUp(),
   device.volumeDown() and device.isScreenOn() (WDA /wda/pressButton and
-  /wda/locked), gated by llowSystemControl; embedded adapters report
+  /wda/locked), gated by allowSystemControl; embedded adapters report
   unavailable instead of failing silently. API reference grows to 142
   documented functions.
 ### Added
@@ -38,7 +48,7 @@ All notable changes to AutoSDK are documented here. The format follows
   virtual clock inside invokeSleep, so CI exercises the real wait-sleep-fire
   path deterministically, including interval cadence, one-shot sleeps, and
   stop-during-wait.
-- **Bootstrap size/time guard.** 	ools/bootstrap.test.mjs asserts the
+- **Bootstrap size/time guard.** `tools/bootstrap.test.mjs` asserts the
   embedded runtime stays under 64 KB and parses in under 1 s.
 
 ## [1.2.1] - 2026-08-04

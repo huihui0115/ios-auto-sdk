@@ -1532,6 +1532,13 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         NSString *bundleId = [self.adapter currentApplicationWithError:&error];
         return error ? [self failure:error] : (bundleId ?: [NSNull null]);
     }
+    if ([operation isEqualToString:@"applist"]) {
+        if (![self.adapter respondsToSelector:@selector(installedApplicationsWithError:)]) {
+            return [self failure:AutoMakeError(AutoSDKErrorAutomationUnavailable, @"The automation adapter does not list installed applications.", nil)];
+        }
+        NSArray *apps = [self.adapter installedApplicationsWithError:&error];
+        return error ? [self failure:error] : (apps ?: @[]);
+    }
     NSString *bundleId = [data[@"bundleId"] isKindOfClass:NSString.class] ? data[@"bundleId"] : @"";
     if (bundleId.length == 0) return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Application bundleId must not be empty.", nil)];
     if ([operation isEqualToString:@"launch"]) {

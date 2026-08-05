@@ -3207,6 +3207,31 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     return nil;
 }
 
+- (NSArray<NSDictionary<NSString *, id> *> *)installedApplicationsWithError:(NSError **)error {
+    NSError *requestError = nil;
+    id response = [self requestSessionSuffix:@"/wda/apps" method:@"GET" body:nil error:&requestError];
+    if (requestError) {
+        if (error) *error = requestError;
+        return nil;
+    }
+    id value = AutoWDAResponseValue(response);
+    if (![value isKindOfClass:NSArray.class]) return @[];
+    NSUInteger maximum = MIN(value.count, (NSUInteger)1000);
+    NSMutableArray *result = [NSMutableArray arrayWithCapacity:MIN(maximum, (NSUInteger)128)];
+    for (id item in value) {
+        if (result.count >= maximum) break;
+        if ([item isKindOfClass:NSString.class]) {
+            [result addObject:@{ @"bundleId": item, @"name": @"" }];
+        } else if ([item isKindOfClass:NSDictionary.class]) {
+            id bundleId = item[@"bundleId"];
+            id name = item[@"name"];
+            [result addObject:@{ @"bundleId": [bundleId isKindOfClass:NSString.class] ? bundleId : @"",
+                                 @"name": [name isKindOfClass:NSString.class] ? name : @"" }];
+        }
+    }
+    return result;
+}
+
 - (BOOL)lockDeviceWithError:(NSError **)error {
     NSError *requestError = nil;
     [self requestSessionSuffix:@"/wda/lock" method:@"POST" body:@{} error:&requestError];

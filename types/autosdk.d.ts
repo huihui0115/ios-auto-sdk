@@ -336,6 +336,8 @@ interface AutoAppAPI {
   unlock(): boolean;
   current(): string | null;
   currentApp(): string | null;
+  appList(): Array<{ bundleId: string; name: string }>;
+  installedApps(): Array<{ bundleId: string; name: string }>;
 }
 
 interface AutoAPI {
@@ -344,6 +346,10 @@ interface AutoAPI {
   doubleClickPoint(x: number, y: number, intervalSeconds?: number): boolean;
   longClick(selector: AutoSelectorLike, durationSeconds?: number): boolean;
   swipe(x1: number, y1: number, x2: number, y2: number, durationSeconds?: number): boolean;
+  swipeUp(percent?: number, durationMs?: number): boolean;
+  swipeDown(percent?: number, durationMs?: number): boolean;
+  swipeLeft(percent?: number, durationMs?: number): boolean;
+  swipeRight(percent?: number, durationMs?: number): boolean;
   input(selector: AutoSelectorLike, text: string): boolean;
   setText(selector: AutoSelectorLike, text: string): boolean;
   sleep(milliseconds: number): boolean;
@@ -469,6 +475,10 @@ declare function cancelInterval(timerId: number): void;
 declare function clickPoint(x: number, y: number): boolean;
 declare function doubleClickPoint(x: number, y: number, intervalSeconds?: number): boolean;
 declare function swipeToPoint(x1: number, y1: number, x2: number, y2: number, durationSeconds?: number): boolean;
+declare function swipeUp(percent?: number, durationMs?: number): boolean;
+declare function swipeDown(percent?: number, durationMs?: number): boolean;
+declare function swipeLeft(percent?: number, durationMs?: number): boolean;
+declare function swipeRight(percent?: number, durationMs?: number): boolean;
 declare function sleep(milliseconds: number): boolean;
 declare function saveImageToAlbum(path: string): boolean;
 declare function saveImageBase64ToAlbum(base64: string): boolean;

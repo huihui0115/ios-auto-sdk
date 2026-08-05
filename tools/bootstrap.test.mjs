@@ -118,6 +118,7 @@ function createSandbox() {
       calls.app.push(data);
       if (data.operation === 'state') return 4;
       if (data.operation === 'current') return 'com.example.host';
+      if (data.operation === 'appList') return [{ bundleId: 'com.example.host', name: 'Host' }];
       return true;
     },
     invokeTouch: (data) => { calls.touch.push(data); return true; },
@@ -489,6 +490,33 @@ test('app helpers and clipboard/brightness/volume/vibrate route to bridge', () =
   assert.equal(sandbox.auto.getVolume(), 0.4);
   sandbox.auto.vibrate(300);
   assert.deepEqual(calls.device.at(-1), { operation: 'vibrate', duration: 300 });
+});
+
+test('direction swipes compute screen-relative coordinates and seconds duration', () => {
+  const { sandbox, calls } = boot();
+  sandbox.auto.swipeUp();
+  assert.deepEqual(calls.swipe.at(-1), { x1: 195, y1: 608, x2: 195, y2: 354, duration: 0.3 });
+  sandbox.auto.swipeDown();
+  assert.deepEqual(calls.swipe.at(-1), { x1: 195, y1: 236, x2: 195, y2: 490, duration: 0.3 });
+  sandbox.auto.swipeLeft();
+  assert.deepEqual(calls.swipe.at(-1), { x1: 281, y1: 422, x2: 164, y2: 422, duration: 0.3 });
+  sandbox.auto.swipeRight();
+  assert.deepEqual(calls.swipe.at(-1), { x1: 109, y1: 422, x2: 226, y2: 422, duration: 0.3 });
+  sandbox.auto.swipeUp(0.8, 500);
+  assert.deepEqual(calls.swipe.at(-1), { x1: 195, y1: 608, x2: 195, y2: 203, duration: 0.5 });
+  assert.equal(typeof sandbox.swipeUp, 'function');
+  assert.equal(typeof sandbox.swipeDown, 'function');
+  assert.equal(typeof sandbox.swipeLeft, 'function');
+  assert.equal(typeof sandbox.swipeRight, 'function');
+  assert.equal(typeof sandbox.auto.swipeUp, 'function');
+});
+
+test('app.appList and installedApps route to invokeApp appList', () => {
+  const { sandbox, calls } = boot();
+  assert.deepEqual(sandbox.auto.app.appList(), [{ bundleId: 'com.example.host', name: 'Host' }]);
+  assert.deepEqual(calls.app.at(-1), { operation: 'appList' });
+  assert.deepEqual(sandbox.auto.app.installedApps(), [{ bundleId: 'com.example.host', name: 'Host' }]);
+  assert.deepEqual(calls.app.at(-1), { operation: 'appList' });
 });
 
 test('unknown auto.* methods fall back to invokeNative', () => {

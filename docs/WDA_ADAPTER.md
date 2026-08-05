@@ -52,6 +52,7 @@ device.volumeUp();       // POST /wda/pressButton {name: "volumeUp"}
 device.volumeDown();     // POST /wda/pressButton {name: "volumeDown"}
 device.isScreenOn();     // GET /wda/locked (inverted)
 const foreground = app.current();  // GET /wda/activeAppInfo -> bundleId
+const installed = app.appList();   // GET /wda/apps -> [{bundleId, name}]
 ```
 
 All of these require `allowSystemControl: @YES` (the default). Host

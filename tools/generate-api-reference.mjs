@@ -99,7 +99,11 @@ const REFS = {
   'auto.clickCenter(selector)': 'AutoJS 点击控件中心',
   'auto.clickRandom(selector)': '随机点击（防检测）',
   'swipeToPoint(x1, y1, x2, y2, duration?)': 'EasyClick swipeToPoint()',
-  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
+  'swipeUp(percent?, durationMs?)': 'EasyClick swipe() 方向封装',
+  'swipeDown(percent?, durationMs?)': 'EasyClick swipe() 方向封装',
+  'swipeLeft(percent?, durationMs?)': 'EasyClick swipe() 方向封装',
+  'swipeRight(percent?, durationMs?)': 'EasyClick swipe() 方向封装',
+  'app.appList()': 'EasyClick getInstalledApps() · AutoJS app.getInstalledApps()',  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
   'uuid()': 'EasyClick uuid()',
   'base64.encode(str)': 'EasyClick base64.encode()/decode()'
 };
@@ -544,7 +548,28 @@ main();` });APIS.push({ cat:'touch', sig:'swipe(x1, y1, x2, y2, duration?)', tit
   logd("上滑: " + ok);
 }
 main();` });
-APIS.push({ cat:'touch', sig:'input(selector, text)', title:'输入文字', desc:'向匹配的输入框填入文字（替换原内容）。', params:[['selector','object|string','输入框选择器'],['text','string','要输入的文字']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'touch', sig:'swipeUp(percent?, durationMs?)', title:'上滑', desc:'从屏幕下方 72% 处向上滑动，默认滑动 30% 屏高。percent 为滑动距离占比（0～1，默认 0.5，实际滑动 0.6×percent 屏高），durationMs 为毫秒（默认 300）。', params:[['percent','number','可选，0～1，滑动距离占比'],['durationMs','number','可选，毫秒']], returns:'boolean', example:`function main(){
+  const ok = swipeUp(0.5, 300);   // 上滑半屏
+  logd("上滑: " + ok);
+  auto.sleep(500);
+  swipeDown(0.5);                 // 回滑
+}
+main();` });
+APIS.push({ cat:'touch', sig:'swipeDown(percent?, durationMs?)', title:'下滑', desc:'从屏幕上方 28% 处向下滑动，默认滑动 30% 屏高。percent 为滑动距离占比，durationMs 为毫秒（默认 300）。', params:[['percent','number','可选，0～1，滑动距离占比'],['durationMs','number','可选，毫秒']], returns:'boolean', example:`function main(){
+  swipeDown(0.4, 250);
+  logd("下滑完成");
+}
+main();` });
+APIS.push({ cat:'touch', sig:'swipeLeft(percent?, durationMs?)', title:'左滑', desc:'从屏幕右侧 72% 处向左滑动，默认滑动 30% 屏宽。percent 为滑动距离占比，durationMs 为毫秒（默认 300）。', params:[['percent','number','可选，0～1，滑动距离占比'],['durationMs','number','可选，毫秒']], returns:'boolean', example:`function main(){
+  swipeLeft(0.5);
+  logd("左滑完成");
+}
+main();` });
+APIS.push({ cat:'touch', sig:'swipeRight(percent?, durationMs?)', title:'右滑', desc:'从屏幕左侧 28% 处向右滑动，默认滑动 30% 屏宽。percent 为滑动距离占比，durationMs 为毫秒（默认 300）。', params:[['percent','number','可选，0～1，滑动距离占比'],['durationMs','number','可选，毫秒']], returns:'boolean', example:`function main(){
+  swipeRight(0.5);
+  logd("右滑完成");
+}
+main();` });APIS.push({ cat:'touch', sig:'input(selector, text)', title:'输入文字', desc:'向匹配的输入框填入文字（替换原内容）。', params:[['selector','object|string','输入框选择器'],['text','string','要输入的文字']], returns:'boolean', example:`function main(){
   const ok = input({type: "TextField"}, "hello");
   logd("输入结果: " + ok);
 }
@@ -714,7 +739,12 @@ APIS.push({ cat:'app', sig:'app.current() / currentApp()', title:'当前前台�
   logd("当前前台: " + current);
 }
 main();` });
-APIS.push({ cat:'device', sig:'device.getDeviceInfo()', title:'设备信息', desc:'返回设备/屏幕/电池/系统等完整信息字典。', params:[], returns:'object {model, systemVersion, screenWidth, batteryLevel, ...}', example:`function main(){
+APIS.push({ cat:'app', sig:'app.appList() / installedApps()', title:'已安装应用列表', desc:'返回已安装应用的 {bundleId, name} 数组（WDA /wda/apps）。支持宿主注入的适配器也可实现；不支持时返回错误。', params:[], returns:'Array<{bundleId, name}>', example:`function main(){
+  const apps = app.appList();
+  logd("已安装: " + apps.length + " 个应用");
+  for (const item of apps.slice(0, 10)) logd(item.bundleId + " → " + item.name);
+}
+main();` });APIS.push({ cat:'device', sig:'device.getDeviceInfo()', title:'设备信息', desc:'返回设备/屏幕/电池/系统等完整信息字典。', params:[], returns:'object {model, systemVersion, screenWidth, batteryLevel, ...}', example:`function main(){
   const info = device.getDeviceInfo();
   logd("型号: " + info.model);
   logd("系统: " + info.systemVersion);
