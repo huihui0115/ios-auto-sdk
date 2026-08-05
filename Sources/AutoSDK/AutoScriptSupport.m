@@ -1,4 +1,5 @@
 #import "AutoScriptSupport.h"
+#import <CoreFoundation/CoreFoundation.h>
 #import "include/AutoSDKError.h"
 #import <CommonCrypto/CommonDigest.h>
 #import <CommonCrypto/CommonCryptor.h>
@@ -2077,4 +2078,14 @@ id AutoScriptStorageOperation(NSDictionary<NSString *,id> *payload,
         [NSUserDefaults.standardUserDefaults setObject:data forKey:defaultsKey];
         return @YES;
     }
+}
+
+NSString *AutoScriptToPinYin(NSString *text) {
+    if (text.length == 0) return @"";
+    NSMutableString *mutable = [text mutableCopy];
+    CFStringTransform((__bridge CFMutableStringRef)mutable, NULL, kCFStringTransformToLatin, false);
+    CFStringTransform((__bridge CFMutableStringRef)mutable, NULL, kCFStringTransformStripCombiningMarks, false);
+    NSCharacterSet *separators = [NSCharacterSet whitespaceAndNewlineCharacterSet];
+    NSString *joined = [[mutable componentsSeparatedByCharactersInSet:separators] componentsJoinedByString:@""];
+    return [joined lowercaseString];
 }

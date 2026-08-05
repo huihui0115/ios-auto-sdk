@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>33</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>15</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>23</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>36</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>10</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>19</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>8</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>34</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>15</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>23</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>36</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>10</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>19</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>11</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>2</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -217,8 +217,25 @@ main();</code></pre>
 </article>
 </section>
 <section id="touch" class="cat" style="--c:#7c3aed">
-  <h2><span class="tag">触摸与节点</span><i>33</i></h2>
-  <article class="card" data-search="click(selector) 点击节点">
+  <h2><span class="tag">触摸与节点</span><i>34</i></h2>
+  <article class="card" data-search="node.keep(node) / node.unkeep(node) / keepNode(node) / unkeepNode(node) / node.keptCount() 节点保持 / 释放">
+  <header class="card-head">
+    <h4><code>node.keep(node) / node.unkeep(node) / keepNode(node) / unkeepNode(node) / node.keptCount()</code> <span class="cname">节点保持 / 释放</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">keep 把节点引用登记到保持表，防止长流程中引用丢失；unkeep 释放；keptCount 返回保持表中的节点数。返回原节点，可链式使用。对标 TrollAutoScript node.keep/unkeep。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">node</code><span class="ptype">object</span><span class="pdesc">findElement 返回的节点对象</span></div></div>
+  <div class="ret"><b>返回值</b> <span>object</span></div>
+  <pre><code>function main(){
+  const node = findElement({ text: "登录" });
+  node.keep(node);
+  sleep(5000);
+  const kept = node.unkeep(node);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="click(selector) 点击节点">
   <header class="card-head">
     <h4><code>click(selector)</code> <span class="cname">点击节点</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -691,32 +708,32 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="longClickPoint(x, y, durationMs?) ????">
+<article class="card" data-search="longClickPoint(x, y, durationMs?) 长按坐标">
   <header class="card-head">
-    <h4><code>longClickPoint(x, y, durationMs?)</code> <span class="cname">????</span></h4>
+    <h4><code>longClickPoint(x, y, durationMs?)</code> <span class="cname">长按坐标</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">?????????? durationMs??? 600??? 3000?????? W3C ?????</p>
+  <p class="desc">在指定坐标长按，durationMs 默认 600 毫秒，最大 3000；走 W3C 手势实现。</p>
   <div class="ref"><b>对标</b> EasyClick longClickPoint()</div>
-  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">???</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">???</span></div><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">???????</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">纵坐标</span></div><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">可选，长按时长</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
   const ok = longClickPoint(200, 400, 800);
-  logd("??: " + ok);
+  logd("长按: " + ok);
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="getOneNodeInfo(selector) / getNodeInfo(selector) ??????">
+<article class="card" data-search="getOneNodeInfo(selector) / getNodeInfo(selector) 节点信息">
   <header class="card-head">
-    <h4><code>getOneNodeInfo(selector) / getNodeInfo(selector)</code> <span class="cname">??????</span></h4>
+    <h4><code>getOneNodeInfo(selector) / getNodeInfo(selector)</code> <span class="cname">节点信息</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">????????????? findElement??EasyClick getOneNodeInfo ???</p>
+  <p class="desc">返回节点文本、边界等详情，等价 findElement；EasyClick getOneNodeInfo 兼容别名。</p>
   
-  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">?????</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">节点选择器</span></div></div>
   <div class="ret"><b>返回值</b> <span>object|null</span></div>
   <pre><code>function main(){
-  const node = getOneNodeInfo({ text: "??" });
+  const node = getOneNodeInfo({ text: "登录" });
   if (node) logd(JSON.stringify(node));
 }
 main();</code></pre>
@@ -1200,12 +1217,12 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="app.getAppVersion() / getPackageName() ??????/??">
+<article class="card" data-search="app.getAppVersion() / getPackageName() 应用版本 / 包名">
   <header class="card-head">
-    <h4><code>app.getAppVersion() / getPackageName()</code> <span class="cname">??????/??</span></h4>
+    <h4><code>app.getAppVersion() / getPackageName()</code> <span class="cname">应用版本 / 包名</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">???? App ?????CFBundleShortVersionString?? bundle id??????? getAppVersion()/getPackageName()?</p>
+  <p class="desc">返回宿主 App 的 CFBundleShortVersionString 版本号与 bundle id；也可直接用全局 getAppVersion()/getPackageName()。</p>
   
   
   <div class="ret"><b>返回值</b> <span>string</span></div>
@@ -1539,12 +1556,12 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="device.getDeviceId() ??????">
+<article class="card" data-search="device.getDeviceId() 设备 ID">
   <header class="card-head">
-    <h4><code>device.getDeviceId()</code> <span class="cname">??????</span></h4>
+    <h4><code>device.getDeviceId()</code> <span class="cname">设备 ID</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">??????????identifierForVendor???????????????????????</p>
+  <p class="desc">返回 identifierForVendor 字符串，同一厂商应用间一致，卸载重装后可能变化。</p>
   <div class="ref"><b>对标</b> EasyClick getDeviceId()</div>
   
   <div class="ret"><b>返回值</b> <span>string</span></div>
@@ -1553,12 +1570,12 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="device.getDeviceAlias() / getSerialNo() ????/???">
+<article class="card" data-search="device.getDeviceAlias() / getSerialNo() 设备别名 / 序列号">
   <header class="card-head">
-    <h4><code>device.getDeviceAlias() / getSerialNo()</code> <span class="cname">????/???</span></h4>
+    <h4><code>device.getDeviceAlias() / getSerialNo()</code> <span class="cname">设备别名 / 序列号</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">getDeviceAlias ???????getSerialNo ? iOS ????????????????? null?</p>
+  <p class="desc">getDeviceAlias 返回设备显示名称；getSerialNo 在 iOS 上无公开 API，返回 null。</p>
   
   
   <div class="ret"><b>返回值</b> <span>string | null</span></div>
@@ -2112,44 +2129,44 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="file.zip(dest, sources, passwd?) ?? ZIP">
+<article class="card" data-search="file.zip(dest, sources, passwd?) 打包 ZIP">
   <header class="card-head">
-    <h4><code>file.zip(dest, sources, passwd?)</code> <span class="cname">?? ZIP</span></h4>
+    <h4><code>file.zip(dest, sources, passwd?)</code> <span class="cname">打包 ZIP</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">???/??????? ZIP???????passwd ???????????????</p>
+  <p class="desc">把文件/目录打包为 ZIP 文件；passwd 可设置 AES 加密密码（ZIP 标准）。</p>
   <div class="ref"><b>对标</b> EasyClick utils.zip()</div>
-  <div class="params"><b>参数</b><div class="param"><code class="pname">dest</code><span class="ptype">string</span><span class="pdesc">?? zip ??</span></div><div class="param"><code class="pname">sources</code><span class="ptype">string[]</span><span class="pdesc">??????/??????</span></div><div class="param"><code class="pname">passwd</code><span class="ptype">string</span><span class="pdesc">????????</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">dest</code><span class="ptype">string</span><span class="pdesc">生成的 zip 路径</span></div><div class="param"><code class="pname">sources</code><span class="ptype">string[]</span><span class="pdesc">要打包的文件/目录数组</span></div><div class="param"><code class="pname">passwd</code><span class="ptype">string</span><span class="pdesc">可选，加密密码</span></div></div>
   <div class="ret"><b>返回值</b> <span>string</span></div>
   <pre><code>function main(){
   const zipPath = file.zip("backup/scripts.zip", ["data/1.txt", "logs"]);
-  logd("????: " + zipPath);
+  logd("压缩完成: " + zipPath);
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="file.unzip(zipPath, dest, passwd?) ?? ZIP">
+<article class="card" data-search="file.unzip(zipPath, dest, passwd?) 解压 ZIP">
   <header class="card-head">
-    <h4><code>file.unzip(zipPath, dest, passwd?)</code> <span class="cname">?? ZIP</span></h4>
+    <h4><code>file.unzip(zipPath, dest, passwd?)</code> <span class="cname">解压 ZIP</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">? ZIP ??????????????????????????????</p>
+  <p class="desc">把 ZIP 解压到目标目录（自动建目录），支持加密 zip。</p>
   <div class="ref"><b>对标</b> EasyClick utils.unzip()/unzipWithEncode()</div>
-  <div class="params"><b>参数</b><div class="param"><code class="pname">zipPath</code><span class="ptype">string</span><span class="pdesc">zip ??</span></div><div class="param"><code class="pname">dest</code><span class="ptype">string</span><span class="pdesc">??????</span></div><div class="param"><code class="pname">passwd</code><span class="ptype">string</span><span class="pdesc">????????</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">zipPath</code><span class="ptype">string</span><span class="pdesc">zip 路径</span></div><div class="param"><code class="pname">dest</code><span class="ptype">string</span><span class="pdesc">解压目标目录</span></div><div class="param"><code class="pname">passwd</code><span class="ptype">string</span><span class="pdesc">可选，加密密码</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
   const ok = file.unzip("backup/scripts.zip", "backup/out");
-  logd("??: " + ok);
+  logd("解压: " + ok);
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="file.readFileInZip(zipPath, entry, passwd?) ?? ZIP ???">
+<article class="card" data-search="file.readFileInZip(zipPath, entry, passwd?) 读取 ZIP 内文件">
   <header class="card-head">
-    <h4><code>file.readFileInZip(zipPath, entry, passwd?)</code> <span class="cname">?? ZIP ???</span></h4>
+    <h4><code>file.readFileInZip(zipPath, entry, passwd?)</code> <span class="cname">读取 ZIP 内文件</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">?????????? zip ??????UTF-8 ????????????? Base64????? null?</p>
+  <p class="desc">直接读取 zip 内某个文件内容：UTF-8 文本原样返回，二进制返回 Base64；文件不存在返回 null。</p>
   <div class="ref"><b>对标</b> EasyClick utils.readFileInZip()</div>
-  <div class="params"><b>参数</b><div class="param"><code class="pname">zipPath</code><span class="ptype">string</span><span class="pdesc">zip ??</span></div><div class="param"><code class="pname">entry</code><span class="ptype">string</span><span class="pdesc">????? data/1.txt</span></div><div class="param"><code class="pname">passwd</code><span class="ptype">string</span><span class="pdesc">????????</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">zipPath</code><span class="ptype">string</span><span class="pdesc">zip 路径</span></div><div class="param"><code class="pname">entry</code><span class="ptype">string</span><span class="pdesc">内部路径如 data/1.txt</span></div><div class="param"><code class="pname">passwd</code><span class="ptype">string</span><span class="pdesc">可选，加密密码</span></div></div>
   <div class="ret"><b>返回值</b> <span>string|null</span></div>
   <pre><code>function main(){
   const text = file.readFileInZip("backup/scripts.zip", "data/1.txt");
@@ -2157,14 +2174,14 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="file.readExcelAllRow(path, sheetIndex?) ?? Excel ????">
+<article class="card" data-search="file.readExcelAllRow(path, sheetIndex?) 读取 Excel 全部行">
   <header class="card-head">
-    <h4><code>file.readExcelAllRow(path, sheetIndex?)</code> <span class="cname">?? Excel ????</span></h4>
+    <h4><code>file.readExcelAllRow(path, sheetIndex?)</code> <span class="cname">读取 Excel 全部行</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">?? xlsx??? ZIP+XML ???? UTF-8 CSV???????????????????????????????????????</p>
+  <p class="desc">读取 xlsx（ZIP+XML 解析）或 UTF-8 CSV 表格，返回对象数组（首行为表头）；xlsx 二进制单元格返回 Base64。</p>
   <div class="ref"><b>对标</b> EasyClick file.readExcelAllRow()</div>
-  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">xlsx ? csv ??</span></div><div class="param"><code class="pname">sheetIndex</code><span class="ptype">number</span><span class="pdesc">????????? 0 ????? 0?CSV ???</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">xlsx 或 csv 路径</span></div><div class="param"><code class="pname">sheetIndex</code><span class="ptype">number</span><span class="pdesc">可选，工作表下标，默认 0；CSV 忽略</span></div></div>
   <div class="ret"><b>返回值</b> <span>Array&lt;object&gt;</span></div>
   <pre><code>function main(){
   const rows = file.readExcelAllRow("data/books.xlsx");
@@ -2172,14 +2189,14 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="file.readExcelRow(path, sheetIndex?, row?) ?? Excel ??">
+<article class="card" data-search="file.readExcelRow(path, sheetIndex?, row?) 读取 Excel 单行">
   <header class="card-head">
-    <h4><code>file.readExcelRow(path, sheetIndex?, row?)</code> <span class="cname">?? Excel ??</span></h4>
+    <h4><code>file.readExcelRow(path, sheetIndex?, row?)</code> <span class="cname">读取 Excel 单行</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">???????? row ??0 ?????????????? null?</p>
+  <p class="desc">读取指定行（row 从 0 开始），返回单元格数组；行不存在返回 null。</p>
   <div class="ref"><b>对标</b> EasyClick file.readExcelRow()</div>
-  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">xlsx ? csv ??</span></div><div class="param"><code class="pname">sheetIndex</code><span class="ptype">number</span><span class="pdesc">????? 0</span></div><div class="param"><code class="pname">row</code><span class="ptype">number</span><span class="pdesc">??? 0 ??</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">xlsx 或 csv 路径</span></div><div class="param"><code class="pname">sheetIndex</code><span class="ptype">number</span><span class="pdesc">可选，工作表下标，默认 0</span></div><div class="param"><code class="pname">row</code><span class="ptype">number</span><span class="pdesc">行号，从 0 开始</span></div></div>
   <div class="ret"><b>返回值</b> <span>Array&lt;string|number&gt;|null</span></div>
   <pre><code>function main(){
   const cells = file.readExcelRow("data/books.xlsx", 0, 2);
@@ -2765,69 +2782,69 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="execAsync(fn, ...args) ????????">
+<article class="card" data-search="execAsync(fn, ...args) 异步线程执行">
   <header class="card-head">
-    <h4><code>execAsync(fn, ...args)</code> <span class="cname">????????</span></h4>
+    <h4><code>execAsync(fn, ...args)</code> <span class="cname">异步线程执行</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">??? JSContext ???????????????????????? HTTP/?????????????????? join/isFinished/getResult/cancel??? 8 ?????????????</p>
+  <p class="desc">在独立 JSContext 线程执行函数，不阻塞主脚本；适合 HTTP、长任务等耗时操作。返回线程对象，支持 join/isFinished/getResult/cancel；最多 8 个并发线程。</p>
   <div class="ref"><b>对标</b> EasyClick execAsync()/execSync()</div>
-  <div class="params"><b>参数</b><div class="param"><code class="pname">fn</code><span class="ptype">function</span><span class="pdesc">?????????????????????</span></div><div class="param"><code class="pname">args</code><span class="ptype">any[]</span><span class="pdesc">JSON ??????</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">fn</code><span class="ptype">function</span><span class="pdesc">要在独立线程执行的函数</span></div><div class="param"><code class="pname">args</code><span class="ptype">any[]</span><span class="pdesc">透传给函数的 JSON 参数</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoThread|null</span></div>
   <pre><code>function main(){
   const t = execAsync(function () { return 42; });
-  logd("??: " + t.isFinished());
-  logd("??: " + t.getResult());
+  logd("完成: " + t.isFinished());
+  logd("结果: " + t.getResult());
   const value = t.join();
   logd("join: " + value);
-  logd("??: " + t.cancel());
+  logd("取消: " + t.cancel());
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="execSync(fn, ...args) ??????????">
+<article class="card" data-search="execSync(fn, ...args) 同步等待线程结果">
   <header class="card-head">
-    <h4><code>execSync(fn, ...args)</code> <span class="cname">??????????</span></h4>
+    <h4><code>execSync(fn, ...args)</code> <span class="cname">同步等待线程结果</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">??????????????????????????????? 20ms ?????</p>
+  <p class="desc">在独立线程执行并等待结果，返回函数返回值；轮询间隔 20ms 实现。</p>
   <div class="ref"><b>对标</b> EasyClick execSync()</div>
-  <div class="params"><b>参数</b><div class="param"><code class="pname">fn</code><span class="ptype">function</span><span class="pdesc">??????</span></div><div class="param"><code class="pname">args</code><span class="ptype">any[]</span><span class="pdesc">JSON ??????</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">fn</code><span class="ptype">function</span><span class="pdesc">要执行的函数</span></div><div class="param"><code class="pname">args</code><span class="ptype">any[]</span><span class="pdesc">透传参数</span></div></div>
   <div class="ret"><b>返回值</b> <span>any</span></div>
   <pre><code>function main(){
   const value = execSync(function () { return 1 + 1; });
-  logd("??: " + value);
+  logd("结果: " + value);
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="cancelThread(thread) / stopAllThreads() / isCancelled() ????">
+<article class="card" data-search="cancelThread(thread) / stopAllThreads() / isCancelled() 线程取消与状态">
   <header class="card-head">
-    <h4><code>cancelThread(thread) / stopAllThreads() / isCancelled()</code> <span class="cname">????</span></h4>
+    <h4><code>cancelThread(thread) / stopAllThreads() / isCancelled()</code> <span class="cname">线程取消与状态</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">cancelThread ??????????????????stopAllThreads ???????isCancelled ????????????</p>
+  <p class="desc">cancelThread 取消指定线程（不保证立即生效）；stopAllThreads 停止全部线程；isCancelled 查询当前脚本是否已请求停止。</p>
   
-  <div class="params"><b>参数</b><div class="param"><code class="pname">thread</code><span class="ptype">AutoThread</span><span class="pdesc">execAsync ?????</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">thread</code><span class="ptype">AutoThread</span><span class="pdesc">execAsync 返回的线程</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
   const t = execAsync(function () { sleep(3000); return 1; });
-  logd("?????: " + cancelThread(t));
-  logd("????: " + stopAllThreads());
-  logd("???: " + isCancelled());
+  logd("取消线程: " + cancelThread(t));
+  logd("全部停止: " + stopAllThreads());
+  logd("已取消: " + isCancelled());
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="getRangeInt(min, max) / getRatio(ratio) ???????">
+<article class="card" data-search="getRangeInt(min, max) / getRatio(ratio) 随机数与概率">
   <header class="card-head">
-    <h4><code>getRangeInt(min, max) / getRatio(ratio)</code> <span class="cname">???????</span></h4>
+    <h4><code>getRangeInt(min, max) / getRatio(ratio)</code> <span class="cname">随机数与概率</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">getRangeInt ?? [min, max] ????????getRatio(r) ? r% ???? true????????</p>
+  <p class="desc">getRangeInt 返回 [min, max] 闭区间随机整数；getRatio(r) 以 r% 概率返回 true，用于概率分支。</p>
   
-  <div class="params"><b>参数</b><div class="param"><code class="pname">min</code><span class="ptype">number</span><span class="pdesc">???</span></div><div class="param"><code class="pname">max</code><span class="ptype">number</span><span class="pdesc">???</span></div><div class="param"><code class="pname">ratio</code><span class="ptype">number</span><span class="pdesc">1-100</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">min</code><span class="ptype">number</span><span class="pdesc">最小值</span></div><div class="param"><code class="pname">max</code><span class="ptype">number</span><span class="pdesc">最大值</span></div><div class="param"><code class="pname">ratio</code><span class="ptype">number</span><span class="pdesc">1-100 的概率百分比</span></div></div>
   <div class="ret"><b>返回值</b> <span>number | boolean</span></div>
   <pre><code>function main(){
   logd(getRangeInt(1, 10));
-  if (getRatio(20)) logd("20% ????");
+  if (getRatio(20)) logd("20% 概率命中");
 }
 main();</code></pre>
 </article>
@@ -2991,7 +3008,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="strings" class="cat" style="--c:#a21caf">
-  <h2><span class="tag">字符串工具</span><i>8</i></h2>
+  <h2><span class="tag">字符串工具</span><i>11</i></h2>
   <article class="card" data-search="webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.release(token) webView 悬浮网页">
   <header class="card-head">
     <h4><code>webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.release(token)</code> <span class="cname">webView 悬浮网页</span></h4>
@@ -3024,6 +3041,48 @@ main();</code></pre>
   const encrypted = strings.aes128Encrypt("hello", "mykey");
   logd(encrypted);
   logd(strings.aes128Decrypt(encrypted, "mykey"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="strings.toPinYin(text) / toPinYin(text) 中文转拼音">
+  <header class="card-head">
+    <h4><code>strings.toPinYin(text) / toPinYin(text)</code> <span class="cname">中文转拼音</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把汉字转成不带声调的拼音（系统级转换，原生实现）："你好" → "nihao"；非中文原样保留。对标 TrollAutoScript string.toPinYin。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">任意文本</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(toPinYin("你好世界")); // nihaoshijie
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="strings.stripUtf8Bom(text) / stripUtf8Bom(text) 去掉 UTF-8 BOM">
+  <header class="card-head">
+    <h4><code>strings.stripUtf8Bom(text) / stripUtf8Bom(text)</code> <span class="cname">去掉 UTF-8 BOM</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">移除字符串开头的 BOM 字符，用于清洗带 BOM 的文本。对标 TrollAutoScript string.stripUtf8Bom。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">可能带 BOM 的文本</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(stripUtf8Bom("﻿abc")); // abc
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="strings.fromUnicode(text) / fromUnicode(text) Unicode 转义还原">
+  <header class="card-head">
+    <h4><code>strings.fromUnicode(text) / fromUnicode(text)</code> <span class="cname">Unicode 转义还原</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把 \uXXXX 形式的 Unicode 转义序列还原成真实字符："\u4f60\u597d" → "你好"。对标 TrollAutoScript string.fromUnicode。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">含 \uXXXX 的文本</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(fromUnicode("\u4f60\u597d")); // 你好
 }
 main();</code></pre>
 </article>
@@ -3120,9 +3179,52 @@ main();</code></pre>
 main();</code></pre>
 </article>
 </section>
+<section id="ui" class="cat" style="--c:#f59e0b">
+  <h2><span class="tag">悬浮窗口</span><i>2</i></h2>
+  <article class="card" data-search="screenDraw.init() / setBorderWidth(token, width) / setBorderColor(token, color) / setTitle(token, title) / show(token, x, y, w, h) / move(token, x, y) / hide(token) 屏幕悬浮绘制">
+  <header class="card-head">
+    <h4><code>screenDraw.init() / setBorderWidth(token, width) / setBorderColor(token, color) / setTitle(token, title) / show(token, x, y, w, h) / move(token, x, y) / hide(token)</code> <span class="cname">屏幕悬浮绘制</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在屏幕上方画一个可自定义边框与标题的矩形框（标注区域、调试选区），不影响触摸穿透。init 创建并返回 token；setBorderWidth/setBorderColor/setTitle 修改样式；show 指定位置尺寸显示；move 移动；hide 隐藏。对标 TrollAutoScript screenDraw.*。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">token</code><span class="ptype">string</span><span class="pdesc">screenDraw.init 返回的标识</span></div><div class="param"><code class="pname">width</code><span class="ptype">number</span><span class="pdesc">边框宽度</span></div><div class="param"><code class="pname">color</code><span class="ptype">string</span><span class="pdesc">边框颜色，如 #FF0000</span></div><div class="param"><code class="pname">title</code><span class="ptype">string</span><span class="pdesc">左上角标题</span></div><div class="param"><code class="pname">x/y/w/h</code><span class="ptype">number</span><span class="pdesc">位置与尺寸</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string token | boolean</span></div>
+  <pre><code>function main(){
+  const draw = screenDraw.init();
+  screenDraw.setBorderColor(draw, "#00FF00");
+  screenDraw.setTitle(draw, "目标区域");
+  screenDraw.show(draw, 100, 200, 300, 150);
+  sleep(3000);
+  screenDraw.move(draw, 120, 260);
+  sleep(1000);
+  screenDraw.hide(draw);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="floatBall.show(title?, x?, y?) / move(x, y) / hide() / isShow() / setFloatBallPoint(x, y) 悬浮球">
+  <header class="card-head">
+    <h4><code>floatBall.show(title?, x?, y?) / move(x, y) / hide() / isShow() / setFloatBallPoint(x, y)</code> <span class="cname">悬浮球</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">屏幕悬浮球：可拖动，点击显示标题 toast；show 创建/定位，move 移动，hide 隐藏，isShow 查询。全局 setFloatBallPoint(x, y) 为 EasyClick/TrollAutoScript 兼容别名。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">title</code><span class="ptype">string</span><span class="pdesc">可选，悬浮球文字</span></div><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">可选，横坐标，默认 20</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">可选，纵坐标，默认 120</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  floatBall.show("任务中", 20, 200);
+  sleep(2000);
+  floatBall.move(40, 300);
+  sleep(1000);
+  logd(floatBall.isShow());
+  floatBall.hide();
+}
+main();</code></pre>
+</article>
+</section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 192 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 198 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

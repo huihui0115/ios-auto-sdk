@@ -8,6 +8,18 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **Round 11: 拼音 / 悬浮绘制 / 悬浮球 / 节点保持。** 新增 `toPinYin(text)`（系统级
+  CFStringTransform 拼音转换，无第三方依赖，"你好"→"nihao"）与 `strings.toPinYin`；
+  新增 `screenDraw.*` 悬浮绘制（init/setBorderWidth/setBorderColor/setTitle/show/
+  move/hide，边框+标题，触摸穿透）；新增 `floatBall.show/move/hide/isShow` 悬浮球
+  （可拖动、点击显示标题 toast）与全局别名 `setFloatBallPoint(x,y)`；新增
+  `node.keep/unkeep/keptCount` 与全局 `keepNode/unkeepNode`（对标
+  TrollAutoScript node.keep/unkeep）；新增 `strings.stripUtf8Bom`/`strings.fromUnicode`
+  （BOM 清洗、\uXXXX 还原）。修复文档生成器中 14 处历史中文损坏条目；本地 API 文档
+  同步更新（198 个函数，新增悬浮窗口分类）。
+
+### Added
+
 - **Round 8: 相册清空 + 对标 TrollAutoScript 补齐常用函数。** 新增
   `media.deleteAllPhotos()/deleteAllVideos()/deleteAllMedia()`（读写真机权限、返回删除数量，全局简写同名）；
   新增字符串工具 `strings.*`（trim/ltrim/rtrim/split/chars/toHex/fromHex/isUpper/isLower/isNumber/

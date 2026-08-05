@@ -126,6 +126,11 @@
 @property (nonatomic, strong) NSMutableDictionary<NSString *, id> *webViews;
 @property (nonatomic, assign) NSUInteger webViewSequence;
 @property (atomic, copy) NSString *currentScriptSource;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, id> *screenDraws;
+@property (nonatomic, assign) NSUInteger screenDrawSequence;
+@property (nonatomic, strong) UIWindow *overlayWindow;
+@property (nonatomic, strong) UIView *floatBallView;
+@property (nonatomic, strong) UILabel *floatBallTitleLabel;
 - (void)loadScript:(NSString *)value config:(NSDictionary *)config completion:(void (^)(NSString * _Nullable source, NSError * _Nullable error))completion;
 - (void)evaluateScript:(NSString *)source config:(NSDictionary *)config adapter:(id<AutoAutomationAdapter>)adapter completion:(AutoScriptCompletion)completion;
 - (void)finishWithResult:(NSDictionary * _Nullable)result error:(NSError * _Nullable)error completion:(AutoScriptCompletion)completion;
@@ -452,6 +457,85 @@ static UIWindow *AutoEngineMainWindow(void) {
     }
     return UIApplication.sharedApplication.keyWindow;
 }
+
+static UIColor *AutoOverlayColorFromHex(NSString *hex) {
+    if (![hex isKindOfClass:NSString.class]) return nil;
+    NSString *value = [hex stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+    if ([value hasPrefix:@"#"]) value = [value substringFromIndex:1];
+    if ([value hasPrefix:@"0x"] || [value hasPrefix:@"0X"]) value = [value substringFromIndex:2];
+    if (value.length != 6 && value.length != 8) return nil;
+    NSScanner *scanner = [NSScanner scannerWithString:value];
+    unsigned long long rgb = 0;
+    if (![scanner scanHexLongLong:&rgb] || !scanner.isAtEnd) return nil;
+    if (value.length == 6) {
+        return [UIColor colorWithRed:((rgb >> 16) & 0xFF) / 255.0
+                               green:((rgb >> 8) & 0xFF) / 255.0
+                                blue:(rgb & 0xFF) / 255.0
+                               alpha:1.0];
+    }
+    return [UIColor colorWithRed:((rgb >> 24) & 0xFF) / 255.0
+                           green:((rgb >> 16) & 0xFF) / 255.0
+                            blue:((rgb >> 8) & 0xFF) / 255.0
+                           alpha:(rgb & 0xFF) / 255.0];
+}
+
+@interface AutoPassThroughView : UIView
+@end
+
+@implementation AutoPassThroughView
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    UIView *hit = [super hitTest:point withEvent:event];
+    return (hit == self) ? nil : hit;
+}
+@end
+
+@interface AutoOverlayRootViewController : UIViewController
+@end
+
+@implementation AutoOverlayRootViewController
+- (void)loadView {
+    AutoPassThroughView *view = [[AutoPassThroughView alloc] initWithFrame:UIScreen.mainScreen.bounds];
+    view.backgroundColor = UIColor.clearColor;
+    self.view = view;
+}
+@end
+
+@interface AutoScreenDrawView : UIView
+@property (nonatomic, strong) UILabel *titleLabel;
+- (void)setDrawTitle:(NSString *)title;
+@end
+
+@implementation AutoScreenDrawView
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.backgroundColor = UIColor.clearColor;
+        self.userInteractionEnabled = NO;
+        self.layer.borderWidth = 2.0;
+        self.layer.borderColor = UIColor.redColor.CGColor;
+        _titleLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+        _titleLabel.font = [UIFont boldSystemFontOfSize:12];
+        _titleLabel.textColor = UIColor.whiteColor;
+        _titleLabel.backgroundColor = [UIColor colorWithWhite:0 alpha:0.6];
+        _titleLabel.numberOfLines = 1;
+        _titleLabel.hidden = YES;
+        [self addSubview:_titleLabel];
+    }
+    return self;
+}
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    if (!_titleLabel.hidden) {
+        CGSize size = [_titleLabel sizeThatFits:CGSizeMake(CGRectGetWidth(self.bounds), CGFLOAT_MAX)];
+        _titleLabel.frame = CGRectMake(0, 0, MIN(CGRectGetWidth(self.bounds), size.width + 8), size.height + 4);
+    }
+}
+- (void)setDrawTitle:(NSString *)title {
+    self.titleLabel.text = title;
+    self.titleLabel.hidden = (title.length == 0);
+    [self setNeedsLayout];
+}
+@end
 
 static const NSUInteger AutoDebugScriptByteLimit = 768 * 1024;
 static const NSUInteger AutoDebugProtocolVersion = 2;
@@ -2221,6 +2305,15 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             NSArray *webArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
             return [self handleWebViewOperation:name arguments:webArgs];
         }
+        if ([name isEqualToString:@"toPinYin"]) {
+            NSArray *pinyinArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            NSString *pinyinText = pinyinArgs.count > 0 && [pinyinArgs[0] isKindOfClass:NSString.class] ? pinyinArgs[0] : @"";
+            return AutoScriptToPinYin(pinyinText);
+        }
+        if ([name hasPrefix:@"screenDraw"] || [name hasPrefix:@"floatBall"]) {
+            NSArray *overlayArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            return [self handleOverlayOperation:name arguments:overlayArgs];
+        }
         return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, [NSString stringWithFormat:@"Native method '%@' is not registered.", name], nil)];
     }
     id object = nativePayload[@"arguments"] ?: @[];
@@ -2329,6 +2422,204 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         return @YES;
     }
     return AutoMakeError(AutoSDKErrorAutomationFailed, @"Unknown web view operation.", nil);
+}
+
+- (UIWindow *)ensureOverlayWindow {
+    UIWindow *window = self.engine.overlayWindow;
+    if (!window) {
+        window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
+        if (@available(iOS 13.0, *)) {
+            UIWindow *mainWindow = AutoEngineMainWindow();
+            if (mainWindow.windowScene) window.windowScene = mainWindow.windowScene;
+        }
+        window.windowLevel = UIWindowLevelStatusBar + 50.0;
+        window.backgroundColor = UIColor.clearColor;
+        window.rootViewController = [[AutoOverlayRootViewController alloc] init];
+        window.hidden = NO;
+        self.engine.overlayWindow = window;
+    } else if (@available(iOS 13.0, *)) {
+        UIWindow *mainWindow = AutoEngineMainWindow();
+        if (mainWindow.windowScene && window.windowScene != mainWindow.windowScene) {
+            window.windowScene = mainWindow.windowScene;
+        }
+    }
+    return window;
+}
+
+- (void)refreshOverlayVisibility {
+    BOOL anyVisible = NO;
+    for (UIView *draw in self.engine.screenDraws.allValues) {
+        if (draw.superview != nil) { anyVisible = YES; break; }
+    }
+    if (!anyVisible && self.engine.floatBallView.superview != nil) anyVisible = YES;
+    self.engine.overlayWindow.hidden = !anyVisible;
+}
+
+- (id)handleOverlayOperation:(NSString *)name arguments:(NSArray *)args {
+    __block id result = nil;
+    __block NSError *blockError = nil;
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        result = [self performOverlayOperationOnMain:name arguments:args];
+        if ([result isKindOfClass:NSError.class]) {
+            blockError = result;
+            result = nil;
+        }
+        dispatch_semaphore_signal(semaphore);
+    });
+    NSTimeInterval deadline = NSProcessInfo.processInfo.systemUptime + 10.0;
+    while (dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC))) != 0) {
+        if ([self.engine shouldStop]) {
+            return [self failure:AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil)];
+        }
+        if (NSProcessInfo.processInfo.systemUptime >= deadline) {
+            return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"Timed out waiting for the overlay operation.", nil)];
+        }
+    }
+    if (blockError) return [self failure:blockError];
+    return result;
+}
+
+- (id)performOverlayOperationOnMain:(NSString *)name arguments:(NSArray *)args {
+    if ([name isEqualToString:@"screenDrawInit"]) {
+        AutoScreenDrawView *view = [[AutoScreenDrawView alloc] initWithFrame:CGRectZero];
+        @synchronized (self.engine) {
+            if (!self.engine.screenDraws) self.engine.screenDraws = [NSMutableDictionary dictionary];
+            self.engine.screenDrawSequence += 1;
+            NSString *token = [NSString stringWithFormat:@"draw-%lu", (unsigned long)self.engine.screenDrawSequence];
+            self.engine.screenDraws[token] = view;
+            return token;
+        }
+    }
+    NSString *token = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"";
+    AutoScreenDrawView *drawView = nil;
+    @synchronized (self.engine) { drawView = self.engine.screenDraws[token]; }
+    if ([name isEqualToString:@"screenDrawSetBorderWidth"]) {
+        if (!drawView) return AutoMakeError(AutoSDKErrorAutomationFailed, @"screenDraw operation requires a valid token from screenDraw.init.", nil);
+        double width = args.count > 1 && [args[1] isKindOfClass:NSNumber.class] ? [args[1] doubleValue] : 0;
+        drawView.layer.borderWidth = MAX(0, width);
+        return @YES;
+    }
+    if ([name isEqualToString:@"screenDrawSetBorderColor"]) {
+        if (!drawView) return AutoMakeError(AutoSDKErrorAutomationFailed, @"screenDraw operation requires a valid token from screenDraw.init.", nil);
+        NSString *hex = args.count > 1 && [args[1] isKindOfClass:NSString.class] ? args[1] : @"";
+        UIColor *color = AutoOverlayColorFromHex(hex);
+        if (!color) return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"screenDraw.setBorderColor expects a hex color like '#FF0000'.", nil);
+        drawView.layer.borderColor = color.CGColor;
+        return @YES;
+    }
+    if ([name isEqualToString:@"screenDrawSetTitle"]) {
+        if (!drawView) return AutoMakeError(AutoSDKErrorAutomationFailed, @"screenDraw operation requires a valid token from screenDraw.init.", nil);
+        NSString *title = args.count > 1 && [args[1] isKindOfClass:NSString.class] ? args[1] : @"";
+        [drawView setDrawTitle:title];
+        return @YES;
+    }
+    if ([name isEqualToString:@"screenDrawShow"]) {
+        if (!drawView) return AutoMakeError(AutoSDKErrorAutomationFailed, @"screenDraw operation requires a valid token from screenDraw.init.", nil);
+        UIWindow *window = [self ensureOverlayWindow];
+        UIView *container = window.rootViewController.view;
+        CGFloat x = args.count > 1 && [args[1] isKindOfClass:NSNumber.class] ? [args[1] doubleValue] : 0;
+        CGFloat y = args.count > 2 && [args[2] isKindOfClass:NSNumber.class] ? [args[2] doubleValue] : 0;
+        CGFloat width = args.count > 3 && [args[3] isKindOfClass:NSNumber.class] && [args[3] doubleValue] > 0
+            ? [args[3] doubleValue] : 100;
+        CGFloat height = args.count > 4 && [args[4] isKindOfClass:NSNumber.class] && [args[4] doubleValue] > 0
+            ? [args[4] doubleValue] : 100;
+        drawView.frame = CGRectMake(x, y, width, height);
+        if (drawView.superview != container) [container addSubview:drawView];
+        [self refreshOverlayVisibility];
+        return @YES;
+    }
+    if ([name isEqualToString:@"screenDrawMove"]) {
+        if (!drawView) return AutoMakeError(AutoSDKErrorAutomationFailed, @"screenDraw operation requires a valid token from screenDraw.init.", nil);
+        CGFloat x = args.count > 1 && [args[1] isKindOfClass:NSNumber.class] ? [args[1] doubleValue] : 0;
+        CGFloat y = args.count > 2 && [args[2] isKindOfClass:NSNumber.class] ? [args[2] doubleValue] : 0;
+        CGRect frame = drawView.frame;
+        frame.origin.x = x;
+        frame.origin.y = y;
+        drawView.frame = frame;
+        return @YES;
+    }
+    if ([name isEqualToString:@"screenDrawHide"]) {
+        if (!drawView) return AutoMakeError(AutoSDKErrorAutomationFailed, @"screenDraw operation requires a valid token from screenDraw.init.", nil);
+        [drawView removeFromSuperview];
+        [self refreshOverlayVisibility];
+        return @YES;
+    }
+    if ([name isEqualToString:@"floatBallShow"]) {
+        NSString *title = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"";
+        CGFloat x = args.count > 1 && [args[1] isKindOfClass:NSNumber.class] ? [args[1] doubleValue] : 20;
+        CGFloat y = args.count > 2 && [args[2] isKindOfClass:NSNumber.class] ? [args[2] doubleValue] : 120;
+        UIView *ball = self.engine.floatBallView;
+        if (!ball) {
+            ball = [[UIView alloc] initWithFrame:CGRectMake(x, y, 56, 56)];
+            ball.backgroundColor = [UIColor colorWithRed:0.16 green:0.50 blue:0.96 alpha:0.92];
+            ball.layer.cornerRadius = 28;
+            ball.layer.shadowColor = UIColor.blackColor.CGColor;
+            ball.layer.shadowOpacity = 0.35;
+            ball.layer.shadowOffset = CGSizeMake(0, 2);
+            ball.layer.shadowRadius = 4;
+            ball.userInteractionEnabled = YES;
+            UILabel *label = [[UILabel alloc] initWithFrame:CGRectInset(ball.bounds, 4, 4)];
+            label.font = [UIFont boldSystemFontOfSize:11];
+            label.textColor = UIColor.whiteColor;
+            label.textAlignment = NSTextAlignmentCenter;
+            label.numberOfLines = 2;
+            label.adjustsFontSizeToFitWidth = YES;
+            label.minimumScaleFactor = 0.6;
+            [ball addSubview:label];
+            UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleFloatBallPan:)];
+            [ball addGestureRecognizer:pan];
+            UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleFloatBallTap:)];
+            [ball addGestureRecognizer:tap];
+            self.engine.floatBallView = ball;
+            self.engine.floatBallTitleLabel = label;
+        }
+        ball.frame = CGRectMake(x, y, 56, 56);
+        self.engine.floatBallTitleLabel.text = title;
+        UIWindow *window = [self ensureOverlayWindow];
+        UIView *container = window.rootViewController.view;
+        if (ball.superview != container) [container addSubview:ball];
+        [self refreshOverlayVisibility];
+        return @YES;
+    }
+    if ([name isEqualToString:@"floatBallMove"]) {
+        CGFloat x = args.count > 0 && [args[0] isKindOfClass:NSNumber.class] ? [args[0] doubleValue] : 0;
+        CGFloat y = args.count > 1 && [args[1] isKindOfClass:NSNumber.class] ? [args[1] doubleValue] : 0;
+        UIView *ball = self.engine.floatBallView;
+        if (!ball) return @NO;
+        CGRect frame = ball.frame;
+        frame.origin.x = x;
+        frame.origin.y = y;
+        ball.frame = frame;
+        return @YES;
+    }
+    if ([name isEqualToString:@"floatBallHide"]) {
+        [self.engine.floatBallView removeFromSuperview];
+        [self refreshOverlayVisibility];
+        return @YES;
+    }
+    if ([name isEqualToString:@"floatBallIsShow"]) {
+        UIView *ball = self.engine.floatBallView;
+        return @(ball != nil && ball.superview != nil);
+    }
+    return AutoMakeError(AutoSDKErrorAutomationFailed, @"Unknown overlay operation.", nil);
+}
+
+- (void)handleFloatBallPan:(UIPanGestureRecognizer *)gesture {
+    UIView *ball = gesture.view;
+    if (!ball.superview) return;
+    CGPoint translation = [gesture translationInView:ball.superview];
+    CGPoint center = CGPointMake(ball.center.x + translation.x, ball.center.y + translation.y);
+    CGRect bounds = ball.superview.bounds;
+    center.x = MAX(ball.bounds.size.width / 2.0, MIN(bounds.size.width - ball.bounds.size.width / 2.0, center.x));
+    center.y = MAX(ball.bounds.size.height / 2.0, MIN(bounds.size.height - ball.bounds.size.height / 2.0, center.y));
+    ball.center = center;
+    [gesture setTranslation:CGPointZero inView:ball.superview];
+}
+
+- (void)handleFloatBallTap:(UITapGestureRecognizer *)gesture {
+    NSString *title = self.engine.floatBallTitleLabel.text;
+    if (title.length > 0) AutoShowToast(title);
 }
 
 - (id)invokeExecAsync:(JSValue *)payload {

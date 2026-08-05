@@ -319,6 +319,21 @@ check(bootstrapSource.includes("operation:'saveImage'") && bootstrapSource.inclu
       bootstrapSource.includes('var mediaApi=') && bootstrapSource.includes('g.media=mediaApi') &&
       bootstrapSource.includes('saveImageToAlbum:function') && bootstrapSource.includes('saveVideoToAlbum:function'),
       'Bootstrap must wire photo-library media operations and aliases');
+check(bootstrapSource.includes('var screenDrawApi=') && bootstrapSource.includes('screenDrawInit') &&
+      bootstrapSource.includes('var floatBallApi=') && bootstrapSource.includes('floatBallShow') &&
+      bootstrapSource.includes('g.screenDraw=screenDrawApi') && bootstrapSource.includes('g.floatBall=floatBallApi') &&
+      bootstrapSource.includes('g.setFloatBallPoint=') && bootstrapSource.includes('var nodeApi=') &&
+      bootstrapSource.includes('keptNodes') && bootstrapSource.includes('toPinYin:function') &&
+      bootstrapSource.includes('stripUtf8Bom:function') && bootstrapSource.includes('fromUnicode:function'),
+      'Bootstrap must expose screenDraw, floatBall, node.keep/unkeep and pinyin/BOM/unicode string helpers');
+check(engineSource.includes('screenDrawInit') && engineSource.includes('floatBallShow') &&
+      engineSource.includes('ensureOverlayWindow') && engineSource.includes('AutoScriptToPinYin') &&
+      engineSource.includes('hasPrefix:@"screenDraw"') && engineSource.includes('hasPrefix:@"floatBall"'),
+      'Engine must dispatch overlay operations and toPinYin to native implementations');
+check(read('Sources/AutoSDK/AutoScriptSupport.m').includes('CFStringTransform') &&
+      read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCFStringTransformToLatin') &&
+      read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCFStringTransformStripCombiningMarks'),
+      'toPinYin must use the system Latin transform with combining marks stripped');
 check(engineSource.includes('deviceMemoryInfo') && engineSource.includes('isEqualToString:@"memory"'),
       'Engine must expose device memory information');
 check(engineSource.includes('isEqualToString:@"toast"') && engineSource.includes('AutoShowToast'),

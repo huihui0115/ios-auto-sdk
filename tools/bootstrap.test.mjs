@@ -747,6 +747,58 @@ test('execAsync / execSync / thread handle and utils helpers', () => {
   assert.equal(typeof sandbox.auto.getNodeInfo, 'function');
 });
 
+test('toPinYin, stripUtf8Bom, fromUnicode, screenDraw, floatBall and node keep helpers', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.toPinYin('你好'), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'toPinYin', arguments: ['你好'] });
+  assert.equal(sandbox.stripUtf8Bom('\uFEFFabc'), 'abc');
+  assert.equal(sandbox.stripUtf8Bom('abc'), 'abc');
+  assert.equal(sandbox.fromUnicode('\\u4f60\\u597d'), '你好');
+  assert.equal(sandbox.strings.toPinYin('x'), true);
+  assert.equal(typeof sandbox.strings.stripUtf8Bom, 'function');
+  assert.equal(typeof sandbox.strings.fromUnicode, 'function');
+
+  const token = 't1';
+  assert.equal(sandbox.screenDraw.init(), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'screenDrawInit', arguments: [] });
+  assert.equal(sandbox.screenDraw.setBorderWidth(token, 4), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'screenDrawSetBorderWidth', arguments: [token, 4] });
+  assert.equal(sandbox.screenDraw.setBorderColor(token, '#FF0000'), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'screenDrawSetBorderColor', arguments: [token, '#FF0000'] });
+  assert.equal(sandbox.screenDraw.setTitle(token, '目标'), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'screenDrawSetTitle', arguments: [token, '目标'] });
+  assert.equal(sandbox.screenDraw.show(token, 1, 2, 3, 4), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'screenDrawShow', arguments: [token, 1, 2, 3, 4] });
+  assert.equal(sandbox.screenDraw.move(token, 5, 6), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'screenDrawMove', arguments: [token, 5, 6] });
+  assert.equal(sandbox.screenDraw.hide(token), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'screenDrawHide', arguments: [token] });
+
+  assert.equal(sandbox.floatBall.show('任务', 10, 20), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'floatBallShow', arguments: ['任务', 10, 20] });
+  assert.equal(sandbox.floatBall.move(30, 40), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'floatBallMove', arguments: [30, 40] });
+  assert.equal(sandbox.floatBall.isShow(), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'floatBallIsShow', arguments: [] });
+  assert.equal(sandbox.floatBall.hide(), true);
+  assert.equal(sandbox.setFloatBallPoint(50, 60), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'floatBallShow', arguments: ['', 50, 60] });
+
+  const node = { handle: 'h9', text: 'x' };
+  assert.equal(sandbox.node.keep(node), node);
+  assert.equal(sandbox.node.keptCount(), 1);
+  assert.equal(sandbox.node.unkeep(node), node);
+  assert.equal(sandbox.node.keptCount(), 0);
+  assert.equal(sandbox.keepNode(node), node);
+  assert.equal(sandbox.unkeepNode(node), node);
+  const node2 = { id: 'i1' };
+  assert.equal(sandbox.keepNode(node2), node2);
+  assert.equal(sandbox.node.keptCount(), 1);
+  assert.equal(sandbox.unkeepNode(node2), node2);
+  assert.equal(sandbox.node.keptCount(), 0);
+  assert.equal(typeof sandbox.node, 'object');
+});
+
 test('unknown auto.* methods fall back to invokeNative', () => {
   const { sandbox, calls } = boot();
   sandbox.auto.someNativeThing('a', 2);

@@ -432,6 +432,9 @@ interface AutoAPI {
   restartScript(): boolean;
   aes128Encrypt(text: string, key: string): string;
   aes128Decrypt(base64: string, key: string): string;
+  toPinYin(text: string): string;
+  stripUtf8Bom(text: string): string;
+  fromUnicode(text: string): string;
   readPlist(path: string): unknown;
   writePlist(path: string, value: unknown): boolean;
   playMp3(path: string, volume?: number, queue?: boolean, stopWhenScriptEnd?: boolean): boolean;
@@ -516,6 +519,29 @@ interface AutoWebViewAPI {
   hidden(token: string): boolean;
   eval(token: string, js: string): unknown;
   release(token: string): boolean;
+}
+
+interface AutoScreenDrawAPI {
+  init(): string;
+  setBorderWidth(token: string, width: number): boolean;
+  setBorderColor(token: string, color: string): boolean;
+  setTitle(token: string, title: string): boolean;
+  show(token: string, x: number, y: number, width: number, height: number): boolean;
+  move(token: string, x: number, y: number): boolean;
+  hide(token: string): boolean;
+}
+
+interface AutoFloatBallAPI {
+  show(title?: string, x?: number, y?: number): boolean;
+  move(x: number, y: number): boolean;
+  hide(): boolean;
+  isShow(): boolean;
+}
+
+interface AutoNodeAPI {
+  keep(node: unknown): unknown;
+  unkeep(node: unknown): unknown;
+  keptCount(): number;
 }
 
 interface AutoThread {
@@ -699,3 +725,12 @@ declare function logd(...values: unknown[]): void;
 declare function logi(...values: unknown[]): void;
 declare function logw(...values: unknown[]): void;
 declare function loge(...values: unknown[]): void;
+declare const screenDraw: AutoScreenDrawAPI;
+declare const floatBall: AutoFloatBallAPI;
+declare function setFloatBallPoint(x: number, y: number): boolean;
+declare const node: AutoNodeAPI;
+declare function keepNode(node: unknown): unknown;
+declare function unkeepNode(node: unknown): unknown;
+declare function toPinYin(text: string): string;
+declare function stripUtf8Bom(text: string): string;
+declare function fromUnicode(text: string): string;

@@ -23,7 +23,8 @@ const CATEGORIES = [
   { id: 'http',     name: '网络HTTP', color: '#9333ea' },
   { id: 'media',    name: '相册媒体', color: '#db2777' },
   { id: 'timer',    name: '定时器与工具', color: '#64748b' },
-  { id: 'strings',  name: '字符串工具', color: '#a21caf' }
+  { id: 'strings',  name: '字符串工具', color: '#a21caf' },
+  { id: 'ui',       name: '悬浮窗口', color: '#f59e0b' }
 ];
 
 const REFS = {
@@ -393,30 +394,30 @@ main();` });APIS.push({ cat:'timer', sig:'md5(text) / sha1(text) / sha256(text) 
   logd("md5: " + md5("hello"));
   logd("sha1: " + sha1("hello"));
 }
-main();` });APIS.push({ cat:'timer', sig:'execAsync(fn, ...args)', title:'????????', desc:'??? JSContext ???????????????????????? HTTP/?????????????????? join/isFinished/getResult/cancel??? 8 ?????????????', params:[['fn','function','?????????????????????'],['args','any[]','JSON ??????']], returns:'AutoThread|null', example:`function main(){
+main();` });APIS.push({ cat:'timer', sig:'execAsync(fn, ...args)', title:'异步线程执行', desc:'在独立 JSContext 线程执行函数，不阻塞主脚本；适合 HTTP、长任务等耗时操作。返回线程对象，支持 join/isFinished/getResult/cancel；最多 8 个并发线程。', params:[['fn','function','要在独立线程执行的函数'],['args','any[]','透传给函数的 JSON 参数']], returns:'AutoThread|null', example:`function main(){
   const t = execAsync(function () { return 42; });
-  logd("??: " + t.isFinished());
-  logd("??: " + t.getResult());
+  logd("完成: " + t.isFinished());
+  logd("结果: " + t.getResult());
   const value = t.join();
   logd("join: " + value);
-  logd("??: " + t.cancel());
+  logd("取消: " + t.cancel());
 }
 main();` });
-APIS.push({ cat:'timer', sig:'execSync(fn, ...args)', title:'??????????', desc:'??????????????????????????????? 20ms ?????', params:[['fn','function','??????'],['args','any[]','JSON ??????']], returns:'any', example:`function main(){
+APIS.push({ cat:'timer', sig:'execSync(fn, ...args)', title:'同步等待线程结果', desc:'在独立线程执行并等待结果，返回函数返回值；轮询间隔 20ms 实现。', params:[['fn','function','要执行的函数'],['args','any[]','透传参数']], returns:'any', example:`function main(){
   const value = execSync(function () { return 1 + 1; });
-  logd("??: " + value);
+  logd("结果: " + value);
 }
 main();` });
-APIS.push({ cat:'timer', sig:'cancelThread(thread) / stopAllThreads() / isCancelled()', title:'????', desc:'cancelThread ??????????????????stopAllThreads ???????isCancelled ????????????', params:[['thread','AutoThread','execAsync ?????']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'timer', sig:'cancelThread(thread) / stopAllThreads() / isCancelled()', title:'线程取消与状态', desc:'cancelThread 取消指定线程（不保证立即生效）；stopAllThreads 停止全部线程；isCancelled 查询当前脚本是否已请求停止。', params:[['thread','AutoThread','execAsync 返回的线程']], returns:'boolean', example:`function main(){
   const t = execAsync(function () { sleep(3000); return 1; });
-  logd("?????: " + cancelThread(t));
-  logd("????: " + stopAllThreads());
-  logd("???: " + isCancelled());
+  logd("取消线程: " + cancelThread(t));
+  logd("全部停止: " + stopAllThreads());
+  logd("已取消: " + isCancelled());
 }
 main();` });
-APIS.push({ cat:'timer', sig:'getRangeInt(min, max) / getRatio(ratio)', title:'???????', desc:'getRangeInt ?? [min, max] ????????getRatio(r) ? r% ???? true????????', params:[['min','number','???'],['max','number','???'],['ratio','number','1-100']], returns:'number | boolean', example:`function main(){
+APIS.push({ cat:'timer', sig:'getRangeInt(min, max) / getRatio(ratio)', title:'随机数与概率', desc:'getRangeInt 返回 [min, max] 闭区间随机整数；getRatio(r) 以 r% 概率返回 true，用于概率分支。', params:[['min','number','最小值'],['max','number','最大值'],['ratio','number','1-100 的概率百分比']], returns:'number | boolean', example:`function main(){
   logd(getRangeInt(1, 10));
-  if (getRatio(20)) logd("20% ????");
+  if (getRatio(20)) logd("20% 概率命中");
 }
 main();` });
 APIS.push({ cat:'timer', sig:'uuid() / uniqueId()', title:'唯一 ID', desc:'生成 UUID 字符串。', params:[], returns:'string', example:`function main(){
@@ -440,6 +441,33 @@ APIS.push({ cat:'base64', sig:'base64.encode(text) / base64.decode(base64)', tit
   const enc = base64.encode("hello");
   logd(enc);
   logd(base64.decode(enc));
+}
+main();` });
+APIS.push({ cat:'ui', sig:'screenDraw.init() / setBorderWidth(token, width) / setBorderColor(token, color) / setTitle(token, title) / show(token, x, y, w, h) / move(token, x, y) / hide(token)', title:'屏幕悬浮绘制', desc:'在屏幕上方画一个可自定义边框与标题的矩形框（标注区域、调试选区），不影响触摸穿透。init 创建并返回 token；setBorderWidth/setBorderColor/setTitle 修改样式；show 指定位置尺寸显示；move 移动；hide 隐藏。对标 TrollAutoScript screenDraw.*。', params:[['token','string','screenDraw.init 返回的标识'],['width','number','边框宽度'],['color','string','边框颜色，如 #FF0000'],['title','string','左上角标题'],['x/y/w/h','number','位置与尺寸']], returns:'string token | boolean', example:`function main(){
+  const draw = screenDraw.init();
+  screenDraw.setBorderColor(draw, "#00FF00");
+  screenDraw.setTitle(draw, "目标区域");
+  screenDraw.show(draw, 100, 200, 300, 150);
+  sleep(3000);
+  screenDraw.move(draw, 120, 260);
+  sleep(1000);
+  screenDraw.hide(draw);
+}
+main();` });
+APIS.push({ cat:'ui', sig:'floatBall.show(title?, x?, y?) / move(x, y) / hide() / isShow() / setFloatBallPoint(x, y)', title:'悬浮球', desc:'屏幕悬浮球：可拖动，点击显示标题 toast；show 创建/定位，move 移动，hide 隐藏，isShow 查询。全局 setFloatBallPoint(x, y) 为 EasyClick/TrollAutoScript 兼容别名。', params:[['title','string','可选，悬浮球文字'],['x','number','可选，横坐标，默认 20'],['y','number','可选，纵坐标，默认 120']], returns:'boolean', example:`function main(){
+  floatBall.show("任务中", 20, 200);
+  sleep(2000);
+  floatBall.move(40, 300);
+  sleep(1000);
+  logd(floatBall.isShow());
+  floatBall.hide();
+}
+main();` });
+APIS.push({ cat:'touch', sig:'node.keep(node) / node.unkeep(node) / keepNode(node) / unkeepNode(node) / node.keptCount()', title:'节点保持 / 释放', desc:'keep 把节点引用登记到保持表，防止长流程中引用丢失；unkeep 释放；keptCount 返回保持表中的节点数。返回原节点，可链式使用。对标 TrollAutoScript node.keep/unkeep。', params:[['node','object','findElement 返回的节点对象']], returns:'object', example:`function main(){
+  const node = findElement({ text: "登录" });
+  node.keep(node);
+  sleep(5000);
+  const kept = node.unkeep(node);
 }
 main();` });
 function render() {
@@ -1093,27 +1121,27 @@ APIS.push({ cat:'file', sig:'file.rename(path, newName)', title:'重命名', des
 }
 main();` });
 
-APIS.push({ cat:'file', sig:'file.zip(dest, sources, passwd?)', title:'?? ZIP', desc:'???/??????? ZIP???????passwd ???????????????', params:[['dest','string','?? zip ??'],['sources','string[]','??????/??????'],['passwd','string','????????']], returns:'string', example:`function main(){
+APIS.push({ cat:'file', sig:'file.zip(dest, sources, passwd?)', title:'打包 ZIP', desc:'把文件/目录打包为 ZIP 文件；passwd 可设置 AES 加密密码（ZIP 标准）。', params:[['dest','string','生成的 zip 路径'],['sources','string[]','要打包的文件/目录数组'],['passwd','string','可选，加密密码']], returns:'string', example:`function main(){
   const zipPath = file.zip("backup/scripts.zip", ["data/1.txt", "logs"]);
-  logd("????: " + zipPath);
+  logd("压缩完成: " + zipPath);
 }
 main();` });
-APIS.push({ cat:'file', sig:'file.unzip(zipPath, dest, passwd?)', title:'?? ZIP', desc:'? ZIP ??????????????????????????????', params:[['zipPath','string','zip ??'],['dest','string','??????'],['passwd','string','????????']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'file', sig:'file.unzip(zipPath, dest, passwd?)', title:'解压 ZIP', desc:'把 ZIP 解压到目标目录（自动建目录），支持加密 zip。', params:[['zipPath','string','zip 路径'],['dest','string','解压目标目录'],['passwd','string','可选，加密密码']], returns:'boolean', example:`function main(){
   const ok = file.unzip("backup/scripts.zip", "backup/out");
-  logd("??: " + ok);
+  logd("解压: " + ok);
 }
 main();` });
-APIS.push({ cat:'file', sig:'file.readFileInZip(zipPath, entry, passwd?)', title:'?? ZIP ???', desc:'?????????? zip ??????UTF-8 ????????????? Base64????? null?', params:[['zipPath','string','zip ??'],['entry','string','????? data/1.txt'],['passwd','string','????????']], returns:'string|null', example:`function main(){
+APIS.push({ cat:'file', sig:'file.readFileInZip(zipPath, entry, passwd?)', title:'读取 ZIP 内文件', desc:'直接读取 zip 内某个文件内容：UTF-8 文本原样返回，二进制返回 Base64；文件不存在返回 null。', params:[['zipPath','string','zip 路径'],['entry','string','内部路径如 data/1.txt'],['passwd','string','可选，加密密码']], returns:'string|null', example:`function main(){
   const text = file.readFileInZip("backup/scripts.zip", "data/1.txt");
   logd(text);
 }
 main();` });
-APIS.push({ cat:'file', sig:'file.readExcelAllRow(path, sheetIndex?)', title:'?? Excel ????', desc:'?? xlsx??? ZIP+XML ???? UTF-8 CSV???????????????????????????????????????', params:[['path','string','xlsx ? csv ??'],['sheetIndex','number','????????? 0 ????? 0?CSV ???']], returns:'Array<object>', example:`function main(){
+APIS.push({ cat:'file', sig:'file.readExcelAllRow(path, sheetIndex?)', title:'读取 Excel 全部行', desc:'读取 xlsx（ZIP+XML 解析）或 UTF-8 CSV 表格，返回对象数组（首行为表头）；xlsx 二进制单元格返回 Base64。', params:[['path','string','xlsx 或 csv 路径'],['sheetIndex','number','可选，工作表下标，默认 0；CSV 忽略']], returns:'Array<object>', example:`function main(){
   const rows = file.readExcelAllRow("data/books.xlsx");
   for (const r of rows) logd(r.name, r.age);
 }
 main();` });
-APIS.push({ cat:'file', sig:'file.readExcelRow(path, sheetIndex?, row?)', title:'?? Excel ??', desc:'???????? row ??0 ?????????????? null?', params:[['path','string','xlsx ? csv ??'],['sheetIndex','number','????? 0'],['row','number','??? 0 ??']], returns:'Array<string|number>|null', example:`function main(){
+APIS.push({ cat:'file', sig:'file.readExcelRow(path, sheetIndex?, row?)', title:'读取 Excel 单行', desc:'读取指定行（row 从 0 开始），返回单元格数组；行不存在返回 null。', params:[['path','string','xlsx 或 csv 路径'],['sheetIndex','number','可选，工作表下标，默认 0'],['row','number','行号，从 0 开始']], returns:'Array<string|number>|null', example:`function main(){
   const cells = file.readExcelRow("data/books.xlsx", 0, 2);
   logd(JSON.stringify(cells));
 }
@@ -1242,6 +1270,18 @@ APIS.push({ cat:'strings', sig:'strings.aes128Encrypt(text, key) / strings.aes12
   logd(strings.aes128Decrypt(encrypted, "mykey"));
 }
 main();` });
+APIS.push({ cat:'strings', sig:'strings.toPinYin(text) / toPinYin(text)', title:'中文转拼音', desc:'把汉字转成不带声调的拼音（系统级转换，原生实现）："你好" → "nihao"；非中文原样保留。对标 TrollAutoScript string.toPinYin。', params:[['text','string','任意文本']], returns:'string', example:`function main(){
+  logd(toPinYin("你好世界")); // nihaoshijie
+}
+main();` });
+APIS.push({ cat:'strings', sig:'strings.stripUtf8Bom(text) / stripUtf8Bom(text)', title:'去掉 UTF-8 BOM', desc:'移除字符串开头的 BOM 字符，用于清洗带 BOM 的文本。对标 TrollAutoScript string.stripUtf8Bom。', params:[['text','string','可能带 BOM 的文本']], returns:'string', example:`function main(){
+  logd(stripUtf8Bom("\uFEFFabc")); // abc
+}
+main();` });
+APIS.push({ cat:'strings', sig:'strings.fromUnicode(text) / fromUnicode(text)', title:'Unicode 转义还原', desc:'把 \\uXXXX 形式的 Unicode 转义序列还原成真实字符："\\u4f60\\u597d" → "你好"。对标 TrollAutoScript string.fromUnicode。', params:[['text','string','含 \\uXXXX 的文本']], returns:'string', example:`function main(){
+  logd(fromUnicode("\\u4f60\\u597d")); // 你好
+}
+main();` });
 APIS.push({ cat:'timer', sig:'alert(message, title?) / exit() / restartScript()', title:'弹窗与退出', desc:'alert 弹出系统提示框（标题默认 AutoSDK，点击 OK 关闭，不阻塞脚本）；exit 立即停止当前脚本；restartScript 停止后重新运行当前脚本（适合守护进程）。对标 TrollAutoScript sys.alert / os.exit / restartScript。', params:[['message','string','提示内容'],['title','string','可选，标题，默认 AutoSDK']], returns:'boolean', example:`function main(){
   alert("任务完成", "AutoSDK");
   exit();
@@ -1360,13 +1400,13 @@ APIS.push({ cat:'touch', sig:'auto.clickRandom(selector)', title:'随机点点�
   logd("随机点击: " + ok);
 }
 main();` });
-APIS.push({ cat:'touch', sig:'longClickPoint(x, y, durationMs?)', title:'????', desc:'?????????? durationMs??? 600??? 3000?????? W3C ?????', params:[['x','number','???'],['y','number','???'],['durationMs','number','???????']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'touch', sig:'longClickPoint(x, y, durationMs?)', title:'长按坐标', desc:'在指定坐标长按，durationMs 默认 600 毫秒，最大 3000；走 W3C 手势实现。', params:[['x','number','横坐标'],['y','number','纵坐标'],['durationMs','number','可选，长按时长']], returns:'boolean', example:`function main(){
   const ok = longClickPoint(200, 400, 800);
-  logd("??: " + ok);
+  logd("长按: " + ok);
 }
 main();` });
-APIS.push({ cat:'touch', sig:'getOneNodeInfo(selector) / getNodeInfo(selector)', title:'??????', desc:'????????????? findElement??EasyClick getOneNodeInfo ???', params:[['selector','object|string','?????']], returns:'object|null', example:`function main(){
-  const node = getOneNodeInfo({ text: "??" });
+APIS.push({ cat:'touch', sig:'getOneNodeInfo(selector) / getNodeInfo(selector)', title:'节点信息', desc:'返回节点文本、边界等详情，等价 findElement；EasyClick getOneNodeInfo 兼容别名。', params:[['selector','object|string','节点选择器']], returns:'object|null', example:`function main(){
+  const node = getOneNodeInfo({ text: "登录" });
   if (node) logd(JSON.stringify(node));
 }
 main();` });
@@ -1376,16 +1416,16 @@ APIS.push({ cat:'touch', sig:'swipeToPoint(x1, y1, x2, y2, duration?)', title:'�
 }
 main();` });
 
-APIS.push({ cat:'device', sig:'device.getDeviceId()', title:'??????', desc:'??????????identifierForVendor???????????????????????', params:[], returns:'string', example:`function main(){
+APIS.push({ cat:'device', sig:'device.getDeviceId()', title:'设备 ID', desc:'返回 identifierForVendor 字符串，同一厂商应用间一致，卸载重装后可能变化。', params:[], returns:'string', example:`function main(){
   logd("deviceId: " + device.getDeviceId());
 }
 main();` });
-APIS.push({ cat:'device', sig:'device.getDeviceAlias() / getSerialNo()', title:'????/???', desc:'getDeviceAlias ???????getSerialNo ? iOS ????????????????? null?', params:[], returns:'string | null', example:`function main(){
+APIS.push({ cat:'device', sig:'device.getDeviceAlias() / getSerialNo()', title:'设备别名 / 序列号', desc:'getDeviceAlias 返回设备显示名称；getSerialNo 在 iOS 上无公开 API，返回 null。', params:[], returns:'string | null', example:`function main(){
   logd("alias: " + device.getDeviceAlias());
   logd("serial: " + device.getSerialNo());
 }
 main();` });
-APIS.push({ cat:'app', sig:'app.getAppVersion() / getPackageName()', title:'??????/??', desc:'???? App ?????CFBundleShortVersionString?? bundle id??????? getAppVersion()/getPackageName()?', params:[], returns:'string', example:`function main(){
+APIS.push({ cat:'app', sig:'app.getAppVersion() / getPackageName()', title:'应用版本 / 包名', desc:'返回宿主 App 的 CFBundleShortVersionString 版本号与 bundle id；也可直接用全局 getAppVersion()/getPackageName()。', params:[], returns:'string', example:`function main(){
   logd("v" + getAppVersion() + " " + getPackageName());
 }
 main();` });
