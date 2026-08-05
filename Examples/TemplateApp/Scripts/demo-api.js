@@ -243,6 +243,28 @@ try {
   report.round12Error = String(e);
 }
 
-report;
+// 18. EasyClick-compatible screen module + app name/run state (round 14)
+try {
+  report.screen = {
+    rgb: screen.getColorRGB(10, 10),
+    hex: screen.getColorHex(10, 10),
+    hasFindImage: typeof screen.findImage === "function",
+    hasOcr: typeof screen.ocr === "function",
+    compare: screen.isColors([{ x: 10, y: 10, color: screen.getColorHex(10, 10) }]),
+  };
+  report.stringAlias = string.trim("  alias  ") === "alias";
+} catch (e) {
+  report.screenError = String(e);
+}
+if (caps.appList === true) {
+  try {
+    const firstBundleId = app.appList()[0] && app.appList()[0].bundleId;
+    report.appName = app.getAppName(firstBundleId);
+    report.appRunning = app.isRunning(firstBundleId);
+  } catch (e) {
+    report.appInfoError = String(e);
+  }
+}
 
 report;
+

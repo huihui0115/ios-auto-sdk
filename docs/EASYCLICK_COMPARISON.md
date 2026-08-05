@@ -72,15 +72,15 @@ The following surfaces must not be described as production-complete yet:
 
 ## 函数级覆盖清单（2026-08-05）
 
-交互式速查 `docs/api-reference.html` 收录 206 个可运行示例，分 13 个分类，
+交互式速查 `docs/api-reference.html` 收录 215 个可运行示例，分 13 个分类，
 每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
 
 | 分类 | 函数数 | 亮点 |
 | --- | --- | --- |
 | 日志与调试 | 8 | console 分级、toast/toastLog、alert/exit/restartScript、sleep |
 | 触摸与节点 | 34 | 坐标/节点点击、滑动/手势/pinch、输入、节点查询（getChild/getSiblings/clickCenter/clickRandom）、node.keep/unkeep |
-| 图色与OCR | 15 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素、OCR |
-| App与应用控制 | 16 | launch/activate/terminate/state/openURL/homeScreen/current/appList/isInstalled/锁屏解锁 |
+| 图色与OCR | 22 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素（screen.getColor/getColorRGB/getColorHex）、多点比对（findColors/isColors）、OCR |
+| App与应用控制 | 18 | launch/activate/terminate/state/openURL/homeScreen/current/appList/isInstalled/getAppName/isRunning/锁屏解锁 |
 | 设备与系统 | 24 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID |
 | 坐标与屏幕 | 5 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
 | 文件 | 37 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
@@ -91,6 +91,7 @@ The following surfaces must not be described as production-complete yet:
 | 字符串工具 | 14 | trim/split/chars/hex/类型判断/拼音 toPinYin/BOM 清洗/Unicode 还原 |
 | 悬浮窗口 | 2 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 
+本轮新增（Round 14）：`screen.*` EasyClick 兼容图色模块（getColor/getColorRGB/getColorHex + 找图找色/OCR/截图入口）、全局别名 `screen`/`string`、`app.getAppName`/`app.isRunning`；
 本轮新增（Round 12）：`formatDate/dateFormat`（yyyy/MM/dd/HH/mm/ss/SSS/E 星期）、`sleepRandom` 随机睡眠、
 `strings.*` 查找/截取/补位/format 系列、`app.isInstalled`、内存别名；
 （Round 11 对标 TrollAutoScript）：`toPinYin`、`screenDraw.*` 悬浮绘制、

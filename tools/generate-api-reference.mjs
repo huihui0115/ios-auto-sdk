@@ -1499,5 +1499,52 @@ APIS.push({ cat:'timer', sig:'base64.encode(str) / base64.decode(str)', title:'B
   logd("解码: " + base64.decode(enc));
 }
 main();` });
+APIS.push({ cat:'vision', sig:'screen.getColor(x, y) / screen.getColorRGB(x, y) / screen.getColorHex(x, y)', title:'屏幕取色', desc:'读取屏幕指定坐标的像素颜色：getColor 返回 {r,g,b,a,hex} 完整对象，getColorRGB 返回 {r,g,b}，getColorHex 返回 #RRGGBB 字符串。EasyClick 兼容的取色入口。', params:[['x','number','屏幕横坐标'],['y','number','屏幕纵坐标']], returns:'object | string | null', example:`function main(){
+  const c = screen.getColor(100, 200);
+  logd("RGB: " + c.r + "," + c.g + "," + c.b);
+  logd("HEX: " + screen.getColorHex(100, 200));
+}
+main();` });
+APIS.push({ cat:'vision', sig:'screen.findImage(path, options?) / screen.findColor(color, region?, options?)', title:'找图找色（EasyClick 入口）', desc:'screen 模块的图色查找入口，等价全局 findImage/findColor：findImage 在屏幕截图中查找模板图片，findColor 在指定区域查找第一个匹配颜色点。', params:[['path','string','模板图片路径（沙盒内，支持 png/jpg）'],['color','string|[r,g,b]','颜色，如 "#ff0000"'],['options','object','可选，region/threshold 等']], returns:'AutoMatch | null', example:`function main(){
+  const m = screen.findImage("images/start.png", {threshold: 0.9});
+  if (m && m.found) click(m.x, m.y);
+}
+main();` });
+APIS.push({ cat:'vision', sig:'screen.findColorEx(colors, threshold?, x?, y?, ex?, ey?, limit?, direction?) / screen.findNotColor(colors, ...)', title:'区域找色/找非色（EasyClick 入口）', desc:'screen 模块的区域多点找色与找非色，参数与全局 findColorEx/findNotColor 完全一致：返回所有匹配坐标数组，找不到返回 null。', params:[['colors','string|array','颜色目标列表，支持 EasyClick 字符串或数组'],['threshold','number','0-1 相似度，默认 0.9']], returns:'AutoPoint[] | null', example:`function main(){
+  const pts = screen.findColorEx("0xCDD7E9-0x101010", 0.9, 0, 0, 0, 0, 10, 1);
+  logd("找到 " + (pts ? pts.length : 0) + " 个点");
+}
+main();` });
+APIS.push({ cat:'vision', sig:'screen.findMultiColor(color, offsets, region?, options?)', title:'多点找色（EasyClick 入口）', desc:'按基准色 + 相对偏移点组合查找，比单点更稳；参数与全局 findMultiColor 一致。', params:[['color','string','基准颜色'],['offsets','array','偏移点数组 [{dx,dy,color}]'],['region','object','可选'],['options','object','可选']], returns:'AutoMatch | null', example:`function main(){
+  const m = screen.findMultiColor("#3b3b3b", [{dx: 10, dy: 0, color: "#ff0000"}]);
+  if (m && m.found) click(m.x, m.y);
+}
+main();` });
+APIS.push({ cat:'vision', sig:'screen.findColors(points, options?) / screen.isColors(points, options?) / screen.cmpColor(points, options?)', title:'多点颜色比对（EasyClick 入口）', desc:'一次截图内比对多个点的颜色是否全部匹配：findColors/isColors 等价 compareColors，cmpColor 为 EasyClick 兼容别名。', params:[['points','array','[{x,y,color,tolerance?}]'],['options','object','可选']], returns:'boolean', example:`function main(){
+  const ok = screen.cmpColor([{x: 5, y: 5, color: "#ff0000"}]);
+  logd("匹配: " + ok);
+}
+main();` });
+APIS.push({ cat:'vision', sig:'screen.ocr(options?)', title:'OCR 文字识别（EasyClick 入口）', desc:'screen 模块的文字识别入口，等价全局 ocr()，返回带坐标的文本项数组，可用坐标直接点击。', params:[['options','object','可选，{x,y,width,height,mode}']], returns:'AutoOCRItem[]', example:`function main(){
+  const items = screen.ocr({mode: "fast"});
+  for (const it of items) logd(it.text + " @" + it.x + "," + it.y);
+}
+main();` });
+APIS.push({ cat:'vision', sig:'screen.screenshot()', title:'截屏（EasyClick 入口）', desc:'screen 模块的截屏入口，等价全局 screenshot()，返回 PNG 的 Base64 字符串。', params:[], returns:'string PNG base64', example:`function main(){
+  const img = screen.screenshot();
+  logd("截图长度: " + img.length);
+}
+main();` });
+APIS.push({ cat:'app', sig:'app.getAppName(bundleId)', title:'应用显示名称', desc:'通过已安装应用列表查询 bundleId 对应的应用显示名称，未安装返回 null。', params:[['bundleId','string','应用 bundle id']], returns:'string | null', example:`function main(){
+  const name = app.getAppName("com.apple.mobilesafari");
+  logd("名称: " + (name || "未安装"));
+}
+main();` });
+APIS.push({ cat:'app', sig:'app.isRunning(bundleId)', title:'应用是否在运行', desc:'判断应用是否处于前台或后台运行状态（state >= 2 即视为运行中），可用于任务流程中的状态轮询。', params:[['bundleId','string','应用 bundle id']], returns:'boolean', example:`function main(){
+  if (app.isRunning("com.apple.mobilesafari")) {
+    logd("Safari 正在运行");
+  }
+}
+main();` });
 writeFileSync(join(root, 'docs', 'api-reference.html'), render(), 'utf8');
 console.log('Generated docs/api-reference.html with ' + APIS.length + ' functions.');

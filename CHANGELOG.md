@@ -7,6 +7,16 @@ All notable changes to AutoSDK are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+### Added
+- **Round 14: EasyClick 兼容 screen 取色模块 + 应用信息增强。** 新增
+  `screen.*` 图色模块（EasyClick 兼容入口）：`screen.getColor(x,y)` 返回
+  {r,g,b,a,hex}、`getColorRGB(x,y)` 返回 {r,g,b}、`getColorHex(x,y)` 返回
+  #RRGGBB；`findImage/findColor/findColorEx/findNotColor/findMultiColor/
+  findColors/isColors/cmpColor/ocr/screenshot` 与全局函数等价；新增全局别名
+  `screen` 与 `string`（strings 模块）。新增 `app.getAppName(bundleId)`
+  （查询应用显示名称）与 `app.isRunning(bundleId)`（state>=2 即运行中）。
+  本地 API 文档同步更新：215 个函数；类型声明、VS Code 补全与示例同步。
+
 
 - **Round 13: 悬浮层生命周期治理。** 新增 `screenDraw.release(token)`（释放单个绘制）
   与 `screenDraw.clearAll()`（清空全部绘制）；引擎在脚本结束/停止/退出时自动清理

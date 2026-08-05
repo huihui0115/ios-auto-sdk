@@ -2,7 +2,7 @@
   "name": "autosdk-vscode",
   "displayName": "AutoSDK Script Tools",
   "description": "Edit, run, and build AutoSDK scripts for a TrollStore-installed iOS app",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "publisher": "autosdk",
   "repository": {

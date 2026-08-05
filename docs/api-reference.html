@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>34</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>16</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>24</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>37</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>10</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>2</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>34</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>22</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>18</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>24</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>37</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>10</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>2</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -755,7 +755,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="vision" class="cat" style="--c:#ea580c">
-  <h2><span class="tag">图色与OCR</span><i>15</i></h2>
+  <h2><span class="tag">图色与OCR</span><i>22</i></h2>
   <article class="card" data-search="screenshot() 截屏">
   <header class="card-head">
     <h4><code>screenshot()</code> <span class="cname">截屏</span></h4>
@@ -1003,9 +1003,115 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="screen.getColor(x, y) / screen.getColorRGB(x, y) / screen.getColorHex(x, y) 屏幕取色">
+  <header class="card-head">
+    <h4><code>screen.getColor(x, y) / screen.getColorRGB(x, y) / screen.getColorHex(x, y)</code> <span class="cname">屏幕取色</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取屏幕指定坐标的像素颜色：getColor 返回 {r,g,b,a,hex} 完整对象，getColorRGB 返回 {r,g,b}，getColorHex 返回 #RRGGBB 字符串。EasyClick 兼容的取色入口。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">屏幕横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">屏幕纵坐标</span></div></div>
+  <div class="ret"><b>返回值</b> <span>object | string | null</span></div>
+  <pre><code>function main(){
+  const c = screen.getColor(100, 200);
+  logd("RGB: " + c.r + "," + c.g + "," + c.b);
+  logd("HEX: " + screen.getColorHex(100, 200));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="screen.findImage(path, options?) / screen.findColor(color, region?, options?) 找图找色（EasyClick 入口）">
+  <header class="card-head">
+    <h4><code>screen.findImage(path, options?) / screen.findColor(color, region?, options?)</code> <span class="cname">找图找色（EasyClick 入口）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">screen 模块的图色查找入口，等价全局 findImage/findColor：findImage 在屏幕截图中查找模板图片，findColor 在指定区域查找第一个匹配颜色点。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">模板图片路径（沙盒内，支持 png/jpg）</span></div><div class="param"><code class="pname">color</code><span class="ptype">string|[r,g,b]</span><span class="pdesc">颜色，如 "#ff0000"</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，region/threshold 等</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoMatch | null</span></div>
+  <pre><code>function main(){
+  const m = screen.findImage("images/start.png", {threshold: 0.9});
+  if (m &amp;&amp; m.found) click(m.x, m.y);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="screen.findColorEx(colors, threshold?, x?, y?, ex?, ey?, limit?, direction?) / screen.findNotColor(colors, ...) 区域找色/找非色（EasyClick 入口）">
+  <header class="card-head">
+    <h4><code>screen.findColorEx(colors, threshold?, x?, y?, ex?, ey?, limit?, direction?) / screen.findNotColor(colors, ...)</code> <span class="cname">区域找色/找非色（EasyClick 入口）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">screen 模块的区域多点找色与找非色，参数与全局 findColorEx/findNotColor 完全一致：返回所有匹配坐标数组，找不到返回 null。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">colors</code><span class="ptype">string|array</span><span class="pdesc">颜色目标列表，支持 EasyClick 字符串或数组</span></div><div class="param"><code class="pname">threshold</code><span class="ptype">number</span><span class="pdesc">0-1 相似度，默认 0.9</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoPoint[] | null</span></div>
+  <pre><code>function main(){
+  const pts = screen.findColorEx("0xCDD7E9-0x101010", 0.9, 0, 0, 0, 0, 10, 1);
+  logd("找到 " + (pts ? pts.length : 0) + " 个点");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="screen.findMultiColor(color, offsets, region?, options?) 多点找色（EasyClick 入口）">
+  <header class="card-head">
+    <h4><code>screen.findMultiColor(color, offsets, region?, options?)</code> <span class="cname">多点找色（EasyClick 入口）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">按基准色 + 相对偏移点组合查找，比单点更稳；参数与全局 findMultiColor 一致。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">color</code><span class="ptype">string</span><span class="pdesc">基准颜色</span></div><div class="param"><code class="pname">offsets</code><span class="ptype">array</span><span class="pdesc">偏移点数组 [{dx,dy,color}]</span></div><div class="param"><code class="pname">region</code><span class="ptype">object</span><span class="pdesc">可选</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoMatch | null</span></div>
+  <pre><code>function main(){
+  const m = screen.findMultiColor("#3b3b3b", [{dx: 10, dy: 0, color: "#ff0000"}]);
+  if (m &amp;&amp; m.found) click(m.x, m.y);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="screen.findColors(points, options?) / screen.isColors(points, options?) / screen.cmpColor(points, options?) 多点颜色比对（EasyClick 入口）">
+  <header class="card-head">
+    <h4><code>screen.findColors(points, options?) / screen.isColors(points, options?) / screen.cmpColor(points, options?)</code> <span class="cname">多点颜色比对（EasyClick 入口）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">一次截图内比对多个点的颜色是否全部匹配：findColors/isColors 等价 compareColors，cmpColor 为 EasyClick 兼容别名。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">points</code><span class="ptype">array</span><span class="pdesc">[{x,y,color,tolerance?}]</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = screen.cmpColor([{x: 5, y: 5, color: "#ff0000"}]);
+  logd("匹配: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="screen.ocr(options?) OCR 文字识别（EasyClick 入口）">
+  <header class="card-head">
+    <h4><code>screen.ocr(options?)</code> <span class="cname">OCR 文字识别（EasyClick 入口）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">screen 模块的文字识别入口，等价全局 ocr()，返回带坐标的文本项数组，可用坐标直接点击。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，{x,y,width,height,mode}</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoOCRItem[]</span></div>
+  <pre><code>function main(){
+  const items = screen.ocr({mode: "fast"});
+  for (const it of items) logd(it.text + " @" + it.x + "," + it.y);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="screen.screenshot() 截屏（EasyClick 入口）">
+  <header class="card-head">
+    <h4><code>screen.screenshot()</code> <span class="cname">截屏（EasyClick 入口）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">screen 模块的截屏入口，等价全局 screenshot()，返回 PNG 的 Base64 字符串。</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>string PNG base64</span></div>
+  <pre><code>function main(){
+  const img = screen.screenshot();
+  logd("截图长度: " + img.length);
+}
+main();</code></pre>
+</article>
 </section>
 <section id="app" class="cat" style="--c:#16a34a">
-  <h2><span class="tag">App与应用控制</span><i>16</i></h2>
+  <h2><span class="tag">App与应用控制</span><i>18</i></h2>
   <article class="card" data-search="app.launch(bundleId) 启动应用">
   <header class="card-head">
     <h4><code>app.launch(bundleId)</code> <span class="cname">启动应用</span></h4>
@@ -1244,6 +1350,37 @@ main();</code></pre>
   <div class="ret"><b>返回值</b> <span>string</span></div>
   <pre><code>function main(){
   logd("v" + getAppVersion() + " " + getPackageName());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="app.getAppName(bundleId) 应用显示名称">
+  <header class="card-head">
+    <h4><code>app.getAppName(bundleId)</code> <span class="cname">应用显示名称</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">通过已安装应用列表查询 bundleId 对应的应用显示名称，未安装返回 null。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">应用 bundle id</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string | null</span></div>
+  <pre><code>function main(){
+  const name = app.getAppName("com.apple.mobilesafari");
+  logd("名称: " + (name || "未安装"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="app.isRunning(bundleId) 应用是否在运行">
+  <header class="card-head">
+    <h4><code>app.isRunning(bundleId)</code> <span class="cname">应用是否在运行</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">判断应用是否处于前台或后台运行状态（state &gt;= 2 即视为运行中），可用于任务流程中的状态轮询。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">应用 bundle id</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  if (app.isRunning("com.apple.mobilesafari")) {
+    logd("Safari 正在运行");
+  }
 }
 main();</code></pre>
 </article>
@@ -3356,7 +3493,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 206 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 215 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

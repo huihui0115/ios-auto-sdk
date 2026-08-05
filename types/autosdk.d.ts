@@ -373,10 +373,29 @@ interface AutoAppAPI {
   currentApp(): string | null;
   appList(): Array<{ bundleId: string; name: string }>;
   isInstalled(bundleId: string): boolean;
+  getAppName(bundleId: string): string | null;
+  isRunning(bundleId: string): boolean;
   installedApps(): Array<{ bundleId: string; name: string }>;
   launchByPrefix(bundleIdPrefix: string): boolean;
   getAppVersion(): string;
   getPackageName(): string;
+}
+
+
+interface AutoScreenAPI {
+  getColor(x: number, y: number): AutoPixelColor;
+  getColorRGB(x: number, y: number): { r: number; g: number; b: number } | null;
+  getColorHex(x: number, y: number): string | null;
+  findImage(path: string, options?: AutoImageOptions): AutoMatch;
+  findColor(color: AutoColor, region?: AutoRect, options?: AutoColorSearchOptions): AutoMatch;
+  findColorEx(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, limit?: number, direction?: number): AutoPoint[] | null;
+  findNotColor(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, limit?: number, direction?: number): AutoPoint[] | null;
+  findMultiColor(color: AutoColor, offsets: AutoColorOffsetLike[], region?: AutoRect, options?: AutoColorSearchOptions): AutoMatch;
+  findColors(points: AutoColorPoint[], options?: { tolerance?: number }): boolean;
+  isColors(points: AutoColorPoint[], options?: { tolerance?: number }): boolean;
+  cmpColor(points: AutoColorPoint[], options?: { tolerance?: number }): boolean;
+  ocr(options?: AutoOCROptions): AutoOCRItem[];
+  screenshot(): string;
 }
 
 interface AutoAPI {
@@ -766,3 +785,5 @@ declare function endWith(text: string, suffix: string): boolean;
 declare function contains(text: string, sub: string): boolean;
 declare function padZero(text: string | number, length: number): string;
 declare function isInstalled(bundleId: string): boolean;
+declare const screen: AutoScreenAPI;
+declare const string: AutoStringsAPI;

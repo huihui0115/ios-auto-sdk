@@ -189,7 +189,17 @@ const API_COMPLETIONS = [
   ['app.isInstalled(bundleId)', 'Check whether an app is installed via the WDA app list.'],
   ['device.getTotalMemory() / getAvailableMemory() / getUsedMemory()', 'Memory aliases over getMemoryInfo().'],
   ['file.getLineCount(path)', 'Alias of file.lineCount.'],
-  ['aes128Encrypt(text, key) / aes128Decrypt(base64, key)', 'Global AES-128 aliases.']
+  ['aes128Encrypt(text, key) / aes128Decrypt(base64, key)', 'Global AES-128 aliases.'],
+  ['screen.getColor(x, y) / getColorRGB(x, y) / getColorHex(x, y)', 'EasyClick-compatible screen pixel color readers.'],
+  ['screen.findImage(path, options) / findColor(color, region, options)', 'EasyClick-compatible image/color search entries.'],
+  ['screen.findColorEx(colors, threshold, x, y, ex, ey, limit, direction)', 'EasyClick-compatible region multi-color search.'],
+  ['screen.findNotColor(colors, threshold, x, y, ex, ey, limit, direction)', 'EasyClick-compatible region non-color search.'],
+  ['screen.findMultiColor(color, offsets, region, options)', 'EasyClick-compatible multi-point color pattern search.'],
+  ['screen.findColors(points, options) / isColors(points, options) / cmpColor(points, options)', 'EasyClick-compatible multi-point color compare.'],
+  ['screen.ocr(options)', 'EasyClick-compatible OCR entry (on-device Vision).'],
+  ['screen.screenshot()', 'EasyClick-compatible screenshot entry (PNG base64).'],
+  ['app.getAppName(bundleId)', 'Resolve an app display name from the installed app list.'],
+  ['app.isRunning(bundleId)', 'Check whether an app is running (state code >= 2).']
 ];
 
 function outputChannel() {
@@ -743,7 +753,7 @@ function completionProvider() {
   return {
     provideCompletionItems(document, position) {
       const prefix = document.lineAt(position.line).text.slice(0, position.character);
-      const namespaceMatch = prefix.match(/\b(auto|file|storages|device|http|image|app)\.$/);
+      const namespaceMatch = prefix.match(/\b(auto|file|storages|device|http|image|app|media|strings|string|screen|webView|screenDraw|floatBall|plist|node|metrics|base64)\.$/);
       const namespace = namespaceMatch?.[1];
       return API_COMPLETIONS.filter(([signature]) => !namespace || signature.startsWith(`${namespace}.`)).map(([signature, documentation]) => {
         const label = signature.slice(0, signature.indexOf('('));

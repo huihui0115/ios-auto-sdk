@@ -33,7 +33,7 @@ function createSandbox() {
   const store = {};
   const calls = {
     native: [], file: [], storage: [], http: [], device: [], app: [],
-    touch: [], clickPoint: [], click: [], swipe: [], sleep: [], ocr: [], screenshot: [], findColorEx: [], findNotColor: [], media: [],
+    touch: [], clickPoint: [], click: [], swipe: [], sleep: [], ocr: [], screenshot: [], findColorEx: [], findNotColor: [], media: [], pixel: [],
     execAsync: [],
     execOp: [],
   };
@@ -147,7 +147,7 @@ function createSandbox() {
     invokeScreenshotRegion: (data) => { calls.screenshot.push(data); return 'region-png'; },
     invokeFindImage: () => ({ match: true, x: 11, y: 22, width: 5, height: 5 }),
     invokeFindColor: () => ({ match: true, x: 11, y: 22 }),
-    invokePixelColor: () => ({ red: 1, green: 2, blue: 3 }),
+    invokePixelColor: (data) => { calls.pixel.push(data); return { r: 1, g: 2, b: 3, a: 255, hex: '#010203' }; },
     invokeCompareColors: () => true,
     invokeFindMultiColor: () => ({ match: true, x: 11, y: 22 }),
     invokeOCR: (region) => { calls.ocr.push(region); return [{ text: 'hello', confidence: 0.9 }]; },
@@ -840,6 +840,40 @@ test('date formatting, sleepRandom, string helpers, isInstalled and memory alias
   assert.equal(sandbox.device.getAvailableMemory(), 2000000000);
   assert.equal(sandbox.device.getUsedMemory(), 300000000);
   assert.equal(typeof sandbox.file.getLineCount, 'function');
+});
+
+test('screen module: getColor/getColorRGB/getColorHex and EasyClick vision entries', () => {
+  const { sandbox, calls } = boot();
+  // direct pixel color
+  assert.deepEqual(sandbox.screen.getColor(10, 20), { r: 1, g: 2, b: 3, a: 255, hex: '#010203' });
+  assert.deepEqual(sandbox.screen.getColorRGB(10, 20), { r: 1, g: 2, b: 3 });
+  assert.equal(sandbox.screen.getColorHex(10, 20), '#010203');
+  assert.deepEqual(calls.pixel.at(-1), { x: 10, y: 20 });
+  // global string alias points at stringsApi
+  assert.equal(typeof sandbox.string.trim, 'function');
+  assert.equal(sandbox.string.trim('  hi  '), 'hi');
+  // vision forwarding: findImage / findColor / findMultiColor / compare aliases
+  assert.deepEqual(sandbox.screen.findImage('a.png', { threshold: 0.9 }), { match: true, x: 11, y: 22, width: 5, height: 5 });
+  assert.deepEqual(sandbox.screen.findColor('#ff0000', { x: 0, y: 0 }), { match: true, x: 11, y: 22 });
+  assert.deepEqual(sandbox.screen.findMultiColor('#000000', [{ dx: 1, dy: 1, color: '#fff' }]), { match: true, x: 11, y: 22 });
+  assert.equal(sandbox.screen.findColors([{ x: 1, y: 1, color: '#fff' }]), true);
+  assert.equal(sandbox.screen.isColors([{ x: 1, y: 1, color: '#fff' }]), true);
+  assert.equal(sandbox.screen.cmpColor([{ x: 1, y: 1, color: '#fff' }]), true);
+  assert.equal(typeof sandbox.screen.findColorEx, 'function');
+  assert.equal(typeof sandbox.screen.findNotColor, 'function');
+  // ocr + screenshot forwarding
+  assert.deepEqual(sandbox.screen.ocr({ mode: 'fast' }), [{ text: 'hello', confidence: 0.9 }]);
+  assert.equal(sandbox.screen.screenshot(), 'png-data');
+});
+
+test('app.getAppName and app.isRunning resolve from appList and state', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.app.getAppName('com.example.host'), 'Host');
+  assert.equal(sandbox.app.getAppName('com.apple.safari'), null);
+  assert.deepEqual(calls.app.filter((c) => c.operation === 'appList').at(-1), { operation: 'appList' });
+  // state mock returns 4 (foreground) -> isRunning true
+  assert.equal(sandbox.app.isRunning('com.example.host'), true);
+  assert.deepEqual(calls.app.filter((c) => c.operation === 'state').at(-1), { operation: 'state', bundleId: 'com.example.host' });
 });
 
 test('unknown auto.* methods fall back to invokeNative', () => {
