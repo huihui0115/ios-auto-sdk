@@ -7,7 +7,17 @@ All notable changes to AutoSDK are documented here. The format follows
 ## [Unreleased]
 
 ### Added
-### Added
+- **Round 16: 彻底移除 TrollStore 分发路径（对标 AScript / kuaijs 免巨魔）。**
+  构建工作流改为 `Build AutoSDK IPA`，IPA 工件更名 `AutoSDKTemplate-ipa`；
+  VS Code 插件命令 `AutoSDK: Build TrollStore IPA` 更名 `AutoSDK: Build IPA`
+  （插件升至 0.5.0）；全部文档与教程的安装方式改为 Apple ID 免费签名
+  （AltStore / Sideloadly / SideStore / Feather），
+  `WINDOWS_TROLLSTORE.md` 重写为 `WINDOWS_SIDELOAD.md`；
+  新增 [`docs/NO_TROLLSTORE.md`](docs/NO_TROLLSTORE.md) 落地页（免费签名 /
+  XCTest 激活 WDA / HID 三条路线）；修复 CI 暴露的 2 个真实编译错误
+  （`stopAllAudioPlayback` selector 未声明、`invokeMedia:` 相册删除分支
+  `NSError` 未声明）。跨 App 控件自动化走 XCTest 激活 WDA 路线（规划中）。
+
 - **Round 15: 对标 AScript（ascript.cn）+ 免巨魔路线。** 新增 `findColorCount`（颜色数量统计，对标
   AScript CountingColor）与 `image.toBase64(path)`（图片转 Base64，对标 image_to_base64），
   含 screen/image 模块入口与全局别名；新增

@@ -736,7 +736,7 @@ for (const requiredText of ['workflow_dispatch:', 'requestId:', 'xcodebuild test
 }
 check(workflow.includes("github.event_name == 'workflow_dispatch' && (inputs.requestId || github.run_id) || github.ref"),
       'Concurrent remote build requests must not cancel each other');
-check(workflow.includes('@vscode/vsce package') && workflow.includes('autosdk-vscode-0.4.3.vsix') &&
+check(workflow.includes('@vscode/vsce package') && workflow.includes('autosdk-vscode-0.5.0.vsix') &&
       workflow.includes('upload-pages-artifact@v3') && workflow.includes('deploy-pages@v4'),
       'CI must package the VS Code extension and deploy docs to GitHub Pages');
 const templateProject = read('Examples/TemplateApp/project.yml');
