@@ -135,6 +135,7 @@
 - (void)evaluateScript:(NSString *)source config:(NSDictionary *)config adapter:(id<AutoAutomationAdapter>)adapter completion:(AutoScriptCompletion)completion;
 - (void)finishWithResult:(NSDictionary * _Nullable)result error:(NSError * _Nullable)error completion:(AutoScriptCompletion)completion;
 - (void)cleanupOverlayUI;
+- (void)stopAllAudioPlayback;
 - (BOOL)shouldStop;
 - (void)requestStop;
 - (void)handleDebugRequest:(NSDictionary<NSString *, id> *)request response:(AutoDebugResponseHandler)response;
@@ -1418,6 +1419,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         BOOL deleteVideos = YES;
         if ([operation isEqualToString:@"deleteallphotos"]) deleteVideos = NO;
         else if ([operation isEqualToString:@"deleteallvideos"]) deletePhotos = NO;
+        NSError *error = nil;
         if (!AutoEnsurePhotoLibraryReadWriteAccess(self.engine, self.config ?: @{}, &error)) {
             return [self failure:error];
         }
