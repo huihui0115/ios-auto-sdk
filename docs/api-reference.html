@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>31</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>11</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>14</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>21</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>29</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>7</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>14</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>31</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>12</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>14</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>21</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>29</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>9</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>14</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -708,7 +708,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="vision" class="cat" style="--c:#ea580c">
-  <h2><span class="tag">图色与OCR</span><i>11</i></h2>
+  <h2><span class="tag">图色与OCR</span><i>12</i></h2>
   <article class="card" data-search="screenshot() 截屏">
   <header class="card-head">
     <h4><code>screenshot()</code> <span class="cname">截屏</span></h4>
@@ -787,6 +787,22 @@ main();</code></pre>
   <pre><code>function main(){
   const match = findColor("#ff3b30", {x: 0, y: 0, width: 390, height: 844});
   if (match.found) logd("颜色点: " + match.x + "," + match.y);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="findColorEx(colors, threshold?, x?, y?, ex?, ey?, limit?, direction?) 区域多点找色">
+  <header class="card-head">
+    <h4><code>findColorEx(colors, threshold?, x?, y?, ex?, ey?, limit?, direction?)</code> <span class="cname">区域多点找色</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在当前屏幕指定区域内查找所有匹配的颜色点，返回坐标数组（找不到返回 null）。colors 支持 EasyClick 风格字符串如 "0xCDD7E9-0x101010,0xFF0000"，也支持数组 ["#00FF00", [255,0,0], [255,0,0,16]]；threshold 为 0-1 相似度（默认 0.9），x/y/ex/ey 全为 0 表示全屏，limit 限制返回个数（默认 10），direction 1-8 控制扫描方向。</p>
+  <div class="ref"><b>对标</b> EasyClick image.findColorEx()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">colors</code><span class="ptype">string|array</span><span class="pdesc">颜色目标列表</span></div><div class="param"><code class="pname">threshold</code><span class="ptype">number</span><span class="pdesc">0-1 相似度，默认 0.9</span></div><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">区域起点 X</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">区域起点 Y</span></div><div class="param"><code class="pname">ex</code><span class="ptype">number</span><span class="pdesc">区域终点 X</span></div><div class="param"><code class="pname">ey</code><span class="ptype">number</span><span class="pdesc">区域终点 Y</span></div><div class="param"><code class="pname">limit</code><span class="ptype">number</span><span class="pdesc">最大返回点数，默认 10</span></div><div class="param"><code class="pname">direction</code><span class="ptype">number</span><span class="pdesc">扫描方向 1-8，默认 1</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoPoint[] | null</span></div>
+  <pre><code>function main(){
+  const points = findColorEx("0xCDD7E9-0x101010", 0.9, 0, 0, 0, 0, 10, 1);
+  logd(JSON.stringify(points));
+  if (points &amp;&amp; points.length &gt; 0) clickPoint(points[0].x, points[0].y);
 }
 main();</code></pre>
 </article>
@@ -2277,7 +2293,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="media" class="cat" style="--c:#db2777">
-  <h2><span class="tag">相册媒体</span><i>7</i></h2>
+  <h2><span class="tag">相册媒体</span><i>9</i></h2>
   <article class="card" data-search="saveImageToAlbum(path) / saveImageBase64ToAlbum(base64) / saveScreenshotToAlbum() / saveVideoToAlbum(path) 相册全局简写">
   <header class="card-head">
     <h4><code>saveImageToAlbum(path) / saveImageBase64ToAlbum(base64) / saveScreenshotToAlbum() / saveVideoToAlbum(path)</code> <span class="cname">相册全局简写</span></h4>
@@ -2307,6 +2323,40 @@ main();</code></pre>
   const p = image.pixel(100, 200);
   logd("颜色: " + p.hex);
   image.saveScreenshotToAlbum();
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="playMp3(path, volume?, queue?, stopWhenScriptEnd?) / stopMp3() 播放 MP3 音频">
+  <header class="card-head">
+    <h4><code>playMp3(path, volume?, queue?, stopWhenScriptEnd?) / stopMp3()</code> <span class="cname">播放 MP3 音频</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">用系统音频播放沙盒内 mp3 文件；volume 为 0-100 音量（默认 100），queue=true 时排队到当前曲目结束后播放，stopWhenScriptEnd=true 时脚本结束自动停止。</p>
+  <div class="ref"><b>对标</b> EasyClick utils.playMp3()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内音频文件路径</span></div><div class="param"><code class="pname">volume</code><span class="ptype">number</span><span class="pdesc">音量 0-100，默认 100</span></div><div class="param"><code class="pname">queue</code><span class="ptype">boolean</span><span class="pdesc">是否排队播放，默认 false</span></div><div class="param"><code class="pname">stopWhenScriptEnd</code><span class="ptype">boolean</span><span class="pdesc">脚本结束时停止，默认 false</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = playMp3("sounds/alert.mp3", 80, false, true);
+  logd("播放: " + ok);
+  auto.sleep(5000);
+  stopMp3();
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="media.requestPhotoAuthorization() / media.getPhotoAuthorizationStatus() 相册权限">
+  <header class="card-head">
+    <h4><code>media.requestPhotoAuthorization() / media.getPhotoAuthorizationStatus()</code> <span class="cname">相册权限</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">requestPhotoAuthorization 在首次调用时弹出系统授权（异步返回当前状态）；getPhotoAuthorizationStatus 只读取当前权限状态，不会弹窗。返回值为 notDetermined/restricted/denied/authorized/limited。</p>
+  <div class="ref"><b>对标</b> EasyClick utils.requestPhotoAuthorization()</div>
+  
+  <div class="ret"><b>返回值</b> <span>string 权限状态</span></div>
+  <pre><code>function main(){
+  logd("相册权限: " + getPhotoAuthorizationStatus());
+  const status = media.requestPhotoAuthorization();
+  logd("请求后: " + status);
+  if (status === "authorized" || status === "limited") saveImageToAlbum("images/a.png");
 }
 main();</code></pre>
 </article>
@@ -2612,7 +2662,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 160 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 163 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

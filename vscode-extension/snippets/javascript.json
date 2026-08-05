@@ -66,5 +66,50 @@
       "// media.saveScreenshot();"
     ],
     "description": "Save an image, video, or screenshot to the iOS photo library"
+  },
+  "AutoSDK region color search": {
+    "prefix": "autofindcolorex",
+    "body": [
+      "const points = findColorEx('${1:0xCDD7E9-0x101010}', ${2:0.9}, ${3:0}, ${4:0}, ${5:0}, ${6:0}, ${7:10}, ${8:1});",
+      "if (points && points.length > 0) clickPoint(points[0].x, points[0].y);"
+    ],
+    "description": "Find every matching color point in a region (EasyClick findColorEx)"
+  },
+  "AutoSDK region screenshot": {
+    "prefix": "autoshotregion",
+    "body": [
+      "const png = screenshotRegion(${1:0}, ${2:0}, ${3:390}, ${4:60});",
+      "if (png) file.writeBase64('captures/region.png', png);"
+    ],
+    "description": "Capture a rectangular region of the screen"
+  },
+  "AutoSDK audio playback": {
+    "prefix": "automp3",
+    "body": [
+      "const ok = playMp3('${1:sounds/alert.mp3}', ${2:80}, ${3:false}, ${4:true});",
+      "auto.sleep(${5:5000});",
+      "stopMp3();"
+    ],
+    "description": "Play or stop an MP3 with the system audio player"
+  },
+  "AutoSDK photo authorization": {
+    "prefix": "autophotoauth",
+    "body": [
+      "logd('status: ' + getPhotoAuthorizationStatus());",
+      "const status = media.requestPhotoAuthorization();",
+      "if (status === 'authorized' || status === 'limited') {",
+      "  media.saveScreenshot();",
+      "}"
+    ],
+    "description": "Check or request iOS photo library access"
+  },
+  "AutoSDK hashes": {
+    "prefix": "autohash",
+    "body": [
+      "const digest = md5('${1:text}');",
+      "const fileDigest = file.md5('${2:data/payload.json}');",
+      "logd(digest, fileDigest);"
+    ],
+    "description": "Compute MD5/SHA1 for strings or sandbox files"
   }
 }

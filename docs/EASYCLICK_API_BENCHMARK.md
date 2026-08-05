@@ -73,6 +73,7 @@ are not implemented.
 | --- | --- | --- |
 | captureFullScreen / captureScreenStream | 🟡 `screenshot()` / `screenshotRegion(x,y,w,h)` | 截屏/区域截屏 |
 | findColor / findMultiColor / cmpColor / cmpMultiColor | ✅ `findColor` / `findMultiColor` / `cmpColor` | 找色 |
+| findColorEx | ✅ `findColorEx(colors, threshold, x, y, ex, ey, limit, direction)` | 区域多点找色，返回坐标数组 |
 | findImage / findImage2 / matchTemplate | 🟡 `findImage`（CoreGraphics 相似度匹配） | 非 OpenCV |
 | findNotColor | ❌ | 反向找色 |
 | pixel / getPixelBitmap | ✅ `getPixelColor` | 取色 |
@@ -107,7 +108,9 @@ are not implemented.
 | randomCharNumber | ✅ `randomString(n)` / `randomCharNumber(n)` | 随机字符串 |
 | zip / unzip / unzipWithEncode / readFileInZip | ❌ | 压缩 |
 | dataMd5 / fileMd5 | ✅ `md5(text)` / `sha1(text)` / `file.md5(path)` / `file.md5File(path)` | 字符串与文件哈希 |
-| playMp3 / stopMp3 / deleteAllPhotos / deleteAllVideos / requestPhotoAuthorization | ❌ | 媒体管理 |
+| playMp3 / stopMp3 | ✅ `playMp3(path, volume, queue, stopWhenScriptEnd)` / `stopMp3()` | 系统音频播放 |
+| deleteAllPhotos / deleteAllVideos | ❌ | 破坏性清空相册，未实现 |
+| requestPhotoAuthorization | ✅ `media.requestPhotoAuthorization()` / `media.getPhotoAuthorizationStatus()` | 相册权限 |
 | getPCIps / getRatio | ❌ | 中控网络工具 |
 
 ## 结论

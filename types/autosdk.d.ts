@@ -1,4 +1,6 @@
 type AutoColor = string | [number, number, number] | { r: number; g: number; b: number };
+type AutoPoint = { x: number; y: number };
+type AutoColorExInput = string | Array<string | AutoColor | [number, number, number, number]>;
 
 interface AutoRect {
   x: number;
@@ -316,7 +318,11 @@ interface AutoMediaAPI {
   saveImageBase64(base64: string): boolean;
   saveVideo(path: string): boolean;
   saveScreenshot(): boolean;
+  requestPhotoAuthorization(): AutoPhotoAuthorizationStatus;
+  getPhotoAuthorizationStatus(): AutoPhotoAuthorizationStatus;
 }
+
+type AutoPhotoAuthorizationStatus = "notDetermined" | "restricted" | "denied" | "authorized" | "limited" | "unknown";
 
 type AutoGestureAction =
   | { type: "down"; x: number; y: number }
@@ -398,6 +404,8 @@ interface AutoAPI {
   randomString(length?: number, chars?: string): string;
   md5(text: string): string;
   sha1(text: string): string;
+  playMp3(path: string, volume?: number, queue?: boolean, stopWhenScriptEnd?: boolean): boolean;
+  stopMp3(): boolean;
   randomCharNumber(length?: number): string;
   drag(x1: number, y1: number, x2: number, y2: number, durationMs?: number): boolean;
   launchAppByPrefix(bundleIdPrefix: string): boolean;
@@ -411,6 +419,7 @@ interface AutoAPI {
   compareColors(points: AutoColorPoint[], options?: { tolerance?: number }): boolean;
   cmpColor(points: AutoColorPoint[], options?: { tolerance?: number }): boolean;
   findMultiColor(color: AutoColor, offsets: AutoColorOffsetLike[], region?: AutoRect, options?: AutoColorSearchOptions): AutoMatch;
+  findColorEx(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, limit?: number, direction?: number): AutoPoint[] | null;
   ocr(options?: AutoOCROptions): AutoOCRItem[];
   http: AutoHTTP;
   httpGet(url: string, options?: AutoHTTPOptions): AutoHTTPResponse;
@@ -438,6 +447,7 @@ declare const http: AutoHTTP;
 declare const image: {
   findImage: AutoAPI["findImage"];
   findColor: AutoAPI["findColor"];
+  findColorEx: AutoAPI["findColorEx"];
   findMultiColor: AutoAPI["findMultiColor"];
   cmpColor: AutoAPI["compareColors"];
   pixel: AutoAPI["getPixelColor"];
@@ -507,6 +517,11 @@ declare function randomInt(min: number, max?: number): number;
 declare function randomString(length?: number, chars?: string): string;
 declare function md5(text: string): string;
 declare function sha1(text: string): string;
+declare function playMp3(path: string, volume?: number, queue?: boolean, stopWhenScriptEnd?: boolean): boolean;
+declare function stopMp3(): boolean;
+declare function findColorEx(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, limit?: number, direction?: number): AutoPoint[] | null;
+declare function requestPhotoAuthorization(): AutoPhotoAuthorizationStatus;
+declare function getPhotoAuthorizationStatus(): AutoPhotoAuthorizationStatus;
 declare function randomCharNumber(length?: number): string;
 declare function screenshotRegion(x: number, y: number, width: number, height: number): string | null;
 declare function childCount(selector: AutoSelectorLike): number;

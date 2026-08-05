@@ -45,6 +45,15 @@ All notable changes to AutoSDK are documented here. The format follows
   randomCharNumber() add node-count and random-string helpers;
   device.getScreenWidthHeightText() returns "390x844". API reference grows to
   156 documented functions.
+- **EasyClick benchmark round 3: region multi-color, MP3 audio and photo authorization.** New
+  findColorEx(colors, threshold, x, y, ex, ey, limit, direction) searches the
+  current screen for every matching color point in a region and returns an
+  array of {x, y} (EasyClick-style color pairs, 0-1 similarity, 1-8 scan
+  orders); playMp3(path, volume, queue, stopWhenScriptEnd) and stopMp3() add
+  system audio playback with an engine-owned player queue that survives script
+  teardown when requested; media.getPhotoAuthorizationStatus() /
+  media.requestPhotoAuthorization() expose photo-library permission state.
+  API reference grows to 163 documented functions.
 - **EasyClick benchmark round 2: hashes and image dimensions.** New md5(text) /
   sha1(text) built-in string digests (CommonCrypto), file.md5/md5File/sha1/
   sha1File sandbox-file digests, and file.imageSize(path) /

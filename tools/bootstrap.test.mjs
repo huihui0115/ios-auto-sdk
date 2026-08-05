@@ -33,7 +33,7 @@ function createSandbox() {
   const store = {};
   const calls = {
     native: [], file: [], storage: [], http: [], device: [], app: [],
-    touch: [], clickPoint: [], click: [], swipe: [], sleep: [], ocr: [], screenshot: [],
+    touch: [], clickPoint: [], click: [], swipe: [], sleep: [], ocr: [], screenshot: [], findColorEx: [], media: [],
   };
   const logs = [];
   let virtualNow = 0;
@@ -150,11 +150,14 @@ function createSandbox() {
     invokeGetParent: () => ({ handle: 'h0' }),
     invokeScrollIntoView: () => true,
     invokeCapabilities: () => ({ click: true }),
-    invokeMedia: () => true,
+    invokeMedia: (data) => { calls.media.push(data); return true; },
+    invokeFindColorEx: (data) => { calls.findColorEx.push(data); return [{ x: 5, y: 6 }]; },
     invokeNative: (data) => {
       calls.native.push(data);
       if (data.name === 'md5') return 'md5-of-' + String(data.arguments[0]);
       if (data.name === 'sha1') return 'sha1-of-' + String(data.arguments[0]);
+      if (data.name === 'playMp3') return true;
+      if (data.name === 'stopMp3') return true;
       return true;
     },
   };
@@ -595,6 +598,32 @@ test('md5/sha1 hashes and file imageSize helpers', () => {
   assert.deepEqual(sandbox.image.getSize('img.png'), { width: 390, height: 844, pixelWidth: 1170, pixelHeight: 2532, scale: 3 });
 });
 
+test('findColorEx, playMp3/stopMp3 and photo authorization helpers', () => {
+  const { sandbox, calls } = boot();
+  const points = sandbox.auto.findColorEx('0xCDD7E9-0x101010,0xFF0000', 0.9, 10, 20, 100, 200, 5, 1);
+  assert.deepEqual(points, [{ x: 5, y: 6 }]);
+  assert.deepEqual(calls.findColorEx.at(-1), { colors: '0xCDD7E9-0x101010,0xFF0000', threshold: 0.9, x: 10, y: 20, ex: 100, ey: 200, limit: 5, direction: 1 });
+  assert.equal(typeof sandbox.findColorEx, 'function');
+  assert.equal(typeof sandbox.image.findColorEx, 'function');
+  sandbox.auto.findColorEx('#00FF00', undefined, 0, 0, 0, 0, undefined, undefined);
+  assert.deepEqual(calls.findColorEx.at(-1), { colors: '#00FF00', threshold: 0.9, x: 0, y: 0, ex: 0, ey: 0, limit: 10, direction: 1 });
+
+  assert.equal(sandbox.auto.playMp3('sounds/a.mp3', 80, false, true), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'playMp3', arguments: ['sounds/a.mp3', 80, false, true] });
+  assert.equal(sandbox.auto.playMp3('sounds/b.mp3'), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'playMp3', arguments: ['sounds/b.mp3', 100, false, false] });
+  assert.equal(sandbox.auto.stopMp3(), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'stopMp3', arguments: [] });
+  assert.equal(typeof sandbox.playMp3, 'function');
+  assert.equal(typeof sandbox.stopMp3, 'function');
+
+  assert.equal(sandbox.media.getPhotoAuthorizationStatus(), true);
+  assert.deepEqual(calls.media.at(-1), { operation: 'photoAuthorizationStatus' });
+  assert.equal(sandbox.media.requestPhotoAuthorization(), true);
+  assert.deepEqual(calls.media.at(-1), { operation: 'photoAuthorizationRequest' });
+  assert.equal(typeof sandbox.requestPhotoAuthorization, 'function');
+  assert.equal(typeof sandbox.getPhotoAuthorizationStatus, 'function');
+});
 test('unknown auto.* methods fall back to invokeNative', () => {
   const { sandbox, calls } = boot();
   sandbox.auto.someNativeThing('a', 2);

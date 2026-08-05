@@ -31,6 +31,7 @@
 - (id)invokePixelColor:(JSValue *)payload;
 - (id)invokeCompareColors:(JSValue *)payload;
 - (id)invokeFindMultiColor:(JSValue *)payload;
+- (id)invokeFindColorEx:(JSValue *)payload;
 - (id)invokeHTTP:(JSValue *)payload;
 - (id)invokeOCR:(JSValue *)region;
 - (id)invokeExists:(JSValue *)selector;
@@ -85,7 +86,7 @@
 + (instancetype)proxyWithTarget:(id)target;
 @end
 
-@interface AutoEngine ()
+@interface AutoEngine () <AVAudioPlayerDelegate>
 @property (nonatomic, readwrite, getter=isRunning) BOOL running;
 @property (atomic, copy) NSDictionary *config;
 @property (atomic, copy) NSArray<Class> *urlProtocolClasses;
@@ -102,6 +103,8 @@
 @property (nonatomic, strong) dispatch_queue_t scriptQueue;
 @property (nonatomic, strong) dispatch_queue_t debugAdapterQueue;
 @property (nonatomic, assign) BOOL stopRequested;
+@property (nonatomic, strong) NSMutableArray<AVAudioPlayer *> *audioPlayers;
+@property (nonatomic, assign) BOOL audioStopWhenScriptEnd;
 - (void)loadScript:(NSString *)value config:(NSDictionary *)config completion:(void (^)(NSString * _Nullable source, NSError * _Nullable error))completion;
 - (void)evaluateScript:(NSString *)source config:(NSDictionary *)config adapter:(id<AutoAutomationAdapter>)adapter completion:(AutoScriptCompletion)completion;
 - (void)finishWithResult:(NSDictionary * _Nullable)result error:(NSError * _Nullable)error completion:(AutoScriptCompletion)completion;
@@ -486,6 +489,221 @@ static BOOL AutoMediaImageURLIsValid(NSURL *url) {
     return valid;
 }
 
+typedef struct {
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+    CGFloat tolerance;
+} AutoEngineColorTarget;
+
+typedef struct {
+    uint8_t *bytes;
+    size_t width;
+    size_t height;
+    size_t bytesPerRow;
+    CGContextRef context;
+} AutoEnginePixelBuffer;
+
+static NSString *AutoPhotoAuthorizationStatusString(PHAuthorizationStatus status) {
+    switch (status) {
+        case PHAuthorizationStatusNotDetermined: return @"notDetermined";
+        case PHAuthorizationStatusRestricted: return @"restricted";
+        case PHAuthorizationStatusDenied: return @"denied";
+        case PHAuthorizationStatusAuthorized: return @"authorized";
+        case PHAuthorizationStatusLimited: return @"limited";
+        default: return @"unknown";
+    }
+}
+
+static BOOL AutoEngineParseColor(id color, uint8_t *red, uint8_t *green, uint8_t *blue) {
+    if (!color) return NO;
+    if ([color isKindOfClass:NSArray.class]) {
+        NSArray *values = color;
+        if (values.count < 3) return NO;
+        double redValue = AutoFiniteDouble(values[0], NAN);
+        double greenValue = AutoFiniteDouble(values[1], NAN);
+        double blueValue = AutoFiniteDouble(values[2], NAN);
+        if (!isfinite(redValue) || !isfinite(greenValue) || !isfinite(blueValue)) return NO;
+        *red = (uint8_t)MIN(255, MAX(0, redValue));
+        *green = (uint8_t)MIN(255, MAX(0, greenValue));
+        *blue = (uint8_t)MIN(255, MAX(0, blueValue));
+        return YES;
+    }
+    if ([color isKindOfClass:NSDictionary.class]) {
+        id redValue = color[@"r"] ?: color[@"red"];
+        id greenValue = color[@"g"] ?: color[@"green"];
+        id blueValue = color[@"b"] ?: color[@"blue"];
+        double redNumber = AutoFiniteDouble(redValue, NAN);
+        double greenNumber = AutoFiniteDouble(greenValue, NAN);
+        double blueNumber = AutoFiniteDouble(blueValue, NAN);
+        if (!isfinite(redNumber) || !isfinite(greenNumber) || !isfinite(blueNumber)) return NO;
+        *red = (uint8_t)MIN(255, MAX(0, redNumber));
+        *green = (uint8_t)MIN(255, MAX(0, greenNumber));
+        *blue = (uint8_t)MIN(255, MAX(0, blueNumber));
+        return YES;
+    }
+    if (![color isKindOfClass:NSString.class]) return NO;
+    NSString *value = [(NSString *)color stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    if ([value hasPrefix:@"#"]) value = [value substringFromIndex:1];
+    if ([value hasPrefix:@"0x"] || [value hasPrefix:@"0X"]) value = [value substringFromIndex:2];
+    if (value.length != 6 && value.length != 8) return NO;
+    unsigned long long number = 0;
+    NSScanner *scanner = [NSScanner scannerWithString:value];
+    if (![scanner scanHexLongLong:&number] || !scanner.isAtEnd) return NO;
+    *red = (uint8_t)((number >> 16) & 0xff);
+    *green = (uint8_t)((number >> 8) & 0xff);
+    *blue = (uint8_t)(number & 0xff);
+    return YES;
+}
+
+// Parses an EasyClick-style color list: "RRGGBB-TOL,RRGGBB-TOL" or an array of
+// colors (each optionally "RRGGBB-TOL" or [r,g,b,tolerance]). A per-pair TOL is
+// a per-channel hex tolerance; the global similarity (0-1) applies otherwise.
+static NSArray *AutoEngineParseColorTargets(id colors, CGFloat similarity) {
+    NSMutableArray *targets = [NSMutableArray array];
+    NSArray *entries = nil;
+    if ([colors isKindOfClass:NSString.class]) {
+        entries = [(NSString *)colors componentsSeparatedByString:@","];
+    } else if ([colors isKindOfClass:NSArray.class]) {
+        entries = colors;
+    }
+    if (entries.count == 0 || entries.count > 32) return @[];
+    CGFloat defaultTolerance = MIN(255.0, MAX(0.0, (1.0 - similarity) * 255.0));
+    for (id entry in entries) {
+        NSString *colorText = nil;
+        NSNumber *toleranceNumber = nil;
+        if ([entry isKindOfClass:NSString.class]) {
+            NSArray<NSString *> *parts = [(NSString *)entry componentsSeparatedByString:@"-"];
+            colorText = parts.firstObject;
+            if (parts.count > 1 && parts[1].length > 0) {
+                NSString *toleranceText = parts[1];
+                if ([toleranceText hasPrefix:@"0x"] || [toleranceText hasPrefix:@"0X"]) {
+                    toleranceText = [toleranceText substringFromIndex:2];
+                }
+                unsigned long long parsed = 0;
+                NSScanner *toleranceScanner = [NSScanner scannerWithString:toleranceText];
+                if ([toleranceScanner scanHexLongLong:&parsed] && toleranceScanner.isAtEnd) {
+                    toleranceNumber = @(MIN(255.0, MAX(0.0, (double)((parsed >> 16) & 0xff))));
+                }
+            }
+        } else if ([entry isKindOfClass:NSArray.class] && [(NSArray *)entry count] >= 4) {
+            AutoEngineColorTarget target = {0};
+            if (!AutoEngineParseColor(entry, &target.red, &target.green, &target.blue)) continue;
+            target.tolerance = AutoFiniteNumber(((NSArray *)entry)[3])
+                ? MIN(255.0, MAX(0.0, AutoFiniteDouble(((NSArray *)entry)[3], defaultTolerance)))
+                : defaultTolerance;
+            [targets addObject:[NSValue valueWithBytes:&target objCType:@encode(AutoEngineColorTarget)]];
+            continue;
+        }
+        AutoEngineColorTarget target = {0};
+        if (!AutoEngineParseColor(colorText, &target.red, &target.green, &target.blue)) continue;
+        target.tolerance = toleranceNumber ? toleranceNumber.doubleValue : defaultTolerance;
+        [targets addObject:[NSValue valueWithBytes:&target objCType:@encode(AutoEngineColorTarget)]];
+    }
+    return targets;
+}
+
+static BOOL AutoEnginePixelMatchesTargets(const uint8_t *pixel, NSArray *targets) {
+    for (NSValue *targetValue in targets) {
+        AutoEngineColorTarget target;
+        [targetValue getValue:&target];
+        if (fabs((double)pixel[0] - target.red) <= target.tolerance &&
+            fabs((double)pixel[1] - target.green) <= target.tolerance &&
+            fabs((double)pixel[2] - target.blue) <= target.tolerance) return YES;
+    }
+    return NO;
+}
+
+static AutoEnginePixelBuffer AutoEnginePixelBufferMake(CGImageRef image) {
+    AutoEnginePixelBuffer result = {0};
+    if (!image) return result;
+    size_t width = CGImageGetWidth(image), height = CGImageGetHeight(image);
+    if (width == 0 || height == 0 || width > SIZE_MAX / 4 || height > SIZE_MAX / (width * 4)) return result;
+    size_t bytesPerRow = width * 4;
+    size_t byteCount = height * bytesPerRow;
+    if (byteCount > 64 * 1024 * 1024) return result;
+    uint8_t *bytes = calloc(height, bytesPerRow);
+    if (!bytes) return result;
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    if (!colorSpace) {
+        free(bytes);
+        return result;
+    }
+    CGContextRef context = CGBitmapContextCreate(bytes, width, height, 8, bytesPerRow, colorSpace,
+                                                 kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(colorSpace);
+    if (!context) {
+        free(bytes);
+        return result;
+    }
+    CGContextTranslateCTM(context, 0, height);
+    CGContextScaleCTM(context, 1, -1);
+    CGContextDrawImage(context, CGRectMake(0, 0, width, height), image);
+    result.bytes = bytes;
+    result.width = width;
+    result.height = height;
+    result.bytesPerRow = bytesPerRow;
+    result.context = context;
+    return result;
+}
+
+static void AutoEnginePixelBufferDestroy(AutoEnginePixelBuffer *buffer) {
+    if (buffer->context) CGContextRelease(buffer->context);
+    free(buffer->bytes);
+    *buffer = (AutoEnginePixelBuffer){0};
+}
+
+static id AutoEngineHandleAudio(AutoEngine *engine, NSString *name, NSArray *arguments, NSDictionary *config) {
+    if (!engine) return AutoMakeError(AutoSDKErrorAutomationFailed, @"Audio engine is unavailable.", nil);
+    if ([name isEqualToString:@"stopMp3"]) {
+        [engine stopAllAudioPlayback];
+        return @YES;
+    }
+    if (!AutoPermission(config, @"allowAudio", YES)) {
+        return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Audio playback is disabled by configuration.", nil);
+    }
+    NSString *path = [arguments.firstObject isKindOfClass:NSString.class] ? arguments.firstObject : nil;
+    if (path.length == 0) {
+        return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"playMp3 requires a media file path.", nil);
+    }
+    NSError *error = nil;
+    NSURL *sourceURL = AutoMediaSourceURL(path, config ?: @{}, &error);
+    if (!sourceURL) return error ?: AutoMakeError(AutoSDKErrorFileOperationFailed, @"Unable to resolve the audio file.", nil);
+    double volume = AutoFiniteDouble([arguments count] > 1 ? arguments[1] : nil, 100);
+    volume = MIN(100.0, MAX(0.0, volume)) / 100.0;
+    BOOL queue = AutoBoolean([arguments count] > 2 ? arguments[2] : nil, NO);
+    BOOL stopWhenScriptEnd = AutoBoolean([arguments count] > 3 ? arguments[3] : nil, NO);
+    [AVAudioSession.sharedInstance setCategory:AVAudioSessionCategoryPlayback error:nil];
+    [AVAudioSession.sharedInstance setActive:YES error:nil];
+    NSError *playerError = nil;
+    AVAudioPlayer *player = [[AVAudioPlayer alloc] initWithContentsOfURL:sourceURL error:&playerError];
+    if (!player) {
+        return AutoMakeError(AutoSDKErrorAutomationFailed,
+                             playerError ? [NSString stringWithFormat:@"Unable to open audio file: %@", playerError.localizedDescription]
+                                         : @"Unable to open audio file.", nil);
+    }
+    player.volume = (float)volume;
+    player.delegate = engine;
+    if (![player prepareToPlay]) {
+        return AutoMakeError(AutoSDKErrorAutomationFailed, @"Unable to prepare the audio player.", nil);
+    }
+    BOOL started = NO;
+    @synchronized (engine) {
+        if (!engine.audioPlayers) engine.audioPlayers = [NSMutableArray array];
+        engine.audioStopWhenScriptEnd = stopWhenScriptEnd;
+        if (queue && engine.audioPlayers.count > 0) {
+            [engine.audioPlayers addObject:player];
+            return @YES;
+        }
+        for (AVAudioPlayer *existing in engine.audioPlayers) {
+            if (existing.isPlaying) [existing stop];
+        }
+        [engine.audioPlayers removeAllObjects];
+        [engine.audioPlayers addObject:player];
+        started = [player play];
+    }
+    return @(started);
+}
 static BOOL AutoEnsurePhotoLibraryWriteAccess(AutoEngine *engine,
                                               NSDictionary *config,
                                               NSError **error) {
@@ -938,6 +1156,17 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     NSString *operation = [data[@"operation"] isKindOfClass:NSString.class]
         ? [data[@"operation"] lowercaseString]
         : @"";
+    if ([operation isEqualToString:@"photoauthorizationstatus"] || [operation isEqualToString:@"photoauthorizationrequest"]) {
+        PHAuthorizationStatus status = [PHPhotoLibrary authorizationStatusForAccessLevel:PHAccessLevelAddOnly];
+        if ([operation isEqualToString:@"photoauthorizationrequest"] && status == PHAuthorizationStatusNotDetermined) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [PHPhotoLibrary requestAuthorizationForAccessLevel:PHAccessLevelAddOnly handler:^(PHAuthorizationStatus newStatus) {
+                    (void)newStatus;
+                }];
+            });
+        }
+        return AutoPhotoAuthorizationStatusString(status);
+    }
     NSURL *sourceURL = nil;
     UIImage *sourceImage = nil;
     BOOL isVideo = NO;
@@ -1095,6 +1324,125 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     return error ? [self failure:error] : (result ?: [NSNull null]);
 }
 
+- (id)invokeFindColorEx:(JSValue *)payload {
+    if (![self ensureScriptRunning]) return @NO;
+    NSDictionary *data = AutoPayload(payload);
+    double threshold = AutoFiniteDouble(data[@"threshold"], 0.9);
+    threshold = MIN(1.0, MAX(0.0, threshold));
+    double x = AutoFiniteDouble(data[@"x"], 0);
+    double y = AutoFiniteDouble(data[@"y"], 0);
+    double ex = AutoFiniteDouble(data[@"ex"], 0);
+    double ey = AutoFiniteDouble(data[@"ey"], 0);
+    double limit = AutoFiniteDouble(data[@"limit"], 10);
+    double direction = AutoFiniteDouble(data[@"direction"], 1);
+    if (!isfinite(x) || !isfinite(y) || !isfinite(ex) || !isfinite(ey) ||
+        !isfinite(limit) || !isfinite(direction)) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                           @"findColorEx requires finite coordinates, limit and direction.", nil)];
+    }
+    NSArray *targets = AutoEngineParseColorTargets(data[@"colors"], (CGFloat)threshold);
+    if (targets.count == 0) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                           @"findColorEx requires at least one valid color target.", nil)];
+    }
+    if (limit < 1) limit = 1;
+    if (limit > 1000) limit = 1000;
+    NSUInteger maximumMatches = (NSUInteger)limit;
+    NSUInteger order = (NSUInteger)direction;
+    if (order < 1 || order > 8) order = 1;
+
+    NSError *error = nil;
+    NSData *png = [self.adapter screenshotWithError:&error];
+    if (error) return [self failure:error];
+    if (png.length == 0) return [NSNull null];
+    UIImage *image = [UIImage imageWithData:png];
+    CGImageRef screenCGImage = image.CGImage;
+    if (!screenCGImage) {
+        return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed,
+                                           @"Unable to decode the screenshot for findColorEx.", nil)];
+    }
+    CGFloat scale = image.scale > 0 ? image.scale : 1.0;
+    size_t imageWidth = CGImageGetWidth(screenCGImage);
+    size_t imageHeight = CGImageGetHeight(screenCGImage);
+
+    // Region in logical points; all-zero coordinates mean the full screen.
+    BOOL regionProvided = x != 0 || y != 0 || ex != 0 || ey != 0;
+    double minX = 0, minY = 0, maxX = imageWidth / scale, maxY = imageHeight / scale;
+    if (regionProvided) {
+        minX = MIN(x, ex);
+        maxX = MAX(x, ex);
+        minY = MIN(y, ey);
+        maxY = MAX(y, ey);
+    }
+    if (maxX - minX <= 0 || maxY - minY <= 0) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                           @"findColorEx region must have positive width and height.", nil)];
+    }
+    size_t pixelMinX = (size_t)MIN(imageWidth, (size_t)MAX(0, floor(minX * scale)));
+    size_t pixelMinY = (size_t)MIN(imageHeight, (size_t)MAX(0, floor(minY * scale)));
+    size_t pixelMaxX = (size_t)MIN(imageWidth, (size_t)MAX(0, ceil(maxX * scale)));
+    size_t pixelMaxY = (size_t)MIN(imageHeight, (size_t)MAX(0, ceil(maxY * scale)));
+    if (pixelMaxX <= pixelMinX || pixelMaxY <= pixelMinY) return [NSNull null];
+
+    AutoEnginePixelBuffer buffer = AutoEnginePixelBufferMake(screenCGImage);
+    if (!buffer.bytes) {
+        return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed,
+                                           @"Unable to allocate a pixel buffer for findColorEx.", nil)];
+    }
+    size_t step = 1;
+    double regionWidth = (double)(pixelMaxX - pixelMinX);
+    double regionHeight = (double)(pixelMaxY - pixelMinY);
+    const double scanBudget = 2 * 1024 * 1024;
+    if (regionWidth * regionHeight > scanBudget) {
+        step = (size_t)ceil(sqrt((regionWidth * regionHeight) / scanBudget));
+        if (step < 1) step = 1;
+    }
+    NSInteger rowCount = (NSInteger)(pixelMaxY - pixelMinY);
+    NSInteger columnCount = (NSInteger)(pixelMaxX - pixelMinX);
+    BOOL columnsLeftToRight = (order == 1 || order == 3 || order == 5 || order == 7);
+    BOOL rowsTopToBottom = (order == 1 || order == 2 || order == 5 || order == 6);
+    BOOL columnMajor = order <= 4;
+    NSInteger iStep = (NSInteger)step;
+    NSMutableArray *matches = [NSMutableArray array];
+    BOOL cancelled = NO;
+    NSUInteger scanned = 0;
+    if (columnMajor) {
+        for (NSInteger i = 0; i < columnCount && matches.count < maximumMatches && !cancelled; i += iStep) {
+            NSInteger columnIndex = columnsLeftToRight ? i : (columnCount - 1 - i);
+            for (NSInteger j = 0; j < rowCount && matches.count < maximumMatches; j += iStep) {
+                NSInteger rowIndex = rowsTopToBottom ? j : (rowCount - 1 - j);
+                const uint8_t *pixel = buffer.bytes + (NSUInteger)(pixelMinY + rowIndex) * buffer.bytesPerRow
+                                     + (NSUInteger)(pixelMinX + columnIndex) * 4;
+                if (AutoEnginePixelMatchesTargets(pixel, targets)) {
+                    [matches addObject:@{ @"x": @((pixelMinX + columnIndex) / scale),
+                                          @"y": @((pixelMinY + rowIndex) / scale) }];
+                }
+                scanned += 1;
+                if ((scanned & 0x3FFF) == 0 && [self.engine shouldStop]) { cancelled = YES; break; }
+            }
+        }
+    } else {
+        for (NSInteger i = 0; i < rowCount && matches.count < maximumMatches && !cancelled; i += iStep) {
+            NSInteger rowIndex = rowsTopToBottom ? i : (rowCount - 1 - i);
+            for (NSInteger j = 0; j < columnCount && matches.count < maximumMatches; j += iStep) {
+                NSInteger columnIndex = columnsLeftToRight ? j : (columnCount - 1 - j);
+                const uint8_t *pixel = buffer.bytes + (NSUInteger)(pixelMinY + rowIndex) * buffer.bytesPerRow
+                                     + (NSUInteger)(pixelMinX + columnIndex) * 4;
+                if (AutoEnginePixelMatchesTargets(pixel, targets)) {
+                    [matches addObject:@{ @"x": @((pixelMinX + columnIndex) / scale),
+                                          @"y": @((pixelMinY + rowIndex) / scale) }];
+                }
+                scanned += 1;
+                if ((scanned & 0x3FFF) == 0 && [self.engine shouldStop]) { cancelled = YES; break; }
+            }
+        }
+    }
+    AutoEnginePixelBufferDestroy(&buffer);
+    if (cancelled) {
+        return [self failure:AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil)];
+    }
+    return matches.count > 0 ? matches : [NSNull null];
+}
 - (id)invokeHTTP:(JSValue *)payload {
     if (![self ensureScriptRunning]) return @NO;
     @autoreleasepool {
@@ -1657,6 +2005,12 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             if (!inputData) return @"";
             return [name isEqualToString:@"md5"] ? AutoScriptMD5Hex(inputData) : AutoScriptSHA1Hex(inputData);
         }
+        if ([name isEqualToString:@"playMp3"] || [name isEqualToString:@"stopMp3"]) {
+            id audioResult = AutoEngineHandleAudio(self.engine, name,
+                                                   [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[],
+                                                   self.config ?: @{});
+            return [audioResult isKindOfClass:NSError.class] ? [self failure:audioResult] : audioResult;
+        }
         if ([name isEqualToString:@"toast"]) {
             id message = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? [nativePayload[@"arguments"] firstObject] : nil;
             NSString *text = [message isKindOfClass:NSString.class] ? message : [message description];
@@ -2001,7 +2355,10 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                                       @"fileWrite": @(fileWriteEnabled),
                                       @"storage": @(AutoPermission(config, @"allowStorage", YES)),
                                       @"systemControl": @(AutoPermission(config, @"allowSystemControl", YES)),
-                                      @"mediaLibraryWrite": @(AutoPermission(config, @"allowMediaLibrary", YES)) } mutableCopy];
+                                      @"mediaLibraryWrite": @(AutoPermission(config, @"allowMediaLibrary", YES)),
+                                      @"findColorEx": @YES,
+                                      @"audioPlayback": @(AutoPermission(config, @"allowAudio", YES)),
+                                      @"photoAuthorization": @(AutoPermission(config, @"allowMediaLibrary", YES)) } mutableCopy];
     if ([adapter respondsToSelector:@selector(capabilities)]) result[@"automation"] = [adapter capabilities] ?: @{};
     return result;
 }
@@ -2662,6 +3019,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                                                          8 * 1024 * 1024, 32 * 1024 * 1024);
     bridge.engine = self;
     bridge.config = config ?: @{};
+    @synchronized (self) { self.audioStopWhenScriptEnd = NO; }
     NSDictionary *adapterCapabilities = [scriptAdapter respondsToSelector:@selector(capabilities)]
         ? [scriptAdapter capabilities]
         : nil;
@@ -2742,8 +3100,42 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         self.running = NO;
         self.stopRequested = NO;
         self.activeAdapter = nil;
+        if (self.audioStopWhenScriptEnd) {
+            self.audioStopWhenScriptEnd = NO;
+            [self stopAllAudioPlayback];
+        }
     }
     dispatch_async(dispatch_get_main_queue(), ^{ if (completion) completion(result, error); });
+}
+
+- (void)stopAllAudioPlayback {
+    NSArray *players = nil;
+    @synchronized (self) {
+        players = [self.audioPlayers copy];
+        [self.audioPlayers removeAllObjects];
+    }
+    for (AVAudioPlayer *player in players) {
+        if (player.isPlaying) [player stop];
+    }
+}
+
+- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag {
+    (void)flag;
+    @synchronized (self) {
+        if (self.audioPlayers.count == 0) return;
+        AVAudioPlayer *current = self.audioPlayers.firstObject;
+        if (current == player) {
+            [self.audioPlayers removeObjectAtIndex:0];
+        } else {
+            [self.audioPlayers removeObject:player];
+        }
+        AVAudioPlayer *next = self.audioPlayers.firstObject;
+        if (next && !next.isPlaying) [next play];
+    }
+}
+
+- (void)dealloc {
+    [self stopAllAudioPlayback];
 }
 
 - (NSDictionary<NSString *,id> *)getDeviceInfo {

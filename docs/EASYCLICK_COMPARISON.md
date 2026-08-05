@@ -72,7 +72,7 @@ The following surfaces must not be described as production-complete yet:
 
 ## 函数级覆盖清单（2026-08-05）
 
-交互式速查 `docs/api-reference.html` 收录 102 个可运行示例，分 12 个分类，
+交互式速查 `docs/api-reference.html` 收录 163 个可运行示例，分 12 个分类，
 每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
 
 | 分类 | 函数数 | 亮点 |
@@ -87,7 +87,7 @@ The following surfaces must not be described as production-complete yet:
 | 文件 | 26 | 沙盒 CRUD、行操作、复制/移动/重命名、stat/getSize/时间戳/类型判断 |
 | 存储 | 5 | 命名 typed store |
 | 网络HTTP | 6 | get/post/postJSON/getJSON/download/通用请求 |
-| 相册媒体 | 5 | saveImage/saveImageBase64/saveVideo/saveScreenshot |
+| 相册媒体 | 8 | saveImage/saveImageBase64/saveVideo/saveScreenshot/playMp3/stopMp3/相册权限 |
 | 定时器与工具 | 7 | 定时器、uuid、base64、time/random |
 
 本次新增：`setScreenMetrics`/`getScreenMetrics`/`metrics.point`（EasyClick 分辨率适配）、

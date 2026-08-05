@@ -84,4 +84,30 @@ if (caps.appList === true) {
   report.appList = "disabled";
 }
 
+// 8. Region color search, audio and photo authorization (guarded by capabilities)
+if (caps.findColorEx === true) {
+  try {
+    const points = findColorEx("0xCDD7E9-0x101010", 0.9, 0, 0, 0, 0, 10, 1);
+    report.colorExPoints = points ? points.length : 0;
+  } catch (e) {
+    report.colorExError = String(e);
+  }
+} else {
+  report.findColorEx = "disabled";
+}
+if (caps.audioPlayback === true) {
+  try {
+    report.playMp3 = playMp3("sounds/alert.mp3", 80, false, true);
+    auto.sleep(300);
+    report.stopMp3 = stopMp3();
+  } catch (e) {
+    report.audioError = String(e);
+  }
+} else {
+  report.audio = "disabled";
+}
+report.photoStatus = getPhotoAuthorizationStatus();
+const photoStatus = media.requestPhotoAuthorization();
+report.photoRequested = photoStatus;
+
 report;

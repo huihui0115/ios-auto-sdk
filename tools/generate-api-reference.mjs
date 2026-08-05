@@ -115,7 +115,12 @@ const REFS = {
   'md5(text) / sha1(text)': 'EasyClick utils.dataMd5()',
   'file.md5(path) / file.md5File(path)': 'EasyClick utils.fileMd5()',
   'file.imageSize(path)': 'EasyClick image.getWidth()/getHeight()',
-  'image.getSize(path)': 'EasyClick image.getWidth()/getHeight()',  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
+  'image.getSize(path)': 'EasyClick image.getWidth()/getHeight()',
+  'findColorEx(colors, threshold?, x?, y?, ex?, ey?, limit?, direction?)': 'EasyClick image.findColorEx()',
+  'playMp3(path, volume?, queue?, stopWhenScriptEnd?)': 'EasyClick utils.playMp3()',
+  'stopMp3()': 'EasyClick utils.stopMp3()',
+  'media.requestPhotoAuthorization()': 'EasyClick utils.requestPhotoAuthorization()',
+  'media.getPhotoAuthorizationStatus()': 'EasyClick utils.requestPhotoAuthorization()',  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
   'uuid()': 'EasyClick uuid()',
   'base64.encode(str)': 'EasyClick base64.encode()/decode()'
 };
@@ -334,7 +339,20 @@ APIS.push({ cat:'timer', sig:'randomCharNumber(length?)', title:'随机字母数
   logd("验证码: " + code);
 }
 main();` });
-APIS.push({ cat:'timer', sig:'md5(text) / sha1(text)', title:'哈希', desc:'对字符串计算 MD5 或 SHA1 十六进制摘要，可用于请求签名、文件去重。', params:[['text','string','任意字符串']], returns:'string', example:`function main(){
+APIS.push({ cat:'media', sig:'playMp3(path, volume?, queue?, stopWhenScriptEnd?) / stopMp3()', title:'播放 MP3 音频', desc:'用系统音频播放沙盒内 mp3 文件；volume 为 0-100 音量（默认 100），queue=true 时排队到当前曲目结束后播放，stopWhenScriptEnd=true 时脚本结束自动停止。', params:[['path','string','沙盒内音频文件路径'],['volume','number','音量 0-100，默认 100'],['queue','boolean','是否排队播放，默认 false'],['stopWhenScriptEnd','boolean','脚本结束时停止，默认 false']], returns:'boolean', example:`function main(){
+  const ok = playMp3("sounds/alert.mp3", 80, false, true);
+  logd("播放: " + ok);
+  auto.sleep(5000);
+  stopMp3();
+}
+main();` });
+APIS.push({ cat:'media', sig:'media.requestPhotoAuthorization() / media.getPhotoAuthorizationStatus()', title:'相册权限', desc:'requestPhotoAuthorization 在首次调用时弹出系统授权（异步返回当前状态）；getPhotoAuthorizationStatus 只读取当前权限状态，不会弹窗。返回值为 notDetermined/restricted/denied/authorized/limited。', params:[], returns:'string 权限状态', example:`function main(){
+  logd("相册权限: " + getPhotoAuthorizationStatus());
+  const status = media.requestPhotoAuthorization();
+  logd("请求后: " + status);
+  if (status === "authorized" || status === "limited") saveImageToAlbum("images/a.png");
+}
+main();` });APIS.push({ cat:'timer', sig:'md5(text) / sha1(text)', title:'哈希', desc:'对字符串计算 MD5 或 SHA1 十六进制摘要，可用于请求签名、文件去重。', params:[['text','string','任意字符串']], returns:'string', example:`function main(){
   logd("md5: " + md5("hello"));
   logd("sha1: " + sha1("hello"));
 }
@@ -705,7 +723,12 @@ APIS.push({ cat:'vision', sig:'findColor(color, region?, options?)', title:'找�
   if (match.found) logd("颜色点: " + match.x + "," + match.y);
 }
 main();` });
-APIS.push({ cat:'vision', sig:'findMultiColor(color, offsets, region?, options?)', title:'多点找色', desc:'按基准色 + 相对偏移点组合查找，比单点更稳。', params:[['color','string','基准颜色'],['offsets','array','偏移点数组 [{dx,dy,color}]'],['region','object','可选'],['options','object','可选']], returns:'AutoMatch', example:`function main(){
+APIS.push({ cat:'vision', sig:'findColorEx(colors, threshold?, x?, y?, ex?, ey?, limit?, direction?)', title:'区域多点找色', desc:'在当前屏幕指定区域内查找所有匹配的颜色点，返回坐标数组（找不到返回 null）。colors 支持 EasyClick 风格字符串如 "0xCDD7E9-0x101010,0xFF0000"，也支持数组 ["#00FF00", [255,0,0], [255,0,0,16]]；threshold 为 0-1 相似度（默认 0.9），x/y/ex/ey 全为 0 表示全屏，limit 限制返回个数（默认 10），direction 1-8 控制扫描方向。', params:[['colors','string|array','颜色目标列表'],['threshold','number','0-1 相似度，默认 0.9'],['x','number','区域起点 X'],['y','number','区域起点 Y'],['ex','number','区域终点 X'],['ey','number','区域终点 Y'],['limit','number','最大返回点数，默认 10'],['direction','number','扫描方向 1-8，默认 1']], returns:'AutoPoint[] | null', example:`function main(){
+  const points = findColorEx("0xCDD7E9-0x101010", 0.9, 0, 0, 0, 0, 10, 1);
+  logd(JSON.stringify(points));
+  if (points && points.length > 0) clickPoint(points[0].x, points[0].y);
+}
+main();` });APIS.push({ cat:'vision', sig:'findMultiColor(color, offsets, region?, options?)', title:'多点找色', desc:'按基准色 + 相对偏移点组合查找，比单点更稳。', params:[['color','string','基准颜色'],['offsets','array','偏移点数组 [{dx,dy,color}]'],['region','object','可选'],['options','object','可选']], returns:'AutoMatch', example:`function main(){
   const match = findMultiColor("#3b3b3b", [
     {dx: 20, dy: 0, color: "#ffffff"},
     {dx: 0, dy: 20, color: "#000000"}
