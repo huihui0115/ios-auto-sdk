@@ -805,11 +805,16 @@ test('toPinYin, stripUtf8Bom, fromUnicode, screenDraw, floatBall and node keep h
 
 test('date formatting, sleepRandom, string helpers, isInstalled and memory aliases', () => {
   const { sandbox, calls } = boot();
-  // dateFormat
-  assert.equal(sandbox.formatDate(1700000000000, 'yyyy'), '2023');
-  assert.equal(sandbox.dateFormat(1700000000000, 'MM/dd'), '11/15');
-  assert.equal(sandbox.formatDate(0, 'HH:mm:ss'), '08:00:00');
-  assert.equal(sandbox.strings.formatDate(1700000000000, 'yyyy-MM-dd E').length, '2023-11-15 三'.length);
+  // dateFormat (assertions derive expected values from local time so they pass in any timezone)
+  const dNov = new Date(1700000000000);
+  const p2 = (v) => String(v).padStart(2, '0');
+  assert.equal(sandbox.formatDate(1700000000000, 'yyyy'), String(dNov.getFullYear()));
+  assert.equal(sandbox.dateFormat(1700000000000, 'MM/dd'), p2(dNov.getMonth() + 1) + '/' + p2(dNov.getDate()));
+  const dEpoch = new Date(0);
+  assert.equal(sandbox.formatDate(0, 'HH:mm:ss'), p2(dEpoch.getHours()) + ':' + p2(dEpoch.getMinutes()) + ':' + p2(dEpoch.getSeconds()));
+  const weekNames = ['日', '一', '二', '三', '四', '五', '六'];
+  assert.equal(sandbox.strings.formatDate(1700000000000, 'yyyy-MM-dd E'),
+    dNov.getFullYear() + '-' + p2(dNov.getMonth() + 1) + '-' + p2(dNov.getDate()) + ' ' + weekNames[dNov.getDay()]);
   // sleepRandom
   const sleepMs = (() => { const before = calls.sleep.length; sandbox.sleepRandom(30, 40); return calls.sleep.at(-1); })();
   assert.ok(sleepMs >= 30 && sleepMs <= 40, 'sleepRandom must sleep within the inclusive range');
