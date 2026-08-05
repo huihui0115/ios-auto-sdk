@@ -33,7 +33,7 @@ unavailable.
 | Timers/threads | timeout/interval, async/sync thread APIs, workers | cooperative `sleep`, timeout/interval queues drained before completion, parallel `execAsync/execSync` threads (join/getResult/cancel, up to 8), native URLSession work | No retained event loop after script completion or worker runtime |
 | External transports/services | BLE events, OTG HID, Aux remote assistance, JDBC MySQL, and network-verification services | authenticated WebSocket debugging over loopback/USB or opt-in Wi-Fi, guarded HTTP, and an optional WDA HTTP adapter | No BLE/OTG/Aux controller, JDBC driver, or EasyClick service integration; the WDA adapter still needs a separately running Runner |
 | IDE/debug | IDE, live screen, node panel, logs, remote execution | VS Code completion/snippets, safe single-file TypeScript transpilation, persistent Wi-Fi/USB-forwarded connection, visual screenshot/node Inspector, node/image/color/OCR tests, code generation, deployed script/asset management, and Actions build/download | No continuous video stream, breakpoint debugger, TypeScript module bundler, package manager, or verified real-device tunnel session |
-| Deployment | signed EasyClick agent/IPA products, proxy IPA, Bluetooth and OTG HID paths | template app, unsigned TrollStore IPA workflow, optional separately installed WDA client | Not compiled or tested on Xcode, a real iPhone, or a TrollStore-installed WDA Runner in this Windows workspace |
+| Deployment | signed EasyClick agent/IPA products, proxy IPA, Bluetooth and OTG HID paths | template app, unsigned IPA workflow (free Apple ID signing), optional separately installed WDA client | Not compiled or tested on Xcode, a real iPhone, or a TrollStore-installed WDA Runner in this Windows workspace |
 
 ## Current quality assessment
 
@@ -64,7 +64,7 @@ The following surfaces must not be described as production-complete yet:
 ## Prioritized remaining work
 
 1. Run the GitHub Actions iOS build and fix every compiler warning/error.
-2. Install the unsigned IPA with TrollStore and verify the debug server through direct Wi-Fi or a loopback `iproxy` tunnel.
+2. Install the unsigned IPA with free Apple ID signing and verify the debug server through direct Wi-Fi or a loopback `iproxy` tunnel.
 3. Validate a separately signed WDA/iOS-Tagent Runner with `AutoWDAHTTPAdapter` for real touch and cross-app nodes.
 4. Replace the basic matcher with an optional OpenCV-backed adapter.
 5. Add workers/parallel JavaScript contexts and a safe execution interrupt mechanism.

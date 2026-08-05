@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | 脚本语言 | Python（内置 requests / threading / open 等） | JavaScript（JavaScriptCore，ES5+ 常用语法，可 TS 转译） |
 | 开发工具 | PyCharm / VS Code / WebIDE 插件 | VS Code 插件（补全、运行、截图、节点检查、调试） |
-| App 分发 | 企业签名（信任企业开发者） | 当前：TrollStore IPA；免巨魔路线见 [NO_TROLLSTORE.md](NO_TROLLSTORE.md) |
+| App 分发 | 企业签名（信任企业开发者） | 当前：unsigned IPA（免费签名安装，无需巨魔）；详见 [NO_TROLLSTORE.md](NO_TROLLSTORE.md) |
 | 控件自动化 | Agent 模式（XCTest 注入，no-WDA）+ WDA 模式 | WDA HTTP 适配器（AutoWDAHTTPAdapter）+ 进程内 UIKit 适配器 |
 | 图色/OCR | 通用模块，WDA/HID 双模式可用 | 本地 Vision OCR + 像素/找色/找图（引擎内实现，不依赖 WDA） |
 | 系统能力 | Python 系统模块 | device.* / system 能力 + 扩展适配器 |
@@ -20,8 +20,8 @@
 
 | 模式 | AScript | AutoSDK 现状 | 免巨魔改造 |
 | --- | --- | --- | --- |
-| 免签名安装 | 企业证书（信任即可） | TrollStore 安装 | 免费签名（AltStore/Sideloadly/SideStore）或企业签名 |
-| 控件自动化（免巨魔） | Agent 模式：XCTest 注入激活，iOS 15+，需开发者模式，关机失效 | 依赖 TrollStore 下独立运行的 WDA | XCTest 激活 WDA（复用 AutoWDAHTTPAdapter） |
+| 免签名安装 | 企业证书（信任即可） | 免费签名安装（AltStore/Sideloadly/SideStore） | 免费签名（AltStore/Sideloadly/SideStore）或企业签名 |
+| 控件自动化（免巨魔） | Agent 模式：XCTest 注入激活，iOS 15+，需开发者模式，关机失效 | 依赖独立运行的 WDA（XCTest 激活） | XCTest 激活 WDA（复用 AutoWDAHTTPAdapter） |
 | 物理触控（免开发者模式） | HID 模式：ESP32 蓝牙 + 系统录屏 | 无 | 远期：ESP32 固件 + Broadcast Extension |
 | 进程内自动化 | 不支持 | AutoUIKitAdapter（宿主 App 内点击/输入/滚动/节点/OCR） | 已支持，免费签名即可用 |
 

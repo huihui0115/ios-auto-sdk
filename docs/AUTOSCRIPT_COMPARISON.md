@@ -3,7 +3,7 @@
 Audit date: 2026-08-05
 
 > AutoScript（用户常简称为 ascript）是一款面向 iOS 用户的 JavaScript
-> 自动化脚本工具，以独立 App 形态分发（TrollStore/免越狱通道），自带脚本
+> 自动化脚本工具，以独立 App 形态分发（免费签名/免越狱通道），自带脚本
 > 列表、编辑器、控制台与日志，并提供系统级 API（剪贴板、亮度、音量、
 > 振动、打开 URL、主屏幕、锁屏、解锁等）。本文按「最终用户工具 vs 开发者
 > SDK」的定位差异来对比，不把同名 API 当作等价能力。
@@ -18,7 +18,7 @@ Audit date: 2026-08-05
 | 脚本来源 | App 内脚本列表 / 文件导入 | Bundle 脚本、部署脚本、VS Code 插件发送 |
 | 开发与调试 | App 内编辑器 + 控制台日志 | VS Code 插件：补全/片段、截图与节点 Inspector、图像/颜色/OCR 测试、USB/Wi-Fi WebSocket 调试 |
 | 分发路径 | 用户直接安装工具 | 开发者通过 GitHub Actions 远程构建 IPA，再装到自己的设备 |
-| 上手速度 | 装 App 即可写脚本 | 需要构建（远程构建约 4 分钟）+ TrollStore 安装 + 可选 WDA 配置 |
+| 上手速度 | 装 App 即可写脚本 | 需要构建（远程构建约 4 分钟）+ 免费签名安装 + 可选 WDA 配置 |
 
 ## API 覆盖对比（已确认面）
 
@@ -69,7 +69,7 @@ Audit date: 2026-08-05
      发送/部署脚本）；
    - 运行 `node tools/auto-sdk.mjs build-remote` 让 GitHub Actions 构建
      IPA（约 4 分钟）；
-   - TrollStore 安装，用 VS Code 插件连上调试、逐行跑、截图查节点。
+   - 免费签名安装，用 VS Code 插件连上调试、逐行跑、截图查节点。
    - 门槛：需要 GitHub 账号与一次构建配置，比 AutoScript「装 App 即用」多
      一步构建，但脚本写法与 AutoScript 风格高度一致。
 

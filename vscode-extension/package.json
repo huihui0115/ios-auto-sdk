@@ -1,7 +1,7 @@
 {
   "name": "autosdk-vscode",
   "displayName": "AutoSDK Script Tools",
-  "description": "Edit, run, and build AutoSDK scripts for a TrollStore-installed iOS app",
+  "description": "Edit, run, and build AutoSDK scripts for an iOS app installed via free Apple ID signing",
   "version": "0.4.3",
   "private": true,
   "publisher": "autosdk",
@@ -39,7 +39,7 @@
     "onCommand:autosdk.captureScreenshot",
     "onCommand:autosdk.inspectNodes",
     "onCommand:autosdk.openInspector",
-    "onCommand:autosdk.buildTrollStoreIPA",
+    "onCommand:autosdk.buildIPA",
     "onLanguage:javascript",
     "onLanguage:typescript"
   ],
@@ -90,8 +90,8 @@
         "title": "AutoSDK: Open Visual Inspector"
       },
       {
-        "command": "autosdk.buildTrollStoreIPA",
-        "title": "AutoSDK: Build TrollStore IPA"
+        "command": "autosdk.buildIPA",
+        "title": "AutoSDK: Build IPA"
       }
     ],
     "configuration": {
@@ -149,8 +149,8 @@
         },
         "autosdk.workflow": {
           "type": "string",
-          "default": "Build TrollStore IPA",
-          "description": "GitHub Actions workflow used to build the TrollStore IPA."
+          "default": "Build AutoSDK IPA",
+          "description": "GitHub Actions workflow used to build the AutoSDK IPA."
         },
         "autosdk.workflowRef": {
           "type": "string",
@@ -159,7 +159,7 @@
         },
         "autosdk.artifactName": {
           "type": "string",
-          "default": "AutoSDKTemplate-TrollStore",
+          "default": "AutoSDKTemplate-ipa",
           "description": "GitHub Actions artifact containing the IPA."
         },
         "autosdk.buildTimeout": {

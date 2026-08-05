@@ -1,7 +1,7 @@
 # AutoSDK
 
 这是一个面向第三方 iOS App 的客户端自动化 SDK MVP。它不是最终 App，也不包含后台设备管理或结果回传服务。
-> ⬇️ 预编译下载：GitHub [Releases](https://github.com/huihui0115/ios-auto-sdk/releases) 提供模板 App 的 IPA（AutoSDKTemplate.ipa：TrollStore 直接装，也可用 AltStore/Sideloadly 免费签名安装，免巨魔）与 VS Code 插件（autosdk-vscode-*.vsix），不想自己构建可直接下载。
+> ⬇️ 预编译下载：GitHub [Releases](https://github.com/huihui0115/ios-auto-sdk/releases) 提供模板 App 的 IPA（AutoSDKTemplate.ipa：未签名 IPA，用 AltStore / Sideloadly / SideStore / Feather 免费签名安装（无需巨魔））与 VS Code 插件（autosdk-vscode-*.vsix），不想自己构建可直接下载。
 > 🌐 在线文档：<https://huihui0115.github.io/ios-auto-sdk/>（docs/ 自动部署到 GitHub Pages）。
 
 ## 当前能力
@@ -72,7 +72,7 @@ AutoEngine *engine = AutoEngine.sharedEngine;
 
 没有设置适配器时，SDK 使用 `AutoUnavailableAdapter` 并返回明确错误，不会假装执行 UI 操作。
 
-`AutoUIKitAdapter` 支持 `id`、`label`、`type`、`value` 及组合选择器，可完成宿主 App 内点击、输入、滚动、节点查询、截图和 Vision OCR。需要跨 App 时可使用 [`AutoWDAHTTPAdapter`](Sources/AutoSDK/include/AutoWDAHTTPAdapter.h)，连接设备上单独运行的 WDA-compatible Runner；它不把 XCTest 私有代码伪装成普通 SDK，也不保证 TrollStore 能在每个 iOS 版本启动 Runner。
+`AutoUIKitAdapter` 支持 `id`、`label`、`type`、`value` 及组合选择器，可完成宿主 App 内点击、输入、滚动、节点查询、截图和 Vision OCR。需要跨 App 时可使用 [`AutoWDAHTTPAdapter`](Sources/AutoSDK/include/AutoWDAHTTPAdapter.h)，连接设备上单独运行的 WDA-compatible Runner；它不把 XCTest 私有代码伪装成普通 SDK；跨 App 自动化需要单独安装/激活 WDA Runner（免巨魔路线见 `docs/NO_TROLLSTORE.md`）。
 
 ## 脚本 API
 > 📚 交互式 API 速查（分类导航 + 搜索 + 一键复制可运行示例）：[docs/api-reference.html](docs/api-reference.html)，浏览器双击即开。
@@ -138,8 +138,8 @@ xcodebuild -scheme AutoSDK -destination 'generic/platform=iOS' build
 
 模板 App 的源码和 XcodeGen 配置位于 `Examples/TemplateApp`。在 macOS 执行 `xcodegen generate` 后即可打开 `AutoSDKTemplate.xcodeproj`。
 
-没有 Mac 时，可直接使用 GitHub Actions 构建 TrollStore IPA；Windows 下可运行
-`node tools/auto-sdk.mjs build-remote --repo OWNER/REPO --output .\\dist\\AutoSDKTemplate.ipa`，步骤见 [`docs/WINDOWS_TROLLSTORE.md`](docs/WINDOWS_TROLLSTORE.md)。
+没有 Mac 时，可直接使用 GitHub Actions 构建 AutoSDK IPA；Windows 下可运行
+`node tools/auto-sdk.mjs build-remote --repo OWNER/REPO --output .\\dist\\AutoSDKTemplate.ipa`，步骤见 [`docs/WINDOWS_SIDELOAD.md`](docs/WINDOWS_SIDELOAD.md)。
 如果当前目录是已登录 GitHub CLI 可识别的 Git 仓库，可省略 `--repo`。提交前可运行
 `npm run verify` 执行仓库级静态检查。
 

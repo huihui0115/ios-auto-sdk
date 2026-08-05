@@ -20,7 +20,7 @@ test('every contributed extension command is registered', () => {
     'autosdk.runCurrentScript', 'autosdk.sendCurrentScript', 'autosdk.manageScripts',
     'autosdk.configureDevice', 'autosdk.startUsbTunnel', 'autosdk.stopUsbTunnel',
     'autosdk.testConnection', 'autosdk.stopScript', 'autosdk.captureScreenshot',
-    'autosdk.inspectNodes', 'autosdk.openInspector', 'autosdk.buildTrollStoreIPA'
+    'autosdk.inspectNodes', 'autosdk.openInspector', 'autosdk.buildIPA'
   ];
   for (const command of commands) {
     assert.match(source, new RegExp("registerCommand\\('" + command + "'"), command + ' must be registered');

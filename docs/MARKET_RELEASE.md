@@ -3,7 +3,7 @@
 本文档把 AutoSDK Template App 从“开发状态”变成“可分发状态”。它只负责
 清单和验证步骤，不承诺任何商店的审核结果——iOS 上带脚本执行、本地调试
 WebSocket 和跨 App 自动化的应用，App Store 审核风险较高，主流分发光
-TrollStore / AltStore / 侧载（侧载）更现实。
+AltStore / Sideloadly / 侧载 / 企业签名更现实。
 
 ## 1. 发布前必须改的配置
 
@@ -41,11 +41,11 @@ xcodebuild -scheme AutoSDKTemplate -destination 'generic/platform=iOS' \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
 ```
 
-CI 也会做同样的事：GitHub 上手动触发 `Build TrollStore IPA`
-（workflow_dispatch），产物 `AutoSDKTemplate-TrollStore` 是一个未签名 IPA，
-用 TrollStore 安装即可；测试诊断在 `AutoSDKTests-xcresult` 里。
+CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
+（workflow_dispatch），产物 `AutoSDKTemplate-ipa` 是一个未签名 IPA，
+免费签名安装即可（无需巨魔）；测试诊断在 `AutoSDKTests-xcresult` 里。
 
-- TrollStore：直接安装未签名 IPA，签名由 TrollStore 完成。
+- 免费签名（Sideloadly/AltStore）：用 Apple ID 签名安装，7 天续签一次。
 - 真机调试 / 个人分发：需要你自己的 Developer 证书和描述文件，或
   AltStore/侧载工具。
 - App Store：需要移除或深度改造调试服务器、脚本编辑器等能力，并接受
@@ -70,7 +70,7 @@ CI 也会做同样的事：GitHub 上手动触发 `Build TrollStore IPA`
 
 ## 5. 已知边界（写进应用内说明，避免售后）
 
-- 跨 App 自动化依赖 WDA Runner：它需要单独签名运行，TrollStore 环境下
+- 跨 App 自动化依赖 WDA Runner：它需要单独签名运行，免费签名环境下
   不一定每个 iOS 版本都能启动。
 - `AutoUIKitAdapter` 只能自动化本 App 自己的 UIKit 视图。
 - Wi-Fi 调试未加密（仅 token 认证），只建议在可信网络使用。
@@ -81,5 +81,5 @@ CI 也会做同样的事：GitHub 上手动触发 `Build TrollStore IPA`
 1. 更新版本号三件套（见上表）。
 2. 跑一遍第 3 节的静态检查和 CI 构建。
 3. 人工过一遍第 4 节清单。
-4. 把未签名 IPA 上传 TrollStore/商店后台，附上第 5 节说明。
+4. 把未签名 IPA 上传商店/分发后台，附上第 5 节说明。
 5. 打 tag：`git tag v1.1.2 && git push origin v1.1.2`。

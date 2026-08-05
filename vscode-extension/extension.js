@@ -775,7 +775,7 @@ function completionProvider() {
   };
 }
 
-async function buildTrollStoreIPA() {
+async function buildIPA() {
   const channel = outputChannel();
   channel.show(true);
   if (!vscode.workspace.isTrusted) {
@@ -800,15 +800,15 @@ async function buildTrollStoreIPA() {
   const destination = await vscode.window.showSaveDialog({
     defaultUri,
     filters: { 'iOS packages': ['ipa'] },
-    saveLabel: 'Save AutoSDK TrollStore IPA'
+    saveLabel: 'Save AutoSDK IPA'
   });
   if (!destination) return;
 
   const settings = configuration();
-  const workflow = String(settings.get('workflow') || 'Build TrollStore IPA');
+  const workflow = String(settings.get('workflow') || 'Build AutoSDK IPA');
   const repository = String(settings.get('repository') || '');
   const ref = String(settings.get('workflowRef') || '');
-  const artifact = String(settings.get('artifactName') || 'AutoSDKTemplate-TrollStore');
+  const artifact = String(settings.get('artifactName') || 'AutoSDKTemplate-ipa');
   const timeoutSetting = Number(settings.get('buildTimeout'));
   const timeout = Number.isFinite(timeoutSetting)
     ? Math.min(21600, Math.max(60, timeoutSetting))
@@ -818,11 +818,11 @@ async function buildTrollStoreIPA() {
   if (repository) args.push('--repo', repository);
   if (ref) args.push('--ref', ref);
 
-  channel.appendLine(`Building TrollStore IPA from ${cwd}...`);
+  channel.appendLine(`Building AutoSDK IPA from ${cwd}...`);
   channel.appendLine(`Output: ${destination.fsPath}`);
   await vscode.window.withProgress({
     location: vscode.ProgressLocation.Notification,
-    title: 'Building AutoSDK TrollStore IPA',
+    title: 'Building AutoSDK IPA',
     cancellable: true
   }, (_progress, cancellationToken) => new Promise(resolve => {
     let child;
@@ -870,7 +870,7 @@ async function buildTrollStoreIPA() {
         channel.appendLine('AutoSDK remote build cancelled.');
       } else if (code === 0) {
         channel.appendLine(`IPA ready at ${destination.fsPath}`);
-        vscode.window.showInformationMessage('AutoSDK TrollStore IPA downloaded.');
+        vscode.window.showInformationMessage('AutoSDK IPA downloaded.');
       } else {
         vscode.window.showErrorMessage(`AutoSDK remote build failed (${code ?? 'unknown'}). See the AutoSDK output.`);
       }
@@ -928,7 +928,7 @@ function activate(context) {
     vscode.commands.registerCommand('autosdk.inspectNodes', inspectNodes),
     vscode.commands.registerCommand('autosdk.openInspector', openInspector),
     vscode.languages.registerCompletionItemProvider([{ language: 'javascript' }, { language: 'typescript' }], completionProvider(), '.'),
-    vscode.commands.registerCommand('autosdk.buildTrollStoreIPA', buildTrollStoreIPA)
+    vscode.commands.registerCommand('autosdk.buildIPA', buildIPA)
   );
 }
 

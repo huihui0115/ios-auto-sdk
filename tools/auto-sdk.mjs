@@ -261,9 +261,9 @@ async function waitForWorkflowRun(repo, runId, deadline, cwd) {
 async function buildRemote(args) {
   const output = resolve(required(args, 'output'));
   if (existsSync(output) && statSync(output).isDirectory()) throw new Error('--output must be a file path, not a directory.');
-  const workflow = optionText(args.workflow || 'Build TrollStore IPA', '--workflow');
+  const workflow = optionText(args.workflow || 'Build AutoSDK IPA', '--workflow');
   const ref = args.ref === undefined ? undefined : optionText(args.ref, '--ref');
-  const artifact = optionText(args.artifact || 'AutoSDKTemplate-TrollStore', '--artifact');
+  const artifact = optionText(args.artifact || 'AutoSDKTemplate-ipa', '--artifact');
   const requestedTimeout = Number(args.timeout);
   const timeoutSeconds = Number.isFinite(requestedTimeout)
     ? Math.min(21600, Math.max(60, requestedTimeout))

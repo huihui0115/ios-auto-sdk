@@ -2,16 +2,16 @@
 
 本仓库是一套可复用的 iOS 自动化脚本框架。别人拿到仓库后，按下面路径
 大约 10 分钟就能跑通「写脚本 → 构建 IPA → 安装 → 调试运行」。更完整的
-Windows 流程见 [`WINDOWS_TROLLSTORE.md`](WINDOWS_TROLLSTORE.md)。
+Windows 流程见 [`WINDOWS_SIDELOAD.md`](WINDOWS_SIDELOAD.md)。
 
 ## 你需要什么
 
 - 一个 GitHub 账号（用于远程构建，无需 Mac）
-- 一台 iPhone（安装 TrollStore）
+- 一台 iPhone + 免费签名工具（AltStore / Sideloadly / SideStore / Feather）
 - 一台 Windows 电脑（写脚本 + 调试，可选装 VS Code 插件）
 
 ## 1. 构建模板 App（约 4 分钟）
-> 不想自己构建？直接到仓库 [Releases 页](https://github.com/huihui0115/ios-auto-sdk/releases) 下载最新 AutoSDKTemplate.ipa（TrollStore 可直接安装）和 VS Code 插件 vsix，跳过本节直接进入「安装到 iPhone」。
+> 不想自己构建？直接到仓库 [Releases 页](https://github.com/huihui0115/ios-auto-sdk/releases) 下载最新 AutoSDKTemplate.ipa（免费签名安装，无需巨魔）和 VS Code 插件 vsix，跳过本节直接进入「安装到 iPhone」。
 
 ```powershell
 # 把仓库推到自己的 GitHub 仓库后
@@ -19,13 +19,13 @@ gh auth login
 node tools/auto-sdk.mjs build-remote --repo 你的账号/你的仓库 --output .\dist\AutoSDKTemplate.ipa
 ```
 
-或直接在 GitHub 页面 **Actions → Build TrollStore IPA → Run workflow**，
-完成后下载 `AutoSDKTemplate-TrollStore` 工件里的 IPA。
+或直接在 GitHub 页面 **Actions → Build AutoSDK IPA → Run workflow**，
+完成后下载 `AutoSDKTemplate-ipa` 工件里的 IPA。
 
 ## 2. 安装到 iPhone
 
 把 IPA 传到手机（iCloud 云盘 / LocalSend / 文件传输均可），在「文件」App
-里选择「共享/打开方式 → TrollStore」安装。装好后打开
+用 Sideloadly/AltStore 以 Apple ID 免费签名安装（7 天过期重签一次），装好后在「设置 → 通用 → VPN 与设备管理」信任开发者证书。打开
 `AutoSDKTemplate`，界面上会列出内置脚本并显示调试地址与 token。
 
 ## 3. 写自己的脚本

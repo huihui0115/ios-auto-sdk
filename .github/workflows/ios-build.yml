@@ -1,4 +1,4 @@
-name: Build TrollStore IPA
+name: Build AutoSDK IPA
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
         required: false
         type: string
 
-run-name: AutoSDK TrollStore IPA (${{ inputs.requestId || github.run_id }})
+run-name: AutoSDK IPA (${{ inputs.requestId || github.run_id }})
 
 concurrency:
   group: autosdk-ios-${{ github.event_name == 'workflow_dispatch' && (inputs.requestId || github.run_id) || github.ref }}
@@ -123,7 +123,7 @@ jobs:
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v5
         with:
-          name: AutoSDKTemplate-TrollStore
+          name: AutoSDKTemplate-ipa
           path: dist/AutoSDKTemplate.ipa
           if-no-files-found: error
 
@@ -136,10 +136,10 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           notes="$RUNNER_TEMP/release-notes.md"
           {
-            echo "AutoSDK ${tag} unsigned TrollStore IPA + VS Code extension."
+            echo "AutoSDK ${tag} unsigned IPA + VS Code extension."
             echo ""
             echo "## Downloads"
-            echo "- AutoSDKTemplate.ipa — TrollStore 可直接安装的模板 App"
+            echo "- AutoSDKTemplate.ipa — 未签名模板 App，用 AltStore / Sideloadly / SideStore / Feather 免费签名安装（无需巨魔）"
             echo "- autosdk-vscode-0.4.3.vsix — VS Code 调试插件（本机写脚本 / 连手机调试 / 可视化检查 UI）"
             echo ""
             echo "## Changelog"

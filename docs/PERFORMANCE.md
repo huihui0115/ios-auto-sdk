@@ -219,7 +219,7 @@ set, because those limits can hide nodes.
 
 Apple recommends measuring energy and memory with Xcode Instruments on a real
 device. The repository cannot perform that measurement on Windows without
-Xcode, so the remaining numbers must be collected after TrollStore/WDA is
+Xcode, so the remaining numbers must be collected after WDA activation is
 installed on the target iPhone. Record idle CPU, peak resident memory during
 OCR/findImage, and request counts for repeated node traversal before and after
 changing the cache durations.

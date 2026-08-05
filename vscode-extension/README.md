@@ -3,7 +3,7 @@
 This extension edits JavaScript or TypeScript scripts, provides AutoSDK API
 completion and snippets, transpiles TypeScript before sending, tests a device
 connection, deploys/runs/manages phone scripts, captures screenshots, opens a
-visual node/image/color inspector, and builds/downloads the TrollStore IPA
+visual node/image/color inspector, and builds/downloads the AutoSDK IPA
 through GitHub Actions.
 
 TypeScript annotations and other single-file syntax are transpiled. Files that
@@ -49,7 +49,7 @@ The local port comes from `autosdk.debugUrl`; `autosdk.usbDevicePort` defaults
 to 9001, and `autosdk.usbDeviceUdid` selects one phone when several are attached.
 Current `iproxy` uses `-u UDID`; set `autosdk.iproxyUdidStyle` to `legacy` only
 for an older Windows build that expects the UDID as its final argument.
-Run **AutoSDK: Test Device Connection** after starting the tunnel. TrollStore
+Run **AutoSDK: Test Device Connection** after starting the tunnel. Sideloading
 alone does not install `iproxy` or create the tunnel. Without `iproxy`, use
 direct Wi-Fi, another usbmuxd forwarder, or bundled scripts in the TemplateApp.
 
@@ -59,10 +59,10 @@ and enter the `ws://IPHONE_WIFI_ADDRESS:9001` URL and installation token display
 the app in **AutoSDK: Configure Device Connection**. Wi-Fi mode does not need
 `iproxy`; switching to Wi-Fi stops a tunnel managed by the extension.
 Guest-network client isolation may block direct access.
-Keep the TemplateApp foregrounded and the iPhone unlocked: TrollStore does not
+Keep the TemplateApp foregrounded and the iPhone unlocked: free signing does not
 prevent iOS from suspending an ordinary app after it is backgrounded.
 
-The **AutoSDK: Build TrollStore IPA** command runs the repository's
+The **AutoSDK: Build IPA** command runs the repository's
 `tools/auto-sdk.mjs build-remote` helper. It waits for the matching workflow,
 downloads the configured artifact, and asks where to save the IPA. Configure
 `autosdk.repositoryPath` when the open workspace is not the SDK repository;
