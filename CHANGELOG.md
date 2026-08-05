@@ -45,6 +45,16 @@ All notable changes to AutoSDK are documented here. The format follows
   randomCharNumber() add node-count and random-string helpers;
   device.getScreenWidthHeightText() returns "390x844". API reference grows to
   156 documented functions.
+- **EasyClick benchmark round 4: image processing pipeline and find-not-color.** New
+  image.clip(src, x, y, ex, ey, dest) / image.scale(src, w, h, dest) /
+  image.gray(src, dest) / image.binaryzation(src, dest, threshold?) /
+  image.rotate(src, degrees, dest) process image files through CoreGraphics
+  and ImageIO with the same sandbox read/write gates as file.*; new
+  image.pixelAt(src, x, y) samples a pixel color from a file, and
+  image.getWidth/getHeight alias file.imageSize. New
+  findNotColor(colors, threshold, x, y, ex, ey, limit, direction) returns
+  screen points that do NOT match the given colors (change detection), sharing
+  the findColorEx scan core. API reference grows to 166 documented functions.
 - **EasyClick benchmark round 3: region multi-color, MP3 audio and photo authorization.** New
   findColorEx(colors, threshold, x, y, ex, ey, limit, direction) searches the
   current screen for every matching color point in a region and returns an

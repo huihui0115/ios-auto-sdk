@@ -266,12 +266,187 @@ BOOL AutoScriptInstallDownloadedFile(NSURL *temporaryURL,
     }
 }
 
+static double AutoSupportFiniteDouble(id value, double defaultValue) {
+    if ([value isKindOfClass:NSNumber.class]) {
+        double number = [value doubleValue];
+        return isfinite(number) ? number : defaultValue;
+    }
+    return defaultValue;
+}
+
+typedef struct {
+    uint8_t *bytes;
+    size_t width;
+    size_t height;
+    size_t bytesPerRow;
+    CGContextRef context;
+} AutoSupportPixelImage;
+
+static AutoSupportPixelImage AutoSupportPixelImageMake(CGImageRef image) {
+    AutoSupportPixelImage result = {0};
+    if (!image) return result;
+    size_t width = CGImageGetWidth(image), height = CGImageGetHeight(image);
+    if (width == 0 || height == 0 || width > SIZE_MAX / 4 || height > SIZE_MAX / (width * 4)) return result;
+    size_t bytesPerRow = width * 4;
+    size_t byteCount = height * bytesPerRow;
+    if (byteCount > 64 * 1024 * 1024) return result;
+    uint8_t *bytes = calloc(height, bytesPerRow);
+    if (!bytes) return result;
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    if (!colorSpace) {
+        free(bytes);
+        return result;
+    }
+    CGContextRef context = CGBitmapContextCreate(bytes, width, height, 8, bytesPerRow, colorSpace,
+                                                 kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(colorSpace);
+    if (!context) {
+        free(bytes);
+        return result;
+    }
+    CGContextTranslateCTM(context, 0, height);
+    CGContextScaleCTM(context, 1, -1);
+    CGContextDrawImage(context, CGRectMake(0, 0, width, height), image);
+    result.bytes = bytes;
+    result.width = width;
+    result.height = height;
+    result.bytesPerRow = bytesPerRow;
+    result.context = context;
+    return result;
+}
+
+static void AutoSupportPixelImageDestroy(AutoSupportPixelImage *image) {
+    if (image->context) CGContextRelease(image->context);
+    free(image->bytes);
+    *image = (AutoSupportPixelImage){0};
+}
+
+static double AutoSupportImageScale(NSDictionary *properties) {
+    NSNumber *dpi = properties[(__bridge NSString *)kCGImagePropertyDPIWidth];
+    double scale = [dpi isKindOfClass:NSNumber.class] && [dpi doubleValue] > 0 ? [dpi doubleValue] / 72.0 : 1.0;
+    return MAX(0.01, scale);
+}
+
+static BOOL AutoSupportWriteImage(CGImageRef image, NSURL *destinationURL, NSDictionary *config, NSError **error) {
+    if (!image) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to produce the processed image.", nil);
+        return NO;
+    }
+    NSString *extension = destinationURL.pathExtension.lowercaseString;
+    BOOL jpeg = [extension isEqualToString:@"jpg"] || [extension isEqualToString:@"jpeg"];
+    CFStringRef type = jpeg ? CFSTR("public.jpeg") : CFSTR("public.png");
+    NSMutableData *data = [NSMutableData data];
+    CGImageDestinationRef destination = CGImageDestinationCreateWithData((__bridge CFMutableDataRef)data, type, 1, NULL);
+    if (!destination) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to create an image encoder.", nil);
+        return NO;
+    }
+    if (jpeg) {
+        NSDictionary *options = @{ (__bridge NSString *)kCGImageDestinationLossyCompressionQuality: @0.9 };
+        CGImageDestinationAddImage(destination, image, (__bridge CFDictionaryRef)options);
+    } else {
+        CGImageDestinationAddImage(destination, image, NULL);
+    }
+    BOOL finalized = CGImageDestinationFinalize(destination);
+    CFRelease(destination);
+    if (!finalized) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to encode the processed image.", nil);
+        return NO;
+    }
+    NSUInteger maximum = AutoSupportByteLimit(config, @"maxFileWriteBytes", 10 * 1024 * 1024, 64 * 1024 * 1024);
+    if (data.length > maximum) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Output image exceeds maxFileWriteBytes.", nil);
+        return NO;
+    }
+    NSError *directoryError = nil;
+    if (![NSFileManager.defaultManager createDirectoryAtURL:destinationURL.URLByDeletingLastPathComponent
+                                withIntermediateDirectories:YES attributes:nil error:&directoryError]) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to create the destination directory.", directoryError);
+        return NO;
+    }
+    NSError *writeError = nil;
+    if (![data writeToURL:destinationURL options:NSDataWritingAtomic error:&writeError]) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to write the processed image.", writeError);
+        return NO;
+    }
+    return YES;
+}
+
+static CGImageRef AutoSupportImageClip(CGImageRef source, double scale, double x, double y, double ex, double ey) {
+    size_t width = CGImageGetWidth(source), height = CGImageGetHeight(source);
+    size_t pixelMinX = (size_t)MIN(width, (size_t)MAX(0, floor(MIN(x, ex) * scale)));
+    size_t pixelMinY = (size_t)MIN(height, (size_t)MAX(0, floor(MIN(y, ey) * scale)));
+    size_t pixelMaxX = (size_t)MIN(width, (size_t)MAX(0, ceil(MAX(x, ex) * scale)));
+    size_t pixelMaxY = (size_t)MIN(height, (size_t)MAX(0, ceil(MAX(y, ey) * scale)));
+    if (pixelMaxX <= pixelMinX || pixelMaxY <= pixelMinY) return NULL;
+    return CGImageCreateWithImageInRect(source, CGRectMake(pixelMinX, pixelMinY, pixelMaxX - pixelMinX, pixelMaxY - pixelMinY));
+}
+
+static CGImageRef AutoSupportImageScale(CGImageRef source, double scale, double width, double height) {
+    if (width <= 0 || height <= 0) return NULL;
+    size_t targetWidth = (size_t)MAX(1, lround(width * scale));
+    size_t targetHeight = (size_t)MAX(1, lround(height * scale));
+    if (targetWidth > 8192 || targetHeight > 8192 || targetWidth > SIZE_MAX / 4) return NULL;
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    if (!colorSpace) return NULL;
+    CGContextRef context = CGBitmapContextCreate(NULL, targetWidth, targetHeight, 8, targetWidth * 4, colorSpace,
+                                                 kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(colorSpace);
+    if (!context) return NULL;
+    CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
+    CGContextDrawImage(context, CGRectMake(0, 0, targetWidth, targetHeight), source);
+    CGImageRef result = CGBitmapContextCreateImage(context);
+    CGContextRelease(context);
+    return result;
+}
+
+static CGImageRef AutoSupportImageMono(CGImageRef source, BOOL binaryzation, NSUInteger threshold) {
+    AutoSupportPixelImage buffer = AutoSupportPixelImageMake(source);
+    if (!buffer.bytes) return NULL;
+    for (size_t y = 0; y < buffer.height; y++) {
+        uint8_t *row = buffer.bytes + y * buffer.bytesPerRow;
+        for (size_t x = 0; x < buffer.width; x++) {
+            uint8_t *pixel = row + x * 4;
+            uint8_t luminance = (uint8_t)lround(0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2]);
+            uint8_t value = binaryzation ? (luminance >= threshold ? 255 : 0) : luminance;
+            pixel[0] = value;
+            pixel[1] = value;
+            pixel[2] = value;
+        }
+    }
+    CGImageRef result = CGBitmapContextCreateImage(buffer.context);
+    AutoSupportPixelImageDestroy(&buffer);
+    return result;
+}
+
+static CGImageRef AutoSupportImageRotate(CGImageRef source, NSInteger degrees) {
+    degrees = ((degrees % 360) + 360) % 360;
+    if (degrees == 0) return CGImageRetain(source);
+    if (degrees != 90 && degrees != 180 && degrees != 270) return NULL;
+    size_t width = CGImageGetWidth(source), height = CGImageGetHeight(source);
+    BOOL swaps = degrees == 90 || degrees == 270;
+    size_t targetWidth = swaps ? height : width;
+    size_t targetHeight = swaps ? width : height;
+    if (targetWidth == 0 || targetHeight == 0 || targetWidth > SIZE_MAX / 4) return NULL;
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    if (!colorSpace) return NULL;
+    CGContextRef context = CGBitmapContextCreate(NULL, targetWidth, targetHeight, 8, targetWidth * 4, colorSpace,
+                                                 kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(colorSpace);
+    if (!context) return NULL;
+    CGContextTranslateCTM(context, targetWidth / 2.0, targetHeight / 2.0);
+    CGContextRotateCTM(context, degrees * M_PI / 180.0);
+    CGContextDrawImage(context, CGRectMake(-width / 2.0, -height / 2.0, width, height), source);
+    CGImageRef result = CGBitmapContextCreateImage(context);
+    CGContextRelease(context);
+    return result;
+}
 id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
                            NSDictionary<NSString *,id> *config,
                            NSError **error) {
     @synchronized (AutoFileOperationLock()) {
     NSString *operation = [payload[@"operation"] isKindOfClass:NSString.class] ? payload[@"operation"] : @"";
-    NSSet *writeOperations = [NSSet setWithArray:@[@"writeText", @"writeBase64", @"appendText", @"mkdir", @"remove", @"copy"]];
+    NSSet *writeOperations = [NSSet setWithArray:@[@"writeText", @"writeBase64", @"appendText", @"mkdir", @"remove", @"copy", @"imageProcess"]];
     BOOL writes = [writeOperations containsObject:operation];
     if (!AutoRequireFileAccess(config, writes, error)) return nil;
     if ([operation isEqualToString:@"sandboxDir"]) return AutoFileRoot(config, error).path;
@@ -341,6 +516,105 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
         double scale = [dpi isKindOfClass:NSNumber.class] && [dpi doubleValue] > 0 ? [dpi doubleValue] / 72.0 : 1.0;
         return @{ @"width": @(pixelW / scale), @"height": @(pixelH / scale),
                   @"pixelWidth": @(pixelW), @"pixelHeight": @(pixelH), @"scale": @(scale) };
+    }
+
+    if ([operation isEqualToString:@"imageProcess"] || [operation isEqualToString:@"imagePixelAt"]) {
+        NSUInteger maximum = AutoSupportByteLimit(config, @"maxFileReadBytes", 10 * 1024 * 1024, 64 * 1024 * 1024);
+        NSDictionary *sourceAttributes = [manager attributesOfItemAtPath:url.path error:nil];
+        if ([sourceAttributes[NSFileSize] unsignedLongLongValue] > maximum) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"File exceeds maxFileReadBytes.", nil);
+            return nil;
+        }
+        NSError *readError = nil;
+        NSData *data = [NSData dataWithContentsOfURL:url options:NSDataReadingMappedIfSafe error:&readError];
+        if (!data || data.length > maximum) {
+            NSString *message = data ? @"File exceeds maxFileReadBytes." : @"Unable to read file.";
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, message, readError);
+            return nil;
+        }
+        CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+        if (!source) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Image file is not supported.", nil);
+            return nil;
+        }
+        NSDictionary *properties = (__bridge_transfer NSDictionary *)CGImageSourceCopyPropertiesAtIndex(source, 0, NULL);
+        CGImageRef image = CGImageSourceCreateImageAtIndex(source, 0, NULL);
+        CFRelease(source);
+        if (!image) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to decode the image file.", nil);
+            return nil;
+        }
+        double scale = AutoSupportImageScale(properties);
+        if ([operation isEqualToString:@"imagePixelAt"]) {
+            double x = AutoSupportFiniteDouble(payload[@"x"], NAN);
+            double y = AutoSupportFiniteDouble(payload[@"y"], NAN);
+            if (!isfinite(x) || !isfinite(y)) {
+                CGImageRelease(image);
+                if (error) *error = AutoSupportError(AutoSDKErrorInvalidConfiguration, @"image.pixelAt requires numeric x and y.", nil);
+                return nil;
+            }
+            size_t pixelX = (size_t)MIN((size_t)CGImageGetWidth(image), (size_t)MAX(0, floor(x * scale)));
+            size_t pixelY = (size_t)MIN((size_t)CGImageGetHeight(image), (size_t)MAX(0, floor(y * scale)));
+            CGImageRef sample = CGImageCreateWithImageInRect(image, CGRectMake(pixelX, pixelY, 1, 1));
+            CGImageRelease(image);
+            if (!sample) {
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to sample the image pixel.", nil);
+                return nil;
+            }
+            AutoSupportPixelImage buffer = AutoSupportPixelImageMake(sample);
+            CGImageRelease(sample);
+            if (!buffer.bytes) {
+                if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to allocate a pixel buffer.", nil);
+                return nil;
+            }
+            const uint8_t *pixel = buffer.bytes;
+            NSDictionary *result = @{ @"x": @(x), @"y": @(y),
+                                      @"r": @(pixel[0]), @"g": @(pixel[1]), @"b": @(pixel[2]), @"a": @(pixel[3]),
+                                      @"hex": [NSString stringWithFormat:@"#%02X%02X%02X", pixel[0], pixel[1], pixel[2]] };
+            AutoSupportPixelImageDestroy(&buffer);
+            return result;
+        }
+        NSString *sub = [payload[@"sub"] isKindOfClass:NSString.class] ? [payload[@"sub"] lowercaseString] : @"";
+        NSString *destinationPath = AutoRequiredString(payload[@"destination"], @"destination", error);
+        NSURL *destinationURL = nil;
+        if (destinationPath) destinationURL = AutoResolveFilePath(destinationPath, config, NO, error);
+        if (!destinationURL) {
+            CGImageRelease(image);
+            return nil;
+        }
+        NSDictionary *args = [payload[@"args"] isKindOfClass:NSDictionary.class] ? payload[@"args"] : @{};
+        CGImageRef processed = NULL;
+        if ([sub isEqualToString:@"clip"]) {
+            processed = AutoSupportImageClip(image, scale,
+                                             AutoSupportFiniteDouble(args[@"x"], 0),
+                                             AutoSupportFiniteDouble(args[@"y"], 0),
+                                             AutoSupportFiniteDouble(args[@"ex"], 0),
+                                             AutoSupportFiniteDouble(args[@"ey"], 0));
+        } else if ([sub isEqualToString:@"scale"]) {
+            processed = AutoSupportImageScale(image, scale,
+                                              AutoSupportFiniteDouble(args[@"width"], 0),
+                                              AutoSupportFiniteDouble(args[@"height"], 0));
+        } else if ([sub isEqualToString:@"gray"]) {
+            processed = AutoSupportImageMono(image, NO, 0);
+        } else if ([sub isEqualToString:@"binaryzation"]) {
+            double threshold = AutoSupportFiniteDouble(args[@"threshold"], 128);
+            processed = AutoSupportImageMono(image, YES, (NSUInteger)MIN(255, MAX(0, threshold)));
+        } else if ([sub isEqualToString:@"rotate"]) {
+            processed = AutoSupportImageRotate(image, (NSInteger)AutoSupportFiniteDouble(args[@"degrees"], 0));
+        } else {
+            CGImageRelease(image);
+            if (error) *error = AutoSupportError(AutoSDKErrorInvalidConfiguration,
+                                                 @"imageProcess sub must be clip, scale, gray, binaryzation or rotate.", nil);
+            return nil;
+        }
+        CGImageRelease(image);
+        if (!processed) {
+            if (error) *error = AutoSupportError(AutoSDKErrorInvalidConfiguration, @"Unable to process the image with the given arguments.", nil);
+            return nil;
+        }
+        BOOL written = AutoSupportWriteImage(processed, destinationURL, config, error);
+        CGImageRelease(processed);
+        return written ? destinationURL.path : nil;
     }
 
     if ([operation isEqualToString:@"readText"] || [operation isEqualToString:@"readBase64"] ||

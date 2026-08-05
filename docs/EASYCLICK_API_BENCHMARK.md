@@ -75,9 +75,10 @@ are not implemented.
 | findColor / findMultiColor / cmpColor / cmpMultiColor | ✅ `findColor` / `findMultiColor` / `cmpColor` | 找色 |
 | findColorEx | ✅ `findColorEx(colors, threshold, x, y, ex, ey, limit, direction)` | 区域多点找色，返回坐标数组 |
 | findImage / findImage2 / matchTemplate | 🟡 `findImage`（CoreGraphics 相似度匹配） | 非 OpenCV |
-| findNotColor | ❌ | 反向找色 |
+| findNotColor | ✅ `findNotColor(colors, threshold, x, y, ex, ey, limit, direction)` | 找非色（变化检测） |
 | pixel / getPixelBitmap | ✅ `getPixelColor` | 取色 |
-| clip / scaleBitmap / rotateImage / gray / binaryzation / recycle | ❌ | 图像对象管线 |
+| clip / scaleBitmap / rotateImage / gray / binaryzation | ✅ `image.clip/scale/gray/binaryzation/rotate`（路径式） | 图像处理管线 |
+| recycle | ❌ | 对象内存管理，路径式 API 无需 |
 | getWidth / getHeight | ✅ `file.imageSize(path)` / `image.getSize(path)` | 图像尺寸查询 |
 | saveBitmap / saveTo | 🟡 `media.saveImage` | 保存 |
 

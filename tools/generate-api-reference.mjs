@@ -120,7 +120,15 @@ const REFS = {
   'playMp3(path, volume?, queue?, stopWhenScriptEnd?)': 'EasyClick utils.playMp3()',
   'stopMp3()': 'EasyClick utils.stopMp3()',
   'media.requestPhotoAuthorization()': 'EasyClick utils.requestPhotoAuthorization()',
-  'media.getPhotoAuthorizationStatus()': 'EasyClick utils.requestPhotoAuthorization()',  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
+  'media.getPhotoAuthorizationStatus()': 'EasyClick utils.requestPhotoAuthorization()',
+  'findNotColor(colors, threshold?, x?, y?, ex?, ey?, limit?, direction?)': 'EasyClick image.findNotColor()',
+  'image.clip(src, x, y, ex, ey, dest)': 'EasyClick image.clip()',
+  'image.scale(src, width, height, dest)': 'EasyClick image.scaleBitmap()',
+  'image.gray(src, dest)': 'EasyClick image.gray()',
+  'image.binaryzation(src, dest, threshold?)': 'EasyClick image.binaryzation()',
+  'image.rotate(src, degrees, dest)': 'EasyClick image.rotateImage()',
+  'image.pixelAt(src, x, y)': 'EasyClick image.pixelInImage()',
+  'image.getWidth(path) / image.getHeight(path)': 'EasyClick image.getWidth()/getHeight()',  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
   'uuid()': 'EasyClick uuid()',
   'base64.encode(str)': 'EasyClick base64.encode()/decode()'
 };
@@ -727,6 +735,25 @@ APIS.push({ cat:'vision', sig:'findColorEx(colors, threshold?, x?, y?, ex?, ey?,
   const points = findColorEx("0xCDD7E9-0x101010", 0.9, 0, 0, 0, 0, 10, 1);
   logd(JSON.stringify(points));
   if (points && points.length > 0) clickPoint(points[0].x, points[0].y);
+}
+main();` });APIS.push({ cat:'vision', sig:'findNotColor(colors, threshold?, x?, y?, ex?, ey?, limit?, direction?)', title:'区域找非色', desc:'在当前屏幕指定区域内查找所有"不匹配"给定颜色的点（用于检测画面变化、异色干扰），参数与 findColorEx 一致，找不到返回 null。', params:[['colors','string|array','颜色目标列表'],['threshold','number','0-1 相似度，默认 0.9'],['x','number','区域起点 X'],['y','number','区域起点 Y'],['ex','number','区域终点 X'],['ey','number','区域终点 Y'],['limit','number','最大返回点数，默认 10'],['direction','number','扫描方向 1-8，默认 1']], returns:'AutoPoint[] | null', example:`function main(){
+  const points = findNotColor("0xFFFFFF-0x101010", 0.9, 0, 0, 0, 0, 10, 1);
+  logd(JSON.stringify(points));
+}
+main();` });
+APIS.push({ cat:'vision', sig:'image.clip(src, x, y, ex, ey, dest) / image.scale(src, width, height, dest) / image.gray(src, dest) / image.binaryzation(src, dest, threshold?) / image.rotate(src, degrees, dest)', title:'图像处理管线', desc:'路径式图像处理：clip 按区域裁剪，scale 缩放到指定宽高，gray 灰度化，binaryzation 二值化（threshold 0-255，默认 128），rotate 旋转 90 的倍数。坐标与尺寸沿用 image.getSize 的逻辑坐标空间；源文件受 maxFileReadBytes 限制，输出受 maxFileWriteBytes 限制，成功返回目标路径，失败返回 null。', params:[['src','string','源图片路径'],['dest','string','输出图片路径（.png/.jpg 决定编码）'],['x/y/ex/ey','number','裁剪区域（clip）'],['width/height','number','目标尺寸（scale）'],['threshold','number','二值化阈值（binaryzation）'],['degrees','number','旋转角度（rotate）']], returns:'string | null 目标路径', example:`function main(){
+  const clipped = image.clip("shots/s.png", 0, 0, 390, 60, "shots/head.png");
+  const scaled = image.scale("shots/s.png", 200, 400, "shots/small.png");
+  const gray = image.gray("shots/s.png", "shots/gray.png");
+  const bw = image.binaryzation("shots/s.png", "shots/bw.png", 128);
+  const rotated = image.rotate("shots/s.png", 90, "shots/rot.png");
+  logd(clipped, scaled, gray, bw, rotated);
+}
+main();` });
+APIS.push({ cat:'vision', sig:'image.pixelAt(src, x, y) / image.getWidth(path) / image.getHeight(path)', title:'图像取色与尺寸', desc:'pixelAt 读取图片文件指定坐标（逻辑坐标）的颜色，返回 {r,g,b,a,hex}；getWidth/getHeight 是 file.imageSize 的简写，返回逻辑宽高。', params:[['src','string','图片路径'],['x/y','number','逻辑坐标']], returns:'object | number | null', example:`function main(){
+  const color = image.pixelAt("shots/s.png", 100, 200);
+  logd(color ? color.hex : "null");
+  logd(image.getWidth("shots/s.png"), image.getHeight("shots/s.png"));
 }
 main();` });APIS.push({ cat:'vision', sig:'findMultiColor(color, offsets, region?, options?)', title:'多点找色', desc:'按基准色 + 相对偏移点组合查找，比单点更稳。', params:[['color','string','基准颜色'],['offsets','array','偏移点数组 [{dx,dy,color}]'],['region','object','可选'],['options','object','可选']], returns:'AutoMatch', example:`function main(){
   const match = findMultiColor("#3b3b3b", [

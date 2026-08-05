@@ -110,4 +110,23 @@ report.photoStatus = getPhotoAuthorizationStatus();
 const photoStatus = media.requestPhotoAuthorization();
 report.photoRequested = photoStatus;
 
+// 9. Image processing pipeline (path-based, file gates apply)
+if (file.exists("shots/sample.png")) {
+  try {
+    const info = image.getSize("shots/sample.png");
+    report.imageSize = info ? info.width + "x" + info.height : null;
+    report.imageClipped = image.clip("shots/sample.png", 0, 0, info ? info.width : 100, 60, "shots/head.png") != null;
+    report.imageScaled = image.scale("shots/sample.png", 100, 200, "shots/small.png") != null;
+    report.imageGray = image.gray("shots/sample.png", "shots/gray.png") != null;
+    report.imageBinarized = image.binaryzation("shots/sample.png", "shots/bw.png", 128) != null;
+    const pixel = image.pixelAt("shots/sample.png", 10, 10);
+    report.pixel = pixel ? pixel.hex : null;
+  } catch (e) {
+    report.imageError = String(e);
+  }
+} else {
+  report.image = "no sample";
+}
+report.findNotColorSupported = typeof findNotColor === "function";
+
 report;

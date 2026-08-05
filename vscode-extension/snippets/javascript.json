@@ -111,5 +111,23 @@
       "logd(digest, fileDigest);"
     ],
     "description": "Compute MD5/SHA1 for strings or sandbox files"
+  },
+  "AutoSDK image pipeline": {
+    "prefix": "autoimage",
+    "body": [
+      "const clip = image.clip('${1:shots/s.png}', ${2:0}, ${3:0}, ${4:390}, ${5:60}, 'shots/head.png');",
+      "const gray = image.gray('${1:shots/s.png}', 'shots/gray.png');",
+      "const bw = image.binaryzation('${1:shots/s.png}', 'shots/bw.png', ${6:128});",
+      "logd(clip, gray, bw);"
+    ],
+    "description": "Crop, grayscale or binarize an image file"
+  },
+  "AutoSDK find not color": {
+    "prefix": "autonotcolor",
+    "body": [
+      "const points = findNotColor('${1:0xFFFFFF-0x101010}', ${2:0.9}, ${3:0}, ${4:0}, ${5:0}, ${6:0}, ${7:10}, ${8:1});",
+      "if (points && points.length > 0) logd('changed at', points[0].x, points[0].y);"
+    ],
+    "description": "Find points that do NOT match a color (change detection)"
   }
 }

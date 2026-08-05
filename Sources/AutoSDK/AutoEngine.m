@@ -32,6 +32,7 @@
 - (id)invokeCompareColors:(JSValue *)payload;
 - (id)invokeFindMultiColor:(JSValue *)payload;
 - (id)invokeFindColorEx:(JSValue *)payload;
+- (id)invokeFindNotColor:(JSValue *)payload;
 - (id)invokeHTTP:(JSValue *)payload;
 - (id)invokeOCR:(JSValue *)region;
 - (id)invokeExists:(JSValue *)selector;
@@ -651,6 +652,108 @@ static void AutoEnginePixelBufferDestroy(AutoEnginePixelBuffer *buffer) {
     if (buffer->context) CGContextRelease(buffer->context);
     free(buffer->bytes);
     *buffer = (AutoEnginePixelBuffer){0};
+}
+static NSArray *AutoEngineScanColorPoints(id<AutoAutomationAdapter> adapter,
+                                          AutoEngine *engine,
+                                          NSArray *targets,
+                                          double x, double y, double ex, double ey,
+                                          NSUInteger maximumMatches,
+                                          NSUInteger order,
+                                          BOOL notMode,
+                                          NSError **error) {
+    NSData *png = [adapter screenshotWithError:error];
+    if (!png) {
+        if (error && !*error) *error = AutoMakeError(AutoSDKErrorAutomationFailed,
+                                                     @"Unable to capture a screenshot for color search.", nil);
+        return nil;
+    }
+    if (png.length == 0) return @[];
+    UIImage *image = [UIImage imageWithData:png];
+    CGImageRef screenCGImage = image.CGImage;
+    if (!screenCGImage) {
+        if (error) *error = AutoMakeError(AutoSDKErrorAutomationFailed,
+                                          @"Unable to decode the screenshot for color search.", nil);
+        return nil;
+    }
+    CGFloat scale = image.scale > 0 ? image.scale : 1.0;
+    size_t imageWidth = CGImageGetWidth(screenCGImage);
+    size_t imageHeight = CGImageGetHeight(screenCGImage);
+    BOOL regionProvided = x != 0 || y != 0 || ex != 0 || ey != 0;
+    double minX = 0, minY = 0, maxX = imageWidth / scale, maxY = imageHeight / scale;
+    if (regionProvided) {
+        minX = MIN(x, ex);
+        maxX = MAX(x, ex);
+        minY = MIN(y, ey);
+        maxY = MAX(y, ey);
+    }
+    if (maxX - minX <= 0 || maxY - minY <= 0) {
+        if (error) *error = AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                          @"Color search region must have positive width and height.", nil);
+        return nil;
+    }
+    size_t pixelMinX = (size_t)MIN(imageWidth, (size_t)MAX(0, floor(minX * scale)));
+    size_t pixelMinY = (size_t)MIN(imageHeight, (size_t)MAX(0, floor(minY * scale)));
+    size_t pixelMaxX = (size_t)MIN(imageWidth, (size_t)MAX(0, ceil(maxX * scale)));
+    size_t pixelMaxY = (size_t)MIN(imageHeight, (size_t)MAX(0, ceil(maxY * scale)));
+    if (pixelMaxX <= pixelMinX || pixelMaxY <= pixelMinY) return @[];
+    AutoEnginePixelBuffer buffer = AutoEnginePixelBufferMake(screenCGImage);
+    if (!buffer.bytes) {
+        if (error) *error = AutoMakeError(AutoSDKErrorAutomationFailed,
+                                          @"Unable to allocate a pixel buffer for color search.", nil);
+        return nil;
+    }
+    size_t step = 1;
+    double regionWidth = (double)(pixelMaxX - pixelMinX);
+    double regionHeight = (double)(pixelMaxY - pixelMinY);
+    const double scanBudget = 2 * 1024 * 1024;
+    if (regionWidth * regionHeight > scanBudget) {
+        step = (size_t)ceil(sqrt((regionWidth * regionHeight) / scanBudget));
+        if (step < 1) step = 1;
+    }
+    NSInteger rowCount = (NSInteger)(pixelMaxY - pixelMinY);
+    NSInteger columnCount = (NSInteger)(pixelMaxX - pixelMinX);
+    BOOL columnsLeftToRight = (order == 1 || order == 3 || order == 5 || order == 7);
+    BOOL rowsTopToBottom = (order == 1 || order == 2 || order == 5 || order == 6);
+    BOOL columnMajor = order <= 4;
+    NSInteger iStep = (NSInteger)step;
+    NSMutableArray *matches = [NSMutableArray array];
+    __block BOOL cancelled = NO;
+    __block NSUInteger scanned = 0;
+    void (^evaluatePixel)(NSInteger, NSInteger, NSInteger, NSInteger) = ^(NSInteger columnIndex, NSInteger rowIndex, NSInteger majorIndex, NSInteger minorIndex) {
+        (void)majorIndex; (void)minorIndex;
+        const uint8_t *pixel = buffer.bytes + (NSUInteger)(pixelMinY + rowIndex) * buffer.bytesPerRow
+                             + (NSUInteger)(pixelMinX + columnIndex) * 4;
+        BOOL matched = AutoEnginePixelMatchesTargets(pixel, targets);
+        if (notMode ? !matched : matched) {
+            [matches addObject:@{ @"x": @((pixelMinX + columnIndex) / scale),
+                                  @"y": @((pixelMinY + rowIndex) / scale) }];
+        }
+        scanned += 1;
+        if ((scanned & 0x3FFF) == 0 && [engine shouldStop]) cancelled = YES;
+    };
+    if (columnMajor) {
+        for (NSInteger i = 0; i < columnCount && matches.count < maximumMatches && !cancelled; i += iStep) {
+            NSInteger columnIndex = columnsLeftToRight ? i : (columnCount - 1 - i);
+            for (NSInteger j = 0; j < rowCount && matches.count < maximumMatches; j += iStep) {
+                NSInteger rowIndex = rowsTopToBottom ? j : (rowCount - 1 - j);
+                evaluatePixel(columnIndex, rowIndex, i, j);
+            }
+        }
+    } else {
+        for (NSInteger i = 0; i < rowCount && matches.count < maximumMatches && !cancelled; i += iStep) {
+            NSInteger rowIndex = rowsTopToBottom ? i : (rowCount - 1 - i);
+            for (NSInteger j = 0; j < columnCount && matches.count < maximumMatches; j += iStep) {
+                NSInteger columnIndex = columnsLeftToRight ? j : (columnCount - 1 - j);
+                evaluatePixel(columnIndex, rowIndex, i, j);
+            }
+        }
+    }
+    AutoEnginePixelBufferDestroy(&buffer);
+    if (cancelled) {
+        if (error) *error = AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil);
+        return nil;
+    }
+    return matches;
 }
 
 static id AutoEngineHandleAudio(AutoEngine *engine, NSString *name, NSArray *arguments, NSDictionary *config) {
@@ -1347,102 +1450,47 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     }
     if (limit < 1) limit = 1;
     if (limit > 1000) limit = 1000;
-    NSUInteger maximumMatches = (NSUInteger)limit;
     NSUInteger order = (NSUInteger)direction;
     if (order < 1 || order > 8) order = 1;
-
     NSError *error = nil;
-    NSData *png = [self.adapter screenshotWithError:&error];
+    NSArray *matches = AutoEngineScanColorPoints(self.adapter, self.engine, targets,
+                                                 x, y, ex, ey, (NSUInteger)limit, order, NO, &error);
     if (error) return [self failure:error];
-    if (png.length == 0) return [NSNull null];
-    UIImage *image = [UIImage imageWithData:png];
-    CGImageRef screenCGImage = image.CGImage;
-    if (!screenCGImage) {
-        return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed,
-                                           @"Unable to decode the screenshot for findColorEx.", nil)];
-    }
-    CGFloat scale = image.scale > 0 ? image.scale : 1.0;
-    size_t imageWidth = CGImageGetWidth(screenCGImage);
-    size_t imageHeight = CGImageGetHeight(screenCGImage);
-
-    // Region in logical points; all-zero coordinates mean the full screen.
-    BOOL regionProvided = x != 0 || y != 0 || ex != 0 || ey != 0;
-    double minX = 0, minY = 0, maxX = imageWidth / scale, maxY = imageHeight / scale;
-    if (regionProvided) {
-        minX = MIN(x, ex);
-        maxX = MAX(x, ex);
-        minY = MIN(y, ey);
-        maxY = MAX(y, ey);
-    }
-    if (maxX - minX <= 0 || maxY - minY <= 0) {
-        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
-                                           @"findColorEx region must have positive width and height.", nil)];
-    }
-    size_t pixelMinX = (size_t)MIN(imageWidth, (size_t)MAX(0, floor(minX * scale)));
-    size_t pixelMinY = (size_t)MIN(imageHeight, (size_t)MAX(0, floor(minY * scale)));
-    size_t pixelMaxX = (size_t)MIN(imageWidth, (size_t)MAX(0, ceil(maxX * scale)));
-    size_t pixelMaxY = (size_t)MIN(imageHeight, (size_t)MAX(0, ceil(maxY * scale)));
-    if (pixelMaxX <= pixelMinX || pixelMaxY <= pixelMinY) return [NSNull null];
-
-    AutoEnginePixelBuffer buffer = AutoEnginePixelBufferMake(screenCGImage);
-    if (!buffer.bytes) {
-        return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed,
-                                           @"Unable to allocate a pixel buffer for findColorEx.", nil)];
-    }
-    size_t step = 1;
-    double regionWidth = (double)(pixelMaxX - pixelMinX);
-    double regionHeight = (double)(pixelMaxY - pixelMinY);
-    const double scanBudget = 2 * 1024 * 1024;
-    if (regionWidth * regionHeight > scanBudget) {
-        step = (size_t)ceil(sqrt((regionWidth * regionHeight) / scanBudget));
-        if (step < 1) step = 1;
-    }
-    NSInteger rowCount = (NSInteger)(pixelMaxY - pixelMinY);
-    NSInteger columnCount = (NSInteger)(pixelMaxX - pixelMinX);
-    BOOL columnsLeftToRight = (order == 1 || order == 3 || order == 5 || order == 7);
-    BOOL rowsTopToBottom = (order == 1 || order == 2 || order == 5 || order == 6);
-    BOOL columnMajor = order <= 4;
-    NSInteger iStep = (NSInteger)step;
-    NSMutableArray *matches = [NSMutableArray array];
-    BOOL cancelled = NO;
-    NSUInteger scanned = 0;
-    if (columnMajor) {
-        for (NSInteger i = 0; i < columnCount && matches.count < maximumMatches && !cancelled; i += iStep) {
-            NSInteger columnIndex = columnsLeftToRight ? i : (columnCount - 1 - i);
-            for (NSInteger j = 0; j < rowCount && matches.count < maximumMatches; j += iStep) {
-                NSInteger rowIndex = rowsTopToBottom ? j : (rowCount - 1 - j);
-                const uint8_t *pixel = buffer.bytes + (NSUInteger)(pixelMinY + rowIndex) * buffer.bytesPerRow
-                                     + (NSUInteger)(pixelMinX + columnIndex) * 4;
-                if (AutoEnginePixelMatchesTargets(pixel, targets)) {
-                    [matches addObject:@{ @"x": @((pixelMinX + columnIndex) / scale),
-                                          @"y": @((pixelMinY + rowIndex) / scale) }];
-                }
-                scanned += 1;
-                if ((scanned & 0x3FFF) == 0 && [self.engine shouldStop]) { cancelled = YES; break; }
-            }
-        }
-    } else {
-        for (NSInteger i = 0; i < rowCount && matches.count < maximumMatches && !cancelled; i += iStep) {
-            NSInteger rowIndex = rowsTopToBottom ? i : (rowCount - 1 - i);
-            for (NSInteger j = 0; j < columnCount && matches.count < maximumMatches; j += iStep) {
-                NSInteger columnIndex = columnsLeftToRight ? j : (columnCount - 1 - j);
-                const uint8_t *pixel = buffer.bytes + (NSUInteger)(pixelMinY + rowIndex) * buffer.bytesPerRow
-                                     + (NSUInteger)(pixelMinX + columnIndex) * 4;
-                if (AutoEnginePixelMatchesTargets(pixel, targets)) {
-                    [matches addObject:@{ @"x": @((pixelMinX + columnIndex) / scale),
-                                          @"y": @((pixelMinY + rowIndex) / scale) }];
-                }
-                scanned += 1;
-                if ((scanned & 0x3FFF) == 0 && [self.engine shouldStop]) { cancelled = YES; break; }
-            }
-        }
-    }
-    AutoEnginePixelBufferDestroy(&buffer);
-    if (cancelled) {
-        return [self failure:AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil)];
-    }
     return matches.count > 0 ? matches : [NSNull null];
 }
+
+- (id)invokeFindNotColor:(JSValue *)payload {
+    if (![self ensureScriptRunning]) return @NO;
+    NSDictionary *data = AutoPayload(payload);
+    double threshold = AutoFiniteDouble(data[@"threshold"], 0.9);
+    threshold = MIN(1.0, MAX(0.0, threshold));
+    double x = AutoFiniteDouble(data[@"x"], 0);
+    double y = AutoFiniteDouble(data[@"y"], 0);
+    double ex = AutoFiniteDouble(data[@"ex"], 0);
+    double ey = AutoFiniteDouble(data[@"ey"], 0);
+    double limit = AutoFiniteDouble(data[@"limit"], 10);
+    double direction = AutoFiniteDouble(data[@"direction"], 1);
+    if (!isfinite(x) || !isfinite(y) || !isfinite(ex) || !isfinite(ey) ||
+        !isfinite(limit) || !isfinite(direction)) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                           @"findNotColor requires finite coordinates, limit and direction.", nil)];
+    }
+    NSArray *targets = AutoEngineParseColorTargets(data[@"colors"], (CGFloat)threshold);
+    if (targets.count == 0) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                           @"findNotColor requires at least one valid color target.", nil)];
+    }
+    if (limit < 1) limit = 1;
+    if (limit > 1000) limit = 1000;
+    NSUInteger order = (NSUInteger)direction;
+    if (order < 1 || order > 8) order = 1;
+    NSError *error = nil;
+    NSArray *matches = AutoEngineScanColorPoints(self.adapter, self.engine, targets,
+                                                 x, y, ex, ey, (NSUInteger)limit, order, YES, &error);
+    if (error) return [self failure:error];
+    return matches.count > 0 ? matches : [NSNull null];
+}
+
 - (id)invokeHTTP:(JSValue *)payload {
     if (![self ensureScriptRunning]) return @NO;
     @autoreleasepool {

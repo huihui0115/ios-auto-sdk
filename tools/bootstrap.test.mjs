@@ -33,7 +33,7 @@ function createSandbox() {
   const store = {};
   const calls = {
     native: [], file: [], storage: [], http: [], device: [], app: [],
-    touch: [], clickPoint: [], click: [], swipe: [], sleep: [], ocr: [], screenshot: [], findColorEx: [], media: [],
+    touch: [], clickPoint: [], click: [], swipe: [], sleep: [], ocr: [], screenshot: [], findColorEx: [], findNotColor: [], media: [],
   };
   const logs = [];
   let virtualNow = 0;
@@ -152,6 +152,7 @@ function createSandbox() {
     invokeCapabilities: () => ({ click: true }),
     invokeMedia: (data) => { calls.media.push(data); return true; },
     invokeFindColorEx: (data) => { calls.findColorEx.push(data); return [{ x: 5, y: 6 }]; },
+    invokeFindNotColor: (data) => { calls.findNotColor.push(data); return [{ x: 7, y: 8 }]; },
     invokeNative: (data) => {
       calls.native.push(data);
       if (data.name === 'md5') return 'md5-of-' + String(data.arguments[0]);
@@ -623,6 +624,29 @@ test('findColorEx, playMp3/stopMp3 and photo authorization helpers', () => {
   assert.deepEqual(calls.media.at(-1), { operation: 'photoAuthorizationRequest' });
   assert.equal(typeof sandbox.requestPhotoAuthorization, 'function');
   assert.equal(typeof sandbox.getPhotoAuthorizationStatus, 'function');
+});
+test('findNotColor and image processing pipeline', () => {
+  const { sandbox, calls } = boot();
+  const points = sandbox.auto.findNotColor('0x000000', 0.9, 0, 0, 0, 0, 5, 1);
+  assert.deepEqual(points, [{ x: 7, y: 8 }]);
+  assert.deepEqual(calls.findNotColor.at(-1), { colors: '0x000000', threshold: 0.9, x: 0, y: 0, ex: 0, ey: 0, limit: 5, direction: 1 });
+  assert.equal(typeof sandbox.findNotColor, 'function');
+  assert.equal(typeof sandbox.image.findNotColor, 'function');
+
+  sandbox.image.clip('a.png', 10, 20, 100, 200, 'b.png');
+  assert.deepEqual(calls.file.at(-1), { operation: 'imageProcess', path: 'a.png', sub: 'clip', destination: 'b.png', args: { x: 10, y: 20, ex: 100, ey: 200 } });
+  sandbox.image.scale('a.png', 100, 200, 'c.png');
+  assert.deepEqual(calls.file.at(-1), { operation: 'imageProcess', path: 'a.png', sub: 'scale', destination: 'c.png', args: { width: 100, height: 200 } });
+  sandbox.image.gray('a.png', 'd.png');
+  assert.deepEqual(calls.file.at(-1), { operation: 'imageProcess', path: 'a.png', sub: 'gray', destination: 'd.png' });
+  sandbox.image.binaryzation('a.png', 'e.png', 150);
+  assert.deepEqual(calls.file.at(-1), { operation: 'imageProcess', path: 'a.png', sub: 'binaryzation', destination: 'e.png', args: { threshold: 150 } });
+  sandbox.image.rotate('a.png', 90, 'f.png');
+  assert.deepEqual(calls.file.at(-1), { operation: 'imageProcess', path: 'a.png', sub: 'rotate', destination: 'f.png', args: { degrees: 90 } });
+  sandbox.image.pixelAt('a.png', 5, 6);
+  assert.deepEqual(calls.file.at(-1), { operation: 'imagePixelAt', path: 'a.png', args: { x: 5, y: 6 } });
+  assert.deepEqual(sandbox.image.getWidth('a.png'), 390);
+  assert.deepEqual(sandbox.image.getHeight('a.png'), 844);
 });
 test('unknown auto.* methods fall back to invokeNative', () => {
   const { sandbox, calls } = boot();
