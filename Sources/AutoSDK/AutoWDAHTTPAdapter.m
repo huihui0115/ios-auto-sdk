@@ -3191,6 +3191,22 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     id value = AutoWDAResponseValue(response);
     return @([value boolValue]);
 }
+
+- (NSString *)currentApplicationWithError:(NSError **)error {
+    NSError *requestError = nil;
+    id response = [self requestSessionSuffix:@"/wda/activeAppInfo" method:@"GET" body:nil error:&requestError];
+    if (requestError) {
+        if (error) *error = requestError;
+        return nil;
+    }
+    id value = AutoWDAResponseValue(response);
+    if ([value isKindOfClass:NSDictionary.class]) {
+        id bundleId = value[@"bundleId"];
+        if ([bundleId isKindOfClass:NSString.class] && ((NSString *)bundleId).length > 0) return bundleId;
+    }
+    return nil;
+}
+
 - (BOOL)lockDeviceWithError:(NSError **)error {
     NSError *requestError = nil;
     [self requestSessionSuffix:@"/wda/lock" method:@"POST" body:@{} error:&requestError];

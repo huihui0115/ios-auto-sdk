@@ -263,6 +263,25 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
     if ([operation isEqualToString:@"resolvePath"]) return url.path;
     if ([operation isEqualToString:@"exists"]) return @([manager fileExistsAtPath:url.path]);
 
+    if ([operation isEqualToString:@"stat"]) {
+        NSError *statError = nil;
+        NSDictionary *attributes = [manager attributesOfItemAtPath:url.path error:&statError];
+        if (!attributes) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to stat path.", statError);
+            return nil;
+        }
+        NSString *fileType = [attributes[NSFileType] isKindOfClass:NSString.class] ? attributes[NSFileType] : @"";
+        BOOL isDirectory = [fileType isEqualToString:NSFileTypeDirectory];
+        NSNumber *size = [attributes[NSFileSize] isKindOfClass:NSNumber.class] ? attributes[NSFileSize] : @0;
+        NSDate *modified = [attributes[NSFileModificationDate] isKindOfClass:NSDate.class] ? attributes[NSFileModificationDate] : nil;
+        return @{ @"name": url.lastPathComponent ?: @"",
+                  @"path": url.path ?: @"",
+                  @"isDirectory": @(isDirectory),
+                  @"isFile": @(!isDirectory),
+                  @"size": size,
+                  @"modifiedAtMs": modified ? @([modified timeIntervalSince1970] * 1000.0) : [NSNull null] };
+    }
+
     if ([operation isEqualToString:@"readText"] || [operation isEqualToString:@"readBase64"] ||
         [operation isEqualToString:@"readLines"]) {
         NSUInteger maximum = AutoSupportByteLimit(config, @"maxFileReadBytes",

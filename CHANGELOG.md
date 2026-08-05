@@ -22,6 +22,11 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **File stat helpers and foreground-app query.** New ile.stat(path) /
+  getSize / getModifiedTime / isDir / isFile (single stat bridge
+  call, bounded by the same file-access gates) and pp.current() /
+  currentApp() (WDA /wda/activeAppInfo; embedded adapters report
+  unavailable). API reference grows to 144 documented functions.
 - **Device volume keys and screen state.** New device.volumeUp(),
   device.volumeDown() and device.isScreenOn() (WDA /wda/pressButton and
   /wda/locked), gated by llowSystemControl; embedded adapters report

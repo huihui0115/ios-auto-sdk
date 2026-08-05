@@ -41,6 +41,11 @@ file.writeLines("reports/points.txt", ["1,2", "3,4"]);
 file.copy("reports/latest.txt", "reports/copy.txt", true);
 file.move("reports/copy.txt", "reports/moved.txt", true);
 file.rename("reports/moved.txt", "final.txt");
+const stat = file.stat("reports/final.txt");   // { name, path, isDirectory, isFile, size, modifiedAtMs }
+file.getSize("reports/final.txt");             // 字节数
+file.getModifiedTime("reports/final.txt");     // 毫秒时间戳
+file.isFile("reports/final.txt");              // true
+file.isDir("reports");                         // true
 file.deleteAllFile("reports/final.txt");
 ```
 
@@ -48,7 +53,8 @@ Also available: `sandboxDir`, `getSandBoxDir`, `resolvePath`,
 `getSandBoxFilePath`, `exists`, `readText`, `readBase64`, `readLines`,
 `readAllLines`, `readLine` (by index), `writeText`, `writeBase64`, `writeLines`,
 `appendText`, `appendLine`, `create`, `deleteLine` (by index), `mkdir`, `remove`,
-`list`, `copy`, `move`, and `rename`. `move` /
+`list`, `copy`, `move`, `rename`, `stat`, `getSize`, `getModifiedTime`,
+`isDir`, and `isFile`. `move` /
 `rename` respect the same byte/item budgets as `copy` and refuse to move a
 path into itself or one of its children.
 

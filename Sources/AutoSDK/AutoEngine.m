@@ -1483,7 +1483,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         NSNumber *locked = [self.adapter deviceLockedStateWithError:&error];
         if (error) return [self failure:error];
         return @(!locked.boolValue);
-    }    NSDictionary *mapping = @{ @"screenWidth": @"screenWidth", @"screenHeight": @"screenHeight",
+    }
+    NSDictionary *mapping = @{ @"screenWidth": @"screenWidth", @"screenHeight": @"screenHeight",
                                @"scale": @"screenScale", @"model": @"model", @"osVersion": @"systemVersion",
                                @"name": @"name", @"battery": @"batteryLevel", @"isCharging": @"isCharging",
                                @"orientation": @"orientation" };
@@ -1523,6 +1524,13 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         }
         BOOL ok = ((BOOL (*)(id, SEL, NSError **))objc_msgSend)(self.adapter, selector, &error);
         return error ? [self failure:error] : @(ok);
+    }
+    if ([operation isEqualToString:@"current"]) {
+        if (![self.adapter respondsToSelector:@selector(currentApplicationWithError:)]) {
+            return [self failure:AutoMakeError(AutoSDKErrorAutomationUnavailable, @"The automation adapter does not report the foreground application.", nil)];
+        }
+        NSString *bundleId = [self.adapter currentApplicationWithError:&error];
+        return error ? [self failure:error] : (bundleId ?: [NSNull null]);
     }
     NSString *bundleId = [data[@"bundleId"] isKindOfClass:NSString.class] ? data[@"bundleId"] : @"";
     if (bundleId.length == 0) return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Application bundleId must not be empty.", nil)];

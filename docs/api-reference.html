@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>25</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>11</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>20</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>26</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>7</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>11</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>25</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>12</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>20</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>27</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>7</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>11</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -770,7 +770,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="app" class="cat" style="--c:#16a34a">
-  <h2><span class="tag">App与应用控制</span><i>11</i></h2>
+  <h2><span class="tag">App与应用控制</span><i>12</i></h2>
   <article class="card" data-search="app.launch(bundleId) 启动应用">
   <header class="card-head">
     <h4><code>app.launch(bundleId)</code> <span class="cname">启动应用</span></h4>
@@ -933,6 +933,21 @@ main();</code></pre>
   logd("回主屏幕: " + app.homeScreen());
   logd("锁屏: " + app.lock());
   logd("解锁: " + app.unlock());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="app.current() / currentApp() 当前前台应用">
+  <header class="card-head">
+    <h4><code>app.current() / currentApp()</code> <span class="cname">当前前台应用</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回当前前台 App 的 Bundle ID（WDA /wda/activeAppInfo）；宿主适配器不支持时返回错误。</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>string|null</span></div>
+  <pre><code>function main(){
+  const current = app.current();
+  logd("当前前台: " + current);
 }
 main();</code></pre>
 </article>
@@ -1334,7 +1349,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="file" class="cat" style="--c:#4f46e5">
-  <h2><span class="tag">文件</span><i>26</i></h2>
+  <h2><span class="tag">文件</span><i>27</i></h2>
   <article class="card" data-search="file.writeText(path, text) 写文本">
   <header class="card-head">
     <h4><code>file.writeText(path, text)</code> <span class="cname">写文本</span></h4>
@@ -1724,6 +1739,22 @@ main();</code></pre>
   <pre><code>function main(){
   const ok = file.rename("data/1.txt", "renamed.txt");
   logd("重命名: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.stat(path) / getSize / getModifiedTime / isDir / isFile 文件状态查询">
+  <header class="card-head">
+    <h4><code>file.stat(path) / getSize / getModifiedTime / isDir / isFile</code> <span class="cname">文件状态查询</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">查询文件大小（字节）、修改时间（毫秒时间戳）、是否为目录/文件；路径不存在时 stat 返回 null。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>object|null / number|null / boolean</span></div>
+  <pre><code>function main(){
+  const s = file.stat("data/a.txt");
+  if (s) logd("大小: " + s.size + " 修改: " + s.modifiedAtMs);
+  logd("是目录: " + file.isDir("data"));
 }
 main();</code></pre>
 </article>
@@ -2339,7 +2370,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 142 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 144 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

@@ -30,6 +30,7 @@ Audit date: 2026-08-05
 | 振动 | vibrate | ✅ device.vibrate（时长建议值，封顶） |
 | 打开 URL | openURL | ✅ auto/app.openURL（http(s)+安全自定义 scheme） |
 | 主屏幕/锁屏/解锁 | homeScreen / lock / unlock | ✅ app.homeScreen / lock / unlock（WDA 适配器实现） |
+| 当前前台应用 | currentPackage | ✅ app.current() / currentApp()（WDA activeAppInfo） |
 | 音量键/屏幕状态 | 音量加/减键、屏幕亮灭查询 | ✅ device.volumeUp / volumeDown / isScreenOn（WDA 按键注入） |
 | 触摸/节点 | 跨 App 点击、滑动、节点树 | 宿主内 AutoUIKitAdapter 直接；跨 App 走 WDA 适配器 |
 | 图色/OCR | 截图、找色、找图、OCR | ✅ 截图、像素、找色、多色、找图、Vision OCR |
@@ -45,7 +46,7 @@ Audit date: 2026-08-05
 | 随机/中心点击 | 无标准封装 | ✅ auto.clickCenter / auto.clickRandom（坐标取整，防检测） |
 | 工具函数 | uuid / base64 编码 | ✅ uuid()/uniqueId()、base64.encode/decode（UTF-8 安全） |
 | JSON 快捷请求 | httpGetJson | ✅ http.getJSON（parseJson:true） |
-| 文件移动 | move / rename / writeLines | ✅ file.move / rename / writeLines（沙盒内，预算同 copy） |
+| 文件移动/状态 | move / rename / writeLines | ✅ file.move / rename / writeLines；file.stat / getSize / isDir / isFile |
 
 ## 缺失但仍需要通道的部分
 

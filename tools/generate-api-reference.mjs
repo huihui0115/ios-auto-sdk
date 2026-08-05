@@ -709,6 +709,11 @@ APIS.push({ cat:'app', sig:'app.homeScreen() / lock() / unlock()', title:'主屏
   logd("解锁: " + app.unlock());
 }
 main();` });
+APIS.push({ cat:'app', sig:'app.current() / currentApp()', title:'当前前台应用', desc:'返回当前前台 App 的 Bundle ID（WDA /wda/activeAppInfo）；宿主适配器不支持时返回错误。', params:[], returns:'string|null', example:`function main(){
+  const current = app.current();
+  logd("当前前台: " + current);
+}
+main();` });
 APIS.push({ cat:'device', sig:'device.getDeviceInfo()', title:'设备信息', desc:'返回设备/屏幕/电池/系统等完整信息字典。', params:[], returns:'object {model, systemVersion, screenWidth, batteryLevel, ...}', example:`function main(){
   const info = device.getDeviceInfo();
   logd("型号: " + info.model);
@@ -893,6 +898,12 @@ APIS.push({ cat:'file', sig:'file.rename(path, newName)', title:'重命名', des
 }
 main();` });
 
+APIS.push({ cat:'file', sig:'file.stat(path) / getSize / getModifiedTime / isDir / isFile', title:'文件状态查询', desc:'查询文件大小（字节）、修改时间（毫秒时间戳）、是否为目录/文件；路径不存在时 stat 返回 null。', params:[['path','string','路径']], returns:'object|null / number|null / boolean', example:`function main(){
+  const s = file.stat("data/a.txt");
+  if (s) logd("大小: " + s.size + " 修改: " + s.modifiedAtMs);
+  logd("是目录: " + file.isDir("data"));
+}
+main();` });
 APIS.push({ cat:'storage', sig:'storages.create(name)', title:'创建命名存储', desc:'打开一个命名 JSON 存储（不存在则创建），返回存储对象。', params:[['name','string','存储名']], returns:'AutoStorage', example:`function main(){
   const store = storages.create("settings");
   store.putString("endpoint", "https://example.com");

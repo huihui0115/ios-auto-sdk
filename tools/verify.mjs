@@ -120,6 +120,9 @@ check(typeDefinitions.includes('declare function cancelTimeout') &&
       typeDefinitions.includes('declare function cancelInterval') &&
       typeDefinitions.includes('interface AutoConsole'),
       'Type definitions must describe the JavaScriptCore console and timer aliases');
+check(typeDefinitions.includes('stat(path: string): AutoFileStat | null') && typeDefinitions.includes('interface AutoFileStat') &&
+      typeDefinitions.includes('currentApp(): string | null'),
+      'Type definitions must declare file stat helpers and the foreground-app query');
 check(typeDefinitions.includes('volumeUp(): boolean') && typeDefinitions.includes('volumeDown(): boolean') &&
       typeDefinitions.includes('isScreenOn(): boolean'),
       'Type definitions must declare device volume keys and screen-state queries');

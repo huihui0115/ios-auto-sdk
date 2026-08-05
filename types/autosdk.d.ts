@@ -244,6 +244,20 @@ interface AutoFileAPI {
   writeLines(path: string, lines: string[]): boolean;
   move(source: string, destination: string, overwrite?: boolean): boolean;
   rename(path: string, newName: string): boolean;
+  stat(path: string): AutoFileStat | null;
+  getSize(path: string): number | null;
+  getModifiedTime(path: string): number | null;
+  isDir(path: string): boolean;
+  isFile(path: string): boolean;
+}
+
+interface AutoFileStat {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  isFile: boolean;
+  size: number;
+  modifiedAtMs: number | null;
 }
 
 interface AutoStorage {
@@ -320,6 +334,8 @@ interface AutoAppAPI {
   homeScreen(): boolean;
   lock(): boolean;
   unlock(): boolean;
+  current(): string | null;
+  currentApp(): string | null;
 }
 
 interface AutoAPI {

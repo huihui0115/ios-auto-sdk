@@ -81,10 +81,10 @@ The following surfaces must not be described as production-complete yet:
 | 触摸与节点 | 22 | 坐标/节点点击、滑动、输入，节点 13 个查询（含 getChild/getSiblings/clickCenter/clickRandom） |
 | 图色与OCR | 9 | 多指手势 | 双指缩放/自定义复杂手势 | ✅ auto.gesture / multiGesture / pinch（WDA 适配器真实触摸注入，capabilities.multiTouch）|
 | 截图、找图、找色、多点找色、像素、OCR |
-| App与应用控制 | 6 | launch/activate/terminate/state/openURL/homeScreen |
+| App与应用控制 | 7 | launch/activate/terminate/state/openURL/homeScreen/current（当前前台） |
 | 设备与系统 | 15 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、音量键、屏幕状态 |
 | 坐标与屏幕 | 4 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
-| 文件 | 21 | 沙盒 CRUD、行操作、复制/移动/重命名 |
+| 文件 | 26 | 沙盒 CRUD、行操作、复制/移动/重命名、stat/getSize/时间戳/类型判断 |
 | 存储 | 5 | 命名 typed store |
 | 网络HTTP | 6 | get/post/postJSON/getJSON/download/通用请求 |
 | 相册媒体 | 5 | saveImage/saveImageBase64/saveVideo/saveScreenshot |

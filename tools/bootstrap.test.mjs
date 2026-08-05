@@ -59,6 +59,9 @@ function createSandbox() {
         case 'writeBase64': files[data.path] = Buffer.from(String(data.text ?? ''), 'base64').toString('utf8'); return true;
         case 'appendText': files[data.path] = (files[data.path] ?? '') + String(data.text ?? ''); return true;
         case 'list': return [{ name: 'a.txt', type: 'file', path: data.path + '/a.txt' }];
+        case 'stat': return Object.prototype.hasOwnProperty.call(files, data.path)
+          ? { name: data.path.split('/').pop(), path: data.path, isDirectory: false, isFile: true, size: String(files[data.path] ?? '').length, modifiedAtMs: 1700000000000 }
+          : null;
         case 'mkdir': return true;
         case 'remove': delete files[data.path]; return true;
         case 'copy': files[data.destination] = files[data.path]; return true;
@@ -114,6 +117,7 @@ function createSandbox() {
     invokeApp: (data) => {
       calls.app.push(data);
       if (data.operation === 'state') return 4;
+      if (data.operation === 'current') return 'com.example.host';
       return true;
     },
     invokeTouch: (data) => { calls.touch.push(data); return true; },
@@ -297,6 +301,28 @@ test('storage put/get/remove/contains/clear/keys', () => {
   assert.deepEqual(store.keys(), []);
 });
 
+
+test('file.stat and convenience accessors report size and type', () => {
+  const { sandbox } = boot();
+  sandbox.file.writeText('demo/a.txt', 'hello');
+  const stat = sandbox.file.stat('demo/a.txt');
+  assert.equal(stat.size, 5);
+  assert.equal(stat.isFile, true);
+  assert.equal(stat.isDirectory, false);
+  assert.equal(stat.modifiedAtMs, 1700000000000);
+  assert.equal(sandbox.file.getSize('demo/a.txt'), 5);
+  assert.equal(sandbox.file.getModifiedTime('demo/a.txt'), 1700000000000);
+  assert.equal(sandbox.file.isFile('demo/a.txt'), true);
+  assert.equal(sandbox.file.isDir('demo/a.txt'), false);
+  assert.equal(sandbox.file.stat('demo/missing.txt'), null);
+});
+
+test('app.current and currentApp return the foreground bundle id', () => {
+  const { sandbox } = boot();
+  assert.equal(sandbox.app.current(), 'com.example.host');
+  assert.equal(sandbox.app.currentApp(), 'com.example.host');
+  assert.equal(sandbox.currentApp(), 'com.example.host');
+});
 test('file read/write/exists/list/move/remove', () => {
   const { sandbox } = boot();
   const path = sandbox.file.resolvePath('notes.txt');
