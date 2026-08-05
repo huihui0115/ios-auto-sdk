@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>34</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>22</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>18</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>24</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>37</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>10</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>2</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>34</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>23</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>18</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>24</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>10</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>2</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -755,7 +755,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="vision" class="cat" style="--c:#ea580c">
-  <h2><span class="tag">图色与OCR</span><i>22</i></h2>
+  <h2><span class="tag">图色与OCR</span><i>23</i></h2>
   <article class="card" data-search="screenshot() 截屏">
   <header class="card-head">
     <h4><code>screenshot()</code> <span class="cname">截屏</span></h4>
@@ -1106,6 +1106,21 @@ main();</code></pre>
   <pre><code>function main(){
   const img = screen.screenshot();
   logd("截图长度: " + img.length);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="findColorCount(colors, threshold?, x?, y?, ex?, ey?, maxCount?) / screen.findColorCount(...) / image.findColorCount(...) 颜色数量统计">
+  <header class="card-head">
+    <h4><code>findColorCount(colors, threshold?, x?, y?, ex?, ey?, maxCount?) / screen.findColorCount(...) / image.findColorCount(...)</code> <span class="cname">颜色数量统计</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">统计屏幕指定区域内匹配给定颜色特征的点数（对标 AScript CountingColor / EasyClick 找色计数），可用于判断页面状态、加载完成检测、干扰点过滤。colors/threshold/区域参数与 findColorEx 一致；maxCount 默认 100000 防止超大扫描。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">colors</code><span class="ptype">string|array</span><span class="pdesc">颜色目标列表</span></div><div class="param"><code class="pname">threshold</code><span class="ptype">number</span><span class="pdesc">0-1 相似度，默认 0.9</span></div><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">区域起点 X</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">区域起点 Y</span></div><div class="param"><code class="pname">ex</code><span class="ptype">number</span><span class="pdesc">区域终点 X</span></div><div class="param"><code class="pname">ey</code><span class="ptype">number</span><span class="pdesc">区域终点 Y</span></div><div class="param"><code class="pname">maxCount</code><span class="ptype">number</span><span class="pdesc">最大统计点数，默认 100000</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  const n = findColorCount("0xCDD7E9-0x101010", 0.9, 0, 0, 0, 0, 100000);
+  logd("匹配颜色点数量: " + n);
 }
 main();</code></pre>
 </article>
@@ -1841,7 +1856,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="file" class="cat" style="--c:#4f46e5">
-  <h2><span class="tag">文件</span><i>37</i></h2>
+  <h2><span class="tag">文件</span><i>38</i></h2>
   <article class="card" data-search="file.lineCount(path) / getLineText(path, index) / insertLineText(path, index, text) / resetLineText(path, index, text) 文件行操作">
   <header class="card-head">
     <h4><code>file.lineCount(path) / getLineText(path, index) / insertLineText(path, index, text) / resetLineText(path, index, text)</code> <span class="cname">文件行操作</span></h4>
@@ -2401,6 +2416,21 @@ main();</code></pre>
   const s = file.stat("data/a.txt");
   if (s) logd("大小: " + s.size + " 修改: " + s.modifiedAtMs);
   logd("是目录: " + file.isDir("data"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="image.toBase64(path) 图片转 Base64">
+  <header class="card-head">
+    <h4><code>image.toBase64(path)</code> <span class="cname">图片转 Base64</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把沙盒内图片文件读为 Base64 字符串（对标 AScript image_to_base64），可直接用于 http bodyBase64、media.saveImageBase64 或 base64.decode。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内图片路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string | null</span></div>
+  <pre><code>function main(){
+  const b64 = image.toBase64("shots/sample.png");
+  logd("Base64 长度: " + (b64 ? b64.length : 0));
 }
 main();</code></pre>
 </article>
@@ -3493,7 +3523,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 215 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 217 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

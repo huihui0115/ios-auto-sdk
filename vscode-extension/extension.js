@@ -199,7 +199,11 @@ const API_COMPLETIONS = [
   ['screen.ocr(options)', 'EasyClick-compatible OCR entry (on-device Vision).'],
   ['screen.screenshot()', 'EasyClick-compatible screenshot entry (PNG base64).'],
   ['app.getAppName(bundleId)', 'Resolve an app display name from the installed app list.'],
-  ['app.isRunning(bundleId)', 'Check whether an app is running (state code >= 2).']
+  ['app.isRunning(bundleId)', 'Check whether an app is running (state code >= 2).'],
+  ['findColorCount(colors, threshold, x, y, ex, ey, maxCount)', 'Count matching color points (AScript CountingColor style).'],
+  ['screen.findColorCount(colors, threshold, x, y, ex, ey, maxCount)', 'Screen-module color counting entry.'],
+  ['image.findColorCount(colors, threshold, x, y, ex, ey, maxCount)', 'Image-module color counting entry.'],
+  ['image.toBase64(path)', 'Read a sandbox image file as a Base64 string.'],
 ];
 
 function outputChannel() {

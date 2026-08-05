@@ -1546,5 +1546,15 @@ APIS.push({ cat:'app', sig:'app.isRunning(bundleId)', title:'应用是否在运�
   }
 }
 main();` });
+APIS.push({ cat:'vision', sig:'findColorCount(colors, threshold?, x?, y?, ex?, ey?, maxCount?) / screen.findColorCount(...) / image.findColorCount(...)', title:'颜色数量统计', desc:'统计屏幕指定区域内匹配给定颜色特征的点数（对标 AScript CountingColor / EasyClick 找色计数），可用于判断页面状态、加载完成检测、干扰点过滤。colors/threshold/区域参数与 findColorEx 一致；maxCount 默认 100000 防止超大扫描。', params:[['colors','string|array','颜色目标列表'],['threshold','number','0-1 相似度，默认 0.9'],['x','number','区域起点 X'],['y','number','区域起点 Y'],['ex','number','区域终点 X'],['ey','number','区域终点 Y'],['maxCount','number','最大统计点数，默认 100000']], returns:'number', example:`function main(){
+  const n = findColorCount("0xCDD7E9-0x101010", 0.9, 0, 0, 0, 0, 100000);
+  logd("匹配颜色点数量: " + n);
+}
+main();` });
+APIS.push({ cat:'file', sig:'image.toBase64(path)', title:'图片转 Base64', desc:'把沙盒内图片文件读为 Base64 字符串（对标 AScript image_to_base64），可直接用于 http bodyBase64、media.saveImageBase64 或 base64.decode。', params:[['path','string','沙盒内图片路径']], returns:'string | null', example:`function main(){
+  const b64 = image.toBase64("shots/sample.png");
+  logd("Base64 长度: " + (b64 ? b64.length : 0));
+}
+main();` });
 writeFileSync(join(root, 'docs', 'api-reference.html'), render(), 'utf8');
 console.log('Generated docs/api-reference.html with ' + APIS.length + ' functions.');

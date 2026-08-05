@@ -658,6 +658,21 @@ test('findColorEx, playMp3/stopMp3 and photo authorization helpers', () => {
   assert.equal(typeof sandbox.requestPhotoAuthorization, 'function');
   assert.equal(typeof sandbox.getPhotoAuthorizationStatus, 'function');
 });
+test('findColorCount and image.toBase64 (AScript benchmark round 15)', () => {
+  const { sandbox, calls } = boot();
+  // findColorCount wraps findColorEx with a large default limit
+  assert.equal(sandbox.findColorCount('0xCDD7E9-0x101010'), 1);
+  assert.deepEqual(calls.findColorEx.at(-1), { colors: '0xCDD7E9-0x101010', threshold: 0.9, x: 0, y: 0, ex: 0, ey: 0, limit: 100000, direction: 1 });
+  assert.equal(sandbox.findColorCount('#00FF00', 0.8, 10, 20, 100, 200, 50), 1);
+  assert.deepEqual(calls.findColorEx.at(-1), { colors: '#00FF00', threshold: 0.8, x: 10, y: 20, ex: 100, ey: 200, limit: 50, direction: 1 });
+  assert.equal(typeof sandbox.screen.findColorCount, 'function');
+  assert.equal(typeof sandbox.image.findColorCount, 'function');
+  // image.toBase64 reads a sandbox file as base64
+  sandbox.file.writeText('demo/img.txt', 'hello');
+  assert.equal(sandbox.image.toBase64('demo/img.txt'), Buffer.from('hello', 'utf8').toString('base64'));
+  assert.equal(typeof sandbox.image.toBase64, 'function');
+});
+
 test('findNotColor and image processing pipeline', () => {
   const { sandbox, calls } = boot();
   const points = sandbox.auto.findNotColor('0x000000', 0.9, 0, 0, 0, 0, 5, 1);

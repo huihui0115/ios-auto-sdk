@@ -390,6 +390,7 @@ interface AutoScreenAPI {
   findColor(color: AutoColor, region?: AutoRect, options?: AutoColorSearchOptions): AutoMatch;
   findColorEx(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, limit?: number, direction?: number): AutoPoint[] | null;
   findNotColor(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, limit?: number, direction?: number): AutoPoint[] | null;
+  findColorCount(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, maxCount?: number): number;
   findMultiColor(color: AutoColor, offsets: AutoColorOffsetLike[], region?: AutoRect, options?: AutoColorSearchOptions): AutoMatch;
   findColors(points: AutoColorPoint[], options?: { tolerance?: number }): boolean;
   isColors(points: AutoColorPoint[], options?: { tolerance?: number }): boolean;
@@ -645,6 +646,8 @@ declare const image: {
   binaryzation(src: string, dest: string, threshold?: number): string | null;
   rotate(src: string, degrees: number, dest: string): string | null;
   pixelAt(src: string, x: number, y: number): AutoPixelColor | null;
+  toBase64(path: string): string | null;
+  findColorCount(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, maxCount?: number): number;
   saveToAlbum: AutoAPI["saveImageToAlbum"];
   saveBase64ToAlbum: AutoAPI["saveImageBase64ToAlbum"];
   saveScreenshotToAlbum: AutoAPI["saveScreenshotToAlbum"];
@@ -805,5 +808,6 @@ declare function endWith(text: string, suffix: string): boolean;
 declare function contains(text: string, sub: string): boolean;
 declare function padZero(text: string | number, length: number): string;
 declare function isInstalled(bundleId: string): boolean;
+declare function findColorCount(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, maxCount?: number): number;
 declare const screen: AutoScreenAPI;
 declare const string: AutoStringsAPI;

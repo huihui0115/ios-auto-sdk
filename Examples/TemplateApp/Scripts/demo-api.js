@@ -243,6 +243,14 @@ try {
   report.round12Error = String(e);
 }
 
+// 18b. AScript benchmark: color counting + image base64 (round 15)
+try {
+  report.colorCount = findColorCount("0xCDD7E9-0x101010", 0.9, 0, 0, 0, 0, 100000);
+  report.imageBase64 = image.toBase64("demo/zip-note.txt") != null;
+} catch (e) {
+  report.round15Error = String(e);
+}
+
 // 18. EasyClick-compatible screen module + app name/run state (round 14)
 try {
   report.screen = {

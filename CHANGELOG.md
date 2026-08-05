@@ -8,6 +8,16 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 ### Added
+- **Round 15: 对标 AScript（ascript.cn）+ 免巨魔路线。** 新增 `findColorCount`（颜色数量统计，对标
+  AScript CountingColor）与 `image.toBase64(path)`（图片转 Base64，对标 image_to_base64），
+  含 screen/image 模块入口与全局别名；新增
+  [`docs/ASCRIPT_COMPARISON.md`](docs/ASCRIPT_COMPARISON.md)（AScript 逐模块函数对标）与
+  [`docs/NO_TROLLSTORE.md`](docs/NO_TROLLSTORE.md)（免费签名安装 / XCTest 激活 WDA / HID 模式
+  三条免巨魔路线，对标 AScript Agent 模式与 kuaijs）；修复 CI 在 macOS 上暴露的 3 个真实编译/
+  测试问题（重复 static 函数名、id.count 点语法、日期测试时区依赖）。本地 API 文档同步更新：
+  217 个函数。
+
+### Added
 - **Round 14: EasyClick 兼容 screen 取色模块 + 应用信息增强。** 新增
   `screen.*` 图色模块（EasyClick 兼容入口）：`screen.getColor(x,y)` 返回
   {r,g,b,a,hex}、`getColorRGB(x,y)` 返回 {r,g,b}、`getColorHex(x,y)` 返回
