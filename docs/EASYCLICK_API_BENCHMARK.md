@@ -77,7 +77,7 @@ are not implemented.
 | findNotColor | ❌ | 反向找色 |
 | pixel / getPixelBitmap | ✅ `getPixelColor` | 取色 |
 | clip / scaleBitmap / rotateImage / gray / binaryzation / recycle | ❌ | 图像对象管线 |
-| getWidth / getHeight | ❌ | 图像尺寸查询 |
+| getWidth / getHeight | ✅ `file.imageSize(path)` / `image.getSize(path)` | 图像尺寸查询 |
 | saveBitmap / saveTo | 🟡 `media.saveImage` | 保存 |
 
 ## OCR（ocr-api）
@@ -106,7 +106,7 @@ are not implemented.
 | randomInt / getRangeInt | ✅ `randomInt(min,max)` | 随机数 |
 | randomCharNumber | ✅ `randomString(n)` / `randomCharNumber(n)` | 随机字符串 |
 | zip / unzip / unzipWithEncode / readFileInZip | ❌ | 压缩 |
-| dataMd5 / fileMd5 | ❌ | 哈希（可经宿主注册原生方法） |
+| dataMd5 / fileMd5 | ✅ `md5(text)` / `sha1(text)` / `file.md5(path)` / `file.md5File(path)` | 字符串与文件哈希 |
 | playMp3 / stopMp3 / deleteAllPhotos / deleteAllVideos / requestPhotoAuthorization | ❌ | 媒体管理 |
 | getPCIps / getRatio | ❌ | 中控网络工具 |
 

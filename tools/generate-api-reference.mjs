@@ -111,7 +111,11 @@ const REFS = {
   'randomCharNumber(length?)': 'EasyClick utils.randomCharNumber()',
   'launchAppByPrefix(bundleIdPrefix)': 'EasyClick appLaunchByPrefix()',
   'app.launchByPrefix(bundleIdPrefix)': 'EasyClick appLaunchByPrefix()',
-  'device.getScreenWidthHeightText()': 'EasyClick getScreenWidthHeightText()',  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
+  'device.getScreenWidthHeightText()': 'EasyClick getScreenWidthHeightText()',
+  'md5(text) / sha1(text)': 'EasyClick utils.dataMd5()',
+  'file.md5(path) / file.md5File(path)': 'EasyClick utils.fileMd5()',
+  'file.imageSize(path)': 'EasyClick image.getWidth()/getHeight()',
+  'image.getSize(path)': 'EasyClick image.getWidth()/getHeight()',  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
   'uuid()': 'EasyClick uuid()',
   'base64.encode(str)': 'EasyClick base64.encode()/decode()'
 };
@@ -330,7 +334,11 @@ APIS.push({ cat:'timer', sig:'randomCharNumber(length?)', title:'随机字母数
   logd("验证码: " + code);
 }
 main();` });
-APIS.push({ cat:'timer', sig:'uuid() / uniqueId()', title:'唯一 ID', desc:'生成 UUID 字符串。', params:[], returns:'string', example:`function main(){
+APIS.push({ cat:'timer', sig:'md5(text) / sha1(text)', title:'哈希', desc:'对字符串计算 MD5 或 SHA1 十六进制摘要，可用于请求签名、文件去重。', params:[['text','string','任意字符串']], returns:'string', example:`function main(){
+  logd("md5: " + md5("hello"));
+  logd("sha1: " + sha1("hello"));
+}
+main();` });APIS.push({ cat:'timer', sig:'uuid() / uniqueId()', title:'唯一 ID', desc:'生成 UUID 字符串。', params:[], returns:'string', example:`function main(){
   logd(uuid());
   logd(uniqueId());
 }
@@ -678,6 +686,10 @@ APIS.push({ cat:'vision', sig:'screenshotRegion(x, y, width, height)', title:'�
   const png = screenshotRegion(0, 0, 390, 60);
   if (png) logd("区域截图长度: " + png.length);
 }
+main();` });APIS.push({ cat:'vision', sig:'image.getSize(path)', title:'图片尺寸（图像对象）', desc:'image 命名空间下的图片尺寸查询，等价 file.imageSize。', params:[['path','string','图片路径']], returns:'object {width, height, pixelWidth, pixelHeight, scale}', example:`function main(){
+  const size = image.getSize("images/start.png");
+  logd(size.width + " x " + size.height);
+}
 main();` });APIS.push({ cat:'vision', sig:'findImage(templatePath, options?)', title:'找图', desc:'在屏幕截图中查找模板图片，返回匹配位置与相似度。', params:[['templatePath','string','模板图片路径（沙盒内，支持 png/jpg）'],['options','object','可选，region/threshold 等']], returns:'AutoMatch {found, x, y, similarity}', example:`function main(){
   const match = findImage("images/start.png", {threshold: 0.9});
   if (match.found) {
@@ -918,7 +930,16 @@ APIS.push({ cat:'file', sig:'file.readLine(path, index)', title:'读取某一行
   logd("第一行: " + line);
 }
 main();` });
-APIS.push({ cat:'file', sig:'file.deleteLine(path, index)', title:'删除某一行', desc:'删除指定下标的一行。', params:[['path','string','路径'],['index','number','行下标']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'file', sig:'file.imageSize(path)', title:'图片尺寸', desc:'读取图片文件的逻辑宽高（点）、像素宽高与 scale。', params:[['path','string','图片路径（png/jpg 等）']], returns:'object {width, height, pixelWidth, pixelHeight, scale}', example:`function main(){
+  const size = file.imageSize("images/banner.png");
+  logd("宽: " + size.width + " 高: " + size.height + " 像素: " + size.pixelWidth + "x" + size.pixelHeight);
+}
+main();` });
+APIS.push({ cat:'file', sig:'file.md5(path) / file.md5File(path) / file.sha1(path) / file.sha1File(path)', title:'文件哈希', desc:'计算沙盒文件的 MD5 或 SHA1 十六进制摘要（受 maxFileReadBytes 限制）。', params:[['path','string','文件路径']], returns:'string', example:`function main(){
+  const md5 = file.md5("data/payload.json");
+  logd("文件 md5: " + md5);
+}
+main();` });APIS.push({ cat:'file', sig:'file.deleteLine(path, index)', title:'删除某一行', desc:'删除指定下标的一行。', params:[['path','string','路径'],['index','number','行下标']], returns:'boolean', example:`function main(){
   const ok = file.deleteLine("data/points.txt", 0);
   logd("删除: " + ok);
 }

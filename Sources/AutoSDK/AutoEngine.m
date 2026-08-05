@@ -1650,6 +1650,13 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     __block AutoNativeMethodHandler handler = nil;
     @synchronized (self.engine) { handler = [self.engine.nativeMethods[name] copy]; }
     if (!handler) {
+        if ([name isEqualToString:@"md5"] || [name isEqualToString:@"sha1"]) {
+            id argument = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? [nativePayload[@"arguments"] firstObject] : nil;
+            NSString *input = [argument isKindOfClass:NSString.class] ? argument : [argument description];
+            NSData *inputData = [input dataUsingEncoding:NSUTF8StringEncoding];
+            if (!inputData) return @"";
+            return [name isEqualToString:@"md5"] ? AutoScriptMD5Hex(inputData) : AutoScriptSHA1Hex(inputData);
+        }
         if ([name isEqualToString:@"toast"]) {
             id message = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? [nativePayload[@"arguments"] firstObject] : nil;
             NSString *text = [message isKindOfClass:NSString.class] ? message : [message description];

@@ -59,6 +59,9 @@ function createSandbox() {
         case 'writeBase64': files[data.path] = Buffer.from(String(data.text ?? ''), 'base64').toString('utf8'); return true;
         case 'appendText': files[data.path] = (files[data.path] ?? '') + String(data.text ?? ''); return true;
         case 'list': return [{ name: 'a.txt', type: 'file', path: data.path + '/a.txt' }];
+        case 'imageSize': return { width: 390, height: 844, pixelWidth: 1170, pixelHeight: 2532, scale: 3 };
+        case 'md5File': return 'd41d8cd98f00b204e9800998ecf8427e';
+        case 'sha1File': return 'da39a3ee5e6b4b0d3255bfef95601890afd80709';
         case 'stat': return Object.prototype.hasOwnProperty.call(files, data.path)
           ? { name: data.path.split('/').pop(), path: data.path, isDirectory: false, isFile: true, size: String(files[data.path] ?? '').length, modifiedAtMs: 1700000000000 }
           : null;
@@ -148,7 +151,12 @@ function createSandbox() {
     invokeScrollIntoView: () => true,
     invokeCapabilities: () => ({ click: true }),
     invokeMedia: () => true,
-    invokeNative: (data) => { calls.native.push(data); return true; },
+    invokeNative: (data) => {
+      calls.native.push(data);
+      if (data.name === 'md5') return 'md5-of-' + String(data.arguments[0]);
+      if (data.name === 'sha1') return 'sha1-of-' + String(data.arguments[0]);
+      return true;
+    },
   };
   const consoleBridge = {
     log: (value) => logs.push(['log', value]),
@@ -567,6 +575,24 @@ test('screenshotRegion, childCount, randomString, drag and screen text helpers',
 
   assert.equal(sandbox.auto.device.getScreenWidthHeightText(), '390x844');
   assert.equal(typeof sandbox.getScreenWidthHeightText, 'function');
+});
+
+test('md5/sha1 hashes and file imageSize helpers', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.auto.md5('hello'), 'md5-of-hello');
+  assert.deepEqual(calls.native.at(-1), { name: 'md5', arguments: ['hello'] });
+  assert.equal(sandbox.auto.sha1('world'), 'sha1-of-world');
+  assert.equal(sandbox.md5('x'), 'md5-of-x');
+  assert.equal(sandbox.sha1('y'), 'sha1-of-y');
+  assert.equal(typeof sandbox.auto.md5, 'function');
+  assert.equal(typeof sandbox.auto.sha1, 'function');
+
+  assert.equal(sandbox.file.md5('demo.txt'), 'd41d8cd98f00b204e9800998ecf8427e');
+  assert.equal(sandbox.auto.file.md5File('demo.txt'), 'd41d8cd98f00b204e9800998ecf8427e');
+  assert.equal(sandbox.file.sha1('demo.txt'), 'da39a3ee5e6b4b0d3255bfef95601890afd80709');
+  assert.equal(sandbox.auto.file.sha1File('demo.txt'), 'da39a3ee5e6b4b0d3255bfef95601890afd80709');
+  assert.deepEqual(sandbox.file.imageSize('img.png'), { width: 390, height: 844, pixelWidth: 1170, pixelHeight: 2532, scale: 3 });
+  assert.deepEqual(sandbox.image.getSize('img.png'), { width: 390, height: 844, pixelWidth: 1170, pixelHeight: 2532, scale: 3 });
 });
 
 test('unknown auto.* methods fall back to invokeNative', () => {

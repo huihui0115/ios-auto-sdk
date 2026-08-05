@@ -44,7 +44,13 @@ All notable changes to AutoSDK are documented here. The format follows
   long-press drag through the touch pipeline; childCount(), randomString() and
   randomCharNumber() add node-count and random-string helpers;
   device.getScreenWidthHeightText() returns "390x844". API reference grows to
-  156 documented functions.- **Device volume keys and screen state.** New device.volumeUp(),
+  156 documented functions.
+- **EasyClick benchmark round 2: hashes and image dimensions.** New md5(text) /
+  sha1(text) built-in string digests (CommonCrypto), file.md5/md5File/sha1/
+  sha1File sandbox-file digests, and file.imageSize(path) /
+  image.getSize(path) returning logical/pixel dimensions via ImageIO. API
+  reference grows to 160 documented functions.
+- **Device volume keys and screen state.** New device.volumeUp(),
   device.volumeDown() and device.isScreenOn() (WDA /wda/pressButton and
   /wda/locked), gated by allowSystemControl; embedded adapters report
   unavailable instead of failing silently. API reference grows to 142

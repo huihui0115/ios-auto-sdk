@@ -709,6 +709,23 @@ check(read('Sources/AutoSDK/include/AutoWDAHTTPAdapter.h').includes('performMult
 check(read('Sources/AutoSDK/AutoWDAHTTPAdapter.m').includes('@"/actions" method:@"POST" body:body') &&
       wdaAdapter.includes('@"multiTouch": @YES'),
       'WDA adapter must implement multi-touch gestures and report the capability');
+check(bootstrapSource.includes('base.md5=function(s)') &&
+      bootstrapSource.includes('base.sha1=function(s)') &&
+      bootstrapSource.includes("callFile('imageSize'") &&
+      bootstrapSource.includes("callFile('md5File'") &&
+      bootstrapSource.includes("callFile('sha1File'") &&
+      bootstrapSource.includes('getSize:function(p){return fileApi.imageSize(p);}') &&
+      bootstrapSource.includes('g.md5=base.md5'),
+      'Bootstrap must expose string hashes, file image size and file hashes');
+check(typeDefinitions.includes('md5(text: string): string') &&
+      typeDefinitions.includes('sha1(text: string): string') &&
+      typeDefinitions.includes('imageSize(path: string): { width: number; height: number; pixelWidth: number; pixelHeight: number; scale: number } | null') &&
+      typeDefinitions.includes('md5File(path: string): string'),
+      'Type definitions must describe hashes and image dimensions');
+check(read('Sources/AutoSDK/AutoScriptSupport.m').includes('AutoScriptMD5Hex(NSData *data)') &&
+      read('Sources/AutoSDK/AutoScriptSupport.m').includes('CGImageSourceCreateWithData') &&
+      read('Sources/AutoSDK/AutoEngine.m').includes('[name isEqualToString:@"md5"]'),
+      'Native support must implement MD5/SHA1 digests and image-size metadata');
 check(bootstrapSource.includes('base.screenshotRegion=function(x,y,w,h)') &&
       bootstrapSource.includes('base.childCount=function(s)') &&
       bootstrapSource.includes('base.randomString=function(len,chars)') &&

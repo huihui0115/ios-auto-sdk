@@ -12,6 +12,8 @@ BOOL AutoScriptValidateDownloadDestination(NSString *path,
                                            NSDictionary<NSString *, id> *config,
                                            NSError **error);
 NSUInteger AutoScriptMaximumDownloadBytes(NSDictionary<NSString *, id> *config);
+NSString * _Nullable AutoScriptMD5Hex(NSData *data);
+NSString * _Nullable AutoScriptSHA1Hex(NSData *data);
 BOOL AutoScriptInstallDownloadedFile(NSURL *temporaryURL,
                                      NSString *path,
                                      NSDictionary<NSString *, id> *config,

@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>31</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>10</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>14</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>21</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>27</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>7</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>13</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>31</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>11</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>14</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>21</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>29</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>7</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>14</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -708,7 +708,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="vision" class="cat" style="--c:#ea580c">
-  <h2><span class="tag">图色与OCR</span><i>10</i></h2>
+  <h2><span class="tag">图色与OCR</span><i>11</i></h2>
   <article class="card" data-search="screenshot() 截屏">
   <header class="card-head">
     <h4><code>screenshot()</code> <span class="cname">截屏</span></h4>
@@ -737,6 +737,21 @@ main();</code></pre>
   // 只截取屏幕上方状态栏区域
   const png = screenshotRegion(0, 0, 390, 60);
   if (png) logd("区域截图长度: " + png.length);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="image.getSize(path) 图片尺寸（图像对象）">
+  <header class="card-head">
+    <h4><code>image.getSize(path)</code> <span class="cname">图片尺寸（图像对象）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">image 命名空间下的图片尺寸查询，等价 file.imageSize。</p>
+  <div class="ref"><b>对标</b> EasyClick image.getWidth()/getHeight()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">图片路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>object {width, height, pixelWidth, pixelHeight, scale}</span></div>
+  <pre><code>function main(){
+  const size = image.getSize("images/start.png");
+  logd(size.width + " x " + size.height);
 }
 main();</code></pre>
 </article>
@@ -1501,7 +1516,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="file" class="cat" style="--c:#4f46e5">
-  <h2><span class="tag">文件</span><i>27</i></h2>
+  <h2><span class="tag">文件</span><i>29</i></h2>
   <article class="card" data-search="file.writeText(path, text) 写文本">
   <header class="card-head">
     <h4><code>file.writeText(path, text)</code> <span class="cname">写文本</span></h4>
@@ -1753,6 +1768,36 @@ main();</code></pre>
   <pre><code>function main(){
   const line = file.readLine("data/points.txt", 0);
   logd("第一行: " + line);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.imageSize(path) 图片尺寸">
+  <header class="card-head">
+    <h4><code>file.imageSize(path)</code> <span class="cname">图片尺寸</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">读取图片文件的逻辑宽高（点）、像素宽高与 scale。</p>
+  <div class="ref"><b>对标</b> EasyClick image.getWidth()/getHeight()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">图片路径（png/jpg 等）</span></div></div>
+  <div class="ret"><b>返回值</b> <span>object {width, height, pixelWidth, pixelHeight, scale}</span></div>
+  <pre><code>function main(){
+  const size = file.imageSize("images/banner.png");
+  logd("宽: " + size.width + " 高: " + size.height + " 像素: " + size.pixelWidth + "x" + size.pixelHeight);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="file.md5(path) / file.md5File(path) / file.sha1(path) / file.sha1File(path) 文件哈希">
+  <header class="card-head">
+    <h4><code>file.md5(path) / file.md5File(path) / file.sha1(path) / file.sha1File(path)</code> <span class="cname">文件哈希</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">计算沙盒文件的 MD5 或 SHA1 十六进制摘要（受 maxFileReadBytes 限制）。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">文件路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  const md5 = file.md5("data/payload.json");
+  logd("文件 md5: " + md5);
 }
 main();</code></pre>
 </article>
@@ -2343,7 +2388,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="timer" class="cat" style="--c:#64748b">
-  <h2><span class="tag">定时器与工具</span><i>13</i></h2>
+  <h2><span class="tag">定时器与工具</span><i>14</i></h2>
   <article class="card" data-search="clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id) 取消定时器">
   <header class="card-head">
     <h4><code>clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id)</code> <span class="cname">取消定时器</span></h4>
@@ -2403,6 +2448,21 @@ main();</code></pre>
   <pre><code>function main(){
   const code = randomCharNumber(6);
   logd("验证码: " + code);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="md5(text) / sha1(text) 哈希">
+  <header class="card-head">
+    <h4><code>md5(text) / sha1(text)</code> <span class="cname">哈希</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">对字符串计算 MD5 或 SHA1 十六进制摘要，可用于请求签名、文件去重。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">任意字符串</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd("md5: " + md5("hello"));
+  logd("sha1: " + sha1("hello"));
 }
 main();</code></pre>
 </article>
@@ -2552,7 +2612,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 156 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 160 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

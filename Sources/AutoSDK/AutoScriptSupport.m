@@ -1,5 +1,7 @@
 #import "AutoScriptSupport.h"
 #import "include/AutoSDKError.h"
+#import <CommonCrypto/CommonDigest.h>
+#import <ImageIO/ImageIO.h>
 #include <math.h>
 
 static NSError *AutoSupportError(AutoSDKErrorCode code, NSString *message, NSError *underlying) {
@@ -8,6 +10,27 @@ static NSError *AutoSupportError(AutoSDKErrorCode code, NSString *message, NSErr
     return [NSError errorWithDomain:AutoSDKErrorDomain code:code userInfo:info];
 }
 
+static NSString *AutoHexFromBytes(const unsigned char *bytes, NSUInteger length) {
+    NSMutableString *hex = [NSMutableString stringWithCapacity:length * 2];
+    for (NSUInteger index = 0; index < length; index++) {
+        [hex appendFormat:@"%02x", bytes[index]];
+    }
+    return hex;
+}
+
+NSString *AutoScriptMD5Hex(NSData *data) {
+    if (data.length == 0) return @"";
+    unsigned char digest[CC_MD5_DIGEST_LENGTH] = {0};
+    CC_MD5(data.bytes, (CC_LONG)data.length, digest);
+    return AutoHexFromBytes(digest, CC_MD5_DIGEST_LENGTH);
+}
+
+NSString *AutoScriptSHA1Hex(NSData *data) {
+    if (data.length == 0) return @"";
+    unsigned char digest[CC_SHA1_DIGEST_LENGTH] = {0};
+    CC_SHA1(data.bytes, (CC_LONG)data.length, digest);
+    return AutoHexFromBytes(digest, CC_SHA1_DIGEST_LENGTH);
+}
 static BOOL AutoConfigAllows(NSDictionary *config, NSString *key, BOOL defaultValue) {
     id value = config[key];
     if (value == nil) return defaultValue;
@@ -280,6 +303,44 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
                   @"isFile": @(!isDirectory),
                   @"size": size,
                   @"modifiedAtMs": modified ? @([modified timeIntervalSince1970] * 1000.0) : [NSNull null] };
+    }
+
+    if ([operation isEqualToString:@"imageSize"] || [operation isEqualToString:@"md5File"] ||
+        [operation isEqualToString:@"sha1File"]) {
+        NSUInteger maximum = AutoSupportByteLimit(config, @"maxFileReadBytes", 10 * 1024 * 1024, 64 * 1024 * 1024);
+        NSDictionary *attributes = [manager attributesOfItemAtPath:url.path error:nil];
+        if ([attributes[NSFileSize] unsignedLongLongValue] > maximum) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"File exceeds maxFileReadBytes.", nil);
+            return nil;
+        }
+        NSError *readError = nil;
+        NSData *data = [NSData dataWithContentsOfURL:url options:NSDataReadingMappedIfSafe error:&readError];
+        if (!data || data.length > maximum) {
+            NSString *message = data ? @"File exceeds maxFileReadBytes." : @"Unable to read file.";
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, message, readError);
+            return nil;
+        }
+        if ([operation isEqualToString:@"md5File"]) return AutoScriptMD5Hex(data);
+        if ([operation isEqualToString:@"sha1File"]) return AutoScriptSHA1Hex(data);
+        CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+        if (!source) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Image file is not supported.", nil);
+            return nil;
+        }
+        NSDictionary *properties = (__bridge_transfer NSDictionary *)CGImageSourceCopyPropertiesAtIndex(source, 0, NULL);
+        CFRelease(source);
+        NSNumber *pixelWidth = properties[(__bridge NSString *)kCGImagePropertyPixelWidth];
+        NSNumber *pixelHeight = properties[(__bridge NSString *)kCGImagePropertyPixelHeight];
+        if (![pixelWidth isKindOfClass:NSNumber.class] || ![pixelHeight isKindOfClass:NSNumber.class]) {
+            if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Image file has no pixel dimensions.", nil);
+            return nil;
+        }
+        double pixelW = [pixelWidth doubleValue];
+        double pixelH = [pixelHeight doubleValue];
+        NSNumber *dpi = properties[(__bridge NSString *)kCGImagePropertyDPIWidth];
+        double scale = [dpi isKindOfClass:NSNumber.class] && [dpi doubleValue] > 0 ? [dpi doubleValue] / 72.0 : 1.0;
+        return @{ @"width": @(pixelW / scale), @"height": @(pixelH / scale),
+                  @"pixelWidth": @(pixelW), @"pixelHeight": @(pixelH), @"scale": @(scale) };
     }
 
     if ([operation isEqualToString:@"readText"] || [operation isEqualToString:@"readBase64"] ||

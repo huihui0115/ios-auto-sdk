@@ -191,7 +191,7 @@ written for AutoScript/Auto.js port over with minimal changes:
   swipes), `drag` (long-press drag), `childCount`, `input` / `setText` (aliases:
   selector + text), `sleep`.
 - Image: `image.findImage`, `image.findColor`, `image.findMultiColor`,
-  `image.cmpColor`, `image.pixel` (alias of `getPixelColor`),`n  `image.screenshot`, `image.clipRegion` (alias of `screenshotRegion`).
+  `image.cmpColor`, `image.pixel` (alias of `getPixelColor`),`n  `image.screenshot`, `image.clipRegion` (alias of `screenshotRegion`),`n  `image.getSize` (图片宽高).
 - Top-level globals: `auto`, `file`, `storages` (via `storages.create`),
   `device`, `http` (also `httpGet` / `httpPost`), `app`, `image`,
   `toast`, `toastLog`, `openURL`, `getClipboard`, `setClipboard`,

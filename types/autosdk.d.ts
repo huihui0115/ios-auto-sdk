@@ -249,6 +249,11 @@ interface AutoFileAPI {
   getModifiedTime(path: string): number | null;
   isDir(path: string): boolean;
   isFile(path: string): boolean;
+  imageSize(path: string): { width: number; height: number; pixelWidth: number; pixelHeight: number; scale: number } | null;
+  md5(path: string): string;
+  md5File(path: string): string;
+  sha1(path: string): string;
+  sha1File(path: string): string;
 }
 
 interface AutoFileStat {
@@ -391,6 +396,8 @@ interface AutoAPI {
   screenshotRegion(x: number, y: number, width: number, height: number): string | null;
   childCount(selector: AutoSelectorLike): number;
   randomString(length?: number, chars?: string): string;
+  md5(text: string): string;
+  sha1(text: string): string;
   randomCharNumber(length?: number): string;
   drag(x1: number, y1: number, x2: number, y2: number, durationMs?: number): boolean;
   launchAppByPrefix(bundleIdPrefix: string): boolean;
@@ -436,6 +443,7 @@ declare const image: {
   pixel: AutoAPI["getPixelColor"];
   screenshot: AutoAPI["screenshot"];
   clipRegion: AutoAPI["screenshotRegion"];
+  getSize(path: string): AutoFileAPI["imageSize"];
   saveToAlbum: AutoAPI["saveImageToAlbum"];
   saveBase64ToAlbum: AutoAPI["saveImageBase64ToAlbum"];
   saveScreenshotToAlbum: AutoAPI["saveScreenshotToAlbum"];
@@ -497,6 +505,8 @@ declare function time(): number;
 declare function random(min: number, max?: number): number;
 declare function randomInt(min: number, max?: number): number;
 declare function randomString(length?: number, chars?: string): string;
+declare function md5(text: string): string;
+declare function sha1(text: string): string;
 declare function randomCharNumber(length?: number): string;
 declare function screenshotRegion(x: number, y: number, width: number, height: number): string | null;
 declare function childCount(selector: AutoSelectorLike): number;
