@@ -1,7 +1,7 @@
 # AutoSDK
 
 这是一个面向第三方 iOS App 的客户端自动化 SDK MVP。它不是最终 App，也不包含后台设备管理或结果回传服务。
-> ⬇️ 预编译下载：GitHub [Releases](https://github.com/huihui0115/ios-auto-sdk/releases) 提供模板 App 的 TrollStore IPA（AutoSDKTemplate.ipa）与 VS Code 插件（utosdk-vscode-*.vsix），不想自己构建可直接下载安装。
+> ⬇️ 预编译下载：GitHub [Releases](https://github.com/huihui0115/ios-auto-sdk/releases) 提供模板 App 的 IPA（AutoSDKTemplate.ipa：TrollStore 直接装，也可用 AltStore/Sideloadly 免费签名安装，免巨魔）与 VS Code 插件（autosdk-vscode-*.vsix），不想自己构建可直接下载。
 > 🌐 在线文档：<https://huihui0115.github.io/ios-auto-sdk/>（docs/ 自动部署到 GitHub Pages）。
 
 ## 当前能力
@@ -21,7 +21,8 @@
 - 基于公共 API 的 `AutoUIKitAdapter`，可直接自动化宿主 App 自己的 UIKit 视图
 
 > 📖 中文图文教程（离线网页版，双击即开）：[docs/guide/index.html](docs/guide/index.html)（安装 → 连接 → 第一行代码 → 调试）。
-> 🆚 对标文档：[`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)（EasyClick）、[`docs/TROLLAUTOSCRIPT_COMPARISON.md`](docs/TROLLAUTOSCRIPT_COMPARISON.md)（TrollAutoScript）、[`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)（AutoScript）。
+> 🆚 对标文档：[`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)（EasyClick）、[`docs/TROLLAUTOSCRIPT_COMPARISON.md`](docs/TROLLAUTOSCRIPT_COMPARISON.md)（TrollAutoScript）、[`docs/ASCRIPT_COMPARISON.md`](docs/ASCRIPT_COMPARISON.md)（AScript）、[`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)（AutoScript）。
+> 🚀 免巨魔路线（对标 AScript/kuaijs）：[`docs/NO_TROLLSTORE.md`](docs/NO_TROLLSTORE.md)——免费签名安装 / XCTest 激活 WDA / HID 模式。
 > 🚀 想快速上手？先看 [`docs/QUICK_START.md`](docs/QUICK_START.md)（第三方 10 分钟跑通
 > 「写脚本 → 构建 IPA → 安装 → 调试」）。与 AutoScript 的定位/能力对比见
 > [`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)。
