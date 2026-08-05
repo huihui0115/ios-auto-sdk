@@ -760,6 +760,14 @@ check(bootstrapSource.includes("operation:'appList'") &&
 check(wdaAdapter.includes('@"/wda/apps" method:@"GET"') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('installedApplicationsWithError:&error'),
       'WDA adapter and engine must implement the installed-apps query');
+check(bootstrapSource.includes('base.execAsync=function(fn)') &&
+      bootstrapSource.includes('base.execSync=function(fn)') &&
+      bootstrapSource.includes('base.longClickPoint=function(x,y,duration)') &&
+      typeDefinitions.includes('interface AutoThread') &&
+      typeDefinitions.includes('execAsync(fn: Function, ...args: unknown[]): AutoThread | null') &&
+      read('Sources/AutoSDK/AutoEngine.m').includes('invokeExecAsync:(JSValue *)payload') &&
+      read('Sources/AutoSDK/AutoEngine.m').includes('threadCancelled'),
+      'Bootstrap and engine must expose real parallel exec threads with per-thread cancellation');
 check(read('Sources/AutoSDK/AutoEngine.m').includes('invokeTouch:(JSValue *)payload') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('performMultiTouch:fingers error:&error'),
       'Engine must bridge invokeTouch to the adapter performMultiTouch');

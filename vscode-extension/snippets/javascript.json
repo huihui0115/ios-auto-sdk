@@ -122,6 +122,18 @@
     ],
     "description": "Crop, grayscale or binarize an image file"
   },
+  "AutoSDK exec thread": {
+    "prefix": "autoexec",
+    "body": [
+      "const thread = execAsync(function () {",
+      "  // runs on a real background thread",
+      "  return ${1:42};",
+      "});",
+      "const value = thread.join();",
+      "logd('thread result:', value);"
+    ],
+    "description": "Run a function on a real parallel thread"
+  },
   "AutoSDK excel": {
     "prefix": "autoexcel",
     "body": [

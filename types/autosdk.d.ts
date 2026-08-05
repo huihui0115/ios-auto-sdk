@@ -445,7 +445,24 @@ interface AutoAPI {
   capabilities(): Record<string, unknown>;
   time(): number;
   randomInt(min: number, max?: number): number;
+  getRangeInt(min: number, max: number): number;
+  getRatio(ratio: number): boolean;
+  execAsync(fn: Function, ...args: unknown[]): AutoThread | null;
+  execSync<T = unknown>(fn: Function, ...args: unknown[]): T | null;
+  cancelThread(thread: AutoThread | null): boolean;
+  stopAllThreads(): boolean;
+  isCancelled(): boolean;
+  longClickPoint(x: number, y: number, durationMs?: number): boolean;
+  getOneNodeInfo(selector: AutoSelectorLike): unknown;
+  getNodeInfo(selector: AutoSelectorLike): unknown;
   [nativeMethod: string]: any;
+}
+
+interface AutoThread {
+  join(): unknown;
+  isFinished(): boolean;
+  getResult(): unknown;
+  cancel(): boolean;
 }
 
 declare const auto: AutoAPI;
@@ -552,6 +569,16 @@ declare function randomCharNumber(length?: number): string;
 declare function screenshotRegion(x: number, y: number, width: number, height: number): string | null;
 declare function childCount(selector: AutoSelectorLike): number;
 declare function drag(x1: number, y1: number, x2: number, y2: number, durationMs?: number): boolean;
+declare function execAsync(fn: Function, ...args: unknown[]): AutoThread | null;
+declare function execSync<T = unknown>(fn: Function, ...args: unknown[]): T | null;
+declare function cancelThread(thread: AutoThread | null): boolean;
+declare function stopAllThreads(): boolean;
+declare function isCancelled(): boolean;
+declare function longClickPoint(x: number, y: number, durationMs?: number): boolean;
+declare function getRangeInt(min: number, max: number): number;
+declare function getRatio(ratio: number): boolean;
+declare function getOneNodeInfo(selector: AutoSelectorLike): unknown;
+declare function getNodeInfo(selector: AutoSelectorLike): unknown;
 declare function getAppVersion(): string;
 declare function getPackageName(): string;
 declare function launchAppByPrefix(bundleIdPrefix: string): boolean;

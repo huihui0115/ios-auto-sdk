@@ -153,6 +153,20 @@ try {
 } catch (e) {
   report.excelError = String(e);
 }
+// 12. Real parallel threads (independent JSContext per thread)
+try {
+  const thread = execAsync(function () {
+    const sum = 0;
+    return 6 * 7;
+  });
+  const threadValue = thread.join();
+  report.threadResult = threadValue;
+  report.threadFinished = thread.isFinished();
+  report.threadCancelled = thread.cancel();
+  report.execSyncResult = execSync(function () { return 1 + 1; });
+} catch (e) {
+  report.threadError = String(e);
+}
 report.findNotColorSupported = typeof findNotColor === "function";
 
 report;

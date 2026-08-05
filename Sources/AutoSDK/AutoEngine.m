@@ -53,6 +53,8 @@
 - (id)invokeTouch:(JSValue *)payload;
 - (BOOL)invokeIsStopped;
 - (id)invokeNative:(JSValue *)payload;
+- (id)invokeExecAsync:(JSValue *)payload;
+- (id)invokeExecOp:(JSValue *)payload;
 @end
 
 @protocol AutoConsoleExport <JSExport>
@@ -68,6 +70,7 @@
 @property (nonatomic, strong) id<AutoAutomationAdapter> adapter;
 @property (nonatomic, copy) NSDictionary *config;
 @property (nonatomic, strong) NSError *lastError;
+@property (atomic, assign) BOOL threadCancelled;
 @end
 
 @interface AutoJSConsole : NSObject <AutoConsoleExport>
@@ -85,6 +88,18 @@
 @property (atomic, strong, nullable) NSDictionary *cachedCapabilities;
 @property (atomic, assign) BOOL capabilitiesLoaded;
 + (instancetype)proxyWithTarget:(id)target;
+@end
+
+@interface AutoAsyncThread : NSObject
+@property (nonatomic, strong) JSContext *context;
+@property (nonatomic, strong) AutoJSBridge *bridge;
+@property (nonatomic, strong) dispatch_queue_t queue;
+@property (atomic, assign) BOOL finished;
+@property (atomic, assign) BOOL cancelled;
+@property (atomic, strong) id result;
+@property (atomic, strong) NSError *error;
+@end
+@implementation AutoAsyncThread
 @end
 
 @interface AutoEngine () <AVAudioPlayerDelegate>
@@ -105,6 +120,7 @@
 @property (nonatomic, strong) dispatch_queue_t debugAdapterQueue;
 @property (nonatomic, assign) BOOL stopRequested;
 @property (nonatomic, strong) NSMutableArray<AVAudioPlayer *> *audioPlayers;
+@property (nonatomic, strong) NSMutableArray<AutoAsyncThread *> *asyncThreads;
 @property (nonatomic, assign) BOOL audioStopWhenScriptEnd;
 - (void)loadScript:(NSString *)value config:(NSDictionary *)config completion:(void (^)(NSString * _Nullable source, NSError * _Nullable error))completion;
 - (void)evaluateScript:(NSString *)source config:(NSDictionary *)config adapter:(id<AutoAutomationAdapter>)adapter completion:(AutoScriptCompletion)completion;
@@ -1074,7 +1090,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 }
 
 - (BOOL)ensureScriptRunning {
-    if (![self.engine shouldStop]) {
+    if (![self.engine shouldStop] && !self.threadCancelled) {
         self.lastError = nil;
         return YES;
     }
@@ -1180,7 +1196,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         : 0;
     if (seconds > 0) {
         CFTimeInterval deadline = CFAbsoluteTimeGetCurrent() + seconds;
-        while (![self.engine shouldStop]) {
+        while (![self.engine shouldStop] && !self.threadCancelled) {
             CFTimeInterval remaining = deadline - CFAbsoluteTimeGetCurrent();
             if (remaining <= 0) break;
             AutoPumpRunLoopWithSleepFallback(MIN(0.02, remaining));
@@ -2020,7 +2036,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 }
 
 - (BOOL)invokeIsStopped {
-    return [self.engine shouldStop];
+    return [self.engine shouldStop] || self.threadCancelled;
 }
 
 - (id)invokeTouch:(JSValue *)payload {
@@ -2084,6 +2100,136 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         }
     });
     return [value isKindOfClass:NSError.class] ? [self failure:value] : value;
+}
+
+- (id)invokeExecAsync:(JSValue *)payload {
+    if (![self ensureScriptRunning]) return @NO;
+    NSDictionary *data = AutoPayload(payload);
+    NSString *source = [data[@"source"] isKindOfClass:NSString.class] ? data[@"source"] : @"";
+    if (source.length == 0 || source.length > 1024 * 1024) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"execAsync requires a function body of 1 to 1 MiB.", nil)];
+    }
+    NSArray *rawArguments = [data[@"arguments"] isKindOfClass:NSArray.class] ? data[@"arguments"] : @[];
+    if (rawArguments.count > 32) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"execAsync accepts at most 32 arguments.", nil)];
+    }
+    BOOL sync = AutoBoolean(data[@"sync"], NO);
+    NSData *argumentsJSON = [NSJSONSerialization dataWithJSONObject:rawArguments options:0 error:nil];
+    if (!argumentsJSON) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"execAsync arguments must be JSON-serializable.", nil)];
+    }
+    NSString *argumentsExpression = [[NSString alloc] initWithData:argumentsJSON encoding:NSUTF8StringEncoding];
+    NSUInteger activeCount = 0;
+    @synchronized (self.engine) {
+        for (AutoAsyncThread *candidate in self.engine.asyncThreads) {
+            if (!candidate.finished) activeCount += 1;
+        }
+    }
+    if (activeCount >= 8) {
+        return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"Too many concurrent execAsync threads (limit 8).", nil)];
+    }
+    AutoAsyncThread *thread = [AutoAsyncThread new];
+    AutoJSBridge *threadBridge = [AutoJSBridge new];
+    threadBridge.engine = self.engine;
+    threadBridge.config = self.config ?: @{};
+    NSDictionary *capabilities = [self.adapter respondsToSelector:@selector(capabilities)] ? [self.adapter capabilities] : nil;
+    threadBridge.adapter = AutoBoolean(capabilities[@"requiresMainThread"], NO)
+        ? (id<AutoAutomationAdapter>)[AutoMainThreadAdapterProxy proxyWithTarget:self.adapter]
+        : self.adapter;
+    thread.bridge = threadBridge;
+    thread.queue = dispatch_queue_create("autosdk.exec", DISPATCH_QUEUE_SERIAL);
+    @synchronized (self.engine) { [self.engine.asyncThreads addObject:thread]; }
+    uint64_t threadId = (uint64_t)(uintptr_t)thread;
+    AutoJSConsole *threadConsole = [AutoJSConsole new];
+    threadConsole.emitToSystemLog = AutoBoolean(self.config[@"debugLogging"], NO);
+    NSUInteger maximumLogEntries = AutoBoundedPositiveInteger(self.config[@"maxLogEntries"], 0, 10000);
+    if (maximumLogEntries > 0) threadConsole.maximumEntries = MIN(maximumLogEntries, (NSUInteger)10000);
+    NSUInteger maximumLogMessageLength = AutoBoundedPositiveInteger(self.config[@"maxLogMessageLength"], 0, 256 * 1024);
+    if (maximumLogMessageLength > 0) threadConsole.maximumMessageLength = MIN(maximumLogMessageLength, (NSUInteger)(256 * 1024));
+    threadConsole.maximumTotalBytes = AutoConfiguredByteLimit(self.config, @"maxLogBytes", 8 * 1024 * 1024, 32 * 1024 * 1024);
+    AutoEngine *engine = self.engine;
+    dispatch_async(thread.queue, ^{
+        @autoreleasepool {
+            JSContext *context = [JSContext new];
+            thread.context = context;
+            context.exceptionHandler = ^(JSContext *ctx, JSValue *exception) {
+                ctx.exception = exception;
+            };
+            context[@"__bridge"] = threadBridge;
+            context[@"__console"] = threadConsole;
+            JSValue *drainTimers = [context evaluateScript:AutoBootstrapScript()];
+            JSValue *value = nil;
+            if (!context.exception && !thread.cancelled && ![engine shouldStop]) {
+                NSString *call = [NSString stringWithFormat:
+                    @"(function(){var fn=%@;if(typeof fn!=='function')throw new Error('execAsync argument must be a function');return fn.apply(null,%@);})()",
+                    source, argumentsExpression];
+                value = [context evaluateScript:call];
+                if (!context.exception && !thread.cancelled && ![engine shouldStop]) {
+                    [drainTimers callWithArguments:@[]];
+                }
+            }
+            if (context.exception) {
+                thread.error = AutoMakeError(AutoSDKErrorJavaScriptException,
+                                             [[context.exception toString] ?: @"Async thread exception." description], nil);
+            } else if (thread.cancelled || [engine shouldStop]) {
+                thread.error = AutoMakeError(AutoSDKErrorScriptCancelled, @"Async thread cancelled.", nil);
+            } else {
+                thread.result = AutoBoundedJSResult(value);
+            }
+            thread.finished = YES;
+        }
+    });
+    if (sync) {
+        while (!thread.finished && ![self.engine shouldStop] && !self.threadCancelled) {
+            AutoPumpRunLoopWithSleepFallback(0.02);
+        }
+        if (thread.error) return [self failure:thread.error];
+        return thread.result ?: [NSNull null];
+    }
+    return @{ @"threadId": @(threadId) };
+}
+
+- (id)invokeExecOp:(JSValue *)payload {
+    if (![self ensureScriptRunning]) return @NO;
+    NSDictionary *data = AutoPayload(payload);
+    NSString *operation = [data[@"operation"] isKindOfClass:NSString.class] ? data[@"operation"] : @"";
+    if ([operation isEqualToString:@"stopAll"]) {
+        @synchronized (self.engine) {
+            for (AutoAsyncThread *candidate in self.engine.asyncThreads) {
+                candidate.cancelled = YES;
+                candidate.bridge.threadCancelled = YES;
+            }
+        }
+        return @YES;
+    }
+    uint64_t rawId = (uint64_t)AutoFiniteDouble(data[@"threadId"], 0);
+    if (rawId == 0) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"exec thread id is required.", nil)];
+    }
+    AutoAsyncThread *thread = nil;
+    @synchronized (self.engine) {
+        for (AutoAsyncThread *candidate in self.engine.asyncThreads) {
+            if ((uint64_t)(uintptr_t)candidate == rawId) { thread = candidate; break; }
+        }
+    }
+    if (!thread) {
+        return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"exec thread is no longer active.", nil)];
+    }
+    if ([operation isEqualToString:@"isFinished"]) return @(thread.finished);
+    if ([operation isEqualToString:@"cancel"]) {
+        thread.cancelled = YES;
+        thread.bridge.threadCancelled = YES;
+        return @YES;
+    }
+    if ([operation isEqualToString:@"result"]) return thread.finished ? (thread.result ?: [NSNull null]) : [NSNull null];
+    if ([operation isEqualToString:@"join"]) {
+        while (!thread.finished && ![self.engine shouldStop] && !self.threadCancelled) {
+            AutoPumpRunLoopWithSleepFallback(0.02);
+        }
+        if (thread.error) return [self failure:thread.error];
+        return thread.result ?: [NSNull null];
+    }
+    return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Unknown exec thread operation.", nil)];
 }
 
 @end
@@ -2152,6 +2298,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     if (self) {
         _config = @{};
         _nativeMethods = [NSMutableDictionary dictionary];
+        _asyncThreads = [NSMutableArray array];
         _adapter = [AutoUnavailableAdapter new];
         _scriptQueue = dispatch_queue_create("com.autosdk.javascript", DISPATCH_QUEUE_SERIAL);
         _debugAdapterQueue = dispatch_queue_create("com.autosdk.debug-adapter", DISPATCH_QUEUE_SERIAL);
@@ -3150,6 +3297,15 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 }
 
 - (void)finishWithResult:(NSDictionary *)result error:(NSError *)error completion:(AutoScriptCompletion)completion {
+    NSArray *asyncThreadsToStop = nil;
+    @synchronized (self) {
+        asyncThreadsToStop = [self.asyncThreads copy];
+        [self.asyncThreads removeAllObjects];
+    }
+    for (AutoAsyncThread *asyncThread in asyncThreadsToStop) {
+        asyncThread.cancelled = YES;
+        asyncThread.bridge.threadCancelled = YES;
+    }
     @synchronized (self) {
         self.running = NO;
         self.stopRequested = NO;

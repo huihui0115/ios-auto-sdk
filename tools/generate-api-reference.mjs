@@ -138,7 +138,13 @@ const REFS = {
   'file.readExcelRow(path, sheetIndex?, row?)': 'EasyClick file.readExcelRow()',
   'device.getDeviceId()': 'EasyClick getDeviceId()',
   'device.getDeviceAlias() / getSerialNo()': 'EasyClick getDeviceAlias()/getSerialNo()',
-  'app.getAppVersion() / getPackageName()': 'EasyClick version/ipaVersion/getPackageName()'
+  'app.getAppVersion() / getPackageName()': 'EasyClick version/ipaVersion/getPackageName()',
+  'execAsync(fn, ...args)': 'EasyClick execAsync()/execSync()',
+  'execSync(fn, ...args)': 'EasyClick execSync()',
+  'cancelThread(thread) / stopAllThreads() / isCancelled()': 'EasyClick cancelThread()/stopAllThreads()/isCancelled()',
+  'longClickPoint(x, y, durationMs?)': 'EasyClick longClickPoint()',
+  'getOneNodeInfo(selector) / getNodeInfo(selector)': 'EasyClick getOneNodeInfo()/getNodeInfo()',
+  'getRangeInt(min, max) / getRatio(ratio)': 'EasyClick utils.getRangeInt()/getRatio()'
 };
 function card(api) {
   const ref = REFS[api.sig.split(' / ')[0].trim()];
@@ -372,7 +378,33 @@ main();` });APIS.push({ cat:'timer', sig:'md5(text) / sha1(text)', title:'哈希
   logd("md5: " + md5("hello"));
   logd("sha1: " + sha1("hello"));
 }
-main();` });APIS.push({ cat:'timer', sig:'uuid() / uniqueId()', title:'唯一 ID', desc:'生成 UUID 字符串。', params:[], returns:'string', example:`function main(){
+main();` });APIS.push({ cat:'timer', sig:'execAsync(fn, ...args)', title:'????????', desc:'??? JSContext ???????????????????????? HTTP/?????????????????? join/isFinished/getResult/cancel??? 8 ?????????????', params:[['fn','function','?????????????????????'],['args','any[]','JSON ??????']], returns:'AutoThread|null', example:`function main(){
+  const t = execAsync(function () { return 42; });
+  logd("??: " + t.isFinished());
+  logd("??: " + t.getResult());
+  const value = t.join();
+  logd("join: " + value);
+  logd("??: " + t.cancel());
+}
+main();` });
+APIS.push({ cat:'timer', sig:'execSync(fn, ...args)', title:'??????????', desc:'??????????????????????????????? 20ms ?????', params:[['fn','function','??????'],['args','any[]','JSON ??????']], returns:'any', example:`function main(){
+  const value = execSync(function () { return 1 + 1; });
+  logd("??: " + value);
+}
+main();` });
+APIS.push({ cat:'timer', sig:'cancelThread(thread) / stopAllThreads() / isCancelled()', title:'????', desc:'cancelThread ??????????????????stopAllThreads ???????isCancelled ????????????', params:[['thread','AutoThread','execAsync ?????']], returns:'boolean', example:`function main(){
+  const t = execAsync(function () { sleep(3000); return 1; });
+  logd("?????: " + cancelThread(t));
+  logd("????: " + stopAllThreads());
+  logd("???: " + isCancelled());
+}
+main();` });
+APIS.push({ cat:'timer', sig:'getRangeInt(min, max) / getRatio(ratio)', title:'???????', desc:'getRangeInt ?? [min, max] ????????getRatio(r) ? r% ???? true????????', params:[['min','number','???'],['max','number','???'],['ratio','number','1-100']], returns:'number | boolean', example:`function main(){
+  logd(getRangeInt(1, 10));
+  if (getRatio(20)) logd("20% ????");
+}
+main();` });
+APIS.push({ cat:'timer', sig:'uuid() / uniqueId()', title:'唯一 ID', desc:'生成 UUID 字符串。', params:[], returns:'string', example:`function main(){
   logd(uuid());
   logd(uniqueId());
 }
@@ -1252,6 +1284,16 @@ main();` });
 APIS.push({ cat:'touch', sig:'auto.clickRandom(selector)', title:'随机点点击', desc:'在节点范围内随机取点点击，模拟真人操作、降低被风控识别概率；坐标已取整。', params:[['selector','object|string','节点']], returns:'boolean', example:`function main(){
   const ok = auto.clickRandom({text: "开始"});
   logd("随机点击: " + ok);
+}
+main();` });
+APIS.push({ cat:'touch', sig:'longClickPoint(x, y, durationMs?)', title:'????', desc:'?????????? durationMs??? 600??? 3000?????? W3C ?????', params:[['x','number','???'],['y','number','???'],['durationMs','number','???????']], returns:'boolean', example:`function main(){
+  const ok = longClickPoint(200, 400, 800);
+  logd("??: " + ok);
+}
+main();` });
+APIS.push({ cat:'touch', sig:'getOneNodeInfo(selector) / getNodeInfo(selector)', title:'??????', desc:'????????????? findElement??EasyClick getOneNodeInfo ???', params:[['selector','object|string','?????']], returns:'object|null', example:`function main(){
+  const node = getOneNodeInfo({ text: "??" });
+  if (node) logd(JSON.stringify(node));
 }
 main();` });
 APIS.push({ cat:'touch', sig:'swipeToPoint(x1, y1, x2, y2, duration?)', title:'滑动（别名）', desc:'swipe 的兼容别名，行为完全一致。', params:[['x1','number','起点X'],['y1','number','起点Y'],['x2','number','终点X'],['y2','number','终点Y'],['duration','number','毫秒']], returns:'boolean', example:`function main(){

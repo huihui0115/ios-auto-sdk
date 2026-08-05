@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>31</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>15</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>23</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>34</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>9</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>14</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>33</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>15</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>15</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>23</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>34</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>9</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>18</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -217,7 +217,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="touch" class="cat" style="--c:#7c3aed">
-  <h2><span class="tag">触摸与节点</span><i>31</i></h2>
+  <h2><span class="tag">触摸与节点</span><i>33</i></h2>
   <article class="card" data-search="click(selector) 点击节点">
   <header class="card-head">
     <h4><code>click(selector)</code> <span class="cname">点击节点</span></h4>
@@ -688,6 +688,36 @@ main();</code></pre>
   <pre><code>function main(){
   const ok = auto.clickRandom({text: "开始"});
   logd("随机点击: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="longClickPoint(x, y, durationMs?) ????">
+  <header class="card-head">
+    <h4><code>longClickPoint(x, y, durationMs?)</code> <span class="cname">????</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">?????????? durationMs??? 600??? 3000?????? W3C ?????</p>
+  <div class="ref"><b>对标</b> EasyClick longClickPoint()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">???</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">???</span></div><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">???????</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = longClickPoint(200, 400, 800);
+  logd("??: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="getOneNodeInfo(selector) / getNodeInfo(selector) ??????">
+  <header class="card-head">
+    <h4><code>getOneNodeInfo(selector) / getNodeInfo(selector)</code> <span class="cname">??????</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">????????????? findElement??EasyClick getOneNodeInfo ???</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">?????</span></div></div>
+  <div class="ret"><b>返回值</b> <span>object|null</span></div>
+  <pre><code>function main(){
+  const node = getOneNodeInfo({ text: "??" });
+  if (node) logd(JSON.stringify(node));
 }
 main();</code></pre>
 </article>
@@ -2606,7 +2636,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="timer" class="cat" style="--c:#64748b">
-  <h2><span class="tag">定时器与工具</span><i>14</i></h2>
+  <h2><span class="tag">定时器与工具</span><i>18</i></h2>
   <article class="card" data-search="clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id) 取消定时器">
   <header class="card-head">
     <h4><code>clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id)</code> <span class="cname">取消定时器</span></h4>
@@ -2681,6 +2711,72 @@ main();</code></pre>
   <pre><code>function main(){
   logd("md5: " + md5("hello"));
   logd("sha1: " + sha1("hello"));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="execAsync(fn, ...args) ????????">
+  <header class="card-head">
+    <h4><code>execAsync(fn, ...args)</code> <span class="cname">????????</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">??? JSContext ???????????????????????? HTTP/?????????????????? join/isFinished/getResult/cancel??? 8 ?????????????</p>
+  <div class="ref"><b>对标</b> EasyClick execAsync()/execSync()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">fn</code><span class="ptype">function</span><span class="pdesc">?????????????????????</span></div><div class="param"><code class="pname">args</code><span class="ptype">any[]</span><span class="pdesc">JSON ??????</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoThread|null</span></div>
+  <pre><code>function main(){
+  const t = execAsync(function () { return 42; });
+  logd("??: " + t.isFinished());
+  logd("??: " + t.getResult());
+  const value = t.join();
+  logd("join: " + value);
+  logd("??: " + t.cancel());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="execSync(fn, ...args) ??????????">
+  <header class="card-head">
+    <h4><code>execSync(fn, ...args)</code> <span class="cname">??????????</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">??????????????????????????????? 20ms ?????</p>
+  <div class="ref"><b>对标</b> EasyClick execSync()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">fn</code><span class="ptype">function</span><span class="pdesc">??????</span></div><div class="param"><code class="pname">args</code><span class="ptype">any[]</span><span class="pdesc">JSON ??????</span></div></div>
+  <div class="ret"><b>返回值</b> <span>any</span></div>
+  <pre><code>function main(){
+  const value = execSync(function () { return 1 + 1; });
+  logd("??: " + value);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="cancelThread(thread) / stopAllThreads() / isCancelled() ????">
+  <header class="card-head">
+    <h4><code>cancelThread(thread) / stopAllThreads() / isCancelled()</code> <span class="cname">????</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">cancelThread ??????????????????stopAllThreads ???????isCancelled ????????????</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">thread</code><span class="ptype">AutoThread</span><span class="pdesc">execAsync ?????</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const t = execAsync(function () { sleep(3000); return 1; });
+  logd("?????: " + cancelThread(t));
+  logd("????: " + stopAllThreads());
+  logd("???: " + isCancelled());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="getRangeInt(min, max) / getRatio(ratio) ???????">
+  <header class="card-head">
+    <h4><code>getRangeInt(min, max) / getRatio(ratio)</code> <span class="cname">???????</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">getRangeInt ?? [min, max] ????????getRatio(r) ? r% ???? true????????</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">min</code><span class="ptype">number</span><span class="pdesc">???</span></div><div class="param"><code class="pname">max</code><span class="ptype">number</span><span class="pdesc">???</span></div><div class="param"><code class="pname">ratio</code><span class="ptype">number</span><span class="pdesc">1-100</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number | boolean</span></div>
+  <pre><code>function main(){
+  logd(getRangeInt(1, 10));
+  if (getRatio(20)) logd("20% ????");
 }
 main();</code></pre>
 </article>
@@ -2830,7 +2926,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 174 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 180 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

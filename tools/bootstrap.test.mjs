@@ -34,6 +34,8 @@ function createSandbox() {
   const calls = {
     native: [], file: [], storage: [], http: [], device: [], app: [],
     touch: [], clickPoint: [], click: [], swipe: [], sleep: [], ocr: [], screenshot: [], findColorEx: [], findNotColor: [], media: [],
+    execAsync: [],
+    execOp: [],
   };
   const logs = [];
   let virtualNow = 0;
@@ -169,6 +171,19 @@ function createSandbox() {
       if (data.name === 'playMp3') return true;
       if (data.name === 'stopMp3') return true;
       return true;
+    },
+    invokeExecAsync: (data) => {
+      calls.execAsync.push(data);
+      const id = 1000 + calls.execAsync.length;
+      if (data.sync) return { result: 'sync-result-' + String(data.arguments[0]) };
+      return { threadId: id };
+    },
+    invokeExecOp: (data) => {
+      calls.execOp.push(data);
+      if (data.operation === 'isFinished') return true;
+      if (data.operation === 'cancel') return true;
+      if (data.operation === 'stopAll') return true;
+      return { threadId: data.threadId };
     },
   };
   const consoleBridge = {
@@ -698,6 +713,38 @@ test('readExcelAllRow / readExcelRow helpers', () => {
 
   assert.equal(sandbox.auto.file.readExcelAllRow('data/books.xlsx', 2).length, 2);
   assert.deepEqual(calls.file.at(-1), { operation: 'readExcelAllRow', path: 'data/books.xlsx', sheetIndex: 2 });
+});
+
+test('execAsync / execSync / thread handle and utils helpers', () => {
+  const { sandbox, calls } = boot();
+  const thread = sandbox.auto.execAsync(function () { return 42; }, 1, 'x');
+  assert.ok(thread != null);
+  assert.equal(thread.isFinished(), true);
+  assert.deepEqual(calls.execOp.at(-1), { operation: 'isFinished', threadId: 1001 });
+  thread.cancel();
+  assert.deepEqual(calls.execOp.at(-1), { operation: 'cancel', threadId: 1001 });
+  assert.deepEqual(thread.join(), { threadId: 1001 });
+  assert.equal(typeof sandbox.execAsync, 'function');
+  assert.equal(typeof sandbox.cancelThread, 'function');
+
+  assert.equal(sandbox.execSync(function () { return 1; }, 'hello'), 'sync-result-hello');
+  assert.deepEqual(calls.execAsync.at(-1), { source: 'function () { return 1; }', arguments: ['hello'], sync: true });
+
+  sandbox.stopAllThreads();
+  assert.deepEqual(calls.execOp.at(-1), { operation: 'stopAll' });
+  assert.equal(sandbox.isCancelled(), false);
+
+  assert.equal(sandbox.longClickPoint(100, 200, 500), true);
+  assert.equal(calls.touch.at(-1).fingers[0][0].type, 'pointerMove');
+  sandbox.getRangeInt(1, 10);
+  const ratio = sandbox.getRatio(100);
+  assert.equal(ratio, true);
+  assert.deepEqual(sandbox.getOneNodeInfo({ text: 'x' }), { handle: 'h1' });
+  assert.deepEqual(sandbox.getNodeInfo({ text: 'x' }), { handle: 'h1' });
+  assert.equal(typeof sandbox.auto.getRangeInt, 'function');
+  assert.equal(typeof sandbox.auto.getRatio, 'function');
+  assert.equal(typeof sandbox.auto.getOneNodeInfo, 'function');
+  assert.equal(typeof sandbox.auto.getNodeInfo, 'function');
 });
 
 test('unknown auto.* methods fall back to invokeNative', () => {

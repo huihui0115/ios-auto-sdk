@@ -13,7 +13,7 @@ are not implemented.
 | --- | --- | --- |
 | clickPoint / doubleClickPoint | ✅ `clickPoint` / `doubleClickPoint` | 坐标点击/双击 |
 | clickPointPressure / swipeToPointPressure | ❌ | 压力触摸，需私有触摸注入 |
-| longClickPoint | 🟡 `longClick(selector)` | 长按点坐标变体未做 |
+| longClickPoint | ✅ `longClickPoint(x, y, durationMs?)` | 坐标长按 |
 | swipeToPoint | ✅ `swipeToPoint` / `swipe` | 坐标滑动（秒） |
 | drag | ✅ `drag(x1,y1,x2,y2,durationMs)` | 长按拖拽 |
 | multiTouch | ✅ `gesture` / `multiGesture` / `pinch` | W3C 触摸动作 |
@@ -36,7 +36,7 @@ are not implemented.
 | --- | --- | --- |
 | lockNode / releaseNode / lockNodeFromXml / setFetchNodeParam | ❌ | 节点锁定/抓取参数（iOS 限制） |
 | label / id / type / name / xpath / bounds / depth / visible / enable / selected / value / index / accessible | ✅ WDA 选择器 + `getAttribute` | 属性过滤 |
-| getOneNodeInfo / getNodeInfo | 🟡 `findElement` / `getAttribute` | 完整节点字典变体 |
+| getOneNodeInfo / getNodeInfo | ✅ `getOneNodeInfo(selector)` / `getNodeInfo(selector)` | 完整节点字典 |
 | child / childcount / parent / siblings / nextSiblings / previousSiblings / allChildren | ✅ `getChild` / `childCount` / `getParent` / `getSiblings` / `getPreviousSiblings` / `getNextSiblings` / `getChildren` | 层级遍历 |
 | clickCenter / clickRandom | ✅ `clickCenter` / `clickRandom` | 中心/随机点击 |
 | timeout | ✅ `waitFor(selector, timeoutMs)` | 等待节点 |
@@ -99,20 +99,21 @@ are not implemented.
 
 | EasyClick | AutoSDK | 说明 |
 | --- | --- | --- |
-| execAsync / execSync / cancelThread / isCancelled / stopAll | ❌ | 真实并行线程；AutoSDK 为协作式定时器 |
+| execAsync / execSync / cancelThread / isCancelled / stopAll | ✅ `execAsync(fn)` / `execSync(fn)` / `cancelThread` / `stopAllThreads` / `isCancelled` | 真实并行线程（独立 JSContext，最多 8 并发） |
 
 ## 工具（utils-api）
 
 | EasyClick | AutoSDK | 说明 |
 | --- | --- | --- |
-| randomInt / getRangeInt | ✅ `randomInt(min,max)` | 随机数 |
+| randomInt / getRangeInt | ✅ `randomInt(min,max)` / `getRangeInt(min,max)` | 随机数 |
 | randomCharNumber | ✅ `randomString(n)` / `randomCharNumber(n)` | 随机字符串 |
 | zip / unzip / unzipWithEncode / readFileInZip | ✅ `file.zip(dest, sources)` / `file.unzip(zipPath, dest)` / `file.readFileInZip(zipPath, entry)` | ZIP 打包/解压/读条目（中文文件名兼容，不支持加密） |
 | dataMd5 / fileMd5 | ✅ `md5(text)` / `sha1(text)` / `file.md5(path)` / `file.md5File(path)` | 字符串与文件哈希 |
 | playMp3 / stopMp3 | ✅ `playMp3(path, volume, queue, stopWhenScriptEnd)` / `stopMp3()` | 系统音频播放 |
 | deleteAllPhotos / deleteAllVideos | ❌ | 破坏性清空相册，未实现 |
 | requestPhotoAuthorization | ✅ `media.requestPhotoAuthorization()` / `media.getPhotoAuthorizationStatus()` | 相册权限 |
-| getPCIps / getRatio | ❌ | 中控网络工具 |
+| getRatio | ✅ `getRatio(ratio)` | r% 概率返回 true |
+| getPCIps | ❌ | 中控网络工具 |
 
 ## 结论
 

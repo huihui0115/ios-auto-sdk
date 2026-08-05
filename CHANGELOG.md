@@ -22,6 +22,18 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **EasyClick benchmark round 7: real parallel threads and quick helpers.** New
+  execAsync(fn, ...args) runs a function in a fresh JSContext on a real
+  background thread (sharing the automation bridge), returning an AutoThread
+  handle with join() / isFinished() / getResult() / cancel(); execSync()
+  blocks until the thread returns while staying interruptible; cancelThread /
+  stopAllThreads / isCancelled control threads (up to 8 concurrent, all
+  stopped when the script ends). Per-thread cancellation is honored at bridge
+  calls, sleeps and timer boundaries. Also adds longClickPoint(x, y, ms),
+  getRangeInt(min, max), getRatio(percent), and getOneNodeInfo/getNodeInfo
+  aliases. API reference grows to 180 documented functions.
+### Added
+
 - **EasyClick benchmark round 6: Excel reading and device/app identity.** New
   file.readExcelAllRow(path, sheetIndex?) parses XLSX workbooks with a
   built-in ZIP+XML reader (shared strings, numeric cells, GBK-safe entry
