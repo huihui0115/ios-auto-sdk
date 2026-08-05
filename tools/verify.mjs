@@ -42,6 +42,53 @@ function sourceFiles(directory) {
   return result;
 }
 
+// ObjC static function definitions must be uniquely named within a translation unit
+// (forward declarations are allowed; definitions ending with '{' are not duplicated).
+function collectStaticDefinitions(source) {
+  const definitions = [];
+  const staticPattern = /\bstatic\s+/g;
+  let match;
+  while ((match = staticPattern.exec(source))) {
+    let i = match.index + match[0].length;
+    let parenIndex = -1;
+    for (; i < source.length; i += 1) {
+      const ch = source[i];
+      if (ch === ';' || ch === '{' || ch === '}') break;
+      if (ch === '(') { parenIndex = i; break; }
+    }
+    if (parenIndex < 0) continue;
+    let j = parenIndex - 1;
+    while (j >= 0 && /\s/.test(source[j])) j -= 1;
+    const nameEnd = j + 1;
+    while (j >= 0 && /[A-Za-z0-9_]/.test(source[j])) j -= 1;
+    const name = source.slice(j + 1, nameEnd);
+    if (!name) continue;
+    let depth = 1;
+    i = parenIndex + 1;
+    let closeIndex = -1;
+    for (; i < source.length; i += 1) {
+      const ch = source[i];
+      if (ch === '(') depth += 1;
+      else if (ch === ')') { depth -= 1; if (depth === 0) { closeIndex = i; break; } }
+    }
+    if (closeIndex < 0) continue;
+    i = closeIndex + 1;
+    while (i < source.length && /\s/.test(source[i])) i += 1;
+    if (source[i] === '{') definitions.push(name);
+    staticPattern.lastIndex = closeIndex + 1;
+  }
+  return definitions;
+}
+for (const sourcePath of sourceFiles('Sources')) {
+  const seen = new Map();
+  for (const name of collectStaticDefinitions(read(sourcePath))) {
+    const line = read(sourcePath).slice(0, read(sourcePath).indexOf(name)).split('\n').length;
+    if (seen.has(name)) {
+      check(false, `${sourcePath}: duplicate static function definition '${name}' (line ${seen.get(name)} and ${line})`);
+    }
+    seen.set(name, line);
+  }
+}
 function checkBalancedSource(path) {
   const source = read(path);
   const stack = [];

@@ -446,7 +446,7 @@ static CGImageRef AutoSupportImageClip(CGImageRef source, double scale, double x
     return CGImageCreateWithImageInRect(source, CGRectMake(pixelMinX, pixelMinY, pixelMaxX - pixelMinX, pixelMaxY - pixelMinY));
 }
 
-static CGImageRef AutoSupportImageScale(CGImageRef source, double scale, double width, double height) {
+static CGImageRef AutoSupportScaleImage(CGImageRef source, double scale, double width, double height) {
     if (width <= 0 || height <= 0) return NULL;
     size_t targetWidth = (size_t)MAX(1, lround(width * scale));
     size_t targetHeight = (size_t)MAX(1, lround(height * scale));
@@ -1611,7 +1611,7 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
                                              AutoSupportFiniteDouble(args[@"ex"], 0),
                                              AutoSupportFiniteDouble(args[@"ey"], 0));
         } else if ([sub isEqualToString:@"scale"]) {
-            processed = AutoSupportImageScale(image, scale,
+            processed = AutoSupportScaleImage(image, scale,
                                               AutoSupportFiniteDouble(args[@"width"], 0),
                                               AutoSupportFiniteDouble(args[@"height"], 0));
         } else if ([sub isEqualToString:@"gray"]) {
