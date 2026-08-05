@@ -709,6 +709,24 @@ check(read('Sources/AutoSDK/include/AutoWDAHTTPAdapter.h').includes('performMult
 check(read('Sources/AutoSDK/AutoWDAHTTPAdapter.m').includes('@"/actions" method:@"POST" body:body') &&
       wdaAdapter.includes('@"multiTouch": @YES'),
       'WDA adapter must implement multi-touch gestures and report the capability');
+check(bootstrapSource.includes('base.screenshotRegion=function(x,y,w,h)') &&
+      bootstrapSource.includes('base.childCount=function(s)') &&
+      bootstrapSource.includes('base.randomString=function(len,chars)') &&
+      bootstrapSource.includes('base.randomCharNumber=function(len)') &&
+      bootstrapSource.includes('base.drag=function(x1,y1,x2,y2,duration)') &&
+      bootstrapSource.includes('base.launchAppByPrefix=function(prefix)') &&
+      bootstrapSource.includes('g.screenshotRegion=base.screenshotRegion') &&
+      bootstrapSource.includes('g.launchAppByPrefix=base.launchAppByPrefix'),
+      'Bootstrap must expose screenshotRegion, childCount, randomString, drag and launchAppByPrefix');
+check(bootstrapSource.includes('getScreenWidthHeightText:function(){return deviceApi.getScreenWidth()') &&
+      typeDefinitions.includes('getScreenWidthHeightText(): string') &&
+      typeDefinitions.includes('screenshotRegion(x: number, y: number, width: number, height: number): string | null') &&
+      typeDefinitions.includes('launchByPrefix(bundleIdPrefix: string): boolean') &&
+      typeDefinitions.includes('declare function drag(x1: number, y1: number, x2: number, y2: number, durationMs?: number): boolean'),
+      'Type definitions must describe region screenshots, prefix launch, drag and helpers');
+check(read('Sources/AutoSDK/AutoEngine.m').includes('invokeScreenshotRegion:(JSValue *)payload') &&
+      read('Sources/AutoSDK/AutoEngine.m').includes('CGImageCreateWithImageInRect'),
+      'Engine must implement region screenshots with CoreGraphics cropping');
 check(bootstrapSource.includes('base.swipeUp=function(percent,duration)') &&
       bootstrapSource.includes('base.swipeDown=function(percent,duration)') &&
       bootstrapSource.includes('base.swipeLeft=function(percent,duration)') &&

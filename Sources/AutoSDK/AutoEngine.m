@@ -25,6 +25,7 @@
 - (id)invokeSleep:(NSNumber *)milliseconds;
 - (id)invokeGetText:(JSValue *)selector;
 - (id)invokeScreenshot;
+- (id)invokeScreenshotRegion:(JSValue *)payload;
 - (id)invokeFindImage:(JSValue *)payload;
 - (id)invokeFindColor:(JSValue *)payload;
 - (id)invokePixelColor:(JSValue *)payload;
@@ -884,6 +885,45 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"Screenshot exceeds maxScreenshotBytes.", nil)];
     }
     return data ? [data base64EncodedStringWithOptions:0] : [NSNull null];
+}
+
+- (id)invokeScreenshotRegion:(JSValue *)payload {
+    if (![self ensureScriptRunning]) return @NO;
+    NSDictionary *data = AutoPayload(payload);
+    if (!AutoPayloadHasFiniteNumbers(data, @[@"x", @"y", @"width", @"height"])) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"screenshotRegion requires finite x, y, width and height.", nil)];
+    }
+    double x = [data[@"x"] doubleValue];
+    double y = [data[@"y"] doubleValue];
+    double width = [data[@"width"] doubleValue];
+    double height = [data[@"height"] doubleValue];
+    if (width <= 0 || height <= 0) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"screenshotRegion width and height must be positive.", nil)];
+    }
+    NSError *error = nil;
+    NSData *captured = [self.adapter screenshotWithError:&error];
+    if (error) return [self failure:error];
+    if (captured.length == 0) return [NSNull null];
+    UIImage *image = [UIImage imageWithData:captured];
+    if (!image) return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"Unable to decode the screenshot.", nil)];
+    CGFloat scale = image.scale > 0 ? image.scale : 1.0;
+    CGRect requested = CGRectMake(x * scale, y * scale, width * scale, height * scale);
+    CGRect bounds = CGRectMake(0, 0, image.size.width * scale, image.size.height * scale);
+    CGRect clipped = CGRectIntersection(requested, bounds);
+    if (CGRectIsNull(clipped) || clipped.size.width <= 0 || clipped.size.height <= 0) {
+        return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"screenshotRegion is outside the screenshot bounds.", nil)];
+    }
+    CGImageRef source = image.CGImage;
+    CGImageRef cropped = CGImageCreateWithImageInRect(source, clipped);
+    if (!cropped) return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"Unable to crop the screenshot.", nil)];
+    UIImage *result = [UIImage imageWithCGImage:cropped scale:scale orientation:image.imageOrientation];
+    CGImageRelease(cropped);
+    NSData *output = UIImagePNGRepresentation(result);
+    if (!output) return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"Unable to encode the cropped screenshot.", nil)];
+    if (output.length > AutoScreenshotByteLimit(self.config ?: @{})) {
+        return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"Screenshot exceeds maxScreenshotBytes.", nil)];
+    }
+    return [output base64EncodedStringWithOptions:0];
 }
 
 - (id)invokeMedia:(JSValue *)payload {

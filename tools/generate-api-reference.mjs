@@ -103,7 +103,15 @@ const REFS = {
   'swipeDown(percent?, durationMs?)': 'EasyClick swipe() 方向封装',
   'swipeLeft(percent?, durationMs?)': 'EasyClick swipe() 方向封装',
   'swipeRight(percent?, durationMs?)': 'EasyClick swipe() 方向封装',
-  'app.appList()': 'EasyClick getInstalledApps() · AutoJS app.getInstalledApps()',  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
+  'app.appList()': 'EasyClick getInstalledApps() · AutoJS app.getInstalledApps()',
+  'screenshotRegion(x, y, width, height)': 'EasyClick image.clip() 区域截图',
+  'childCount(selector)': 'EasyClick childcount()',
+  'drag(x1, y1, x2, y2, durationMs?)': 'EasyClick drag()',
+  'randomString(length?, chars?)': 'EasyClick utils.randomCharNumber()',
+  'randomCharNumber(length?)': 'EasyClick utils.randomCharNumber()',
+  'launchAppByPrefix(bundleIdPrefix)': 'EasyClick appLaunchByPrefix()',
+  'app.launchByPrefix(bundleIdPrefix)': 'EasyClick appLaunchByPrefix()',
+  'device.getScreenWidthHeightText()': 'EasyClick getScreenWidthHeightText()',  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
   'uuid()': 'EasyClick uuid()',
   'base64.encode(str)': 'EasyClick base64.encode()/decode()'
 };
@@ -310,6 +318,16 @@ APIS.push({ cat:'timer', sig:'random(min, max?) / randomInt(min, max?)', title:'
   const x = random(0, 100);
   const y = randomInt(0, 100);
   toastLog("随机: " + x + ", " + y);
+}
+main();` });
+APIS.push({ cat:'timer', sig:'randomString(length?, chars?)', title:'随机字符串', desc:'生成指定长度的随机字符串，默认 8 位字母+数字；chars 可自定义字符集。', params:[['length','number','可选，长度，默认 8'],['chars','string','可选，字符集']], returns:'string', example:`function main(){
+  logd(randomString(6));            // 例如 aB3xYz
+  logd(randomString(4, "0123456789")); // 4 位数字
+}
+main();` });
+APIS.push({ cat:'timer', sig:'randomCharNumber(length?)', title:'随机字母数字串', desc:'EasyClick 兼容别名：生成字母+数字混合随机串，默认 8 位。', params:[['length','number','可选，长度，默认 8']], returns:'string', example:`function main(){
+  const code = randomCharNumber(6);
+  logd("验证码: " + code);
 }
 main();` });
 APIS.push({ cat:'timer', sig:'uuid() / uniqueId()', title:'唯一 ID', desc:'生成 UUID 字符串。', params:[], returns:'string', example:`function main(){
@@ -569,6 +587,14 @@ APIS.push({ cat:'touch', sig:'swipeRight(percent?, durationMs?)', title:'右滑'
   swipeRight(0.5);
   logd("右滑完成");
 }
+main();` });APIS.push({ cat:'touch', sig:'drag(x1, y1, x2, y2, durationMs?)', title:'拖拽', desc:'从起点按下并按住，再移动到终点松开（长按拖拽），durationMs 为总毫秒数（默认 600）。需要 WDA 真实触摸注入。', params:[['x1','number','起点 X'],['y1','number','起点 Y'],['x2','number','终点 X'],['y2','number','终点 Y'],['durationMs','number','可选，毫秒']], returns:'boolean', example:`function main(){
+  drag(190, 400, 190, 200, 800);   // 按住列表项向下拖动
+}
+main();` });
+APIS.push({ cat:'touch', sig:'childCount(selector)', title:'子节点数量', desc:'返回第一个匹配节点的直接子节点数量。', params:[['selector','object|string','节点选择器']], returns:'number', example:`function main(){
+  const count = childCount({text: "列表"});
+  logd("子节点数: " + count);
+}
 main();` });APIS.push({ cat:'touch', sig:'input(selector, text)', title:'输入文字', desc:'向匹配的输入框填入文字（替换原内容）。', params:[['selector','object|string','输入框选择器'],['text','string','要输入的文字']], returns:'boolean', example:`function main(){
   const ok = input({type: "TextField"}, "hello");
   logd("输入结果: " + ok);
@@ -647,7 +673,12 @@ APIS.push({ cat:'vision', sig:'screenshot()', title:'截屏', desc:'截取当前
   logd("截图长度: " + png.length);
 }
 main();` });
-APIS.push({ cat:'vision', sig:'findImage(templatePath, options?)', title:'找图', desc:'在屏幕截图中查找模板图片，返回匹配位置与相似度。', params:[['templatePath','string','模板图片路径（沙盒内，支持 png/jpg）'],['options','object','可选，region/threshold 等']], returns:'AutoMatch {found, x, y, similarity}', example:`function main(){
+APIS.push({ cat:'vision', sig:'screenshotRegion(x, y, width, height)', title:'区域截图', desc:'截取屏幕指定矩形区域，返回该区域 PNG 的 Base64 字符串；区域超出屏幕会自动裁剪到边界，完全不重叠时返回 null。', params:[['x','number','区域左上角 X'],['y','number','区域左上角 Y'],['width','number','区域宽度'],['height','number','区域高度']], returns:'string|null PNG base64', example:`function main(){
+  // 只截取屏幕上方状态栏区域
+  const png = screenshotRegion(0, 0, 390, 60);
+  if (png) logd("区域截图长度: " + png.length);
+}
+main();` });APIS.push({ cat:'vision', sig:'findImage(templatePath, options?)', title:'找图', desc:'在屏幕截图中查找模板图片，返回匹配位置与相似度。', params:[['templatePath','string','模板图片路径（沙盒内，支持 png/jpg）'],['options','object','可选，region/threshold 等']], returns:'AutoMatch {found, x, y, similarity}', example:`function main(){
   const match = findImage("images/start.png", {threshold: 0.9});
   if (match.found) {
     logd("找到，中心: " + match.centerX + "," + match.centerY);
@@ -744,6 +775,10 @@ APIS.push({ cat:'app', sig:'app.appList() / installedApps()', title:'已安装�
   logd("已安装: " + apps.length + " 个应用");
   for (const item of apps.slice(0, 10)) logd(item.bundleId + " → " + item.name);
 }
+main();` });APIS.push({ cat:'app', sig:'launchAppByPrefix(bundleIdPrefix) / app.launchByPrefix(bundleIdPrefix)', title:'按前缀启动应用', desc:'先列出已安装应用，找到 bundleId 以指定前缀开头的第一个应用并启动；找不到返回 false。', params:[['bundleIdPrefix','string','Bundle ID 前缀，如 "com.apple.mobile"']], returns:'boolean', example:`function main(){
+  const ok = launchAppByPrefix("com.apple.mobile");
+  logd("启动结果: " + ok);
+}
 main();` });APIS.push({ cat:'device', sig:'device.getDeviceInfo()', title:'设备信息', desc:'返回设备/屏幕/电池/系统等完整信息字典。', params:[], returns:'object {model, systemVersion, screenWidth, batteryLevel, ...}', example:`function main(){
   const info = device.getDeviceInfo();
   logd("型号: " + info.model);
@@ -756,6 +791,10 @@ APIS.push({ cat:'device', sig:'device.getScreenWidth() / getScreenHeight()', tit
   logd("宽: " + device.getScreenWidth());
   logd("高: " + device.getScreenHeight());
   logd("缩放: " + device.getScale());
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.getScreenWidthHeightText()', title:'屏幕宽高文本', desc:'EasyClick 兼容别名：返回 "宽x高" 字符串，如 "390x844"。', params:[], returns:'string', example:`function main(){
+  logd("屏幕: " + device.getScreenWidthHeightText());
 }
 main();` });
 APIS.push({ cat:'device', sig:'device.getScale()', title:'屏幕缩放', desc:'读取屏幕像素密度 scale。', params:[], returns:'number', example:`function main(){

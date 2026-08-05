@@ -188,10 +188,10 @@ written for AutoScript/Auto.js port over with minimal changes:
   `randomInt` (inclusive range).
 - Touch: `clickPoint`, `doubleClickPoint`, `swipeToPoint` (alias of
   `swipe`), `swipeUp` / `swipeDown` / `swipeLeft` / `swipeRight` (direction
-  swipes), `input` / `setText` (aliases: selector + text), `sleep`.
+  swipes), `drag` (long-press drag), `childCount`, `input` / `setText` (aliases:
+  selector + text), `sleep`.
 - Image: `image.findImage`, `image.findColor`, `image.findMultiColor`,
-  `image.cmpColor`, `image.pixel` (alias of `getPixelColor`),
-  `image.screenshot`.
+  `image.cmpColor`, `image.pixel` (alias of `getPixelColor`),`n  `image.screenshot`, `image.clipRegion` (alias of `screenshotRegion`).
 - Top-level globals: `auto`, `file`, `storages` (via `storages.create`),
   `device`, `http` (also `httpGet` / `httpPost`), `app`, `image`,
   `toast`, `toastLog`, `openURL`, `getClipboard`, `setClipboard`,

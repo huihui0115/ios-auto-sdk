@@ -37,7 +37,14 @@ All notable changes to AutoSDK are documented here. The format follows
   do not implement the new optional
   installedApplicationsWithError: protocol method report an explicit
   unavailable error. API reference grows to 149 documented functions.
-- **Device volume keys and screen state.** New device.volumeUp(),
+- **EasyClick benchmark round: region screenshots, prefix launch, drag and utils.** New
+  screenshotRegion(x, y, w, h) crops the screen capture natively (CoreGraphics)
+  and returns the region PNG base64; launchAppByPrefix()/app.launchByPrefix()
+  lists installed apps and launches the first bundleId match; drag() performs a
+  long-press drag through the touch pipeline; childCount(), randomString() and
+  randomCharNumber() add node-count and random-string helpers;
+  device.getScreenWidthHeightText() returns "390x844". API reference grows to
+  156 documented functions.- **Device volume keys and screen state.** New device.volumeUp(),
   device.volumeDown() and device.isScreenOn() (WDA /wda/pressButton and
   /wda/locked), gated by allowSystemControl; embedded adapters report
   unavailable instead of failing silently. API reference grows to 142

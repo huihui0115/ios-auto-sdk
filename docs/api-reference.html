@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>29</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>9</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>13</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>20</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>27</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>7</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>11</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>31</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>10</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>14</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>21</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>27</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>7</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>13</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -217,7 +217,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="touch" class="cat" style="--c:#7c3aed">
-  <h2><span class="tag">触摸与节点</span><i>29</i></h2>
+  <h2><span class="tag">触摸与节点</span><i>31</i></h2>
   <article class="card" data-search="click(selector) 点击节点">
   <header class="card-head">
     <h4><code>click(selector)</code> <span class="cname">点击节点</span></h4>
@@ -404,6 +404,35 @@ main();</code></pre>
   <pre><code>function main(){
   swipeRight(0.5);
   logd("右滑完成");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="drag(x1, y1, x2, y2, durationMs?) 拖拽">
+  <header class="card-head">
+    <h4><code>drag(x1, y1, x2, y2, durationMs?)</code> <span class="cname">拖拽</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">从起点按下并按住，再移动到终点松开（长按拖拽），durationMs 为总毫秒数（默认 600）。需要 WDA 真实触摸注入。</p>
+  <div class="ref"><b>对标</b> EasyClick drag()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x1</code><span class="ptype">number</span><span class="pdesc">起点 X</span></div><div class="param"><code class="pname">y1</code><span class="ptype">number</span><span class="pdesc">起点 Y</span></div><div class="param"><code class="pname">x2</code><span class="ptype">number</span><span class="pdesc">终点 X</span></div><div class="param"><code class="pname">y2</code><span class="ptype">number</span><span class="pdesc">终点 Y</span></div><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">可选，毫秒</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  drag(190, 400, 190, 200, 800);   // 按住列表项向下拖动
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="childCount(selector) 子节点数量">
+  <header class="card-head">
+    <h4><code>childCount(selector)</code> <span class="cname">子节点数量</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回第一个匹配节点的直接子节点数量。</p>
+  <div class="ref"><b>对标</b> EasyClick childcount()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">节点选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number</span></div>
+  <pre><code>function main(){
+  const count = childCount({text: "列表"});
+  logd("子节点数: " + count);
 }
 main();</code></pre>
 </article>
@@ -679,7 +708,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="vision" class="cat" style="--c:#ea580c">
-  <h2><span class="tag">图色与OCR</span><i>9</i></h2>
+  <h2><span class="tag">图色与OCR</span><i>10</i></h2>
   <article class="card" data-search="screenshot() 截屏">
   <header class="card-head">
     <h4><code>screenshot()</code> <span class="cname">截屏</span></h4>
@@ -692,6 +721,22 @@ main();</code></pre>
   <pre><code>function main(){
   const png = screenshot();
   logd("截图长度: " + png.length);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="screenshotRegion(x, y, width, height) 区域截图">
+  <header class="card-head">
+    <h4><code>screenshotRegion(x, y, width, height)</code> <span class="cname">区域截图</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">截取屏幕指定矩形区域，返回该区域 PNG 的 Base64 字符串；区域超出屏幕会自动裁剪到边界，完全不重叠时返回 null。</p>
+  <div class="ref"><b>对标</b> EasyClick image.clip() 区域截图</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">区域左上角 X</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">区域左上角 Y</span></div><div class="param"><code class="pname">width</code><span class="ptype">number</span><span class="pdesc">区域宽度</span></div><div class="param"><code class="pname">height</code><span class="ptype">number</span><span class="pdesc">区域高度</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string|null PNG base64</span></div>
+  <pre><code>function main(){
+  // 只截取屏幕上方状态栏区域
+  const png = screenshotRegion(0, 0, 390, 60);
+  if (png) logd("区域截图长度: " + png.length);
 }
 main();</code></pre>
 </article>
@@ -832,7 +877,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="app" class="cat" style="--c:#16a34a">
-  <h2><span class="tag">App与应用控制</span><i>13</i></h2>
+  <h2><span class="tag">App与应用控制</span><i>14</i></h2>
   <article class="card" data-search="app.launch(bundleId) 启动应用">
   <header class="card-head">
     <h4><code>app.launch(bundleId)</code> <span class="cname">启动应用</span></h4>
@@ -1029,9 +1074,24 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="launchAppByPrefix(bundleIdPrefix) / app.launchByPrefix(bundleIdPrefix) 按前缀启动应用">
+  <header class="card-head">
+    <h4><code>launchAppByPrefix(bundleIdPrefix) / app.launchByPrefix(bundleIdPrefix)</code> <span class="cname">按前缀启动应用</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">先列出已安装应用，找到 bundleId 以指定前缀开头的第一个应用并启动；找不到返回 false。</p>
+  <div class="ref"><b>对标</b> EasyClick appLaunchByPrefix()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleIdPrefix</code><span class="ptype">string</span><span class="pdesc">Bundle ID 前缀，如 "com.apple.mobile"</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = launchAppByPrefix("com.apple.mobile");
+  logd("启动结果: " + ok);
+}
+main();</code></pre>
+</article>
 </section>
 <section id="device" class="cat" style="--c:#dc2626">
-  <h2><span class="tag">设备与系统</span><i>20</i></h2>
+  <h2><span class="tag">设备与系统</span><i>21</i></h2>
   <article class="card" data-search="device.getOSVersion() 系统版本">
   <header class="card-head">
     <h4><code>device.getOSVersion()</code> <span class="cname">系统版本</span></h4>
@@ -1154,6 +1214,20 @@ main();</code></pre>
   logd("宽: " + device.getScreenWidth());
   logd("高: " + device.getScreenHeight());
   logd("缩放: " + device.getScale());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.getScreenWidthHeightText() 屏幕宽高文本">
+  <header class="card-head">
+    <h4><code>device.getScreenWidthHeightText()</code> <span class="cname">屏幕宽高文本</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">EasyClick 兼容别名：返回 "宽x高" 字符串，如 "390x844"。</p>
+  <div class="ref"><b>对标</b> EasyClick getScreenWidthHeightText()</div>
+  
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd("屏幕: " + device.getScreenWidthHeightText());
 }
 main();</code></pre>
 </article>
@@ -2269,7 +2343,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="timer" class="cat" style="--c:#64748b">
-  <h2><span class="tag">定时器与工具</span><i>11</i></h2>
+  <h2><span class="tag">定时器与工具</span><i>13</i></h2>
   <article class="card" data-search="clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id) 取消定时器">
   <header class="card-head">
     <h4><code>clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id)</code> <span class="cname">取消定时器</span></h4>
@@ -2299,6 +2373,36 @@ main();</code></pre>
   const x = random(0, 100);
   const y = randomInt(0, 100);
   toastLog("随机: " + x + ", " + y);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="randomString(length?, chars?) 随机字符串">
+  <header class="card-head">
+    <h4><code>randomString(length?, chars?)</code> <span class="cname">随机字符串</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">生成指定长度的随机字符串，默认 8 位字母+数字；chars 可自定义字符集。</p>
+  <div class="ref"><b>对标</b> EasyClick utils.randomCharNumber()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">length</code><span class="ptype">number</span><span class="pdesc">可选，长度，默认 8</span></div><div class="param"><code class="pname">chars</code><span class="ptype">string</span><span class="pdesc">可选，字符集</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(randomString(6));            // 例如 aB3xYz
+  logd(randomString(4, "0123456789")); // 4 位数字
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="randomCharNumber(length?) 随机字母数字串">
+  <header class="card-head">
+    <h4><code>randomCharNumber(length?)</code> <span class="cname">随机字母数字串</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">EasyClick 兼容别名：生成字母+数字混合随机串，默认 8 位。</p>
+  <div class="ref"><b>对标</b> EasyClick utils.randomCharNumber()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">length</code><span class="ptype">number</span><span class="pdesc">可选，长度，默认 8</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  const code = randomCharNumber(6);
+  logd("验证码: " + code);
 }
 main();</code></pre>
 </article>
@@ -2448,7 +2552,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 149 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 156 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-05 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

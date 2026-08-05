@@ -286,6 +286,7 @@ interface AutoDeviceAPI {
   scale(): number;
   getScreenWidth(): number;
   getScreenHeight(): number;
+  getScreenWidthHeightText(): string;
   getScale(): number;
   getModel(): string;
   getOSVersion(): string;
@@ -338,6 +339,7 @@ interface AutoAppAPI {
   currentApp(): string | null;
   appList(): Array<{ bundleId: string; name: string }>;
   installedApps(): Array<{ bundleId: string; name: string }>;
+  launchByPrefix(bundleIdPrefix: string): boolean;
 }
 
 interface AutoAPI {
@@ -386,6 +388,12 @@ interface AutoAPI {
   clickCenter(selector: AutoSelectorLike): boolean;
   clickRandom(selector: AutoSelectorLike): boolean;
   screenshot(): string;
+  screenshotRegion(x: number, y: number, width: number, height: number): string | null;
+  childCount(selector: AutoSelectorLike): number;
+  randomString(length?: number, chars?: string): string;
+  randomCharNumber(length?: number): string;
+  drag(x1: number, y1: number, x2: number, y2: number, durationMs?: number): boolean;
+  launchAppByPrefix(bundleIdPrefix: string): boolean;
   saveImageToAlbum(path: string): boolean;
   saveImageBase64ToAlbum(base64: string): boolean;
   saveVideoToAlbum(path: string): boolean;
@@ -427,6 +435,7 @@ declare const image: {
   cmpColor: AutoAPI["compareColors"];
   pixel: AutoAPI["getPixelColor"];
   screenshot: AutoAPI["screenshot"];
+  clipRegion: AutoAPI["screenshotRegion"];
   saveToAlbum: AutoAPI["saveImageToAlbum"];
   saveBase64ToAlbum: AutoAPI["saveImageBase64ToAlbum"];
   saveScreenshotToAlbum: AutoAPI["saveScreenshotToAlbum"];
@@ -487,6 +496,13 @@ declare function saveScreenshotToAlbum(): boolean;
 declare function time(): number;
 declare function random(min: number, max?: number): number;
 declare function randomInt(min: number, max?: number): number;
+declare function randomString(length?: number, chars?: string): string;
+declare function randomCharNumber(length?: number): string;
+declare function screenshotRegion(x: number, y: number, width: number, height: number): string | null;
+declare function childCount(selector: AutoSelectorLike): number;
+declare function drag(x1: number, y1: number, x2: number, y2: number, durationMs?: number): boolean;
+declare function launchAppByPrefix(bundleIdPrefix: string): boolean;
+declare function getScreenWidthHeightText(): string;
 declare function setScreenMetrics(width: number, height: number): boolean;
 declare function getScreenMetrics(): AutoMetrics;
 declare const metrics: AutoMetricsAPI;

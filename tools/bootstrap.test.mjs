@@ -130,6 +130,7 @@ function createSandbox() {
     invokeInput: () => true,
     invokeGetText: () => 'sample text',
     invokeScreenshot: () => { calls.screenshot.push(1); return 'png-data'; },
+    invokeScreenshotRegion: (data) => { calls.screenshot.push(data); return 'region-png'; },
     invokeFindImage: () => ({ match: true, x: 11, y: 22, width: 5, height: 5 }),
     invokeFindColor: () => ({ match: true, x: 11, y: 22 }),
     invokePixelColor: () => ({ red: 1, green: 2, blue: 3 }),
@@ -517,6 +518,55 @@ test('app.appList and installedApps route to invokeApp appList', () => {
   assert.deepEqual(calls.app.at(-1), { operation: 'appList' });
   assert.deepEqual(sandbox.auto.app.installedApps(), [{ bundleId: 'com.example.host', name: 'Host' }]);
   assert.deepEqual(calls.app.at(-1), { operation: 'appList' });
+});
+
+test('launchAppByPrefix finds the first bundleId with the given prefix', () => {
+  const { sandbox, calls } = boot();
+  sandbox.auto.launchAppByPrefix('com.example');
+  assert.deepEqual(calls.app.at(-1), { operation: 'launch', bundleId: 'com.example.host' });
+  assert.equal(sandbox.auto.launchAppByPrefix('no.such.prefix'), false);
+  assert.equal(sandbox.auto.launchAppByPrefix(''), false);
+  assert.equal(typeof sandbox.launchAppByPrefix, 'function');
+  assert.equal(typeof sandbox.auto.app.launchByPrefix, 'function');
+});
+
+test('screenshotRegion, childCount, randomString, drag and screen text helpers', () => {
+  const { sandbox, calls } = boot();
+  const region = sandbox.auto.screenshotRegion(10, 20, 100, 50);
+  assert.equal(region, 'region-png');
+  assert.deepEqual(calls.screenshot.at(-1), { x: 10, y: 20, width: 100, height: 50 });
+  assert.equal(typeof sandbox.screenshotRegion, 'function');
+  assert.equal(typeof sandbox.image.clipRegion, 'function');
+
+  sandbox.auto.getChildren = () => [{ handle: 'a' }, { handle: 'b' }, { handle: 'c' }];
+  assert.equal(sandbox.auto.childCount({ text: 'x' }), 3);
+  sandbox.auto.getChildren = () => null;
+  assert.equal(sandbox.auto.childCount({ text: 'x' }), 0);
+  assert.equal(typeof sandbox.childCount, 'function');
+
+  const s = sandbox.auto.randomString(12);
+  assert.equal(s.length, 12);
+  assert.match(s, /^[A-Za-z0-9]{12}$/);
+  assert.equal(sandbox.auto.randomString(6, 'ab').replace(/[ab]/g, '').length, 0);
+  assert.equal(sandbox.auto.randomCharNumber(5).length, 5);
+  assert.equal(typeof sandbox.randomString, 'function');
+  assert.equal(typeof sandbox.randomCharNumber, 'function');
+
+  assert.equal(sandbox.auto.drag(10, 10, 200, 300, 700), true);
+  const fingers = calls.touch.at(-1).fingers;
+  assert.equal(fingers.length, 1);
+  assert.equal(fingers[0][0].type, 'pointerMove');
+  assert.equal(fingers[0][0].x, 10);
+  assert.equal(fingers[0][1].type, 'pointerDown');
+  assert.equal(fingers[0][2].type, 'pause');
+  assert.equal(fingers[0][3].type, 'pointerMove');
+  assert.equal(fingers[0][3].x, 200);
+  assert.equal(fingers[0][3].duration, 700);
+  assert.equal(fingers[0][4].type, 'pointerUp');
+  assert.equal(typeof sandbox.drag, 'function');
+
+  assert.equal(sandbox.auto.device.getScreenWidthHeightText(), '390x844');
+  assert.equal(typeof sandbox.getScreenWidthHeightText, 'function');
 });
 
 test('unknown auto.* methods fall back to invokeNative', () => {
