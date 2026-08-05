@@ -2545,6 +2545,19 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         [self refreshOverlayVisibility];
         return @YES;
     }
+    if ([name isEqualToString:@"screenDrawRelease"]) {
+        if (!drawView) return AutoMakeError(AutoSDKErrorAutomationFailed, @"screenDraw operation requires a valid token from screenDraw.init.", nil);
+        [drawView removeFromSuperview];
+        @synchronized (self.engine) { [self.engine.screenDraws removeObjectForKey:token]; }
+        [self refreshOverlayVisibility];
+        return @YES;
+    }
+    if ([name isEqualToString:@"screenDrawClearAll"]) {
+        for (AutoScreenDrawView *draw in self.engine.screenDraws.allValues) [draw removeFromSuperview];
+        @synchronized (self.engine) { [self.engine.screenDraws removeAllObjects]; }
+        [self refreshOverlayVisibility];
+        return @YES;
+    }
     if ([name isEqualToString:@"floatBallShow"]) {
         NSString *title = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"";
         CGFloat x = args.count > 1 && [args[1] isKindOfClass:NSNumber.class] ? [args[1] doubleValue] : 20;
@@ -3836,7 +3849,18 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             [self stopAllAudioPlayback];
         }
     }
+    [self cleanupOverlayUI];
     dispatch_async(dispatch_get_main_queue(), ^{ if (completion) completion(result, error); });
+}
+
+- (void)cleanupOverlayUI {
+    NSArray *draws = nil;
+    @synchronized (self) { draws = [self.screenDraws.allValues copy]; }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.floatBallView removeFromSuperview];
+        for (UIView *draw in draws) [draw removeFromSuperview];
+        self.overlayWindow.hidden = YES;
+    });
 }
 
 - (void)stopAllAudioPlayback {

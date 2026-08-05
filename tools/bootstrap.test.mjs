@@ -773,6 +773,10 @@ test('toPinYin, stripUtf8Bom, fromUnicode, screenDraw, floatBall and node keep h
   assert.deepEqual(calls.native.at(-1), { name: 'screenDrawMove', arguments: [token, 5, 6] });
   assert.equal(sandbox.screenDraw.hide(token), true);
   assert.deepEqual(calls.native.at(-1), { name: 'screenDrawHide', arguments: [token] });
+  assert.equal(sandbox.screenDraw.release(token), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'screenDrawRelease', arguments: [token] });
+  assert.equal(sandbox.screenDraw.clearAll(), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'screenDrawClearAll', arguments: [] });
 
   assert.equal(sandbox.floatBall.show('任务', 10, 20), true);
   assert.deepEqual(calls.native.at(-1), { name: 'floatBallShow', arguments: ['任务', 10, 20] });

@@ -3313,12 +3313,12 @@ main();</code></pre>
 </section>
 <section id="ui" class="cat" style="--c:#f59e0b">
   <h2><span class="tag">悬浮窗口</span><i>2</i></h2>
-  <article class="card" data-search="screenDraw.init() / setBorderWidth(token, width) / setBorderColor(token, color) / setTitle(token, title) / show(token, x, y, w, h) / move(token, x, y) / hide(token) 屏幕悬浮绘制">
+  <article class="card" data-search="screenDraw.init() / setBorderWidth(token, width) / setBorderColor(token, color) / setTitle(token, title) / show(token, x, y, w, h) / move(token, x, y) / hide(token) / release(token) / clearAll() 屏幕悬浮绘制">
   <header class="card-head">
-    <h4><code>screenDraw.init() / setBorderWidth(token, width) / setBorderColor(token, color) / setTitle(token, title) / show(token, x, y, w, h) / move(token, x, y) / hide(token)</code> <span class="cname">屏幕悬浮绘制</span></h4>
+    <h4><code>screenDraw.init() / setBorderWidth(token, width) / setBorderColor(token, color) / setTitle(token, title) / show(token, x, y, w, h) / move(token, x, y) / hide(token) / release(token) / clearAll()</code> <span class="cname">屏幕悬浮绘制</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">在屏幕上方画一个可自定义边框与标题的矩形框（标注区域、调试选区），不影响触摸穿透。init 创建并返回 token；setBorderWidth/setBorderColor/setTitle 修改样式；show 指定位置尺寸显示；move 移动；hide 隐藏。对标 TrollAutoScript screenDraw.*。</p>
+  <p class="desc">在屏幕上方画一个可自定义边框与标题的矩形框（标注区域、调试选区），不影响触摸穿透。init 创建并返回 token；setBorderWidth/setBorderColor/setTitle 修改样式；show 指定位置尺寸显示；move 移动；hide 隐藏；release 释放单个绘制；clearAll 清空全部。脚本结束时引擎自动清理全部悬浮层。对标 TrollAutoScript screenDraw.*。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">token</code><span class="ptype">string</span><span class="pdesc">screenDraw.init 返回的标识</span></div><div class="param"><code class="pname">width</code><span class="ptype">number</span><span class="pdesc">边框宽度</span></div><div class="param"><code class="pname">color</code><span class="ptype">string</span><span class="pdesc">边框颜色，如 #FF0000</span></div><div class="param"><code class="pname">title</code><span class="ptype">string</span><span class="pdesc">左上角标题</span></div><div class="param"><code class="pname">x/y/w/h</code><span class="ptype">number</span><span class="pdesc">位置与尺寸</span></div></div>
   <div class="ret"><b>返回值</b> <span>string token | boolean</span></div>

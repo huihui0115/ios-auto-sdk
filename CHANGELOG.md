@@ -8,6 +8,12 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ### Added
 
+- **Round 13: 悬浮层生命周期治理。** 新增 `screenDraw.release(token)`（释放单个绘制）
+  与 `screenDraw.clearAll()`（清空全部绘制）；引擎在脚本结束/停止/退出时自动清理
+  全部悬浮层（screenDraw + floatBall + 悬浮窗），避免脚本异常退出后 UI 残留；
+  VS Code 插件升级到 0.4.2（补全列表新增日期/字符串/内存/安装判断等 13 条）。
+
+### Added
 - **Round 12: 日期格式化 / 随机睡眠 / 字符串增强 / 应用与内存别名。** 新增
   `formatDate(timestamp?, pattern?)` 与 `dateFormat`、`strings.formatDate`（支持
   yyyy/MM/dd/HH/mm/ss/SSS/E 中文星期）；新增 `sleepRandom(min, max)` 随机睡眠；

@@ -443,7 +443,7 @@ APIS.push({ cat:'base64', sig:'base64.encode(text) / base64.decode(base64)', tit
   logd(base64.decode(enc));
 }
 main();` });
-APIS.push({ cat:'ui', sig:'screenDraw.init() / setBorderWidth(token, width) / setBorderColor(token, color) / setTitle(token, title) / show(token, x, y, w, h) / move(token, x, y) / hide(token)', title:'屏幕悬浮绘制', desc:'在屏幕上方画一个可自定义边框与标题的矩形框（标注区域、调试选区），不影响触摸穿透。init 创建并返回 token；setBorderWidth/setBorderColor/setTitle 修改样式；show 指定位置尺寸显示；move 移动；hide 隐藏。对标 TrollAutoScript screenDraw.*。', params:[['token','string','screenDraw.init 返回的标识'],['width','number','边框宽度'],['color','string','边框颜色，如 #FF0000'],['title','string','左上角标题'],['x/y/w/h','number','位置与尺寸']], returns:'string token | boolean', example:`function main(){
+APIS.push({ cat:'ui', sig:'screenDraw.init() / setBorderWidth(token, width) / setBorderColor(token, color) / setTitle(token, title) / show(token, x, y, w, h) / move(token, x, y) / hide(token) / release(token) / clearAll()', title:'屏幕悬浮绘制', desc:'在屏幕上方画一个可自定义边框与标题的矩形框（标注区域、调试选区），不影响触摸穿透。init 创建并返回 token；setBorderWidth/setBorderColor/setTitle 修改样式；show 指定位置尺寸显示；move 移动；hide 隐藏；release 释放单个绘制；clearAll 清空全部。脚本结束时引擎自动清理全部悬浮层。对标 TrollAutoScript screenDraw.*。', params:[['token','string','screenDraw.init 返回的标识'],['width','number','边框宽度'],['color','string','边框颜色，如 #FF0000'],['title','string','左上角标题'],['x/y/w/h','number','位置与尺寸']], returns:'string token | boolean', example:`function main(){
   const draw = screenDraw.init();
   screenDraw.setBorderColor(draw, "#00FF00");
   screenDraw.setTitle(draw, "目标区域");

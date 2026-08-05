@@ -551,6 +551,8 @@ interface AutoScreenDrawAPI {
   show(token: string, x: number, y: number, width: number, height: number): boolean;
   move(token: string, x: number, y: number): boolean;
   hide(token: string): boolean;
+  release(token: string): boolean;
+  clearAll(): boolean;
 }
 
 interface AutoFloatBallAPI {
