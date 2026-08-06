@@ -29,10 +29,15 @@ sleep(500);
 device.torch(false);
 systemReport.flashlight = "setFlashlight/torch ok";
 
-// 6. Open this app's settings page (system UI)
+// 6. App URL scheme library: look up a scheme, then launch an app by name
+const weixinScheme = app.getAppScheme('微信');
+systemReport.weixinScheme = weixinScheme;
+systemReport.launchByScheme = app.launchByScheme('taobao');
+
+// 7. Open this app's settings page (system UI)
 systemReport.openSettings = app.openSettings();
 
-// 7. Stop speech if still speaking
+// 8. Stop speech if still speaking
 speechStop();
 
 systemReport;

@@ -91,7 +91,8 @@
 | set_clipboard / get_clipboard | setClipboard / getClipboard | ✅ |
 | KeyValue 存储 | storages.create(name) | ✅ |
 | R.name/root/home/res/img/ui/assets/rel | file.getSandBoxDir / file.* | ✅ 沙盒路径助手等价 |
-| reboot / deactivate / get_app_scheme | 无 | ❌ 需私有 API / 系统级 |
+| reboot / deactivate | 无 | ❌ 需私有 API / 系统级 |
+| get_app_scheme | app.getAppScheme(name) / launchByScheme(name) | ✅ 内置 40+ 常用 App URL Scheme 库（中文名/英文名/bundleId），对标 AScript 内置 scheme 库 |
 
 ### media / http / thread / ui
 

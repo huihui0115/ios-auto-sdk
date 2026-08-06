@@ -412,6 +412,79 @@ static BOOL AutoSystemURLSchemeAllowed(NSURL *url) {
         @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-."];
     return [scheme rangeOfCharacterFromSet:allowed.invertedSet].location == NSNotFound;
 }
+static NSString *AutoAppSchemeForName(NSString *name) {
+    if (name.length == 0) return nil;
+    static NSDictionary<NSString *, NSString *> *autoAppSchemes = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        autoAppSchemes = @{
+            // WeChat
+            @"weixin": @"weixin://", @"wechat": @"weixin://", @"微信": @"weixin://", @"com.tencent.xin": @"weixin://",
+            // Alipay
+            @"alipay": @"alipays://platformapi/startapp?saId=10000007", @"支付宝": @"alipays://platformapi/startapp?saId=10000007", @"com.alipay.iphoneclient": @"alipays://platformapi/startapp?saId=10000007",
+            // Taobao / Tmall
+            @"taobao": @"taobao://", @"淘宝": @"taobao://", @"com.taobao.taobao": @"taobao://",
+            @"tmall": @"tmall://", @"天猫": @"tmall://",
+            // JD
+            @"jd": @"openapp.jdmobile://", @"jingdong": @"openapp.jdmobile://", @"京东": @"openapp.jdmobile://", @"com.360buy.jdmobile": @"openapp.jdmobile://",
+            // Pinduoduo
+            @"pinduoduo": @"pinduoduo://", @"pdd": @"pinduoduo://", @"拼多多": @"pinduoduo://",
+            // Douyin
+            @"douyin": @"snssdk1128://", @"抖音": @"snssdk1128://", @"com.ss.iphone.ugc.aweme": @"snssdk1128://",
+            // Kuaishou
+            @"kuaishou": @"kwai://", @"快手": @"kwai://",
+            // Meituan / Dianping / Eleme
+            @"meituan": @"imeituan://", @"美团": @"imeituan://", @"com.meituan.imeituan": @"imeituan://",
+            @"dianping": @"dianping://", @"大众点评": @"dianping://", @"com.dianping.v1": @"dianping://",
+            @"eleme": @"eleme://", @"饿了么": @"eleme://",
+            // QQ / Weibo
+            @"qq": @"mqq://", @"mqq": @"mqq://", @"com.tencent.mqq": @"mqq://",
+            @"weibo": @"sinaweibo://", @"sinaweibo": @"sinaweibo://", @"微博": @"sinaweibo://", @"com.sina.weibo": @"sinaweibo://",
+            // Zhihu / Bilibili / Xiaohongshu
+            @"zhihu": @"zhihu://", @"知乎": @"zhihu://", @"com.zhihu.ios": @"zhihu://",
+            @"bilibili": @"bilibili://", @"bili": @"bilibili://", @"哔哩哔哩": @"bilibili://",
+            @"xiaohongshu": @"xhsdiscover://", @"xhs": @"xhsdiscover://", @"小红书": @"xhsdiscover://", @"com.xingin.xhs": @"xhsdiscover://",
+            // Video: Youku / iQiyi / Tencent Video
+            @"youku": @"youku://", @"优酷": @"youku://", @"com.youku.YouKu": @"youku://",
+            @"iqiyi": @"iqiyi://", @"爱奇艺": @"iqiyi://", @"com.qiyi.video": @"iqiyi://",
+            @"tencentvideo": @"tenvideo://", @"tenvideo": @"tenvideo://", @"腾讯视频": @"tenvideo://", @"com.tencent.live4iphone": @"tenvideo://",
+            // Music: NetEase / QQ Music / Kugou
+            @"wangyiyun": @"orpheus://", @"nemusic": @"orpheus://", @"netease": @"orpheus://", @"网易云音乐": @"orpheus://", @"com.netease.cloudmusic": @"orpheus://",
+            @"qqmusic": @"qqmusic://", @"QQ音乐": @"qqmusic://", @"com.tencent.QQMusic": @"qqmusic://",
+            @"kugou": @"kugou://", @"酷狗": @"kugou://",
+            // Douban / Ctrip
+            @"douban": @"douban://", @"豆瓣": @"douban://", @"com.douban.frodo": @"douban://",
+            @"ctrip": @"ctrip://", @"携程": @"ctrip://", @"com.ctrip.trip": @"ctrip://",
+            // Maps: Gaode / Baidu
+            @"gaode": @"iosamap://", @"amap": @"iosamap://", @"高德地图": @"iosamap://", @"com.autonavi.minimap": @"iosamap://",
+            @"baidumap": @"baidumap://", @"百度地图": @"baidumap://", @"com.baidu.BaiduMap": @"baidumap://",
+            // Didi / DingTalk / WeCom / Feishu
+            @"didi": @"didihybird://", @"滴滴": @"didihybird://", @"com.sdu.didi.psnger": @"didihybird://",
+            @"dingtalk": @"dingtalk://", @"钉钉": @"dingtalk://", @"com.laiwang.DingTalk": @"dingtalk://",
+            @"wecom": @"wxwork://", @"wxwork": @"wxwork://", @"企业微信": @"wxwork://", @"com.tencent.wework": @"wxwork://",
+            @"feishu": @"feishu://", @"lark": @"feishu://", @"飞书": @"feishu://", @"com.ss.android.lark": @"feishu://",
+            // News / Search / Mail
+            @"toutiao": @"snssdk36://", @"今日头条": @"snssdk36://",
+            @"baidu": @"baiduboxapp://", @"百度": @"baiduboxapp://",
+            @"qqmail": @"qqmail://", @"QQ邮箱": @"qqmail://", @"com.tencent.qqmail": @"qqmail://",
+            // International
+            @"telegram": @"tg://", @"tg": @"tg://", @"ph.telegra.Telegraph": @"tg://",
+            @"whatsapp": @"whatsapp://", @"net.whatsapp.WhatsApp": @"whatsapp://",
+            @"facebook": @"fb://", @"fb": @"fb://", @"com.facebook.Facebook": @"fb://",
+            @"instagram": @"instagram://", @"com.burbn.instagram": @"instagram://",
+            @"twitter": @"twitter://", @"x": @"twitter://", @"com.twitter.twitter": @"twitter://",
+            @"youtube": @"youtube://", @"com.google.ios.youtube": @"youtube://",
+            @"chrome": @"googlechrome://", @"googlechrome": @"googlechrome://", @"com.google.chrome.ios": @"googlechrome://",
+            @"gmail": @"googlegmail://", @"com.google.Gmail": @"googlegmail://",
+            @"spotify": @"spotify:", @"com.spotify.client": @"spotify:",
+            @"netflix": @"nflx://", @"com.netflix.Netflix": @"nflx://",
+        };
+    });
+    NSString *trimmed = [name stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    NSString *scheme = autoAppSchemes[trimmed];
+    if (!scheme) scheme = autoAppSchemes[trimmed.lowercaseString];
+    return scheme;
+}
 static UILabel *AutoActiveToastLabel;
 static void AutoShowToast(NSString *message) {
     if (!NSThread.isMainThread) {
@@ -2527,6 +2600,22 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         }
         NSURL *appSchemeURLObject = [NSURL URLWithString:appSchemeURL];
         return @([AutoValueOnMainThread(^id{ return @([UIApplication.sharedApplication openURL:appSchemeURLObject]); }) boolValue]);
+    }
+    if ([operation isEqualToString:@"getappscheme"]) {
+        NSString *name = [data[@"name"] isKindOfClass:NSString.class] ? data[@"name"] : @"";
+        NSString *scheme = AutoAppSchemeForName(name);
+        return scheme ?: [NSNull null];
+    }
+    if ([operation isEqualToString:@"launchbyscheme"]) {
+        if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
+        }
+        NSString *name = [data[@"name"] isKindOfClass:NSString.class] ? data[@"name"] : @"";
+        NSString *scheme = AutoAppSchemeForName(name);
+        if (scheme.length == 0) return @NO;
+        NSURL *url = [NSURL URLWithString:scheme];
+        if (!AutoSystemURLSchemeAllowed(url)) return @NO;
+        return @([AutoValueOnMainThread(^id{ return @([UIApplication.sharedApplication openURL:url]); }) boolValue]);
     }
     if ([operation isEqualToString:@"homescreen"] || [operation isEqualToString:@"lock"] || [operation isEqualToString:@"unlock"]) {
         if (!AutoPermission(self.config, @"allowSystemControl", YES)) {

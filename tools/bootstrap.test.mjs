@@ -1264,6 +1264,17 @@ test('flashlight/torch route to bridge and default to on', () => {
   sandbox.auto.setFlashlight(true); // auto proxy falls back to deviceApi
   assert.deepEqual(calls.device.at(-1), { operation: 'flashlight', value: true });
 });
+test('app.getAppScheme / launchByScheme route to bridge with name', () => {
+  const { sandbox, calls } = boot();
+  sandbox.app.getAppScheme('weixin');
+  assert.deepEqual(calls.app.at(-1), { operation: 'getAppScheme', name: 'weixin' });
+  sandbox.launchByScheme('微信');
+  assert.deepEqual(calls.app.at(-1), { operation: 'launchByScheme', name: '微信' });
+  sandbox.app.launchByScheme('');
+  assert.deepEqual(calls.app.at(-1), { operation: 'launchByScheme', name: '' });
+  sandbox.auto.getAppScheme('taobao'); // auto proxy falls back to appApi
+  assert.deepEqual(calls.app.at(-1), { operation: 'getAppScheme', name: 'taobao' });
+});
 
 test('device isScreenOn/isLocked expose lock state', () => {
   const { sandbox } = boot();

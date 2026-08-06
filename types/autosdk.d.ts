@@ -437,6 +437,8 @@ interface AutoAppAPI {
   getPackageName(): string;
   openSettings(): boolean;
   openAppStore(appId: string): boolean;
+  getAppScheme(name: string): string | null;
+  launchByScheme(name: string): boolean;
 }
 
 interface AutoSpeechAPI {
@@ -945,6 +947,8 @@ declare function touchAndSlide(x1: number, y1: number, x2: number, y2: number, d
 declare function openURL(url: string): boolean;
 declare function openAppSetting(): boolean;
 declare function openAppStore(appId: string): boolean;
+declare function getAppScheme(name: string): string | null;
+declare function launchByScheme(name: string): boolean;
 declare function speak(text: string, options?: AutoSpeechOptions, stopWhenScriptEnd?: boolean): boolean;
 declare function tts(text: string, options?: AutoSpeechOptions, stopWhenScriptEnd?: boolean): boolean;
 declare function speechStop(): boolean;
