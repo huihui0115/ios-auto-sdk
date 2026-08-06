@@ -6,6 +6,26 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.24.0] - 2026-08-07
+
+### Added
+
+- **http.put / http.delete REST 便捷别名**（对标 AScript/EasyClick HTTP 全家桶）：
+  - `http.put(url, body?, options?)`：自动带 body 的 PUT 请求；
+  - `http.delete(url, options?)`：DELETE 请求；
+  - 与既有 `http.get/getJSON/post/postJSON` 一致，均走统一 guard 与 options 通道；
+  - d.ts、api-reference、devdocs、verify 锚点、Node 测试（81 个）同步。
+- **对标 ascript.cn/docs/ios API 分类审计**：AScript 14 大分类（application/action/
+  node/screen/ui/webwindow/http/thread/db/file/media/cloud/system/python），本项目
+  15 类全覆盖，无类目级缺口（见 docs/EASYCLICK_COMPARISON.md Round 54 记录）。
+
+### Fixed
+
+- **HTTP multipart Content-Disposition 头注入漏洞**：表单字段名、文件字段名、上传
+  fileName（lastPathComponent）此前未经校验直接拼入 Content-Disposition 头，
+  含引号或 CR/LF 控制字符的恶意/异常名称可注入任意 HTTP 头、走私请求体；
+  新增 `AutoHTTPFieldNameIsValid()`（拒绝引号与一切控制字符），在全部 3 处上传点
+  统一拦截并返回明确错误（安全审计修复，行为对合法名称零影响）。
 ## [1.23.0] - 2026-08-06
 
 ### Added

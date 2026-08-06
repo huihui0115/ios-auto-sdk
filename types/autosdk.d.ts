@@ -283,6 +283,10 @@ interface AutoHTTP {
   post(url: string, body?: unknown, options?: AutoHTTPOptions): AutoHTTPResponse;
   httpPost(url: string, body?: unknown, options?: AutoHTTPOptions): AutoHTTPResponse;
   postJSON(url: string, body?: unknown, options?: AutoHTTPOptions): AutoHTTPResponse;
+  /** PUT convenience wrapper (AutoJS parity). */
+  put(url: string, body?: unknown, options?: AutoHTTPOptions): AutoHTTPResponse;
+  /** DELETE convenience wrapper (AutoJS parity). */
+  delete(url: string, options?: AutoHTTPOptions): AutoHTTPResponse;
   downloadFile(url: string, path: string, options?: AutoHTTPOptions): boolean;
   httpGetDefault(url: string, options?: AutoHTTPOptions): AutoHTTPResponse;
   downloadFileDefault(url: string, path: string, options?: AutoHTTPOptions): boolean;

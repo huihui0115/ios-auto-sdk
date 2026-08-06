@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 53（v1.23.0，2026-08-07）。
+> 最后更新：Round 54（v1.24.0，2026-08-07）。
 
 ---
 
@@ -211,6 +211,11 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R54（v1.24.0）：**HTTP 安全审计 + REST 便捷别名**——修复 multipart Content-Disposition
+  头注入（表单字段名/文件名未校验引号与控制字符，新增 AutoHTTPFieldNameIsValid
+  在 3 处上传点统一拦截）；bootstrap 新增 http.put(url, body?, options?) /
+  http.delete(url, options?)（+215B，61416/61440，仅剩 24B，下轮先压缩）；
+  对标 ascript.cn/docs/ios API 14 大分类，本项目 15 类全覆盖无类目级缺口。
 - R53（v1.23.0）：**内置 no-WDA 补齐 xpath 子集**——AutoBuiltinXPathToQuery 把单步
   //Type[@attr='v']/contains/starts-with/ends-with/and 组合/位置下标翻译成原生查询键
   （512 字符上限、未知语法显式报错、capabilities.xpathSubset）；选择器卡片/devdocs/FAQ 同步。

@@ -716,6 +716,12 @@ check(engineSource.includes('AutoSQLiteMaxRows') &&
       engineSource.includes('rows.count < AutoSQLiteMaxRows') &&
       engineSource.includes('sqlite accepts one statement per call'),
       'SQLite query rows must be bounded and multi-statement SQL must be rejected explicitly');
+check(engineSource.includes('AutoHTTPFieldNameIsValid') &&
+      engineSource.includes('Upload file names must not contain quotes or control characters'),
+      'Multipart field and file names must be validated against header injection');
+check(bootstrapScript.includes('httpApi.put=function(url,body,options)') &&
+      bootstrapScript.includes('httpApi.delete=function(url,options)'),
+      'Bootstrap http module must expose put/delete convenience wrappers');
 check(builtinAdapterSource.includes('AutoBuiltinXPathToQuery') &&
       builtinAdapterSource.includes('AutoBuiltinSplitXPathConditions') &&
       builtinAdapterSource.includes('"xpathSubset"') &&

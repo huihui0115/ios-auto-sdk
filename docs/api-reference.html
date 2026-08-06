@@ -3164,12 +3164,12 @@ main();</code></pre>
 </section>
 <section id="http" class="cat" style="--c:#9333ea">
   <h2><span class="tag">网络HTTP</span><i>11</i></h2>
-  <article class="card" data-search="httpGet(url, options?) / httpPost(url, body?, options?) HTTP 全局简写">
+  <article class="card" data-search="httpGet(url, options?) / httpPost(url, body?, options?) / http.put(url, body?, options?) / http.delete(url, options?) HTTP 全局简写">
   <header class="card-head">
-    <h4><code>httpGet(url, options?) / httpPost(url, body?, options?)</code> <span class="cname">HTTP 全局简写</span></h4>
+    <h4><code>httpGet(url, options?) / httpPost(url, body?, options?) / http.put(url, body?, options?) / http.delete(url, options?)</code> <span class="cname">HTTP 全局简写</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">AutoJS 风格全局简写，等价于 http.get / http.post。</p>
+  <p class="desc">AutoJS 风格全局简写，等价于 http.get / http.post；http.put(url, body?) / http.delete(url) 提供 REST 动词包装（Round 54+）。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">请求地址</span></div><div class="param"><code class="pname">body</code><span class="ptype">any</span><span class="pdesc">POST 请求体</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选配置</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoHTTPResponse</span></div>

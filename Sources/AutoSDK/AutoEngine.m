@@ -1931,6 +1931,15 @@ static NSURLSession *AutoHTTPSharedSession(NSArray<Class> *protocolClasses) {
     return session;
 }
 
+// Multipart field/file names are interpolated into Content-Disposition headers,
+// so they must not contain quotes, CR/LF or other control characters.
+static BOOL AutoHTTPFieldNameIsValid(NSString *name) {
+    if (![name isKindOfClass:NSString.class] || name.length == 0) return NO;
+    if ([name rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location != NSNotFound) return NO;
+    if ([name rangeOfString:@"\""].location != NSNotFound) return NO;
+    return YES;
+}
+
 // Builds and validates the NSURLRequest for one invokeHTTP call. All request
 // sizing, header, method and body checks live here so the data and download
 // paths share identical validation. Returns nil and fills *error on failure.
@@ -2047,6 +2056,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             id value = formData[rawKey];
             if (![rawKey isKindOfClass:NSString.class] || [(NSString *)rawKey length] == 0 ||
                 [rawKey lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 256 ||
+                !AutoHTTPFieldNameIsValid(rawKey) ||
                 ![value isKindOfClass:NSString.class] || [(NSString *)value lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 8192) {
                 if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Multipart form field names or values are invalid or too long.", nil);
                 return nil;
@@ -2056,7 +2066,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         for (id rawKey in files) {
             id pathValue = files[rawKey];
             if (![rawKey isKindOfClass:NSString.class] || [(NSString *)rawKey length] == 0 ||
-                [rawKey lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 256) {
+                [rawKey lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 256 ||
+                !AutoHTTPFieldNameIsValid(rawKey)) {
                 if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Multipart file field names are invalid.", nil);
                 return nil;
             }
@@ -2076,6 +2087,10 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                 return nil;
             }
             NSString *fileName = fileURL.lastPathComponent;
+            if (!AutoHTTPFieldNameIsValid(fileName)) {
+                if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Upload file names must not contain quotes or control characters.", nil);
+                return nil;
+            }
             NSString *extension = fileName.pathExtension.lowercaseString;
             NSString *mime = [extension isEqualToString:@"png"] ? @"image/png"
                             : ([extension isEqualToString:@"jpg"] || [extension isEqualToString:@"jpeg"]) ? @"image/jpeg"

@@ -369,7 +369,7 @@ APIS.push({ cat:'storage', sig:'storages.create(name).keys() / all() / contains(
 main();` });
 
 // ==== 补齐：HTTP 别名 ====
-APIS.push({ cat:'http', sig:'httpGet(url, options?) / httpPost(url, body?, options?)', title:'HTTP 全局简写', desc:'AutoJS 风格全局简写，等价于 http.get / http.post。', params:[['url','string','请求地址'],['body','any','POST 请求体'],['options','object','可选配置']], returns:'AutoHTTPResponse', example:`function main(){
+APIS.push({ cat:'http', sig:'httpGet(url, options?) / httpPost(url, body?, options?) / http.put(url, body?, options?) / http.delete(url, options?)', title:'HTTP 全局简写', desc:'AutoJS 风格全局简写，等价于 http.get / http.post；http.put(url, body?) / http.delete(url) 提供 REST 动词包装（Round 54+）。', params:[['url','string','请求地址'],['body','any','POST 请求体'],['options','object','可选配置']], returns:'AutoHTTPResponse', example:`function main(){
   if (auto.capabilities().http !== true) return;
   const r = httpGet("https://example.com", { timeout: 5000 });
   logd("status=" + r.status);

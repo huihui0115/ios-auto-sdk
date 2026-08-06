@@ -359,6 +359,12 @@ test('http.getJSON and http.get pass options to the bridge', () => {
   assert.equal(calls.http.at(-1).parseJson, undefined);
   sandbox.http.post('https://example.com/post', { body: 'x' });
   assert.equal(calls.http.at(-1).method, 'POST');
+  sandbox.http.put('https://example.com/put', { body: 'y' });
+  assert.equal(calls.http.at(-1).method, 'PUT');
+  assert.deepEqual(calls.http.at(-1).body, { body: 'y' });
+  sandbox.http.delete('https://example.com/del', { timeout: 1000 });
+  assert.equal(calls.http.at(-1).method, 'DELETE');
+  assert.equal(calls.http.at(-1).timeout, 1000);
 });
 
 test('http params merge into query strings and cookies/files/formData forward', () => {
