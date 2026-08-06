@@ -388,6 +388,9 @@ check(bootstrapScript.includes("getNetworkType:function(){return _dv('networkTyp
       bootstrapScript.includes("isWifi:function(){return _dv('isWifi');}") &&
       bootstrapScript.includes('g.getNetworkType=deviceApi.getNetworkType') && bootstrapScript.includes('g.isWifi=deviceApi.isWifi'),
       'Bootstrap must expose network type helpers');
+check(bootstrapScript.includes("getFrontmostApp:function(){return _av('current')") &&
+      bootstrapScript.includes("g.getFrontmostApp=appApi.getFrontmostApp"),
+      'Bootstrap must expose app.getFrontmostApp and its global alias');
 check(bootstrapScript.includes("getAppScheme:function(name){return _av('getAppScheme'") &&
       bootstrapScript.includes("launchByScheme:function(name){return _av('launchByScheme'") &&
       bootstrapScript.includes("g.getAppScheme=appApi.getAppScheme") && bootstrapScript.includes("g.launchByScheme=appApi.launchByScheme"),

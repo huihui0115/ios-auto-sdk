@@ -48,6 +48,7 @@ const REFS = {
   'speak(text, options?) / speechStop()': 'AScript speak · EasyClick speak()',
   'app.openSettings() / openAppSetting() / openAppStore(appId)': 'AScript app_open_setting / app_store · EasyClick openAppSetting()/openAppStore()',
   'app.getAppScheme() / launchByScheme()': 'AScript 内置 URL Scheme 启动库 · EasyClick getAppScheme()',
+  'app.getFrontmostApp()': 'AScript get_frontmost_app · EasyClick getFrontmostApp()',
   'Selector().text(v).type(t).findOne()': 'AScript Selector 链式选择器',
   'clickPoint(x, y)': 'EasyClick clickPoint() · AutoJS click(x, y)',
   'doubleClickPoint(x, y, interval?)': 'EasyClick doubleClickPoint() · AutoJS click(x, y, true)',
@@ -243,7 +244,13 @@ APIS.push({ cat:'app', sig:'app.openSettings() / openAppSetting() / app.openAppS
   sleep(2000);
   app.openAppStore("284882215"); // 微信 App Store id
 }
-main();` });APIS.push({ cat:'app', sig:'app.getAppScheme(name) / app.launchByScheme(name) / getAppScheme(name) / launchByScheme(name)', title:'App URL Scheme 库', desc:'内置 40+ 常用 App 的 URL Scheme 映射（微信/支付宝/淘宝/京东/拼多多/抖音/快手/美团/大众点评/饿了么/QQ/微博/知乎/哔哩哔哩/小红书/优酷/爱奇艺/腾讯视频/网易云音乐/QQ音乐/酷狗/豆瓣/携程/高德/百度地图/滴滴/钉钉/企业微信/飞书/今日头条/百度/QQ邮箱/Telegram/WhatsApp/Facebook/Instagram/Twitter/YouTube/Chrome/Gmail/Spotify/Netflix 等，支持中文名/英文名/bundleId 查询）。getAppScheme(name) 返回对应 scheme（未收录返回 null）；launchByScheme(name) 用 scheme 启动应用（需 allowSystemControl 权限）。对标 AScript 内置 URL Scheme 启动库与 EasyClick getAppScheme()。', params:[['name','string','App 中文名、英文名或 bundleId，如 微信/weixin/com.tencent.xin']], returns:'string | boolean | null', example:`function main(){
+main();` });APIS.push({ cat:'app', sig:'app.getFrontmostApp() / getFrontmostApp()', title:'前台应用', desc:'返回当前前台 App 的 bundleId（无前台应用时返回 null）。对标 AScript get_frontmost_app 与 EasyClick getFrontmostApp()。', params:[], returns:'string | null', example:`function main(){
+  const front = getFrontmostApp();
+  logd('前台应用: ' + front);
+  if (front === 'com.tencent.xin') logd('正在微信');
+}
+main();` });
+APIS.push({ cat:'app', sig:'app.getAppScheme(name) / app.launchByScheme(name) / getAppScheme(name) / launchByScheme(name)', title:'App URL Scheme 库', desc:'内置 40+ 常用 App 的 URL Scheme 映射（微信/支付宝/淘宝/京东/拼多多/抖音/快手/美团/大众点评/饿了么/QQ/微博/知乎/哔哩哔哩/小红书/优酷/爱奇艺/腾讯视频/网易云音乐/QQ音乐/酷狗/豆瓣/携程/高德/百度地图/滴滴/钉钉/企业微信/飞书/今日头条/百度/QQ邮箱/Telegram/WhatsApp/Facebook/Instagram/Twitter/YouTube/Chrome/Gmail/Spotify/Netflix 等，支持中文名/英文名/bundleId 查询）。getAppScheme(name) 返回对应 scheme（未收录返回 null）；launchByScheme(name) 用 scheme 启动应用（需 allowSystemControl 权限）。对标 AScript 内置 URL Scheme 启动库与 EasyClick getAppScheme()。', params:[['name','string','App 中文名、英文名或 bundleId，如 微信/weixin/com.tencent.xin']], returns:'string | boolean | null', example:`function main(){
   const scheme = app.getAppScheme('微信');   // 'weixin://'
   logd('微信 scheme: ' + scheme);
   const ok = app.launchByScheme('taobao');   // 通过 scheme 启动淘宝

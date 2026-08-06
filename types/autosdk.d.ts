@@ -427,6 +427,7 @@ interface AutoAppAPI {
   unlock(): boolean;
   current(): string | null;
   currentApp(): string | null;
+  getFrontmostApp(): string | null;
   appList(): Array<{ bundleId: string; name: string }>;
   isInstalled(bundleId: string): boolean;
   getAppName(bundleId: string): string | null;
@@ -927,6 +928,7 @@ declare function setFlashlight(on?: boolean): boolean;
 declare function torch(on?: boolean): boolean;
 declare function flashlight(on?: boolean): boolean;
 declare function launchAppByPrefix(bundleIdPrefix: string): boolean;
+declare function getFrontmostApp(): string | null;
 declare function getScreenWidthHeightText(): string;
 declare function setScreenMetrics(width: number, height: number): boolean;
 declare function getScreenMetrics(): AutoMetrics;

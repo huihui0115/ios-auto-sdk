@@ -93,6 +93,7 @@
 | R.name/root/home/res/img/ui/assets/rel | file.getSandBoxDir / file.* | ✅ 沙盒路径助手等价 |
 | reboot / deactivate | 无 | ❌ 需私有 API / 系统级 |
 | get_app_scheme | app.getAppScheme(name) / launchByScheme(name) | ✅ 内置 40+ 常用 App URL Scheme 库（中文名/英文名/bundleId），对标 AScript 内置 scheme 库 |
+| get_frontmost_app | app.getFrontmostApp() / getFrontmostApp() | ✅ 前台 bundleId |
 
 ### media / http / thread / ui
 

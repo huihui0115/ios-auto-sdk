@@ -34,10 +34,13 @@ const weixinScheme = app.getAppScheme('微信');
 systemReport.weixinScheme = weixinScheme;
 systemReport.launchByScheme = app.launchByScheme('taobao');
 
-// 7. Open this app's settings page (system UI)
+// 7. Foreground app bundle id
+systemReport.frontmost = app.getFrontmostApp();
+
+// 8. Open this app's settings page (system UI)
 systemReport.openSettings = app.openSettings();
 
-// 8. Stop speech if still speaking
+// 9. Stop speech if still speaking
 speechStop();
 
 systemReport;

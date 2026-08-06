@@ -1275,6 +1275,15 @@ test('app.getAppScheme / launchByScheme route to bridge with name', () => {
   sandbox.auto.getAppScheme('taobao'); // auto proxy falls back to appApi
   assert.deepEqual(calls.app.at(-1), { operation: 'getAppScheme', name: 'taobao' });
 });
+test('getFrontmostApp returns the foreground app via app bridge', () => {
+  const { sandbox, calls } = boot();
+  sandbox.app.getFrontmostApp();
+  assert.deepEqual(calls.app.at(-1), { operation: 'current' });
+  sandbox.getFrontmostApp();
+  assert.deepEqual(calls.app.at(-1), { operation: 'current' });
+  sandbox.auto.getFrontmostApp(); // auto proxy falls back to appApi
+  assert.deepEqual(calls.app.at(-1), { operation: 'current' });
+});
 
 test('device isScreenOn/isLocked expose lock state', () => {
   const { sandbox } = boot();
