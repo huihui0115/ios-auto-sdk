@@ -570,6 +570,32 @@ test('gesture: multiGesture runs several fingers, pinch produces two tracks', ()
   assert.throws(() => sandbox.auto.gesture([]), /at least one/);
 });
 
+test('touch primitives: staged fingers replay via multiGesture, touchUp flushes all', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.auto.touchDown(10, 20), true);
+  assert.equal(sandbox.auto.touchMove(30, 40), true);
+  assert.equal(sandbox.auto.touchUp(), true);
+  assert.deepEqual(calls.touch.at(-1).fingers, [[
+    { type: 'pointerMove', duration: 0, x: 10, y: 20 },
+    { type: 'pointerDown', button: 0 },
+    { type: 'pointerMove', duration: 0, x: 30, y: 40 },
+    { type: 'pointerUp', button: 0 },
+  ]]);
+  const before = calls.touch.length;
+  // two staged fingers flush together with one touchUp()
+  sandbox.auto.touchDown(100, 300, 0);
+  sandbox.auto.touchDown(300, 300, 1);
+  sandbox.auto.touchMove(100, 100, 0);
+  sandbox.auto.touchMove(300, 100, 1);
+  assert.equal(sandbox.auto.touchUp(), true);
+  assert.equal(calls.touch.length, before + 1);
+  assert.equal(calls.touch.at(-1).fingers.length, 2);
+  assert.equal(calls.touch.at(-1).fingers[0].at(-1).type, 'pointerUp');
+  // touchUp with nothing staged is a no-op that returns true
+  const noopBefore = calls.touch.length;
+  assert.equal(sandbox.auto.touchUp(), true);
+  assert.equal(calls.touch.length, noopBefore);
+});
 test('app helpers and clipboard/brightness/volume/vibrate route to bridge', () => {
   const { sandbox, calls } = boot();
   sandbox.auto.launchApp('com.example.app');

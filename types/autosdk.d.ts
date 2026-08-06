@@ -1161,6 +1161,12 @@ declare function clickCenter(selector: AutoSelectorLike): boolean;
 declare function gesture(actions: AutoGestureAction[]): boolean;
 declare function multiGesture(fingers: AutoGestureAction[][]): boolean;
 declare function pinch(x: number, y: number, scale: number, durationMs?: number): boolean;
+/** Low-level touch: press finger (default id 0) at (x, y). Pair with touchMove/touchUp. */
+declare function touchDown(x: number, y: number, finger?: number): boolean;
+/** Low-level touch: move a staged finger (default id 0) to (x, y). */
+declare function touchMove(x: number, y: number, finger?: number): boolean;
+/** Low-level touch: lift one staged finger by id, or ALL staged fingers at once when omitted. */
+declare function touchUp(finger?: number): boolean;
 declare function clickRandomPoint(x1: number, y1: number, x2: number, y2: number): boolean;
 declare function clickRandom(x1: number, y1: number, x2: number, y2: number): boolean;
 declare function clickRandom(selector: AutoSelectorLike): boolean;

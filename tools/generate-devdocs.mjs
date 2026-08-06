@@ -30,7 +30,7 @@ const PROSE = [
 { id: 'intro', group: '开始', title: '介绍', html: `
 <h1>AutoSDK 介绍</h1>
 <p>AutoSDK 是嵌入式 <b>iOS JavaScript 自动化引擎</b>：宿主 App 内嵌 JavaScriptCore，加载内置 bootstrap，
-把 <b>257 个脚本函数</b>（触摸、控件、图色、OCR、YOLO、文件、存储、HTTP、SQLite、线程、定位、相册、悬浮窗、TTS…）
+把 <b>258 个脚本函数</b>（触摸、控件、图色、OCR、YOLO、文件、存储、HTTP、SQLite、线程、定位、相册、悬浮窗、TTS…）
 交给 JS 脚本，通过 bridge 调原生能力。对标 EasyClick iOS / AScript iOS / TrollAutoScript / kuaijs。</p>
 <div class="note ok"><b>内置 no-WDA（v1.17.0+ 唯一跨 App 路线）</b>：不再依赖外部 WebDriverAgent Runner。
 <code>AutoBuiltinAdapter</code> 用 IOHIDEvent 注入真实触摸、AXUIElement 系统级控件检索（毫秒级）、
@@ -173,7 +173,80 @@ if (n) {
 <li>找图/OCR 模式可先用本地 PNG 测试（自动上传到手机 debug-assets）；</li>
 <li>生成的 <code>auto.click(...)</code> 直接粘回脚本。</li></ol>
 <div class="note ok">工作流建议：Inspector 取选择器 → 本页面查函数示例 → Run Current Script 热跑 →
-日志面板看回传，全程不用重装 IPA。</div>` }
+日志面板看回传，全程不用重装 IPA。</div>` },
+{ id: 'guide-threads', group: '高级指南', title: '多线程', html: `
+<h1>多线程</h1>
+<p>脚本主体跑在 JSContext 主线程；耗时任务（HTTP、长循环、等待）用 <code>execAsync</code> 放到独立线程，
+避免卡住触摸/控件操作。最多 8 个并发线程，线程函数参数必须是可 JSON 序列化的值。</p>
+<pre><code>function main(){
+  // 子线程跑耗时任务
+  const t = execAsync(function (n) {
+    sleep(2000);
+    return n * 2;
+  }, 21);
+
+  // 主线程继续干活
+  logd("子线程还没结束: " + !t.isFinished());
+  const value = t.join();      // 阻塞等结果
+  logd("结果: " + value);      // 42
+  t.cancel();                  // 幂等，可随时调用
+}
+main();</code></pre>
+<h2>定时器</h2>
+<pre><code>function main(){
+  setTimeout(function(){ logd("2 秒后执行一次"); }, 2000);
+  const id = setInterval(function(){ logd("每 1 秒"); }, 1000);
+  sleep(3500);
+  clearInterval(id);
+}
+main();</code></pre>
+<div class="note ok">经验：线程之间不要共享可变对象（每个线程是独立 JSContext），
+用返回值/getResult 或存储（store/sqlite）传递数据。</div>` },
+
+{ id: 'guide-db', group: '高级指南', title: '数据库', html: `
+<h1>数据库（SQLite）</h1>
+<p>内置 <code>sqlite</code> 模块（iOS 系统 libsqlite3），适合存任务队列、去重记录、运行统计。
+参数用 <code>?</code> 占位绑定，天然防 SQL 注入。</p>
+<pre><code>function main(){
+  const db = sqlite.open("data/app.db");            // 沙盒内路径，自动建库
+  sqlite.exec(db, "CREATE TABLE IF NOT EXISTS tasks(" +
+    "id INTEGER PRIMARY KEY, name TEXT, done INTEGER DEFAULT 0)");
+  const r = sqlite.exec(db, "INSERT INTO tasks(name) VALUES(?)", ["写周报"]);
+  logd("新增 id=" + r.lastInsertRowId + " changes=" + r.changes);
+  const rows = sqlite.query(db, "SELECT * FROM tasks WHERE done=?", [0]);
+  for (const row of rows) logd(row.id + ": " + row.name);
+  sqlite.close(db);                                 // 脚本停止时也会自动关闭
+}
+main();</code></pre>
+<div class="note ok">大批量写入时把多条 INSERT 放进一个循环即可，单条语句都是同步执行、
+无需事务封装；跨线程共享数据推荐用数据库而不是全局变量。</div>` },
+
+{ id: 'guide-network', group: '高级指南', title: '网络通信', html: `
+<h1>网络通信（HTTP）</h1>
+<p><code>http</code> 模块支持 GET/POST/JSON/表单/文件下载，全局简写 <code>httpGet/httpPost</code>。
+长请求建议放进 <code>execAsync</code> 线程，避免阻塞主流程。</p>
+<pre><code>function main(){
+  if (auto.capabilities().http !== true) { logd("宿主未开放 HTTP"); return; }
+  // GET JSON
+  const r = http.get("https://example.com/api/status", {
+    headers: { "Authorization": "Bearer xxx" },
+    timeout: 5000,
+  });
+  logd("status=" + r.status);
+  const data = r.json;        // 已自动解析为对象
+  // POST JSON
+  const r2 = http.postJSON("https://example.com/api/report", { ok: true, ts: Date.now() });
+  logd("上报: " + r2.status);
+}
+main();</code></pre>
+<h2>下载文件</h2>
+<pre><code>function main(){
+  const ok = http.downloadFile("https://example.com/a.png", "res/a.png");
+  logd("下载: " + ok);
+}
+main();</code></pre>
+<div class="note ok">ATS 提示：宿主 App 若未放开 http:// 明文域名，请用 https；
+请求失败时 r.status 为 0 且 body 为空，先判 status 再解析。</div>` },
 ];
 
 function fnBlock(api, i) {
@@ -202,7 +275,7 @@ const catPages = CATEGORIES.filter(c => c.id !== 'start').map(c => {
 });
 
 const PAGES = [...PROSE.map(p => ({ ...p, count: 0 })), ...catPages];
-const GROUPS = ['开始', '控件检索', 'API 参考'];
+const GROUPS = ['开始', '控件检索', '高级指南', 'API 参考'];
 
 const sidebar = GROUPS.map(g => {
   const items = PAGES.filter(p => p.group === g);

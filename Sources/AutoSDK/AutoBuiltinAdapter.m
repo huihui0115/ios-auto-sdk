@@ -1579,7 +1579,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
         NSUInteger comparisons = 0;
         BOOL matched = NO;
         double matchedSim = 0; size_t matchedX = 0, matchedY = 0;
-        for (size_t py = minY; py + needle.height <= maxY && !matched; py += step) {
+        for (size_t py = minY; py + needle.height <= maxY && !matched && comparisons < AutoBuiltinMaxImageComparisons; py += step) {
             for (size_t px = minX; px + needle.width <= maxX && !matched; px += step) {
                 NSUInteger coarseMatch = 0, coarseTotal = 0;
                 for (size_t ty = 0; ty < needle.height; ty += step) {

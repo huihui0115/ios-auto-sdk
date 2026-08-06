@@ -894,6 +894,11 @@ check(read('Sources/AutoSDK/AutoBootstrapScript.m').includes('bridge.invokeTouch
       bootstrapScript.includes('base.pinch=function(x,y,scale,duration)') &&
       bootstrapScript.includes('g.pinch=base.pinch'),
       'Bootstrap must expose gesture, multiGesture and pinch on auto and as globals');
+check(bootstrapScript.includes('base.touchDown=function(x,y,i)') &&
+      bootstrapScript.includes('base.touchMove=function(x,y,i)') &&
+      bootstrapScript.includes('base.touchUp=function(i)') &&
+      bootstrapScript.includes('g.touchUp=base.touchUp'),
+      'Bootstrap must expose EasyClick-style touchDown/touchMove/touchUp primitives');
 check(bootstrapScript.includes("if(!normalized[t].length)throw new Error('gesture finger track must contain at least one action.')"),
       'Bootstrap gesture must reject empty finger tracks');
 check(typeDefinitions.includes('interface AutoGestureAPI') &&

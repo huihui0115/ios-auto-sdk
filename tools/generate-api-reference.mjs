@@ -830,6 +830,21 @@ APIS.push({ cat:'touch', sig:'pinch(x, y, scale, duration?)', title:'双指缩�
   const ok = auto.pinch(200, 400, 1.5, 400);
   logd("放大: " + ok);
 }
+main();` });
+APIS.push({ cat:'touch', sig:'touchDown(x, y, finger?) / touchMove(x, y, finger?) / touchUp(finger?)', title:'低级触摸原语', desc:'EasyClick 风格低级触摸：touchDown 按下、touchMove 移动、touchUp 抬起。按 finger 编号分指暂存（默认 0）；touchUp() 不传参数时同时抬起所有已按下手指（可与多指组合）。适合拖拽、长按移动、自定义多指手势等需要精确控制的场景。需要内置 no-WDA 适配器的真实触摸注入。', params:[['x','number','横坐标'],['y','number','纵坐标'],['finger','number','可选，手指编号，默认 0']], returns:'boolean', example:`function main(){
+  // 拖拽：按下 -> 分步移动 -> 抬起
+  auto.touchDown(100, 500);
+  auto.touchMove(150, 400, 0);
+  auto.touchMove(200, 300, 0);
+  auto.touchUp(0);
+  // 双指：分别按下两根手指后一起抬起
+  auto.touchDown(100, 300, 0);
+  auto.touchDown(300, 300, 1);
+  auto.touchMove(100, 100, 0);
+  auto.touchMove(300, 100, 1);
+  auto.touchUp(); // 同时抬起全部
+  logd("完成");
+}
 main();` });APIS.push({ cat:'touch', sig:'slidePath(points, durationMs?) / slide_path(points, durationMs?) / touchAndSlide(x1, y1, x2, y2, durationMs?)', title:'连续轨迹滑动', desc:'slidePath 沿 points 多段轨迹连续滑动（每段耗时按距离分配），points 支持 [[x,y],...] 或 [{x,y},...]；touchAndSlide 为两点直线滑动（等价 swipe）。对标 AScript slide_path / touch_and_slide。', params:[['points','Array<[x,y]|{x,y}>','轨迹点，至少 2 个'],['durationMs','number','可选，总时长毫秒，默认 600'],['x1/y1/x2/y2','number','touchAndSlide 起点与终点坐标']], returns:'boolean', example:`function main(){
   const ok = slidePath([[100, 300], [200, 200], [300, 300]], 800);
   logd("轨迹滑动: " + ok);

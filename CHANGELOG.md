@@ -6,6 +6,23 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-08-06
+
+### Added
+
+- **EasyClick 风格低级触摸原语 `touchDown/touchMove/touchUp`**：按 finger 编号
+  分指暂存（默认 0），`touchUp()` 无参时同时抬起全部已按下手指（一次 multiGesture
+  回放），可组合拖拽、长按移动、自定义多指手势；d.ts/API 卡片/verify 锚点/Node 测试
+  同步（测试 80 项，文档 258 函数）。bootstrap 61405/61440。
+- **devdocs 新增「高级指南」分组**（对齐 AScript 文档结构）：多线程（execAsync/
+  定时器）、数据库（sqlite）、网络通信（http/downloadFile）三篇可直接复制运行的
+  散文教程；侧栏分组变为 开始/控件检索/高级指南/API 参考。
+
+### Fixed
+
+- 内置 no-WDA 适配器 `findImage`：外层扫描循环未检查比较次数上限，达到
+  `AutoBuiltinMaxImageComparisons` 后仍继续空转迭代，现外层循环同样受上限约束。
+
 ## [1.19.0] - 2026-08-06
 
 ### Added

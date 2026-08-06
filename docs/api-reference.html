@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>44</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>30</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>33</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>11</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>24</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>16</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a><a href="#speech" style="--c:#059669">语音朗读<span>1</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>45</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>30</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>33</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>11</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>24</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>16</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a><a href="#speech" style="--c:#059669">语音朗读<span>1</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -231,7 +231,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="touch" class="cat" style="--c:#7c3aed">
-  <h2><span class="tag">触摸与节点</span><i>44</i></h2>
+  <h2><span class="tag">触摸与节点</span><i>45</i></h2>
   <article class="card" data-search="node.keep(node) / node.unkeep(node) / keepNode(node) / unkeepNode(node) / node.keptCount() 节点保持 / 释放">
   <header class="card-head">
     <h4><code>node.keep(node) / node.unkeep(node) / keepNode(node) / unkeepNode(node) / node.keptCount()</code> <span class="cname">节点保持 / 释放</span></h4>
@@ -393,6 +393,31 @@ main();</code></pre>
   <pre><code>function main(){
   const ok = auto.pinch(200, 400, 1.5, 400);
   logd("放大: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="touchDown(x, y, finger?) / touchMove(x, y, finger?) / touchUp(finger?) 低级触摸原语">
+  <header class="card-head">
+    <h4><code>touchDown(x, y, finger?) / touchMove(x, y, finger?) / touchUp(finger?)</code> <span class="cname">低级触摸原语</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">EasyClick 风格低级触摸：touchDown 按下、touchMove 移动、touchUp 抬起。按 finger 编号分指暂存（默认 0）；touchUp() 不传参数时同时抬起所有已按下手指（可与多指组合）。适合拖拽、长按移动、自定义多指手势等需要精确控制的场景。需要内置 no-WDA 适配器的真实触摸注入。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">纵坐标</span></div><div class="param"><code class="pname">finger</code><span class="ptype">number</span><span class="pdesc">可选，手指编号，默认 0</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  // 拖拽：按下 -&gt; 分步移动 -&gt; 抬起
+  auto.touchDown(100, 500);
+  auto.touchMove(150, 400, 0);
+  auto.touchMove(200, 300, 0);
+  auto.touchUp(0);
+  // 双指：分别按下两根手指后一起抬起
+  auto.touchDown(100, 300, 0);
+  auto.touchDown(300, 300, 1);
+  auto.touchMove(100, 100, 0);
+  auto.touchMove(300, 100, 1);
+  auto.touchUp(); // 同时抬起全部
+  logd("完成");
 }
 main();</code></pre>
 </article>
@@ -4247,7 +4272,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 257 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 258 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');
