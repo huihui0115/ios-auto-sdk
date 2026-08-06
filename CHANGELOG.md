@@ -7,6 +7,12 @@ All notable changes to AutoSDK are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+
+- Next.
+
+## [1.3.0] - 2026-08-06
+
+### Added
 - **Round 32: 原生审计 + 对标文档刷新。** 深挖审计 AutoEngine/AutoScriptSupport：zip 路径穿越防护（`..`/绝对路径拒绝）、中央目录与 CRC/尺寸边界、图片裁剪零宽防护、HTTP 字节限制 clamp、NSNull→JS 桥接均健壮，无新增 bug；verify 新增原生侧静态断言（scheme 库 ops / 手电筒 torch / 前台应用）；刷新 `docs/EASYCLICK_COMPARISON.md` 覆盖清单（215→242 卡片，各分类计数对齐）与 `docs/ASCRIPT_COMPARISON.md` 缺口清单（标记 R27-R30 已实现项 + 剩余不可行项）。文档 244 条；测试 65 项全绿。
 - **Round 31: 教程网页更新。** `docs/guide/index.html` 函数计数刷新为 244，新增「5.4 常用新能力速查」小节（手电筒 / App Scheme 库 / getFrontmostApp / 百度 OCR 的复制即用示例）；本轮无代码逻辑变更，verify/测试/文档全绿。
 - **Round 30: 百度 OCR 封装。** 新增 `ocrBaidu(imageBase64, apiKey, secretKey, options?)` / `ocrBaiduText(...)`：自动获取 access_token 后直传图片 base64 调用百度通用文字识别，返回 `{text, lines}`；对标 AScript 第三方 OCR 能力（需自备百度智能云 Key 与 allowNetwork 权限）。bootstrap 解码体积 60057 → 61178（仍在 60KB 预算内），d.ts/文档/verify/测试同步。文档 244 条；测试 65 项全绿。
@@ -55,8 +61,6 @@ All notable changes to AutoSDK are documented here. The format follows
   三条免巨魔路线，对标 AScript Agent 模式与 kuaijs）；修复 CI 在 macOS 上暴露的 3 个真实编译/
   测试问题（重复 static 函数名、id.count 点语法、日期测试时区依赖）。本地 API 文档同步更新：
   217 个函数。
-
-### Added
 - **Round 14: EasyClick 兼容 screen 取色模块 + 应用信息增强。** 新增
   `screen.*` 图色模块（EasyClick 兼容入口）：`screen.getColor(x,y)` 返回
   {r,g,b,a,hex}、`getColorRGB(x,y)` 返回 {r,g,b}、`getColorHex(x,y)` 返回
@@ -71,8 +75,6 @@ All notable changes to AutoSDK are documented here. The format follows
   与 `screenDraw.clearAll()`（清空全部绘制）；引擎在脚本结束/停止/退出时自动清理
   全部悬浮层（screenDraw + floatBall + 悬浮窗），避免脚本异常退出后 UI 残留；
   VS Code 插件升级到 0.4.2（补全列表新增日期/字符串/内存/安装判断等 13 条）。
-
-### Added
 - **Round 12: 日期格式化 / 随机睡眠 / 字符串增强 / 应用与内存别名。** 新增
   `formatDate(timestamp?, pattern?)` 与 `dateFormat`、`strings.formatDate`（支持
   yyyy/MM/dd/HH/mm/ss/SSS/E 中文星期）；新增 `sleepRandom(min, max)` 随机睡眠；
@@ -82,8 +84,6 @@ All notable changes to AutoSDK are documented here. The format follows
   `app.isInstalled(bundleId)` 与全局 `isInstalled`（WDA 已装应用列表）；新增
   `device.getTotalMemory/getAvailableMemory/getUsedMemory` 内存别名与
   `file.getLineCount` 别名。本地 API 文档同步更新（206 个函数）。
-
-### Added
 - **Round 11: 拼音 / 悬浮绘制 / 悬浮球 / 节点保持。** 新增 `toPinYin(text)`（系统级
   CFStringTransform 拼音转换，无第三方依赖，"你好"→"nihao"）与 `strings.toPinYin`；
   新增 `screenDraw.*` 悬浮绘制（init/setBorderWidth/setBorderColor/setTitle/show/
