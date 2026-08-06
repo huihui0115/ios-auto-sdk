@@ -6,6 +6,29 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-08-06
+
+### Added
+
+- **AScript 风格开发文档站** `docs/devdocs/index.html`（`npm run docs` 生成）：
+  左侧分类树（开始 / 控件检索 / 15 个 API 分类）+ 8 个散文页（介绍、安装与签名、
+  连接与调试、第一行代码、工程结构、选择器、控件对象、控件查找器）+ 257 个函数块
+  （签名/描述/参数表/返回值/一键复制可运行示例/每分类调试提示）；顶栏全文搜索、
+  hash 路由、暗色主题、单文件离线。对标 ascript.cn/docs/ios 的文档体验。
+- 门户 `docs/index.html` 与 README 增加文档站入口；verify 增加文档站锚点
+  （函数块数 == APIS 数、散文页/复制按钮存在）。
+
+### Fixed
+
+- **文档渲染遗漏**：`speech`（TTS）与 `base64` 两个分类不在 CATEGORIES，
+  对应函数卡片在 api-reference.html 从未渲染——speech 补进 CATEGORIES，
+  base64 归入"定时器与工具"，257 个函数现在全部可见。
+
+### Notes
+
+- 零 bootstrap 改动（60895/61440，余 545B）；Node 测试 79 项；
+  内置 no-WDA 适配器真机验证仍为下轮优先待办。
+
 ## [1.17.0] - 2026-08-06
 
 ### Removed

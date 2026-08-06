@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 47（v1.17.0，2026-08-06）。
+> 最后更新：Round 48（v1.18.0，2026-08-06）。
 
 ---
 
@@ -67,7 +67,8 @@ bridge (__bridge 对象，JSValue block)
 | `types/autosdk.d.ts` | TypeScript 类型声明（与文档闭环） |
 | `tools/verify.mjs` | 一致性断言（bootstrap/原生/d.ts/文档/版本） |
 | `tools/bootstrap.test.mjs` | bootstrap 行为测试（Node vm + mock bridge） |
-| `tools/generate-api-reference.mjs` | 手写 APIS 列表 → `docs/api-reference.html` |
+| `tools/generate-api-reference.mjs` | 手写 APIS 列表 → `docs/api-reference.html`（导出 APIS/CATEGORIES） |
+| `tools/generate-devdocs.mjs` | AScript 风格文档站 → `docs/devdocs/index.html`（侧栏树+散文页+函数页+搜索+复制+调试提示） |
 | `tools/bump-version.mjs` | 版本四件套同步 |
 | `tools/auto-sdk.mjs` | build / build-remote（IPA 产物） |
 | `tools/bootstrap-history/` | 历史改写脚本（仅参考，勿对新版本执行） |
@@ -211,6 +212,10 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R48（v1.18.0）：**AScript 风格开发文档站** `docs/devdocs/index.html`（22 页：开始/控件检索散文页 +
+  15 个 API 分类页，257 函数全渲染，每函数带参数表/返回值/一键复制示例/调试提示；
+  顶栏搜索 + 侧栏树 + hash 路由，单文件离线）。顺带修复两个文档渲染 bug：
+  `speech`（TTS）与 `base64` 两个分类不在 CATEGORIES 导致卡片从未渲染。
 - R47（v1.17.0）：**完全移除外部 WDA**（AutoWDAHTTPAdapter.h/.m、~760 行测试、
   42 个 verify 锚点、模板 WDA 配置与 Info.plist 键、docs/WDA_ADAPTER.md）；
   内置 no-WDA 为唯一跨 App 路线；内置 capabilities 补 appList/appLifecycle/

@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
+import { APIS } from './generate-api-reference.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const failures = [];
@@ -233,6 +234,12 @@ check(rootLock.name === rootPackage.name && rootLock.version === rootPackage.ver
       rootLock.packages?.['']?.name === rootPackage.name && rootLock.packages?.['']?.version === rootPackage.version,
       'Root package-lock.json is missing or inconsistent with package.json');
 
+const devdocs = read('docs/devdocs/index.html');
+check((devdocs.match(/class="fn" id="fn-/g) || []).length === APIS.length,
+      'devdocs must render every API function (' + APIS.length + ')');
+check(devdocs.includes('page-intro') && devdocs.includes('page-cat-touch') && devdocs.includes('page-cat-speech') &&
+      devdocs.includes('控件查找器') && devdocs.includes('data-copy='),
+      'devdocs must keep prose pages, speech category, inspector page and copy buttons');
 // Round 47: external WDA support is removed; the built-in no-WDA adapter is the only cross-app path.
 check(!existsSync('Sources/AutoSDK/AutoWDAHTTPAdapter.m') && !existsSync('Sources/AutoSDK/include/AutoWDAHTTPAdapter.h'),
       'AutoWDAHTTPAdapter must stay removed; the built-in no-WDA adapter is the only cross-app path');

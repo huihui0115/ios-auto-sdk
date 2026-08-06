@@ -80,7 +80,8 @@ AutoEngine *engine = AutoEngine.sharedEngine;
 `AutoUIKitAdapter` 支持 `id`、`label`、`type`、`value` 及组合选择器，可完成宿主 App 内点击、输入、滚动、节点查询、截图和 Vision OCR。跨 App 自动化主路线是内置 no-WDA 的 [`AutoBuiltinAdapter`](Sources/AutoSDK/include/AutoBuiltinAdapter.h)：IOHIDEvent 注入真实触摸、系统级无障碍接口查询控件、LSApplicationWorkspace/SpringBoardServices 控制应用，全部私有符号运行时解析、缺能力时如实报错（签名要求与验证计划见 `docs/NO_WDA_ARCHITECTURE.md`）。Round 47 起外部 WDA 适配器（`AutoWDAHTTPAdapter`）已完全移除，不再保留回退，避免双路线维护成本。
 
 ## 脚本 API
-> 📚 交互式 API 速查（分类导航 + 搜索 + 一键复制可运行示例）：[docs/api-reference.html](docs/api-reference.html)，浏览器双击即开。
+> 📚 开发文档站（侧栏分类 + 257 个函数页：参数/返回值/一键复制示例/调试提示，对标 AScript 文档）：[docs/devdocs/index.html](docs/devdocs/index.html)；
+> 交互式 API 速查（分类导航 + 搜索 + 一键复制可运行示例）：[docs/api-reference.html](docs/api-reference.html)，浏览器双击即开。
 
 ```javascript
 auto.click({label: "登录", type: "Button"});

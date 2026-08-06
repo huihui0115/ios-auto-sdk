@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>44</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>30</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>33</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>11</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>23</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>16</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>44</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>30</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>33</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>11</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>24</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>16</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a><a href="#speech" style="--c:#059669">语音朗读<span>1</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -3505,7 +3505,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="timer" class="cat" style="--c:#64748b">
-  <h2><span class="tag">定时器与工具</span><i>23</i></h2>
+  <h2><span class="tag">定时器与工具</span><i>24</i></h2>
   <article class="card" data-search="clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id) 取消定时器">
   <header class="card-head">
     <h4><code>clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id)</code> <span class="cname">取消定时器</span></h4>
@@ -3676,6 +3676,22 @@ main();</code></pre>
   <pre><code>function main(){
   setClipboard("hello");
   logd(getClipboard());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="base64.encode(text) / base64.decode(base64) Base64 编解码">
+  <header class="card-head">
+    <h4><code>base64.encode(text) / base64.decode(base64)</code> <span class="cname">Base64 编解码</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">文本与 Base64 互转。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">原文</span></div><div class="param"><code class="pname">base64</code><span class="ptype">string</span><span class="pdesc">Base64 串</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  const enc = base64.encode("hello");
+  logd(enc);
+  logd(base64.decode(enc));
 }
 main();</code></pre>
 </article>
@@ -4204,6 +4220,27 @@ main();</code></pre>
   sleep(2000);
   floatLog.clear();
   floatLog.hide();
+}
+main();</code></pre>
+</article>
+</section>
+<section id="speech" class="cat" style="--c:#059669">
+  <h2><span class="tag">语音朗读</span><i>1</i></h2>
+  <article class="card" data-search="speak(text, options?) / tts(text, options?) / speechStop() / stopSpeak() / speech.speak(text, options?) / speech.stop() 语音朗读（TTS）">
+  <header class="card-head">
+    <h4><code>speak(text, options?) / tts(text, options?) / speechStop() / stopSpeak() / speech.speak(text, options?) / speech.stop()</code> <span class="cname">语音朗读（TTS）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">用系统 AVSpeechSynthesizer 朗读文本，无需网络。options 支持 rate（语速，0-1，默认 0.5）、volume（音量 0-1）、language（如 zh-CN/en-US，默认系统语言）；speak 第二个参数可传 options，第三个可选 stopWhenScriptEnd 控制在脚本结束是否停止。speechStop/stopSpeak 立即停止当前朗读。全局 speak/tts/speechStop/stopSpeak 与 speech.speak/speech.stop 命名空间均可用。对标 AScript speak / EasyClick speak()。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">要朗读的文本</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，{rate?, volume?, language?}</span></div><div class="param"><code class="pname">stopWhenScriptEnd</code><span class="ptype">boolean</span><span class="pdesc">可选，脚本结束是否停止朗读</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  speak("你好，欢迎使用 AutoSDK");
+  sleep(3000);
+  speak("慢速英文朗读", { rate: 0.3, language: "en-US" });
+  sleep(3000);
+  speechStop();
 }
 main();</code></pre>
 </article>

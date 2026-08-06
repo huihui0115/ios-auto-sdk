@@ -24,7 +24,8 @@ const CATEGORIES = [
   { id: 'media',    name: '相册媒体', color: '#db2777' },
   { id: 'timer',    name: '定时器与工具', color: '#64748b' },
   { id: 'strings',  name: '字符串工具', color: '#a21caf' },
-  { id: 'ui',       name: '悬浮窗口', color: '#f59e0b' }
+  { id: 'ui',       name: '悬浮窗口', color: '#f59e0b' },
+  { id: 'speech',   name: '语音朗读', color: '#059669' }
 ];
 
 const REFS = {
@@ -489,7 +490,7 @@ APIS.push({ cat:'metrics', sig:'metrics.get() / metrics.set(w, h) / metrics.x(v)
   logd("x(50)=" + px);
 }
 main();` });
-APIS.push({ cat:'base64', sig:'base64.encode(text) / base64.decode(base64)', title:'Base64 编解码', desc:'文本与 Base64 互转。', params:[['text','string','原文'],['base64','string','Base64 串']], returns:'string', example:`function main(){
+APIS.push({ cat:'timer', sig:'base64.encode(text) / base64.decode(base64)', title:'Base64 编解码', desc:'文本与 Base64 互转。', params:[['text','string','原文'],['base64','string','Base64 串']], returns:'string', example:`function main(){
   const enc = base64.encode("hello");
   logd(enc);
   logd(base64.decode(enc));
@@ -1872,3 +1873,5 @@ main();` });
 writeFileSync(join(root, 'docs', 'api-reference.html'), render(), 'utf8');
 
 console.log('Generated docs/api-reference.html with ' + APIS.length + ' functions.');
+
+export { APIS, CATEGORIES };

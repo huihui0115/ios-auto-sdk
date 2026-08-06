@@ -1,0 +1,159 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]: AutoSDK 开发文档
+    - textbox "搜索函数 / 页面（如 click、找色、http）…" [ref=e5]
+    - generic [ref=e6]:
+      - link "函数速查卡" [ref=e7] [cursor=pointer]:
+        - /url: ../api-reference.html
+      - link "图文教程" [ref=e8] [cursor=pointer]:
+        - /url: ../guide/index.html
+      - link "文档门户" [ref=e9] [cursor=pointer]:
+        - /url: ../index.html
+  - generic [ref=e10]:
+    - complementary [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]: 开始
+        - link "介绍" [ref=e14] [cursor=pointer]:
+          - /url: "#/intro"
+        - link "安装与签名" [ref=e15] [cursor=pointer]:
+          - /url: "#/install"
+        - link "连接与调试" [ref=e16] [cursor=pointer]:
+          - /url: "#/connect"
+        - link "第一行代码" [ref=e17] [cursor=pointer]:
+          - /url: "#/first-script"
+        - link "工程结构" [ref=e18] [cursor=pointer]:
+          - /url: "#/structure"
+      - generic [ref=e19]:
+        - generic [ref=e20]: 控件检索
+        - link "选择器快速上手" [ref=e21] [cursor=pointer]:
+          - /url: "#/selector"
+        - link "控件对象" [ref=e22] [cursor=pointer]:
+          - /url: "#/node-object"
+        - link "控件查找器" [ref=e23] [cursor=pointer]:
+          - /url: "#/inspector"
+      - generic [ref=e24]:
+        - generic [ref=e25]: API 参考
+        - link "日志与调试 9" [ref=e26] [cursor=pointer]:
+          - /url: "#/cat-logs"
+          - text: 日志与调试
+          - generic [ref=e27]: "9"
+        - link "触摸与节点 44" [ref=e28] [cursor=pointer]:
+          - /url: "#/cat-touch"
+          - text: 触摸与节点
+          - generic [ref=e29]: "44"
+        - link "图色与OCR 30" [ref=e30] [cursor=pointer]:
+          - /url: "#/cat-vision"
+          - text: 图色与OCR
+          - generic [ref=e31]: "30"
+        - link "App与应用控制 21" [ref=e32] [cursor=pointer]:
+          - /url: "#/cat-app"
+          - text: App与应用控制
+          - generic [ref=e33]: "21"
+        - link "设备与系统 33" [ref=e34] [cursor=pointer]:
+          - /url: "#/cat-device"
+          - text: 设备与系统
+          - generic [ref=e35]: "33"
+        - link "坐标与屏幕 5" [ref=e36] [cursor=pointer]:
+          - /url: "#/cat-metrics"
+          - text: 坐标与屏幕
+          - generic [ref=e37]: "5"
+        - link "文件 38" [ref=e38] [cursor=pointer]:
+          - /url: "#/cat-file"
+          - text: 文件
+          - generic [ref=e39]: "38"
+        - link "存储 11" [ref=e40] [cursor=pointer]:
+          - /url: "#/cat-storage"
+          - text: 存储
+          - generic [ref=e41]: "11"
+        - link "网络HTTP 11" [ref=e42] [cursor=pointer]:
+          - /url: "#/cat-http"
+          - text: 网络HTTP
+          - generic [ref=e43]: "11"
+        - link "相册媒体 11" [ref=e44] [cursor=pointer]:
+          - /url: "#/cat-media"
+          - text: 相册媒体
+          - generic [ref=e45]: "11"
+        - link "定时器与工具 23" [ref=e46] [cursor=pointer]:
+          - /url: "#/cat-timer"
+          - text: 定时器与工具
+          - generic [ref=e47]: "23"
+        - link "字符串工具 16" [ref=e48] [cursor=pointer]:
+          - /url: "#/cat-strings"
+          - text: 字符串工具
+          - generic [ref=e49]: "16"
+        - link "悬浮窗口 3" [ref=e50] [cursor=pointer]:
+          - /url: "#/cat-ui"
+          - text: 悬浮窗口
+          - generic [ref=e51]: "3"
+        - link "语音朗读 1" [ref=e52] [cursor=pointer]:
+          - /url: "#/cat-speech"
+          - text: 语音朗读
+          - generic [ref=e53]: "1"
+    - main [ref=e54]:
+      - article [ref=e55]:
+        - heading "AutoSDK 介绍" [level=1] [ref=e56]
+        - paragraph [ref=e57]: AutoSDK 是嵌入式 iOS JavaScript 自动化引擎：宿主 App 内嵌 JavaScriptCore，加载内置 bootstrap， 把 257 个脚本函数（触摸、控件、图色、OCR、YOLO、文件、存储、HTTP、SQLite、线程、定位、相册、悬浮窗、TTS…） 交给 JS 脚本，通过 bridge 调原生能力。对标 EasyClick iOS / AScript iOS / TrollAutoScript / kuaijs。
+        - generic [ref=e58]:
+          - text: 内置 no-WDA（v1.17.0+ 唯一跨 App 路线）：不再依赖外部 WebDriverAgent Runner。
+          - code [ref=e59]: AutoBuiltinAdapter
+          - text: 用 IOHIDEvent 注入真实触摸、AXUIElement 系统级控件检索（毫秒级）、 SpringBoard/LSApplicationWorkspace 控制应用，全部私有符号运行时 dlopen/dlsym 解析、不链接私有框架， 能力缺失时
+          - code [ref=e60]: auto.capabilities()
+          - text: 如实降级报告。
+        - heading "与同类产品对比" [level=2] [ref=e61]
+        - table [ref=e62]:
+          - rowgroup [ref=e63]:
+            - row [ref=e64]:
+              - columnheader "维度" [ref=e65]
+              - columnheader "AScript iOS" [ref=e66]
+              - columnheader "EasyClick iOS" [ref=e67]
+              - columnheader "AutoSDK" [ref=e68]
+            - row [ref=e69]:
+              - cell "脚本语言" [ref=e70]
+              - cell "Python" [ref=e71]
+              - cell "JS（控制器侧）" [ref=e72]
+              - cell "JavaScript（设备内 JSCore）" [ref=e73]
+            - row [ref=e74]:
+              - cell "跨 App 触摸" [ref=e75]
+              - cell "Agent no-WDA / ESP32 HID" [ref=e76]
+              - cell "需代理 IPA / WDA" [ref=e77]
+              - cell "内置 IOHIDEvent 注入（no-WDA）" [ref=e78]
+            - row [ref=e79]:
+              - cell "控件检索" [ref=e80]
+              - cell "毫秒级 Agent 通道" [ref=e81]
+              - cell "WDA dump" [ref=e82]
+              - cell "系统级 AX 遍历（毫秒级）" [ref=e83]
+            - row [ref=e84]:
+              - cell "OCR" [ref=e85]
+              - cell "PaddleOCR/Vision/MLKit" [ref=e86]
+              - cell "多引擎" [ref=e87]
+              - cell "Apple Vision 离线 + 百度 OCR 可选" [ref=e88]
+            - row [ref=e89]:
+              - cell "YOLO" [ref=e90]
+              - cell "NCNN 自训模型" [ref=e91]
+              - cell "—" [ref=e92]
+              - cell "Vision 离线检测（yolo.detect）" [ref=e93]
+            - row [ref=e94]:
+              - cell "开发体验" [ref=e95]
+              - cell "VS Code/Cursor + 云" [ref=e96]
+              - cell "PC 控制器" [ref=e97]
+              - cell "VS Code 扩展：Run/Send/Inspector/日志" [ref=e98]
+            - row [ref=e99]:
+              - cell "签名要求" [ref=e100]
+              - cell "特签分发" [ref=e101]
+              - cell "代理签" [ref=e102]
+              - cell "宿主内免费签可用；跨 App 需特签（TrollStore/企业签）" [ref=e103]
+        - heading "怎么用这份文档" [level=2] [ref=e104]
+        - list [ref=e105]:
+          - listitem [ref=e106]:
+            - link "安装与签名" [ref=e107] [cursor=pointer]:
+              - /url: "#/install"
+            - text: 把模板 App 装到手机；
+          - listitem [ref=e108]:
+            - link "连接与调试" [ref=e109] [cursor=pointer]:
+              - /url: "#/connect"
+            - text: 接上 VS Code；
+          - listitem [ref=e110]:
+            - link "第一行代码" [ref=e111] [cursor=pointer]:
+              - /url: "#/first-script"
+            - text: 跑通 hello world；
+          - listitem [ref=e112]: 左侧「API 参考」按分类查函数，每个函数都带一键复制的可运行示例和调试提示。
