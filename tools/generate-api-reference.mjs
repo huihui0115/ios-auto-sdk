@@ -116,6 +116,7 @@ const REFS = {
   'device.width': 'AutoJS device.width/height',
   'auto.getChild(selector, index)': 'EasyClick getChild() · AutoJS child()',
   'auto.getSiblings(selector)': 'AutoJS siblings()',
+  'node.children() / node.parent() / node.siblings()': 'EasyClick node children()/parent()/siblings() 关系遍历',
   'auto.clickCenter(selector)': 'AutoJS 点击控件中心',
   'auto.clickRandom(selector)': '随机点击（防检测）',
   'swipeToPoint(x1, y1, x2, y2, duration?)': 'EasyClick swipeToPoint()',
@@ -1668,6 +1669,15 @@ APIS.push({ cat:'touch', sig:'auto.getSiblings(selector) / getPreviousSiblings /
   const node = findElement({text: "当前项"});
   logd("兄弟数量: " + auto.getSiblings(node).length);
   logd("前序兄弟: " + auto.getPreviousSiblings(node).length);
+}
+main();` });
+APIS.push({ cat:'touch', sig:'node.children() / node.parent() / node.siblings() / node.nextSiblings() / node.previousSiblings()', title:'节点关系遍历（EasyClick 风格）', desc:'EasyClick node 关系方法：在节点对象上直接调用，children() 取子节点、parent() 取父节点、siblings()/nextSiblings()/previousSiblings() 取兄弟，返回值均为包装好的节点对象，可继续 .click()/.attr() 等操作。', params:[], returns:'AutoNodeObject[] | AutoNodeObject | null', example:`function main(){
+  const node = findElement({text: "当前项"});
+  const kids = node.children();
+  logd("子节点数: " + kids.length);
+  const parent = node.parent();
+  if (parent) parent.click();
+  logd("后序兄弟: " + node.nextSiblings().length);
 }
 main();` });
 APIS.push({ cat:'touch', sig:'auto.clickCenter(selector)', title:'点击节点中心', desc:'读取节点 bounds 后点击其中心点，比坐标点击更稳。', params:[['selector','object|string','节点']], returns:'boolean', example:`function main(){

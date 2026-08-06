@@ -618,6 +618,23 @@ test('EasyClick selector match aliases populate regex query fields', () => {
   assert.equal(typeof sandbox.Selector().textMatch, 'function');
 });
 
+test('node relation methods wrap children/parent/siblings like EasyClick', () => {
+  const { sandbox } = boot();
+  const node = sandbox.findNode({ id: 'x' });
+  const kids = node.children();
+  assert.equal(kids.length, 1);
+  assert.equal(kids[0].handle, 'h2');
+  assert.equal(typeof kids[0].click, 'function');
+  const parent = node.parent();
+  assert.equal(parent.handle, 'h0');
+  assert.equal(typeof parent.click, 'function');
+  assert.deepEqual(node.siblings().map((n) => n.handle), ['h2']);
+  assert.deepEqual(node.nextSiblings(), []);
+  assert.deepEqual(node.previousSiblings(), []);
+  assert.equal(node.set_text, node.setText);
+  assert.equal(node.clear_text, node.clearText);
+});
+
 test('direction swipes compute screen-relative coordinates and seconds duration', () => {
   const { sandbox, calls } = boot();
   sandbox.auto.swipeUp();

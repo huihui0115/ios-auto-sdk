@@ -6,6 +6,25 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-08-06
+
+### Added
+
+- **EasyClick 节点关系方法**：节点对象新增 children()/parent()/siblings()/
+  nextSiblings()/previousSiblings()，返回值均为包装好的节点对象（可继续
+  .click()/.attr() 链式操作），对标 EasyClick node 关系遍历。
+- **文档**：新增"节点关系遍历"卡片，共 257 个函数 / 257 个可运行示例；
+  测试新增节点关系用例（共 78 项）。
+
+### Changed
+
+- **bootstrap 结构优化（+209B，余 140B）**：nr 工厂统一挂载节点关系方法；
+  set_text/clear_text 改为直接引用 setText/clearText 函数（-113B 抵消）。
+
+### Notes
+
+- EasyClick allChildren()（递归所有子孙）语义不同，未并入本轮，留待后续。
+
 ## [1.13.0] - 2026-08-06
 
 ### Added

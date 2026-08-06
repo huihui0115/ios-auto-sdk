@@ -111,6 +111,11 @@ interface AutoNodeObject extends Omit<AutoNode, "selected"> {
   exists(): boolean;
   attr(name: string): unknown;
   boundsInfo(): AutoRect | null;
+  children(): AutoNodeObject[];
+  parent(): AutoNodeObject | null;
+  siblings(): AutoNodeObject[];
+  nextSiblings(): AutoNodeObject[];
+  previousSiblings(): AutoNodeObject[];
 }
 
 interface AutoMatch {

@@ -998,6 +998,19 @@ check(typeDefinitions.includes('idMatch(value: string): AutoSelectorBuilder') &&
       typeDefinitions.includes('labelMatch(pattern: string): AutoSelectorBuilder') &&
       typeDefinitions.includes('valueMatch(pattern: string): AutoSelectorBuilder'),
       'Type definitions must describe the EasyClick selector match aliases');
+check(bootstrapScript.includes("function nr(n,f,multi){Object.defineProperty(node,n,{value:function(){var r=f(raw);return multi?(r||[]).map(wrapNode):wrapNode(r);}});}") &&
+      bootstrapScript.includes("nr('children',base.getChildren,1);") &&
+      bootstrapScript.includes("nr('siblings',base.getSiblings,1);") &&
+      bootstrapScript.includes("nr('nextSiblings',base.getNextSiblings,1);") &&
+      bootstrapScript.includes("nr('previousSiblings',base.getPreviousSiblings,1);") &&
+      bootstrapScript.includes("nr('parent',base.getParent);") &&
+      bootstrapScript.includes("Object.defineProperty(node,'set_text',{value:node.setText});") &&
+      bootstrapScript.includes("Object.defineProperty(node,'clear_text',{value:node.clearText});"),
+      'Bootstrap must expose EasyClick node relation methods via the nr factory');
+check(typeDefinitions.includes('children(): AutoNodeObject[]') &&
+      typeDefinitions.includes('nextSiblings(): AutoNodeObject[]') &&
+      typeDefinitions.includes('previousSiblings(): AutoNodeObject[]'),
+      'Type definitions must describe node relation methods');
 check(typeDefinitions.includes('md5(text: string): string') &&
       typeDefinitions.includes('sha1(text: string): string') &&
       typeDefinitions.includes('imageSize(path: string): { width: number; height: number; pixelWidth: number; pixelHeight: number; scale: number } | null') &&
