@@ -882,6 +882,12 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
     const removedEntries = context.file.deleteAllFile('/sandbox');
     check(removedEntries === 1 && lastFileOperation?.operation === 'remove' && lastFileOperation?.path === '/sandbox/a.txt',
           'file.deleteAllFile must recursively remove every listed directory entry');
+    const matchSelector = context.selector().idMatch('cell-1').typeMatch('Button').textMatch('^OK$').nameMatch('Save').labelMatch('OK').valueMatch('v1');
+    check(matchSelector._q.idMatch === 'cell-1' && matchSelector._q.typeMatch === 'Button' && matchSelector._q.textMatch === '^OK$' &&
+          matchSelector._q.nameMatch === 'Save' && matchSelector._q.labelMatch === 'OK' && matchSelector._q.valueMatch === 'v1',
+          'Selector match aliases must fill the regex query fields');
+    check(context.selector().textContains('a.b')._q.textMatch === '.*a' + '\\' + '.' + 'b.*',
+          'Selector contains helpers must escape regex metacharacters');
     context.file.writeLines('demo/lines.txt', ['one', 'two']);
     check(typeof context.file?.move === 'function' && typeof context.file?.rename === 'function' &&
           typeof context.file?.writeLines === 'function',
@@ -976,6 +982,22 @@ check(typeDefinitions.includes('deleteAllFile(path: string): number') &&
       typeDefinitions.includes('vibrateLong(): boolean') &&
       typeDefinitions.includes('vibrateShort(): boolean'),
       'Type definitions must describe deleteAllFile count result and vibration aliases');
+check(bootstrapScript.includes("function ss(k){return function(v){return this.set(k,Str(v));};}") &&
+      bootstrapScript.includes("function sx(k){return function(v){return this.set(k,'.*'+regEscape(v)+'.*');};}") &&
+      bootstrapScript.includes("Selector.prototype.idMatch=ss('idMatch');") &&
+      bootstrapScript.includes("Selector.prototype.typeMatch=ss('typeMatch');") &&
+      bootstrapScript.includes("Selector.prototype.textMatch=ss('textMatch');") &&
+      bootstrapScript.includes("Selector.prototype.nameMatch=ss('nameMatch');") &&
+      bootstrapScript.includes("Selector.prototype.labelMatch=ss('labelMatch');") &&
+      bootstrapScript.includes("Selector.prototype.valueMatch=ss('valueMatch');"),
+      'Bootstrap must expose EasyClick-style selector match aliases via the ss/sx factories');
+check(typeDefinitions.includes('idMatch(value: string): AutoSelectorBuilder') &&
+      typeDefinitions.includes('typeMatch(value: string): AutoSelectorBuilder') &&
+      typeDefinitions.includes('textMatch(pattern: string): AutoSelectorBuilder') &&
+      typeDefinitions.includes('nameMatch(pattern: string): AutoSelectorBuilder') &&
+      typeDefinitions.includes('labelMatch(pattern: string): AutoSelectorBuilder') &&
+      typeDefinitions.includes('valueMatch(pattern: string): AutoSelectorBuilder'),
+      'Type definitions must describe the EasyClick selector match aliases');
 check(typeDefinitions.includes('md5(text: string): string') &&
       typeDefinitions.includes('sha1(text: string): string') &&
       typeDefinitions.includes('imageSize(path: string): { width: number; height: number; pixelWidth: number; pixelHeight: number; scale: number } | null') &&

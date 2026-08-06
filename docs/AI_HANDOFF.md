@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 42（v1.12.0，2026-08-06）。
+> 最后更新：Round 43（v1.13.0，2026-08-06）。
 
 ---
 
@@ -66,11 +66,11 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 42 / v1.12.0）
+## 4. 当前状态（Round 43 / v1.13.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
-- bootstrap 解码 **61355 / 61440**（预算 60×1024 UTF-16 码元）。
-- 文档 **256 个函数 / 256 个可运行示例 / 13 个分类**；测试 **76 项**。
+- bootstrap 解码 **61091 / 61440**（预算 60×1024 UTF-16 码元）。
+- 文档 **256 个函数 / 256 个可运行示例 / 13 个分类**；测试 **77 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`。
 
 已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
@@ -100,8 +100,8 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 ## 6. 已知缺口 / 待办（下轮优先）
 
 ### 可实现（JS 别名/封装，注意 60KB 预算）
-- node 选择器链补全：`idMatch/nameMatch/typeMatch/labelMatch/valueMatch`、
-  `allChildren/nextSiblings/previousSiblings/xpath` 等 EasyClick selector 方法。
+- node 关系方法：`allChildren/nextSiblings/previousSiblings` 等 EasyClick
+  node 关系查询（match 选择器别名已在 R43 完成，xpath 早已支持）。
 - `touchDown/touchMove/touchUp` 手势原语别名（语义需谨慎，见
   `docs/EASYCLICK_COMPARISON.md` 触摸行）。
 - `image.readBitmap/bitmapToImage/base64Bitmap/bitmapBase64/saveBitmap`
@@ -176,6 +176,8 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 - R41（v1.11.0）：AI 交接文档 + bootstrap 单一权威源工具化（本手册）。
 - R42（v1.12.0）：deleteAllFile 语义修复（递归清空目录 + 返回条目数）、
   vibrateLong/vibrateShort；别名委托/clog/cmpC 压缩 -79B（余 85B）。
+- R43（v1.13.0）：EasyClick 选择器 match 别名（idMatch/typeMatch/textMatch/
+  nameMatch/labelMatch/valueMatch）；ss/sx 工厂压缩 -264B（余 349B）。
 
 ## 10. 新 AI 接手第一步
 

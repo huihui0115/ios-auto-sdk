@@ -6,6 +6,23 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-08-06
+
+### Added
+
+- **EasyClick 选择器 match 别名**：Selector 链新增 idMatch()/typeMatch()/
+  textMatch()/nameMatch()/labelMatch()/valueMatch() 正则匹配方法（EasyClick
+  node 选择器兼容；与已有 *Matches 方法同效，原生 UIKit/WDA 适配器早已支持
+  idMatch/typeMatch 查询键）。
+- **测试**：新增选择器 match 别名查询字段与正则转义用例（共 77 项）；verify
+  增加 ss/sx 工厂与六个别名的形态锚点 + 运行时行为断言。
+
+### Changed
+
+- **bootstrap 压缩 -264B（61355→61091，余 349B）**：Selector 的 14 个
+  set(k,Str(v)) 方法统一走 ss(k) 工厂、4 个 contains 方法统一走 sx(k) 工厂，
+  为后续别名腾出预算。
+
 ## [1.12.0] - 2026-08-06
 
 ### Added

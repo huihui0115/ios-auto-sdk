@@ -93,6 +93,7 @@ The following surfaces must not be described as production-complete yet:
 | 线程与工具模块 | 14 | thread.execAsync/execSync/cancelThread/stopAll/isCancelled、utils.dataMd5/fileMd5/randomInt/getRangeInt/getRatio/zip/unzip/readFileInZip/playMp3/stopMp3/deleteAllPhotos/deleteAllVideos/requestPhotoAuthorization、全局别名 getPasteboard/setPasteboard/openUrl/uploadToAlbum/childcount |
 | 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 
+本轮新增（Round 43）：Selector 链补齐 EasyClick match 别名 `idMatch/typeMatch/textMatch/nameMatch/labelMatch/valueMatch`（原生早已支持对应查询键）；ss/sx 工厂压缩 -264B（61091/61440）；测试 77 项；
 本轮新增（Round 42）：`deleteAllFile(path)` 修复为 EasyClick 语义（递归清空目录、返回删除条目数）；`device.vibrateLong()/vibrateShort()` + 全局别名（对标 AutoJS）；bootstrap 压缩 -79B（别名委托 + clog/cmpC 闭包去重，61355/61440）；文档 256 函数、测试 76 项；
 本轮新增（Round 40）：`thread.*`/`utils.*` 命名空间（EasyClick 兼容）、全局别名 `getPasteboard/setPasteboard/openUrl/uploadToAlbum/childcount`、`device.applist/getOrientationNoAuto/getDeviceMsg`、`image.captureFullScreen`；bootstrap 再压缩 880B（dvf/avf/hsh helper），文档 254 函数、测试 75 项；
 本轮新增（Round 14）：`screen.*` EasyClick 兼容图色模块（getColor/getColorRGB/getColorHex + 找图找色/OCR/截图入口）、全局别名 `screen`/`string`、`app.getAppName`/`app.isRunning`；

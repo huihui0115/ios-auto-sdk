@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'AutoSDK'
-  s.version          = '1.12.0'
+  s.version          = '1.13.0'
   s.summary          = 'Embedded iOS JavaScript automation SDK'
   s.description      = 'A client-side automation runtime with a JavaScriptCore bridge and injectable UI adapter.'
   s.homepage         = 'https://github.com/huihui0115/ios-auto-sdk'

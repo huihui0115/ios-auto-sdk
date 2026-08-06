@@ -608,6 +608,16 @@ test('deleteAllFile recursively removes directory contents and returns the count
   assert.equal(typeof sandbox.file.deleteAllFile, 'function');
 });
 
+test('EasyClick selector match aliases populate regex query fields', () => {
+  const { sandbox } = boot();
+  const sel = sandbox.selector().idMatch('cell-1').typeMatch('Button').nameMatch('Save').labelMatch('OK').valueMatch('v1').textMatch('^Go$');
+  assert.deepEqual(sel._q, { idMatch: 'cell-1', typeMatch: 'Button', nameMatch: 'Save', labelMatch: 'OK', valueMatch: 'v1', textMatch: '^Go$' });
+  assert.equal(sandbox.selector().textContains('a.b')._q.textMatch, '.*a' + String.fromCharCode(92) + '.b.*');
+  assert.equal(sandbox.selector().textStartsWith('x(')._q.textMatch, '^x' + String.fromCharCode(92) + '(');
+  assert.equal(sandbox.selector().descContains('d.e')._q.nameMatch, '.*d' + String.fromCharCode(92) + '.e.*');
+  assert.equal(typeof sandbox.Selector().textMatch, 'function');
+});
+
 test('direction swipes compute screen-relative coordinates and seconds duration', () => {
   const { sandbox, calls } = boot();
   sandbox.auto.swipeUp();

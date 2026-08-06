@@ -49,7 +49,7 @@ const REFS = {
   'app.openSettings() / openAppSetting() / openAppStore(appId)': 'AScript app_open_setting / app_store · EasyClick openAppSetting()/openAppStore()',
   'app.getAppScheme() / launchByScheme()': 'AScript 内置 URL Scheme 启动库 · EasyClick getAppScheme()',
   'app.getFrontmostApp()': 'AScript get_frontmost_app · EasyClick getFrontmostApp()',
-  'Selector().text(v).type(t).findOne()': 'AScript Selector 链式选择器',
+  'Selector().text(v).type(t).findOne()': 'AScript Selector 链式选择器 · EasyClick node idMatch/nameMatch/textMatch 选择器',
   'clickPoint(x, y)': 'EasyClick clickPoint() · AutoJS click(x, y)',
   'doubleClickPoint(x, y, interval?)': 'EasyClick doubleClickPoint() · AutoJS click(x, y, true)',
   'longClick(selector, duration?)': 'EasyClick longClick() · AutoJS longClick()',
@@ -779,9 +779,11 @@ APIS.push({ cat:'touch', sig:'click(x, y, jitter?) / click(selector)', title:'�
   const ok2 = click({text: "确定"});      // 控件点击
   logd("点击: " + ok1 + " " + ok2);
 }
-main();` });APIS.push({ cat:'touch', sig:'Selector().text(v).textContains(v).textStartsWith(v).textEndsWith(v).textMatches(p).desc(v).descContains(v).descMatches(p).label(v).labelContains(v).labelMatches(p).value(v).valueContains(v).valueMatches(p).name(v).nameMatches(p).id(v).type(t).clickable().visible().enabled().index(i).depth(d).bounds(x,y,w,h).xpath(p).predicate(p).one() / find_one() / find_once() / find() / findAll() / find_all() / all() / exists() / waitFor(ms) / wait_for(ms) / click() / tap() / clickCenter() / longClick(d) / selector(init?)', title:'链式选择器', desc:'AScript 风格链式选择器：text/textContains/textStartsWith/textEndsWith/textMatches、desc/descContains/descMatches、label/labelContains/labelMatches、value/name/id/type、clickable/visible/enabled/selected、index/depth/bounds/xpath/predicate 逐层叠加条件；终端方法 findOne()/one()/find_one()/find_once() 取单个、find()/findAll()/all()/find_all() 取列表、exists() 判断存在、waitFor(timeoutMs)/wait_for() 等待出现、click()/tap()/longClick(d) 直接操作。', params:[['v','string','匹配文本'],['t','string','控件类型，如 Button'],['timeoutMs','number','waitFor 超时毫秒，默认 10000']], returns:'AutoNodeObject | AutoNodeObject[] | boolean', example:`function main(){
+main();` });APIS.push({ cat:'touch', sig:'Selector().text(v).textContains(v).textStartsWith(v).textEndsWith(v).textMatches(p).textMatch(p).desc(v).descContains(v).descMatches(p).label(v).labelContains(v).labelMatches(p).labelMatch(p).value(v).valueContains(v).valueMatches(p).valueMatch(p).name(v).nameMatches(p).nameMatch(p).id(v).idMatch(p).type(t).typeMatch(p).clickable().visible().enabled().index(i).depth(d).bounds(x,y,w,h).xpath(p).predicate(p).one() / find_one() / find_once() / find() / findAll() / find_all() / all() / exists() / waitFor(ms) / wait_for(ms) / click() / tap() / clickCenter() / longClick(d) / selector(init?)', title:'链式选择器', desc:'AScript 风格链式选择器：text/textContains/textStartsWith/textEndsWith/textMatches、desc/descContains/descMatches、label/labelContains/labelMatches、value/name/id/type、clickable/visible/enabled/selected、index/depth/bounds/xpath/predicate 逐层叠加条件；EasyClick 风格 textMatch/nameMatch/labelMatch/valueMatch/idMatch/typeMatch 正则匹配别名与对应 *Matches 方法同效；终端方法 findOne()/one()/find_one()/find_once() 取单个、find()/findAll()/all()/find_all() 取列表、exists() 判断存在、waitFor(timeoutMs)/wait_for() 等待出现、click()/tap()/longClick(d) 直接操作。', params:[['v','string','匹配文本'],['t','string','控件类型，如 Button'],['timeoutMs','number','waitFor 超时毫秒，默认 10000']], returns:'AutoNodeObject | AutoNodeObject[] | boolean', example:`function main(){
   const node = Selector().textContains("确").type("Button").findOne();
   if (node) node.click();
+  const btn = Selector().idMatch("cell-1").textMatch("^确定$").findOne();
+  if (btn) btn.click();
   const list = selector({ text: "开始" }).findAll();
   logd("匹配数: " + list.length);
 }
