@@ -1299,8 +1299,11 @@ test('ocrBaidu fetches token, posts base64 image and joins words', () => {
   assert.equal(sandbox.ocrBaidu('aGVsbG8=', '', 'sk'), null, 'empty api key must return null');
   assert.equal(sandbox.ocrBaidu('', 'ak', 'sk'), null, 'empty image must return null');
   sandbox.ocrBaidu('data:image/png;base64,aGVsbG8=', 'ak', 'sk');
-  assert.equal(calls.http.at(-1).bodyBase64, 'aGVsbG8=', 'data-url prefix must be stripped');
-  assert.equal(calls.http.at(-1).headers['Content-Type'], 'application/octet-stream');
+  assert.equal(calls.http.at(-1).body, 'image=aGVsbG8=', 'data-url prefix must be stripped and wrapped in image= form field');
+  assert.equal(calls.http.at(-1).bodyBase64, undefined, 'OCR image must not be sent as raw octet-stream body');
+  assert.equal(calls.http.at(-1).headers['Content-Type'], 'application/x-www-form-urlencoded');
+  sandbox.ocrBaidu('aGVsbG8+', 'ak', 'sk'); // base64 containing '+'
+  assert.equal(calls.http.at(-1).body, 'image=aGVsbG8%2B', 'plus sign must be percent-encoded for form-urlencoded');
   assert.equal(typeof sandbox.auto.ocrBaidu, 'function');
 });
 

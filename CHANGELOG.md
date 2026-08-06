@@ -10,6 +10,15 @@ All notable changes to AutoSDK are documented here. The format follows
 
 - Next.
 
+## [1.3.1] - 2026-08-06
+
+### Fixed
+
+- **Fix: ocrBaidu / ocrBaiduText 请求格式错误。** 百度 OCR 接口要求 `image=` 表单字段（`application/x-www-form-urlencoded`），
+  此前以 `application/octet-stream` 原始 body 发送会被百度拒绝；现改为 POST body 传 `image=<base64>`（`+` 转义为 `%2B`），
+  避免 `httpApi.post(url, body, options)` 第三参 body 被覆盖的问题。bootstrap 解码 61196→61201；
+  测试补强（form 字段断言 + `+` 百分号编码断言）；verify 全绿，65 测试全绿。
+
 ## [1.3.0] - 2026-08-06
 
 ### Added
