@@ -1167,6 +1167,14 @@ declare function touchDown(x: number, y: number, finger?: number): boolean;
 declare function touchMove(x: number, y: number, finger?: number): boolean;
 /** Low-level touch: lift one staged finger by id, or ALL staged fingers at once when omitted. */
 declare function touchUp(finger?: number): boolean;
+/** Wait until a selector matches (EasyClick-style global). Returns true on match, false on timeout. */
+declare function waitFor(selector: AutoSelectorLike, timeoutMs?: number): boolean;
+/** Bundle id of the frontmost app (AutoJS currentPackage parity). Returns null when unavailable. */
+declare function currentPackage(): string | null;
+/** AutoJS-style clipboard alias for setClipboard. */
+declare function setClip(text: string): boolean;
+/** AutoJS-style clipboard alias for getClipboard. */
+declare function getClip(): string | null;
 declare function clickRandomPoint(x1: number, y1: number, x2: number, y2: number): boolean;
 declare function clickRandom(x1: number, y1: number, x2: number, y2: number): boolean;
 declare function clickRandom(selector: AutoSelectorLike): boolean;

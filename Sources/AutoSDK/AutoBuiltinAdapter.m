@@ -1375,6 +1375,19 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
     return png;
 }
 
+- (NSData *)screenPNGWithOptions:(NSDictionary *)options error:(NSError **)error {
+    id cachedPath = [options isKindOfClass:NSDictionary.class] ? options[@"screenshotPath"] : nil;
+    if ([cachedPath isKindOfClass:NSString.class]) {
+        NSString *path = (NSString *)cachedPath;
+        NSString *sandboxPrefix = [NSHomeDirectory() stringByAppendingString:@"/"];
+        if (path.length > 0 && [path isAbsolutePath] && [path hasPrefix:sandboxPrefix]) {
+            NSData *cached = [NSData dataWithContentsOfFile:path];
+            if (cached.length > 0) return cached;
+        }
+    }
+    return [self screenshotWithError:error];
+}
+
 - (NSDictionary *)pixelColorAtX:(CGFloat)x y:(CGFloat)y error:(NSError **)error {
     NSData *png = [self screenshotWithError:error];
     if (!png) return nil;
@@ -1398,7 +1411,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: invalid color selector.");
         return nil;
     }
-    NSData *png = [self screenshotWithError:error];
+    NSData *png = [self screenPNGWithOptions:options error:error];
     if (!png) return nil;
     AutoBuiltinBitmap bitmap;
     if (!AutoBuiltinBitmapFromPNGData(png, &bitmap)) {
@@ -1442,7 +1455,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: compareColors needs 1 to 4096 points.");
         return NO;
     }
-    NSData *png = [self screenshotWithError:error];
+    NSData *png = [self screenPNGWithOptions:options error:error];
     if (!png) return NO;
     AutoBuiltinBitmap bitmap;
     if (!AutoBuiltinBitmapFromPNGData(png, &bitmap)) {
@@ -1483,7 +1496,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: multi-color needs 1 to 4096 offsets.");
         return nil;
     }
-    NSData *png = [self screenshotWithError:error];
+    NSData *png = [self screenPNGWithOptions:options error:error];
     if (!png) return nil;
     AutoBuiltinBitmap bitmap;
     if (!AutoBuiltinBitmapFromPNGData(png, &bitmap)) {
@@ -1545,7 +1558,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
             @"Built-in adapter: unable to decode the image template.");
         return nil;
     }
-    NSData *png = [self screenshotWithError:error];
+    NSData *png = [self screenPNGWithOptions:options error:error];
     if (!png) { AutoBuiltinBitmapFree(&needle); return nil; }
     AutoBuiltinBitmap hay;
     if (!AutoBuiltinBitmapFromPNGData(png, &hay)) {
@@ -1634,7 +1647,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (NSArray<NSDictionary<NSString *, id> *> *)ocrInRegion:(NSDictionary *)region error:(NSError **)error {
-    NSData *png = [self screenshotWithError:error];
+    NSData *png = [self screenPNGWithOptions:region error:error];
     if (!png) return nil;
     CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)png, NULL);
     if (!source) {

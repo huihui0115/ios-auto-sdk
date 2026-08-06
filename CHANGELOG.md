@@ -6,6 +6,34 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-08-06
+
+### Added
+
+- **截图缓存端到端生效**：`screen.cache(true)` 传入的 `screenshotPath` 现在被原生真正
+  读取——内置适配器新增 `screenPNGWithOptions:`（findColor/compareColors/findMultiColor/
+  findImage/ocr 接入），UIKit 适配器新增 `screenImageHonoringCachedPath:`（findColor/
+  findImage/ocr 接入），引擎 `AutoEngineScanColorPoints` 新增 `cachedScreenPath` 参数
+  （findColorEx/findNotColor 接入）；路径限定 App 沙箱内，缓存文件缺失时自动回退实时截图。
+- **findColorEx/findNotColor 纳入缓存**：bootstrap 经 `cachedOptions` 为两者注入
+  `screenshotPath`，screen/image/base 三侧入口全部复用同一张缓存截图。
+- **新增对标全局函数**：`waitFor(selector, timeout?)`（EasyClick waitNode / AutoJS waitFor）、
+  `currentPackage()`（AutoJS，前台 App bundleId）、`setClip/getClip`（AutoJS 剪贴板别名）。
+  d.ts/API 卡片/verify 锚点/Node 测试同步（测试 81 项）。
+
+### Fixed
+
+- `parseColor/int2Hex/hex2Int`：原正则 `/^#|0x/i` 会剥掉字符串**中间**的 `0x`
+  （如 `f0xf0f` 被误解析），现只剥离开头的 `#`/`0x` 前缀。
+- `strings.padStart/padEnd`：填充串传空字符串时 `while` 死循环，现直接返回原串。
+
+### Changed
+
+- bootstrap 压缩 -204B（61405→61201/61440）：删除重复的 `cachedRegion`（与 cachedOptions
+  完全相同）、`touchAndSlide`/`appApi.openURL`/`appApi.getAppVersion`/`appApi.getPackageName`/
+  `imageApi.toBase64`/`imageApi.findColorCount`/`speechApi.tts`/`speechApi.stopSpeak`
+  包装函数改为引用委托。
+
 ## [1.20.0] - 2026-08-06
 
 ### Added

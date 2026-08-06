@@ -1669,7 +1669,7 @@ static BOOL AutoUIKitActivateView(UIView *view, NSError **error) {
         if (error && !*error) *error = AutoUIKitError(@"Unable to load or decode the image template.");
         return nil;
     }
-    UIImage *screenImage = [self threadSafeCapturedImageForOperationGeneration:operationGeneration error:error];
+    UIImage *screenImage = [self screenImageHonoringCachedPath:options generation:operationGeneration error:error];
     if (!screenImage) return nil;
     CGImageRef screenCGImage = screenImage.CGImage;
     if (!screenCGImage) {
@@ -1845,6 +1845,20 @@ static BOOL AutoUIKitActivateView(UIView *view, NSError **error) {
     }
 }
 
+- (UIImage *)screenImageHonoringCachedPath:(NSDictionary *)options generation:(NSUInteger)operationGeneration error:(NSError **)error {
+    id cachedPath = [options isKindOfClass:NSDictionary.class] ? options[@"screenshotPath"] : nil;
+    if ([cachedPath isKindOfClass:NSString.class]) {
+        NSString *path = (NSString *)cachedPath;
+        NSString *sandboxPrefix = [NSHomeDirectory() stringByAppendingString:@"/"];
+        if (path.length > 0 && [path isAbsolutePath] && [path hasPrefix:sandboxPrefix]) {
+            NSData *cachedData = [NSData dataWithContentsOfFile:path];
+            UIImage *cached = cachedData.length > 0 ? [UIImage imageWithData:cachedData] : nil;
+            if (cached) return cached;
+        }
+    }
+    return [self threadSafeCapturedImageForOperationGeneration:operationGeneration error:error];
+}
+
 - (NSDictionary *)findColor:(id)color region:(NSDictionary *)region options:(NSDictionary *)options error:(NSError **)error {
     NSUInteger operationGeneration = [self currentOperationCancellationGeneration];
     {
@@ -1858,7 +1872,7 @@ static BOOL AutoUIKitActivateView(UIView *view, NSError **error) {
         if (error) *error = AutoUIKitError(@"Color must be #RRGGBB, [r,g,b], or {r,g,b}.");
         return nil;
     }
-    UIImage *image = [self threadSafeCapturedImageForOperationGeneration:operationGeneration error:error];
+    UIImage *image = [self screenImageHonoringCachedPath:options generation:operationGeneration error:error];
     CGImageRef screenCGImage = image.CGImage;
     if (!screenCGImage) {
         if (error && !*error) *error = AutoUIKitError(@"Unable to decode the screenshot image.");
@@ -2315,7 +2329,7 @@ static BOOL AutoUIKitActivateView(UIView *view, NSError **error) {
         return nil;
     }
     region = [region isKindOfClass:NSDictionary.class] ? region : @{};
-    UIImage *image = [self threadSafeCapturedImageForOperationGeneration:operationGeneration error:error];
+    UIImage *image = [self screenImageHonoringCachedPath:region generation:operationGeneration error:error];
     CGImageRef sourceImage = image.CGImage;
     if (!sourceImage) { if (error && !*error) *error = AutoUIKitError(@"Unable to create OCR image."); return nil; }
     CGImageRef croppedImage = NULL;

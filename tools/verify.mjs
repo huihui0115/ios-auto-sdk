@@ -700,6 +700,18 @@ check(builtinAdapterSource.includes('AutoBuiltinMaxImageComparisons') &&
 check(builtinAdapterSource.includes('AutoBuiltinBundleIdForAppName') &&
       builtinAdapterSource.includes('com.tencent.xin'),
       'Built-in adapter must resolve popular app names to bundle ids (AScript app_start parity)');
+check(builtinAdapterSource.includes('screenPNGWithOptions:') &&
+      uiKitAdapter.includes('screenImageHonoringCachedPath:') &&
+      engineSource.includes('AutoEngineScreenPNG') &&
+      engineSource.includes('cachedScreenPath'),
+      'Screen cache screenshotPath must be honored by builtin/UIKit adapters and findColorEx/findNotColor scans');
+check(bootstrapScript.includes('bridge.invokeFindColorEx(cachedOptions(') &&
+      bootstrapScript.includes('bridge.invokeFindNotColor(cachedOptions(') &&
+      bootstrapScript.includes('g.waitFor=base.waitFor') &&
+      bootstrapScript.includes('g.currentPackage=') &&
+      bootstrapScript.includes('g.setClip=deviceApi.setClipboard') &&
+      bootstrapScript.includes('g.getClip=deviceApi.getClipboard'),
+      'Bootstrap must wire the screenshot cache into findColorEx/findNotColor and expose waitFor/currentPackage/setClip/getClip globals');
 check(read('Sources/AutoSDK/include/AutoSDK.h').includes('#import "AutoBuiltinAdapter.h"') &&
       templateSettingsSource.includes('AutoBuiltinAdapter *adapter = [AutoBuiltinAdapter new]') &&
       !templateSettingsSource.includes('AutoWDAHTTPAdapter') &&

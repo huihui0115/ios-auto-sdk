@@ -248,7 +248,7 @@ APIS.push({ cat:'app', sig:'app.openSettings() / openAppSetting() / app.openAppS
   sleep(2000);
   app.openAppStore("284882215"); // 微信 App Store id
 }
-main();` });APIS.push({ cat:'app', sig:'app.getFrontmostApp() / getFrontmostApp()', title:'前台应用', desc:'返回当前前台 App 的 bundleId（无前台应用时返回 null）。对标 AScript get_frontmost_app 与 EasyClick getFrontmostApp()。', params:[], returns:'string | null', example:`function main(){
+main();` });APIS.push({ cat:'app', sig:'app.getFrontmostApp() / getFrontmostApp() / currentPackage()', title:'前台应用', desc:'返回当前前台 App 的 bundleId（无前台应用时返回 null）。对标 AScript get_frontmost_app 与 EasyClick getFrontmostApp()；currentPackage() 为 AutoJS 风格全局别名。', params:[], returns:'string | null', example:`function main(){
   const front = getFrontmostApp();
   logd('前台应用: ' + front);
   if (front === 'com.tencent.xin') logd('正在微信');
@@ -1224,7 +1224,7 @@ APIS.push({ cat:'device', sig:'device.getMemoryInfo()', title:'内存信息', de
   logd("内存 总=" + m.totalBytes + " 空闲=" + m.freeBytes + " App=" + m.appUsedBytes);
 }
 main();` });
-APIS.push({ cat:'device', sig:'device.getClipboard() / setClipboard(text)', title:'剪贴板', desc:'读取或写入系统剪贴板（文本上限 1 MiB）。', params:[['text','string','写入的文字（set 时）']], returns:'string|null / boolean', example:`function main(){
+APIS.push({ cat:'device', sig:'device.getClipboard() / setClipboard(text) / setClip(text) / getClip()', title:'剪贴板', desc:'读取或写入系统剪贴板（文本上限 1 MiB）。setClip/getClip 为 AutoJS 风格全局别名。', params:[['text','string','写入的文字（set 时）']], returns:'string|null / boolean', example:`function main(){
   const before = device.getClipboard();
   logd("原来: " + before);
   device.setClipboard("复制内容");
@@ -1855,7 +1855,7 @@ APIS.push({ cat:'touch', sig:'node 对象方法：click() / tap() / tap_hold(ms)
   if (cell) cell.scroll("down", 1);
 }
 main();` });
-APIS.push({ cat:'vision', sig:'screen.cache(on) / screen.isCache() / screen.clearCache()', title:'截图缓存', desc:'对标 AScript screen.cache()：开启后首次截图会被缓存，后续 screen.screenshot()/findImage/findColor/findMultiColor/findColors/ocr 复用同一张截图（通过 screenshotPath 传给原生），图色操作速度大幅提升，适合多条件判断同一画面；关闭后恢复实时截图。', params:[['on','boolean','true 开启缓存，false 关闭']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'vision', sig:'screen.cache(on) / screen.isCache() / screen.clearCache()', title:'截图缓存', desc:'对标 AScript screen.cache()：开启后首次截图会被缓存，后续 screen.screenshot()/findImage/findColor/findColorEx/findNotColor/findMultiColor/findColors/ocr 复用同一张截图（通过 screenshotPath 传给原生，内置/UIKit 适配器均支持），图色操作速度大幅提升，适合多条件判断同一画面；关闭后恢复实时截图。', params:[['on','boolean','true 开启缓存，false 关闭']], returns:'boolean', example:`function main(){
   screen.cache(true);
   const img = screen.findImage("logo.png");
   const c1 = screen.findColor("#ff0000", { x: 10, y: 10 });

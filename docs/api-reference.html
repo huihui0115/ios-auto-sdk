@@ -1444,7 +1444,7 @@ main();</code></pre>
     <h4><code>screen.cache(on) / screen.isCache() / screen.clearCache()</code> <span class="cname">截图缓存</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">对标 AScript screen.cache()：开启后首次截图会被缓存，后续 screen.screenshot()/findImage/findColor/findMultiColor/findColors/ocr 复用同一张截图（通过 screenshotPath 传给原生），图色操作速度大幅提升，适合多条件判断同一画面；关闭后恢复实时截图。</p>
+  <p class="desc">对标 AScript screen.cache()：开启后首次截图会被缓存，后续 screen.screenshot()/findImage/findColor/findColorEx/findNotColor/findMultiColor/findColors/ocr 复用同一张截图（通过 screenshotPath 传给原生，内置/UIKit 适配器均支持），图色操作速度大幅提升，适合多条件判断同一画面；关闭后恢复实时截图。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">on</code><span class="ptype">boolean</span><span class="pdesc">true 开启缓存，false 关闭</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
@@ -1535,12 +1535,12 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="app.getFrontmostApp() / getFrontmostApp() 前台应用">
+<article class="card" data-search="app.getFrontmostApp() / getFrontmostApp() / currentPackage() 前台应用">
   <header class="card-head">
-    <h4><code>app.getFrontmostApp() / getFrontmostApp()</code> <span class="cname">前台应用</span></h4>
+    <h4><code>app.getFrontmostApp() / getFrontmostApp() / currentPackage()</code> <span class="cname">前台应用</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">返回当前前台 App 的 bundleId（无前台应用时返回 null）。对标 AScript get_frontmost_app 与 EasyClick getFrontmostApp()。</p>
+  <p class="desc">返回当前前台 App 的 bundleId（无前台应用时返回 null）。对标 AScript get_frontmost_app 与 EasyClick getFrontmostApp()；currentPackage() 为 AutoJS 风格全局别名。</p>
   <div class="ref"><b>对标</b> AScript get_frontmost_app · EasyClick getFrontmostApp()</div>
   
   <div class="ret"><b>返回值</b> <span>string | null</span></div>
@@ -2068,12 +2068,12 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="device.getClipboard() / setClipboard(text) 剪贴板">
+<article class="card" data-search="device.getClipboard() / setClipboard(text) / setClip(text) / getClip() 剪贴板">
   <header class="card-head">
-    <h4><code>device.getClipboard() / setClipboard(text)</code> <span class="cname">剪贴板</span></h4>
+    <h4><code>device.getClipboard() / setClipboard(text) / setClip(text) / getClip()</code> <span class="cname">剪贴板</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">读取或写入系统剪贴板（文本上限 1 MiB）。</p>
+  <p class="desc">读取或写入系统剪贴板（文本上限 1 MiB）。setClip/getClip 为 AutoJS 风格全局别名。</p>
   <div class="ref"><b>对标</b> EasyClick getClipboard()/setClipboard() · AutoJS setClip()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">写入的文字（set 时）</span></div></div>
   <div class="ret"><b>返回值</b> <span>string|null / boolean</span></div>
@@ -4272,7 +4272,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 258 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 258 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-07 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

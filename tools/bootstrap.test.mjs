@@ -596,6 +596,20 @@ test('touch primitives: staged fingers replay via multiGesture, touchUp flushes 
   assert.equal(sandbox.auto.touchUp(), true);
   assert.equal(calls.touch.length, noopBefore);
 });
+test('parity globals waitFor/currentPackage/setClip/getClip; pad guards; color prefix fix', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.waitFor({ text: 'ok' }, 100), true);
+  assert.equal(sandbox.currentPackage(), 'com.example.host');
+  sandbox.setClip('clip-value');
+  assert.deepEqual(calls.device.at(-1), { operation: 'clipboardSet', text: 'clip-value' });
+  assert.equal(sandbox.getClip(), 'clipboard-value');
+  // empty pad string must not loop forever
+  assert.equal(sandbox.strings.padStart('7', 5, ''), '7');
+  assert.equal(sandbox.strings.padEnd('7', 5, ''), '7');
+  // parseColor strips only leading # / 0x prefixes
+  assert.equal(sandbox.parseColor('0xff0000'), 0xff0000);
+  assert.equal(sandbox.parseColor('#00ff00'), 0x00ff00);
+});
 test('app helpers and clipboard/brightness/volume/vibrate route to bridge', () => {
   const { sandbox, calls } = boot();
   sandbox.auto.launchApp('com.example.app');
@@ -1129,6 +1143,11 @@ test('screen.cache / isCache reuse screenshots and pass screenshotPath', () => {
   assert.equal(calls.compareColors.at(-1).options.screenshotPath, cached);
   sandbox.screen.ocr({ mode: 'fast' });
   assert.equal(calls.ocr.at(-1).screenshotPath, cached);
+  // findColorEx / findNotColor also ride the cache (flat payload)
+  sandbox.findColorEx('#ff0000', 0.9, 0, 0, 100, 100, 5, 1);
+  assert.equal(calls.findColorEx.at(-1).screenshotPath, cached);
+  sandbox.findNotColor('#00ff00', 0.9, 0, 0, 100, 100, 5, 1);
+  assert.equal(calls.findNotColor.at(-1).screenshotPath, cached);
   assert.equal(sandbox.screen.clearCache(), true);
   assert.equal(sandbox.screen.isCache(), false);
   const before = calls.screenshot.length;
@@ -1136,6 +1155,8 @@ test('screen.cache / isCache reuse screenshots and pass screenshotPath', () => {
   assert.equal(calls.screenshot.length, before + 1);
   sandbox.screen.findImage('a.png');
   assert.equal(calls.findImage.at(-1).options.screenshotPath, undefined);
+  sandbox.findColorEx('#ff0000');
+  assert.equal(calls.findColorEx.at(-1).screenshotPath, undefined);
 });
 
 test('floatLog overlay API forwards native calls', () => {

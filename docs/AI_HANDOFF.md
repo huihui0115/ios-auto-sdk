@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 50（v1.20.0，2026-08-06）。
+> 最后更新：Round 51（v1.21.0，2026-08-06）。
 
 ---
 
@@ -211,6 +211,10 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R51（v1.21.0）：**修复 screen.cache 端到端断链**（原生从不读 screenshotPath →
+  内置/UIKit 适配器 + findColorEx/findNotColor 扫描全部接入，沙箱限定 + 缺失回退）；
+  修 parseColor 中缀 0x 误剥、padStart/padEnd 空串死循环；新增全局 waitFor/
+  currentPackage/setClip/getClip；bootstrap 压缩 -204B（61201/61440）；测试 81 项。
 - R50（v1.20.0）：bootstrap 补 EasyClick 低级触摸原语 touchDown/touchMove/touchUp
   （分指暂存、touchUp() 全抬，61405/61440）；修 findImage 外层循环比较上限 bug；
   devdocs 新增「高级指南」组（多线程/数据库/网络通信）；测试 80 项、文档 258 函数。

@@ -1497,6 +1497,15 @@ static void AutoEnginePixelBufferDestroy(AutoEnginePixelBuffer *buffer) {
     free(buffer->bytes);
     *buffer = (AutoEnginePixelBuffer){0};
 }
+static NSData *AutoEngineScreenPNG(id<AutoAutomationAdapter> adapter, NSString *cachedPath, NSError **error) {
+    if ([cachedPath isKindOfClass:NSString.class] && cachedPath.length > 0 &&
+        [cachedPath isAbsolutePath] && [cachedPath hasPrefix:[NSHomeDirectory() stringByAppendingString:@"/"]]) {
+        NSData *cached = [NSData dataWithContentsOfFile:cachedPath];
+        if (cached.length > 0) return cached;
+    }
+    return [adapter screenshotWithError:error];
+}
+
 static NSArray *AutoEngineScanColorPoints(id<AutoAutomationAdapter> adapter,
                                           AutoEngine *engine,
                                           NSArray *targets,
@@ -1504,8 +1513,9 @@ static NSArray *AutoEngineScanColorPoints(id<AutoAutomationAdapter> adapter,
                                           NSUInteger maximumMatches,
                                           NSUInteger order,
                                           BOOL notMode,
+                                          NSString *cachedScreenPath,
                                           NSError **error) {
-    NSData *png = [adapter screenshotWithError:error];
+    NSData *png = AutoEngineScreenPNG(adapter, cachedScreenPath, error);
     if (!png) {
         if (error && !*error) *error = AutoMakeError(AutoSDKErrorAutomationFailed,
                                                      @"Unable to capture a screenshot for color search.", nil);
@@ -2563,8 +2573,9 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     NSUInteger order = (NSUInteger)direction;
     if (order < 1 || order > 8) order = 1;
     NSError *error = nil;
+    NSString *cachedScreenPath = [data[@"screenshotPath"] isKindOfClass:NSString.class] ? data[@"screenshotPath"] : nil;
     NSArray *matches = AutoEngineScanColorPoints(self.adapter, self.engine, targets,
-                                                 x, y, ex, ey, (NSUInteger)limit, order, NO, &error);
+                                                 x, y, ex, ey, (NSUInteger)limit, order, NO, cachedScreenPath, &error);
     if (error) return [self failure:error];
     return matches.count > 0 ? matches : [NSNull null];
 }
@@ -2595,8 +2606,9 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     NSUInteger order = (NSUInteger)direction;
     if (order < 1 || order > 8) order = 1;
     NSError *error = nil;
+    NSString *cachedScreenPath = [data[@"screenshotPath"] isKindOfClass:NSString.class] ? data[@"screenshotPath"] : nil;
     NSArray *matches = AutoEngineScanColorPoints(self.adapter, self.engine, targets,
-                                                 x, y, ex, ey, (NSUInteger)limit, order, YES, &error);
+                                                 x, y, ex, ey, (NSUInteger)limit, order, YES, cachedScreenPath, &error);
     if (error) return [self failure:error];
     return matches.count > 0 ? matches : [NSNull null];
 }

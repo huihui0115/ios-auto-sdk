@@ -72,7 +72,7 @@ capabilities.stableNodeHandles=NO 已如实标注）。
 3. 坐标点击/滑动/长按/双指 pinch（对照录屏验证落点）。
 4. 跨 App 控件查询：在系统设置/第三方 App 内 text/label/id/type 匹配。
 5. launch/terminate/homeScreen/lock/unlock/applist。
-6. 全屏截图 + OCR + findColor/compareColors/findMultiColor。
+6. 全屏截图 + OCR + findColor/compareColors/findMultiColor/findImage/findColorEx/findNotColor（均支持 `screenshotPath` 截图缓存复用，Round 51 起端到端生效）。
 7. iOS 15 / 16 / 17 / 18 / 26 各跑一遍冒烟脚本，记录私有接口可用面差异。
 
 ## 6. 已知限制（诚实标注）
