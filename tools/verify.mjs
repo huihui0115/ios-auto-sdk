@@ -712,6 +712,10 @@ check(bootstrapScript.includes('bridge.invokeFindColorEx(cachedOptions(') &&
       bootstrapScript.includes('g.setClip=deviceApi.setClipboard') &&
       bootstrapScript.includes('g.getClip=deviceApi.getClipboard'),
       'Bootstrap must wire the screenshot cache into findColorEx/findNotColor and expose waitFor/currentPackage/setClip/getClip globals');
+check(engineSource.includes('AutoSQLiteMaxRows') &&
+      engineSource.includes('rows.count < AutoSQLiteMaxRows') &&
+      engineSource.includes('sqlite accepts one statement per call'),
+      'SQLite query rows must be bounded and multi-statement SQL must be rejected explicitly');
 check(read('Sources/AutoSDK/include/AutoSDK.h').includes('#import "AutoBuiltinAdapter.h"') &&
       templateSettingsSource.includes('AutoBuiltinAdapter *adapter = [AutoBuiltinAdapter new]') &&
       !templateSettingsSource.includes('AutoWDAHTTPAdapter') &&

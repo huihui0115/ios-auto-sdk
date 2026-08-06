@@ -6,6 +6,23 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-08-06
+
+### Added
+
+- **devdocs 对标 AScript 再补 3 篇指南**（25→28 页）：
+  - 「图色识别」：findColor/findColorEx/findImage/OCR/YOLO 实战 + screen.cache 用法；
+  - 「发布程序」：内置脚本/远程脚本分发、签名矩阵（免费签/TrollStore/企业签/App Store）、
+    上架前检查清单（对齐 AScript 的「发布程序」页）；
+  - 「常见问题 FAQ」：签名降级、xpath 支持范围、分辨率适配、死循环停止、调试入口。
+
+### Fixed
+
+- **SQLite 结果集封顶**：`sqlite.query` 最多返回 10 万行（`AutoSQLiteMaxRows`），
+  防止大表 SELECT 撑爆内存/序列化。
+- **SQLite 多语句显式报错**：此前一次传入多条 `;` 分隔语句会静默只执行第一条，
+  现在 prepare 后检查 tail，发现剩余语句立即报错提示拆分调用。
+
 ## [1.21.0] - 2026-08-06
 
 ### Added

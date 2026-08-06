@@ -247,6 +247,83 @@ main();</code></pre>
 main();</code></pre>
 <div class="note ok">ATS 提示：宿主 App 若未放开 http:// 明文域名，请用 https；
 请求失败时 r.status 为 0 且 body 为空，先判 status 再解析。</div>` },
+
+{ id: 'guide-vision', group: '高级指南', title: '图色识别', html: `
+<h1>图色识别</h1>
+<p>图色是自动化的兜底能力：控件取不到时用<b>找图</b>（模板匹配）、<b>找色</b>（单点/多点颜色）、
+<b>OCR</b>（文字识别）定位坐标再点击。所有图色函数都支持 <code>screen.cache(true)</code> 截图缓存，
+同一画面多次判断时只截一次图。</p>
+<h2>找色</h2>
+<pre><code>function main(){
+  screen.cache(true);                    // 同一画面多次判断时强烈建议开启
+  const p = screen.findColor("#ff5722", { x: 0, y: 0, width: 0, height: 0 }, { tolerance: 12 });
+  if (p) { logd("找到: " + p.x + "," + p.y); click(p.x, p.y); }
+  // 区域多点批量找色（一次截图找多个目标色）
+  const list = findColorEx("#00ff00", 0.9, 0, 0, 500, 800, 10, 1);
+  logd("匹配点数: " + (list ? list.length : 0));
+  screen.cache(false);
+}
+main();</code></pre>
+<h2>找图（模板匹配）</h2>
+<pre><code>function main(){
+  // 模板 png 放脚本目录 res/ 下；返回 {found,x,y,width,height,centerX,centerY,similarity}
+  const r = findImage("res/btn_ok.png", { similarity: 0.9 });
+  if (r && r.found) { click(r.centerX, r.centerY); }
+}
+main();</code></pre>
+<h2>OCR 与 YOLO</h2>
+<pre><code>function main(){
+  const words = ocr();                   // 全屏识别，返回 [{text,bounds:{...},confidence}]
+  for (const w of words) if (w.text.includes("确认")) {
+    const b = w.bounds; click(b.x + b.width / 2, b.y + b.height / 2); break;
+  }
+  const objs = yolo.detect("res/screen.png");   // 离线物体检测
+  logd(JSON.stringify(objs));
+}
+main();</code></pre>
+<div class="note ok">性能预算：找图比较次数有上限（默认 maxCandidates=64），OCR 单次全屏约 1-3 秒；
+高频判断优先用 findColor/cmpColor，截图缓存开启后图色操作可快一个数量级。</div>` },
+
+{ id: 'publish', group: '开始', title: '发布程序', html: `
+<h1>发布程序（打包与分发）</h1>
+<p>脚本开发的最终形态是<b>把脚本随宿主 App 一起分发</b>。三种常见方式：</p>
+<ol>
+<li><b>内置脚本</b>：把 .js 放进宿主 App 资源（模板 App 的 <code>Scripts/</code> 目录），
+启动即运行，无需联网，适合成品交付；</li>
+<li><b>远程脚本</b>：宿主从自己的服务器拉取脚本（HTTPS），可随时热更新逻辑，
+配合 <code>http.downloadFile</code> + 本地缓存做版本管理；</li>
+<li><b>VS Code 实时调试</b>：开发期用扩展直连设备热跑，见「连接与调试」。</li>
+</ol>
+<h2>签名要求（跨 App 自动化）</h2>
+<table><tr><th>场景</th><th>签名</th><th>说明</th></tr>
+<tr><td>仅宿主 App 内控件/文件/HTTP</td><td>免费个人签</td><td>7 天有效期，Xcode 直装即可</td></tr>
+<tr><td>跨 App 触摸/控件（内置 no-WDA）</td><td>TrollStore / 开发者证书 / 企业签</td><td>内置适配器用私有 API（运行时 dlsym 解析），App Store 审核会拒</td></tr>
+<tr><td>上架 App Store</td><td>官方分发</td><td>仅宿主内功能可用，capabilities 会如实降级</td></tr></table>
+<h2>发布前检查清单</h2>
+<ol><li><code>auto.capabilities()</code> 逐项确认目标签名下能力可用；</li>
+<li>脚本加 <code>try/catch</code> + <code>logd</code>，失败路径有兜底（重试/重启脚本）；</li>
+<li>用 <code>device.getScreenWidth/Height</code> 做分辨率适配，别写死坐标；</li>
+<li>首次运行引导用户开启辅助功能/相册等系统权限。</li></ol>
+<div class="note ok">完整上架流程（IPA 导出、商店资料、审核注意）见仓库 <code>docs/MARKET_RELEASE.md</code>。</div>` },
+
+{ id: 'faq', group: '开始', title: '常见问题', html: `
+<h1>常见问题（FAQ）</h1>
+<h2>安装与签名</h2>
+<p><b>Q: 免费个人签能用跨 App 自动化吗？</b><br>A: 不能。跨 App 触摸/控件依赖内置 no-WDA 适配器的私有 API，
+需要 TrollStore、开发者证书或企业签；免费签下 <code>auto.capabilities()</code> 会如实报告降级，脚本应做兜底。</p>
+<p><b>Q: 和 WDA 方案比有什么优势？</b><br>A: 无需额外的 WebDriverAgent Runner 进程、无 8100 端口转发，
+控件检索为系统级 AX 直查（毫秒级），触摸为 IOHIDEvent 真实注入。</p>
+<h2>脚本编写</h2>
+<p><b>Q: 支持 xpath 选择器吗？</b><br>A: 宿主 UIKit 路径支持；内置跨 App AX 路径暂不支持 xpath/predicate
+（会返回清晰错误），请用 text/desc/id/type + Matches 正则组合。</p>
+<p><b>Q: 脚本里怎么适配不同分辨率？</b><br>A: 优先控件检索；必须用坐标时用 <code>setScreenMetrics(w,h)</code> 
+做设计稿坐标换算（<code>metrics.x()/y()</code>）。</p>
+<p><b>Q: 死循环停不下来怎么办？</b><br>A: 纯 JS 密集循环无法被抢占式中断，循环体内调用任意 bridge 函数
+（如 <code>sleep(1)</code>）即可响应停止按钮；或用 <code>isCancelled()</code> 主动检查。</p>
+<h2>调试</h2>
+<p><b>Q: 日志在哪里看？</b><br>A: VS Code 扩展日志面板（实时回传）；设备侧可用 <code>floatLog</code> 悬浮窗。</p>
+<p><b>Q: 找图找不到？</b><br>A: 确认模板截图与设备分辨率一致；降低 <code>similarity</code>（0.8 起试）；
+用 Visual Inspector 的找图模式先在本地 PNG 上验证。</p>` },
 ];
 
 function fnBlock(api, i) {

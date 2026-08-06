@@ -772,10 +772,12 @@ static void AutoSQLiteInit(void) {
     });
 }
 
+static const NSUInteger AutoSQLiteMaxRows = 100000;
+
 static NSArray<NSDictionary<NSString *, id> *> *AutoSQLiteRowsForStatement(sqlite3_stmt *statement) {
     int columns = sqlite3_column_count(statement);
     NSMutableArray<NSDictionary<NSString *, id> *> *rows = [NSMutableArray array];
-    while (sqlite3_step(statement) == SQLITE_ROW) {
+    while (rows.count < AutoSQLiteMaxRows && sqlite3_step(statement) == SQLITE_ROW) {
         NSMutableDictionary<NSString *, id> *row = [NSMutableDictionary dictionary];
         for (int i = 0; i < columns; i++) {
             const char *name = sqlite3_column_name(statement, i);
@@ -874,10 +876,17 @@ static id AutoSQLiteOperation(NSString *name, NSArray *args, NSDictionary *confi
     if (!db) return AutoMakeError(AutoSDKErrorAutomationFailed, @"sqlite handle is not open.", nil);
     if (sql.length == 0) return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"sqlite requires SQL text.", nil);
     sqlite3_stmt *statement = NULL;
-    int rc = sqlite3_prepare_v2(db, sql.UTF8String, -1, &statement, NULL);
+    const char *sqlText = sql.UTF8String;
+    const char *tail = NULL;
+    int rc = sqlite3_prepare_v2(db, sqlText, -1, &statement, &tail);
     if (rc != SQLITE_OK) {
         NSString *message = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
         return AutoMakeError(AutoSDKErrorAutomationFailed, message ?: @"sqlite prepare failed.", nil);
+    }
+    while (tail && *tail && isspace((unsigned char)*tail)) tail++;
+    if (tail && *tail) {
+        sqlite3_finalize(statement);
+        return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"sqlite accepts one statement per call; split multiple statements into separate exec() calls.", nil);
     }
     NSArray *params = args.count > 2 && [args[2] isKindOfClass:NSArray.class] ? args[2] : @[];
     rc = AutoSQLiteBindParams(statement, params);

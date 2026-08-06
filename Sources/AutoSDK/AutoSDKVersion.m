@@ -1,4 +1,4 @@
 #import "include/AutoSDK.h"
 
-double AutoSDKVersionNumber = 1.21;
-const unsigned char AutoSDKVersionString[] = "1.21.0";
+double AutoSDKVersionNumber = 1.22;
+const unsigned char AutoSDKVersionString[] = "1.22.0";
