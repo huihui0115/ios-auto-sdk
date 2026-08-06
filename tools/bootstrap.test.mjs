@@ -1307,6 +1307,21 @@ test('ocrBaidu fetches token, posts base64 image and joins words', () => {
   assert.equal(typeof sandbox.auto.ocrBaidu, 'function');
 });
 
+test('ws client routes connect/poll/send/close to native bridge', () => {
+  const { sandbox, calls } = boot();
+  sandbox.ws.connect('wss://example.com/sock');
+  assert.deepEqual(calls.native.at(-1), { name: 'wsConnect', arguments: ['wss://example.com/sock'] });
+  sandbox.ws.poll(3);
+  assert.deepEqual(calls.native.at(-1), { name: 'wsPoll', arguments: [3] });
+  sandbox.ws.send(3, 'hello');
+  assert.deepEqual(calls.native.at(-1), { name: 'wsSend', arguments: [3, 'hello'] });
+  sandbox.ws.close(3);
+  assert.deepEqual(calls.native.at(-1), { name: 'wsClose', arguments: [3] });
+  sandbox.ws.send(3, '');
+  assert.deepEqual(calls.native.at(-1), { name: 'wsSend', arguments: [3, ''] });
+  assert.equal(typeof sandbox.ws.connect, 'function');
+});
+
 test('scanCode routes image path to native bridge and global alias works', () => {
   const { sandbox, calls } = boot();
   sandbox.screen.scanCode('/tmp/code.png');

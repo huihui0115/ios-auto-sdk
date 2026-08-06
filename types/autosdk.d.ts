@@ -199,6 +199,29 @@ interface AutoOCRItem {
   bounds: AutoRect;
   normalizedBounds: AutoRect;
 }
+interface AutoWebSocketEvent {
+  /** Event type: open / message / close / error. */
+  type: "open" | "message" | "close" | "error";
+  /** Payload text for message events; base64 when data=true. */
+  text?: string;
+  /** True when a message carried binary data (text is then base64). */
+  data?: boolean;
+  /** Numeric close code (close events) or error description (error events). */
+  code?: number;
+  error?: string;
+}
+
+interface AutoWebSocketAPI {
+  /** Opens a ws:// or wss:// connection; returns a handle or null. */
+  connect(url: string): number | null;
+  /** Pulls the next queued event from the connection's message queue. */
+  poll(handle: number): AutoWebSocketEvent | null;
+  /** Sends a text frame; returns false when the socket is not open. */
+  send(handle: number, text: string): boolean;
+  /** Closes the connection; returns true. */
+  close(handle: number): boolean;
+}
+
 interface AutoBarcodeItem {
   /** Decoded payload text (QR code / barcode content). */
   text: string;
@@ -866,6 +889,7 @@ interface AutoOCRBaiduOptions {
 declare function ocrBaidu(imageBase64: string, apiKey: string, secretKey: string, options?: AutoOCRBaiduOptions): { text: string; lines: string[] } | null;
 declare function ocrBaiduText(imageBase64: string, apiKey: string, secretKey: string, options?: AutoOCRBaiduOptions): string | null;
 declare function scanCode(imagePath: string): AutoBarcodeItem[];
+declare const ws: AutoWebSocketAPI;
 
 declare function saveImageBase64ToAlbum(base64: string): boolean;
 declare function saveVideoToAlbum(path: string): boolean;

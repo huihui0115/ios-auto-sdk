@@ -1003,6 +1003,21 @@ main();` });APIS.push({ cat:'vision', sig:'ocrText(text, timeoutMs?)', title:'�
   if (item) logd("坐标: " + item.bounds.x + "," + item.bounds.y);
 }
 main();` });
+APIS.push({ cat:'http', sig:'ws.connect(url) / ws.poll(handle) / ws.send(handle, text) / ws.close(handle)', title:'WebSocket 客户端', desc:'轮询式 WebSocket 客户端，对标 AScript WebSocket 与 kuaijs 云控：connect 建立 ws:// 或 wss:// 连接并返回句柄；poll 从消息队列取事件 {type: open|message|close|error, text?}（无事件返回 null）；send 发送文本帧（未连接返回 false）；close 关闭连接。消息队列上限 512 条，脚本停止时自动关闭全部连接。', params:[['url','string','ws:// 或 wss:// 地址'],['handle','number','connect 返回的句柄'],['text','string','要发送的文本']], returns:'number | AutoWebSocketEvent | null | boolean', example:`function main(){
+  const h = ws.connect("wss://example.com/sock");
+  if (h == null) { logd("连接失败"); return; }
+  for (let i = 0; i < 50; i++) {
+    const ev = ws.poll(h);
+    if (ev && ev.type === "message") {
+      logd("收到: " + ev.text);
+      ws.send(h, "ack:" + ev.text);
+      break;
+    }
+    sleep(200);
+  }
+  ws.close(h);
+}
+main();` });
 APIS.push({ cat:'vision', sig:'scanCode(imagePath)', title:'二维码/条形码识别', desc:'用设备端 Vision 检测图片中的二维码/条形码，返回 [{ text, symbology, bounds }]；imagePath 为沙盒内图片路径（可先用 screenshot() 得到当前屏幕截图路径）；bounds 为归一化坐标（左上原点，与截图一致）。对标 AScript CodeScanner。', params:[['imagePath','string','沙盒内图片路径，空串时返回空数组']], returns:'AutoBarcodeItem[]', example:`function main(){
   const path = screenshot();
   const codes = scanCode(path);

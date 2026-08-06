@@ -10,6 +10,16 @@ All notable changes to AutoSDK are documented here. The format follows
 
 - Next.
 
+## [1.5.0] - 2026-08-06
+
+### Added
+
+- **WebSocket 客户端（ws.connect/poll/send/close）。** 轮询式 WebSocket（NSURLSessionWebSocketTask），对标 AScript WebSocket 与 kuaijs 云控：
+  connect 建立 ws:// 或 wss:// 连接并返回句柄；poll 取事件 {type: open|message|close|error, text?}；send 发送文本帧；close 关闭。
+  消息队列上限 512 条（防内存膨胀），脚本停止时自动关闭全部连接；d.ts/文档/verify/测试同步，测试 67 项。
+- **bootstrap 别名压缩（String/Number → Str/Num）。** 机械替换 187 处 String(、130 处 Number(，bootstrap 解码 61209→60293
+  （释放约 916 字符预算，配合 ws 后 60559，余量 881）；负向后顾正则避免误伤 toString( 等标识符，66 项既有测试全部保持绿色。
+
 ## [1.4.0] - 2026-08-06
 
 ### Added

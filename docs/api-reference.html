@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>29</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>29</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>10</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>29</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>29</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -3005,7 +3005,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="http" class="cat" style="--c:#9333ea">
-  <h2><span class="tag">网络HTTP</span><i>10</i></h2>
+  <h2><span class="tag">网络HTTP</span><i>11</i></h2>
   <article class="card" data-search="httpGet(url, options?) / httpPost(url, body?, options?) HTTP 全局简写">
   <header class="card-head">
     <h4><code>httpGet(url, options?) / httpPost(url, body?, options?)</code> <span class="cname">HTTP 全局简写</span></h4>
@@ -3051,6 +3051,31 @@ main();</code></pre>
   if (auto.capabilities().http !== true) return;
   const ok = http.downloadFileDefault("https://example.com/a.png", "tmp/a.png");
   toastLog("下载: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="ws.connect(url) / ws.poll(handle) / ws.send(handle, text) / ws.close(handle) WebSocket 客户端">
+  <header class="card-head">
+    <h4><code>ws.connect(url) / ws.poll(handle) / ws.send(handle, text) / ws.close(handle)</code> <span class="cname">WebSocket 客户端</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">轮询式 WebSocket 客户端，对标 AScript WebSocket 与 kuaijs 云控：connect 建立 ws:// 或 wss:// 连接并返回句柄；poll 从消息队列取事件 {type: open|message|close|error, text?}（无事件返回 null）；send 发送文本帧（未连接返回 false）；close 关闭连接。消息队列上限 512 条，脚本停止时自动关闭全部连接。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">ws:// 或 wss:// 地址</span></div><div class="param"><code class="pname">handle</code><span class="ptype">number</span><span class="pdesc">connect 返回的句柄</span></div><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">要发送的文本</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number | AutoWebSocketEvent | null | boolean</span></div>
+  <pre><code>function main(){
+  const h = ws.connect("wss://example.com/sock");
+  if (h == null) { logd("连接失败"); return; }
+  for (let i = 0; i &lt; 50; i++) {
+    const ev = ws.poll(h);
+    if (ev &amp;&amp; ev.type === "message") {
+      logd("收到: " + ev.text);
+      ws.send(h, "ack:" + ev.text);
+      break;
+    }
+    sleep(200);
+  }
+  ws.close(h);
 }
 main();</code></pre>
 </article>
@@ -3976,7 +4001,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 245 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 246 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

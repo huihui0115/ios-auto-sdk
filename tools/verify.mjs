@@ -389,6 +389,12 @@ check(bootstrapScript.includes('function ocrBaidu(') && bootstrapScript.includes
 check(bootstrapScript.includes("scanCode:function(p){return _nn('scanCode',[String(p||'')]);}") &&
       bootstrapScript.includes('g.scanCode=screenApi.scanCode'),
       'Bootstrap must expose scanCode barcode/QR detection and its global alias');
+check(bootstrapScript.includes("wsApi={connect:function(u){return _nn('wsConnect'") &&
+      bootstrapScript.includes("poll:function(h){return _nn('wsPoll'") &&
+      bootstrapScript.includes("send:function(h,t){return _nn('wsSend'") &&
+      bootstrapScript.includes("close:function(h){return _nn('wsClose'") &&
+      bootstrapScript.includes('g.ws=wsApi'),
+      'Bootstrap must expose the WebSocket client and its global alias');
 
 check(bootstrapScript.includes('function _dv(') && bootstrapScript.includes('function _md(') && bootstrapScript.includes('function _nn('),
       'Bootstrap must define the compact bridge helpers');
@@ -467,7 +473,7 @@ check(bootstrapScript.includes('function pushTimer') && bootstrapScript.includes
       'Timer draining must use a bounded priority heap instead of repeated full-array sorting');
 check(bootstrapScript.includes('cancelled[id]=true') && bootstrapScript.includes('delete cancelled[timer.id]'), 'Queued timer cancellation must not leak cancellation markers');
 check(bootstrapScript.includes('function ensureRunning()') && bootstrapScript.includes('guardMethods(base)') &&
-      bootstrapScript.includes('ensureRunning();return _nn(String(key)'),
+      bootstrapScript.includes('ensureRunning();return _nn(Str(key)'),
       'Script stop must reject subsequent automation and native bridge calls');
 check(bootstrapScript.includes('delete g.__bridge;delete g.__console') &&
       engineSource.includes('[drainTimers callWithArguments:@[]]') &&

@@ -111,7 +111,7 @@ auto.toast("自定义方法由 Native 注册");
 ```
 
 `setTimeout`/`setInterval` 在脚本主代码返回后继续执行，`runScript` 的完成回调会等定时器队列排空后才触发；`setInterval` 会持续运行，需调用 `stopScript`（或等待 `scriptTimeout` 超时）才会停止。`scriptTimeout` 是包含定时器回调在内的总执行预算。
-新增 EasyClick 风格的坐标适配与常用工具：`setScreenMetrics(width, height)` 按设计稿设置分辨率基准，配合 `getScreenMetrics()`、`metrics.point(x, y)` 适配多机型；另有 `uuid()`、`base64.encode/decode`、`http.getJSON`、`auto.clickCenter/clickRandom`、`auto.getChild/getSiblings` 等封装。全部 160+ 函数见上方交互式速查（245 个函数、12 个分类，每卡带 EasyClick/AutoJS 对标与可复制示例）。
+新增 EasyClick 风格的坐标适配与常用工具：`setScreenMetrics(width, height)` 按设计稿设置分辨率基准，配合 `getScreenMetrics()`、`metrics.point(x, y)` 适配多机型；另有 `uuid()`、`base64.encode/decode`、`http.getJSON`、`auto.clickCenter/clickRandom`、`auto.getChild/getSiblings` 等封装。全部 160+ 函数见上方交互式速查（246 个函数、12 个分类，每卡带 EasyClick/AutoJS 对标与可复制示例）。
 
 `findImage` 使用适配器实现的模板相似度匹配，`findColor` 使用 RGBA 容差扫描；`AutoUIKitAdapter` 的 `ocr` 使用系统 Vision 框架离线执行。`AutoWDAHTTPAdapter` 会把 WDA 截图拉回 SDK 进程后执行图色和 Vision OCR，不需要 OpenCV，但仍然需要单独可用的 WDA Runner。
 

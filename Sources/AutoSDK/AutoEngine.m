@@ -26,6 +26,10 @@
 @property (nonatomic, copy) void (^onMessage)(WKScriptMessage * _Nonnull);
 @end
 
+@interface AutoWebSocketDelegate : NSObject <NSURLSessionWebSocketDelegate>
+@property (nonatomic, strong) NSNumber *handle;
+@end
+
 @protocol AutoJSExport <JSExport>
 - (id)invokeClick:(JSValue *)selector;
 - (id)invokeClickPoint:(JSValue *)payload;
@@ -609,6 +613,151 @@ static NSArray<NSDictionary<NSString *, id> *> *AutoScanBarcodes(NSData *imageDa
     }
     return results;
 }
+
+// --- WebSocket client (AScript WebSocket / kuaijs cloud parity) ---
+static NSMutableDictionary<NSNumber *, NSURLSessionWebSocketTask *> *AutoWSTasks;
+static NSMutableDictionary<NSNumber *, NSMutableArray<NSDictionary *> *> *AutoWSQueues;
+static NSMutableDictionary<NSNumber *, AutoWebSocketDelegate *> *AutoWSDelegates;
+static NSMutableDictionary<NSNumber *, NSURLSession *> *AutoWSSessions;
+static NSLock *AutoWSLock;
+static NSUInteger AutoWSNextHandle = 1;
+
+static void AutoWSInit(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        AutoWSTasks = [NSMutableDictionary dictionary];
+        AutoWSQueues = [NSMutableDictionary dictionary];
+        AutoWSDelegates = [NSMutableDictionary dictionary];
+        AutoWSSessions = [NSMutableDictionary dictionary];
+        AutoWSLock = [NSLock new];
+    });
+}
+
+static void AutoWSEnqueue(NSNumber *handle, NSDictionary *event) {
+    AutoWSInit();
+    [AutoWSLock lock];
+    NSMutableArray *queue = AutoWSQueues[handle];
+    if (queue && queue.count < 512) [queue addObject:event];
+    [AutoWSLock unlock];
+}
+
+static void AutoWSStartReceive(NSNumber *handle, NSURLSessionWebSocketTask *task) {
+    [task receiveMessageWithCompletionHandler:^(NSURLSessionWebSocketMessage *message, NSError *error) {
+        if (error) {
+            NSInteger code = error.code;
+            if (code != 57 && code != 54 && code != -999) { // ignore local close/cancel
+                AutoWSEnqueue(handle, @{@"type": @"error", @"error": error.localizedDescription ?: @"connection error"});
+            }
+            return;
+        }
+        if (message.type == NSURLSessionWebSocketMessageTypeString) {
+            AutoWSEnqueue(handle, @{@"type": @"message", @"text": message.string ?: @""});
+        } else if (message.type == NSURLSessionWebSocketMessageTypeData) {
+            AutoWSEnqueue(handle, @{@"type": @"message", @"text": [message.data base64EncodedStringWithOptions:0], @"data": @YES});
+        }
+        BOOL stillOpen = NO;
+        [AutoWSLock lock];
+        if ([AutoWSTasks[handle] isEqual:task]) stillOpen = (task.state == NSURLSessionTaskStateRunning);
+        [AutoWSLock unlock];
+        if (stillOpen) AutoWSStartReceive(handle, task);
+    }];
+}
+
+@implementation AutoWebSocketDelegate
+- (void)URLSession:(NSURLSession *)session webSocketTask:(NSURLSessionWebSocketTask *)webSocketTask didOpenWithProtocol:(NSString *)protocol {
+    AutoWSEnqueue(self.handle, @{@"type": @"open"});
+}
+- (void)URLSession:(NSURLSession *)session webSocketTask:(NSURLSessionWebSocketTask *)webSocketTask didCloseWithCode:(NSURLSessionWebSocketCloseCode)closeCode reason:(NSData *)reason {
+    AutoWSEnqueue(self.handle, @{@"type": @"close", @"code": @(closeCode)});
+}
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
+    if (error && error.code != -999 && error.code != 57 && error.code != 54) {
+        AutoWSEnqueue(self.handle, @{@"type": @"error", @"error": error.localizedDescription ?: @"connection failed"});
+    }
+}
+@end
+
+static id AutoHandleWebSocket(NSString *name, NSArray *args) {
+    AutoWSInit();
+    if ([name isEqualToString:@"wsConnect"]) {
+        NSString *urlString = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"";
+        NSURL *url = [NSURL URLWithString:urlString];
+        NSString *scheme = url.scheme.lowercaseString;
+        if (!url || (![scheme isEqualToString:@"ws"] && ![scheme isEqualToString:@"wss"])) {
+            return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"ws.connect requires a ws:// or wss:// URL.", nil);
+        }
+        NSNumber *handle = @(AutoWSNextHandle++);
+        AutoWebSocketDelegate *delegate = [AutoWebSocketDelegate new];
+        delegate.handle = handle;
+        NSURLSessionConfiguration *configuration = NSURLSessionConfiguration.defaultSessionConfiguration;
+        configuration.timeoutIntervalForRequest = 30;
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:delegate delegateQueue:nil];
+        NSURLSessionWebSocketTask *task = [session webSocketTaskWithURL:url];
+        [AutoWSLock lock];
+        AutoWSTasks[handle] = task;
+        AutoWSQueues[handle] = [NSMutableArray array];
+        AutoWSDelegates[handle] = delegate;
+        AutoWSSessions[handle] = session;
+        [AutoWSLock unlock];
+        [task resume];
+        AutoWSStartReceive(handle, task);
+        return handle;
+    }
+    if (args.count == 0) return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"WebSocket operation requires a handle.", nil);
+    NSNumber *handle = [args[0] isKindOfClass:NSNumber.class] ? args[0] : @([args[0] doubleValue]);
+    if ([name isEqualToString:@"wsPoll"]) {
+        [AutoWSLock lock];
+        NSMutableArray *queue = AutoWSQueues[handle];
+        id event = nil;
+        if (queue.count > 0) {
+            event = queue[0];
+            [queue removeObjectAtIndex:0];
+        }
+        [AutoWSLock unlock];
+        return event ?: [NSNull null];
+    }
+    if ([name isEqualToString:@"wsSend"]) {
+        NSURLSessionWebSocketTask *task = nil;
+        [AutoWSLock lock];
+        task = AutoWSTasks[handle];
+        [AutoWSLock unlock];
+        if (!task) return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Unknown WebSocket handle.", nil);
+        if (task.state != NSURLSessionTaskStateRunning) return @NO;
+        NSString *text = args.count > 1 && [args[1] isKindOfClass:NSString.class] ? args[1] : @"";
+        NSURLSessionWebSocketMessage *message = [[NSURLSessionWebSocketMessage alloc] initWithString:text];
+        [task sendMessage:message completionHandler:^(NSError *sendError) {
+            if (sendError) AutoWSEnqueue(handle, @{@"type": @"error", @"error": sendError.localizedDescription ?: @"send failed"});
+        }];
+        return @YES;
+    }
+    if ([name isEqualToString:@"wsClose"]) {
+        [AutoWSLock lock];
+        NSURLSessionWebSocketTask *task = AutoWSTasks[handle];
+        [AutoWSTasks removeObjectForKey:handle];
+        [AutoWSQueues removeObjectForKey:handle];
+        [AutoWSDelegates removeObjectForKey:handle];
+        [AutoWSSessions removeObjectForKey:handle];
+        [AutoWSLock unlock];
+        if (task) [task cancelWithCloseCode:NSURLSessionWebSocketCloseCodeNormalClosure reason:nil];
+        return @YES;
+    }
+    return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Unknown WebSocket operation.", nil);
+}
+
+static void AutoWebSocketCloseAll(void) {
+    AutoWSInit();
+    [AutoWSLock lock];
+    NSDictionary *tasks = [AutoWSTasks copy];
+    [AutoWSTasks removeAllObjects];
+    [AutoWSQueues removeAllObjects];
+    [AutoWSDelegates removeAllObjects];
+    [AutoWSSessions removeAllObjects];
+    [AutoWSLock unlock];
+    for (NSURLSessionWebSocketTask *task in tasks.allValues) {
+        [task cancelWithCloseCode:NSURLSessionWebSocketCloseCodeNormalClosure reason:nil];
+    }
+}
+
 static UILabel *AutoActiveToastLabel;
 static void AutoShowToast(NSString *message) {
     if (!NSThread.isMainThread) {
@@ -2942,6 +3091,12 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             NSArray *scanResults = AutoScanBarcodes(scanData, &scanError);
             return scanError ? [self failure:scanError] : (scanResults ?: @[]);
         }
+        if ([name isEqualToString:@"wsConnect"] || [name isEqualToString:@"wsPoll"] ||
+            [name isEqualToString:@"wsSend"] || [name isEqualToString:@"wsClose"]) {
+            NSArray *wsArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            id wsResult = AutoHandleWebSocket(name, wsArgs);
+            return [wsResult isKindOfClass:NSError.class] ? [self failure:wsResult] : wsResult;
+        }
         if ([name isEqualToString:@"notify"]) {
             NSArray *notifyArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
             id bodyValue = notifyArgs.count > 0 ? notifyArgs[0] : nil;
@@ -4323,6 +4478,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         self.scriptTask = nil;
     }
     if ([adapter respondsToSelector:@selector(cancelCurrentOperations)]) [adapter cancelCurrentOperations];
+    AutoWebSocketCloseAll();
     [task cancel];
 }
 

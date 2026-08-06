@@ -126,6 +126,7 @@
 | ~~P1~~ ✅ | app.getFrontmostApp（前台应用） | 低 | 已实现：前台 bundleId，R29 |
 | ~~P1~~ ✅ | ocrBaidu / ocrBaiduText（第三方 OCR） | 中 | 已实现：百度通用文字识别，R30 |
 | ~~P2~~ ✅ | 二维码 / 条形码识别（CodeScanner） | 低 | 已实现：Vision VNDetectBarcodesRequest，返回 text/symbology/bounds，R34 |
+| ~~P2~~ ✅ | WebSocket 客户端 / 云控 | 中 | 已实现：ws.connect/poll/send/close 轮询式客户端（消息队列 512 上限，脚本停止自动关闭），R35 |
 
 | P2 | YOLO / OpenCV / tomato 本地模型 | 高 | 需 CoreML 模型文件，可后续插拔 |
 | P2 | reboot / deactivate | 高 | 系统级私有 API，免越狱不可行 |
