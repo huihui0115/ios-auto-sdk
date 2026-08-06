@@ -1200,6 +1200,41 @@ test('keepScreenOn, webView.loadHTML, ocrClick/ocrText and auto proxy fallback r
   assert.equal(typeof sandbox.auto.ocrClick, 'function');
 });
 
+test('speak/speechStop, openSettings/openAppStore and locale device getters route to bridge', () => {
+  const { sandbox, calls } = boot();
+  sandbox.speak('你好');
+  assert.deepEqual(calls.native.at(-1), { name: 'speak', arguments: ['你好', {}, false] });
+  sandbox.speech.speak('hi', { rate: 0.4, volume: 0.8, language: 'en-US' }, true);
+  assert.deepEqual(calls.native.at(-1), { name: 'speak', arguments: ['hi', { rate: 0.4, volume: 0.8, language: 'en-US' }, true] });
+  sandbox.tts('x');
+  assert.equal(calls.native.at(-1).name, 'speak');
+  sandbox.speechStop();
+  assert.deepEqual(calls.native.at(-1), { name: 'speechStop', arguments: [] });
+  sandbox.stopSpeak();
+  assert.deepEqual(calls.native.at(-1), { name: 'speechStop', arguments: [] });
+  sandbox.speech.stop();
+  assert.deepEqual(calls.native.at(-1), { name: 'speechStop', arguments: [] });
+  sandbox.app.openSettings();
+  assert.deepEqual(calls.app.at(-1), { operation: 'openSettings' });
+  sandbox.openAppSetting();
+  assert.deepEqual(calls.app.at(-1), { operation: 'openSettings' });
+  sandbox.app.openAppStore('284882215');
+  assert.deepEqual(calls.app.at(-1), { operation: 'openAppStore', appId: '284882215' });
+  sandbox.openAppStore('x');
+  assert.deepEqual(calls.app.at(-1), { operation: 'openAppStore', appId: 'x' });
+  sandbox.device.getLanguage();
+  assert.deepEqual(calls.device.at(-1), { operation: 'language' });
+  sandbox.getCountry();
+  assert.deepEqual(calls.device.at(-1), { operation: 'country' });
+  sandbox.getLocale();
+  assert.deepEqual(calls.device.at(-1), { operation: 'locale' });
+  sandbox.getTimezone();
+  assert.deepEqual(calls.device.at(-1), { operation: 'timezone' });
+  sandbox.getUptime();
+  assert.deepEqual(calls.device.at(-1), { operation: 'uptime' });
+  assert.equal(typeof sandbox.auto.speak, 'function');
+});
+
 test('device isScreenOn/isLocked expose lock state', () => {
   const { sandbox } = boot();
   assert.equal(sandbox.isScreenOn(), true);

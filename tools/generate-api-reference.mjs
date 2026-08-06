@@ -42,6 +42,9 @@ const REFS = {
   'audioStop(id?)': 'AScript audio_stop',
   'device.isLocked()': 'AScript system.is_locked',
   'device.keepScreenOn()': 'EasyClick keepScreenOn() · AutoJS device.keepScreenOn()',
+  'device.getLanguage() / getCountry() / getTimezone()': 'AScript get_language/get_country/get_timezone · EasyClick getLanguage()/getCountry()',
+  'speak(text, options?) / speechStop()': 'AScript speak · EasyClick speak()',
+  'app.openSettings() / openAppSetting() / openAppStore(appId)': 'AScript app_open_setting / app_store · EasyClick openAppSetting()/openAppStore()',
   'Selector().text(v).type(t).findOne()': 'AScript Selector 链式选择器',
   'clickPoint(x, y)': 'EasyClick clickPoint() · AutoJS click(x, y)',
   'doubleClickPoint(x, y, interval?)': 'EasyClick doubleClickPoint() · AutoJS click(x, y, true)',
@@ -232,7 +235,12 @@ APIS.push({ cat:'app', sig:'app.state(bundleId)', title:'应用状态', desc:'�
   toastLog("状态码: " + state);
 }
 main();` });
-APIS.push({ cat:'app', sig:'app.lock() / app.unlock()', title:'锁屏 / 解锁', desc:'锁屏或解锁设备（需 WDA systemActions 能力）。', params:[], returns:'boolean', example:`function main(){
+APIS.push({ cat:'app', sig:'app.openSettings() / openAppSetting() / app.openAppStore(appId)', title:'打开设置 / 打开 App Store', desc:'openSettings 打开本 App 的系统设置页（等价 openAppSetting 别名，对标 AScript app_open_setting）；openAppStore(appId) 用 itms-apps 协议打开指定 appId 的 App Store 页面。均需 allowSystemControl 权限。', params:[['appId','string','openAppStore 的 App Store 应用 id']], returns:'boolean', example:`function main(){
+  app.openSettings();
+  sleep(2000);
+  app.openAppStore("284882215"); // 微信 App Store id
+}
+main();` });APIS.push({ cat:'app', sig:'app.lock() / app.unlock()', title:'锁屏 / 解锁', desc:'锁屏或解锁设备（需 WDA systemActions 能力）。', params:[], returns:'boolean', example:`function main(){
   app.lock();
   auto.sleep(1000);
   app.unlock();
@@ -1097,7 +1105,13 @@ APIS.push({ cat:'device', sig:'device.volumeUp() / device.volumeDown()', title:'
   logd("音量+ " + ok);
 }
 main();` });
-APIS.push({ cat:'device', sig:'device.keepScreenOn(on?) / keepScreenOn(on?)', title:'屏幕常亮开关', desc:'开启/关闭屏幕常亮（防止自动锁屏），默认开启。on=false 时恢复系统自动锁屏策略。对标 EasyClick keepScreenOn()。', params:[['on','boolean','可选，默认 true：true 保持常亮，false 恢复自动锁屏']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'device', sig:'device.getLanguage() / device.getCountry() / device.getLocale() / device.getTimezone() / device.getUptime()', title:'语言/国家/时区/运行时长', desc:'getLanguage 返回系统首选语言（如 zh-Hans-CN），getCountry 返回国家码，getLocale 返回区域标识，getTimezone 返回当前时区名（如 Asia/Shanghai），getUptime 返回开机至今的秒数。全局简写 getLanguage/getCountry/getLocale/getTimezone/getUptime 同样可用。对标 AScript get_language/get_country/get_timezone。', params:[], returns:'string | number', example:`function main(){
+  logd("语言: " + device.getLanguage());
+  logd("国家: " + device.getCountry());
+  logd("时区: " + device.getTimezone());
+  logd("开机时长: " + device.getUptime() + "s");
+}
+main();` });APIS.push({ cat:'device', sig:'device.keepScreenOn(on?) / keepScreenOn(on?)', title:'屏幕常亮开关', desc:'开启/关闭屏幕常亮（防止自动锁屏），默认开启。on=false 时恢复系统自动锁屏策略。对标 EasyClick keepScreenOn()。', params:[['on','boolean','可选，默认 true：true 保持常亮，false 恢复自动锁屏']], returns:'boolean', example:`function main(){
   device.keepScreenOn(true);   // 常亮
   sleep(30000);
   keepScreenOn(false);         // 恢复自动锁屏
@@ -1690,6 +1704,14 @@ APIS.push({ cat:'ui', sig:'floatLog.show(x?, y?, w?, h?) / floatLog.log(text) / 
 }
 main();` });
 
+APIS.push({ cat:'speech', sig:'speak(text, options?) / tts(text, options?) / speechStop() / stopSpeak() / speech.speak(text, options?) / speech.stop()', title:'语音朗读（TTS）', desc:'用系统 AVSpeechSynthesizer 朗读文本，无需网络。options 支持 rate（语速，0-1，默认 0.5）、volume（音量 0-1）、language（如 zh-CN/en-US，默认系统语言）；speak 第二个参数可传 options，第三个可选 stopWhenScriptEnd 控制在脚本结束是否停止。speechStop/stopSpeak 立即停止当前朗读。全局 speak/tts/speechStop/stopSpeak 与 speech.speak/speech.stop 命名空间均可用。对标 AScript speak / EasyClick speak()。', params:[['text','string','要朗读的文本'],['options','object','可选，{rate?, volume?, language?}'],['stopWhenScriptEnd','boolean','可选，脚本结束是否停止朗读']], returns:'boolean', example:`function main(){
+  speak("你好，欢迎使用 AutoSDK");
+  sleep(3000);
+  speak("慢速英文朗读", { rate: 0.3, language: "en-US" });
+  sleep(3000);
+  speechStop();
+}
+main();` });
 writeFileSync(join(root, 'docs', 'api-reference.html'), render(), 'utf8');
 
 console.log('Generated docs/api-reference.html with ' + APIS.length + ' functions.');

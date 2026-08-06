@@ -80,8 +80,10 @@
 | --- | --- | --- |
 | app_start / app_stop / app_current / app_list / app_state | app.launch / terminate / current / appList / state | ✅ |
 | scheme_start / open_url | app.openURL / openURL | ✅ |
+| app_open_setting / app_store | app.openSettings() / openAppSetting() / app.openAppStore(appId) | ✅ 系统设置页 + App Store（itms-apps）|
 | lock / unlock / is_locked / keep_screen_on | app.lock / app.unlock + device.isLocked / device.isScreenOn + device.keepScreenOn(on?) / keepScreenOn() | ✅（WDA systemActions + 防自动锁屏）|
 | get_uuid / get_ios_version / get_ip_address | uuid() / getOSVersion() / device.getIPAddress() | ✅ 含局域网 IP |
+| get_language / get_country / get_timezone / get_uptime | device.getLanguage()/getCountry()/getLocale()/getTimezone()/getUptime() | ✅ NSLocale + NSTimeZone + systemUptime |
 | get_device_id / name / model / battery | device.getDeviceId/Name/Model/Battery | ✅ |
 | notify（本地通知） | notify(body, title?) | ✅ UNUserNotificationCenter 本地通知 |
 | set_clipboard / get_clipboard | setClipboard / getClipboard | ✅ |
@@ -94,6 +96,7 @@
 | AScript | AutoSDK | 说明 |
 | --- | --- | --- |
 | audio_play / audio_stop | audioPlay(path,vol) / audioStop(id)（playMp3 为兼容别名）| ✅ 按 ID 多路播放/单独停止 |
+| speak（TTS 朗读） | speak(text, options?) / tts() / speechStop() / speech.* | ✅ AVSpeechSynthesizer，免联网，支持语速/音量/语言 |
 | save_pic2photo / save_video2photo | media.saveImage(path或URL) / saveVideo / saveScreenshot | ✅ 支持 http(s) URL 自动下载 |
 | requests 库 | http.get/post/getJSON/download + cookies/params/multipart 上传（files/formData） | ✅ 对标 requests 会话能力 |
 | threading 库 | execAsync / execSync / setTimeout / setInterval | ✅ |

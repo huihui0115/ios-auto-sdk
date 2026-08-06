@@ -134,6 +134,8 @@
 @property (nonatomic, assign) NSUInteger audioPlayerIdCounter;
 @property (nonatomic, strong) NSMutableArray<AutoAsyncThread *> *asyncThreads;
 @property (nonatomic, assign) BOOL audioStopWhenScriptEnd;
+@property (nonatomic, strong) AVSpeechSynthesizer *speechSynthesizer;
+@property (nonatomic, assign) BOOL speechStopWhenScriptEnd;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, id> *webViews;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSMutableArray<id> *> *webViewMessages;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, id> *webViewMessageHandlers;
@@ -996,6 +998,44 @@ static id AutoEngineHandleAudio(AutoEngine *engine, NSString *name, NSArray *arg
     if (!engine) return AutoMakeError(AutoSDKErrorAutomationFailed, @"Audio engine is unavailable.", nil);
     if ([name isEqualToString:@"stopMp3"]) {
         [engine stopAllAudioPlayback];
+        return @YES;
+    }
+    if ([name isEqualToString:@"speak"] || [name isEqualToString:@"tts"] || [name isEqualToString:@"speech"]) {
+        if (!AutoPermission(config, @"allowAudio", YES)) {
+            return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Speech synthesis is disabled by configuration.", nil);
+        }
+        NSString *speechText = [arguments.firstObject isKindOfClass:NSString.class] ? arguments.firstObject : nil;
+        if (speechText.length == 0) {
+            return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"speak requires a non-empty text string.", nil);
+        }
+        NSDictionary *speechOptions = [arguments count] > 1 && [arguments[1] isKindOfClass:NSDictionary.class] ? arguments[1] : nil;
+        AVSpeechUtterance *utterance = [AVSpeechUtterance speechUtteranceWithString:speechText];
+        if (AutoFiniteNumber(speechOptions[@"rate"])) {
+            double rate = [speechOptions[@"rate"] doubleValue];
+            utterance.rate = (float)MIN(AVSpeechUtteranceMaximumSpeechRate, MAX(AVSpeechUtteranceMinimumSpeechRate, rate));
+        }
+        if (AutoFiniteNumber(speechOptions[@"volume"])) {
+            double volume = [speechOptions[@"volume"] doubleValue];
+            utterance.volume = (float)MIN(1.0, MAX(0.0, volume));
+        }
+        if ([speechOptions[@"language"] isKindOfClass:NSString.class] && [speechOptions[@"language"] length] > 0) {
+            AVSpeechSynthesisVoice *speechVoice = [AVSpeechSynthesisVoice voiceWithLanguage:speechOptions[@"language"]];
+            if (speechVoice) utterance.voice = speechVoice;
+        }
+        BOOL speechStopWhenScriptEnd = AutoBoolean([arguments count] > 2 ? arguments[2] : nil, NO);
+        [AVAudioSession.sharedInstance setCategory:AVAudioSessionCategoryPlayback error:nil];
+        [AVAudioSession.sharedInstance setActive:YES error:nil];
+        @synchronized (engine) {
+            engine.speechStopWhenScriptEnd = speechStopWhenScriptEnd;
+            [engine.speechSynthesizer stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
+            if (!engine.speechSynthesizer) engine.speechSynthesizer = [AVSpeechSynthesizer new];
+            return @([engine.speechSynthesizer speakUtterance:utterance]);
+        }
+    }
+    if ([name isEqualToString:@"speechStop"] || [name isEqualToString:@"stopSpeak"]) {
+        @synchronized (engine) {
+            [engine.speechSynthesizer stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
+        }
         return @YES;
     }
     if ([name isEqualToString:@"audioStop"] || [name isEqualToString:@"stopAudio"]) {
@@ -2329,6 +2369,16 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     if ([operation isEqualToString:@"memory"]) {
         return AutoValueOnMainThread(^id{ return [self.engine deviceMemoryInfo]; }) ?: @{};
     }
+    if ([operation isEqualToString:@"language"] || [operation isEqualToString:@"country"] ||
+        [operation isEqualToString:@"locale"] || [operation isEqualToString:@"timezone"] ||
+        [operation isEqualToString:@"uptime"]) {
+        NSDictionary *deviceInfo = AutoValueOnMainThread(^id{ return [self.engine getDeviceInfo]; }) ?: @{};
+        if ([operation isEqualToString:@"language"]) return deviceInfo[@"language"] ?: @"";
+        if ([operation isEqualToString:@"country"]) return deviceInfo[@"country"] ?: @"";
+        if ([operation isEqualToString:@"locale"]) return deviceInfo[@"locale"] ?: @"";
+        if ([operation isEqualToString:@"timezone"]) return deviceInfo[@"timezone"] ?: @"";
+        return deviceInfo[@"uptimeSeconds"] ?: @0;
+    }
     if ([operation isEqualToString:@"clipboardGet"]) {
         return AutoValueOnMainThread(^id{
             NSString *clipboard = UIPasteboard.generalPasteboard.string;
@@ -2434,6 +2484,23 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"openURL only accepts http(s) URLs or custom URL schemes.", nil)];
         }
         return @([AutoValueOnMainThread(^id{ return @([UIApplication.sharedApplication openURL:url]); }) boolValue]);
+    }
+    if ([operation isEqualToString:@"opensettings"] || [operation isEqualToString:@"openappstore"]) {
+        if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
+        }
+        NSString *appSchemeURL = nil;
+        if ([operation isEqualToString:@"opensettings"]) {
+            appSchemeURL = UIApplicationOpenSettingsURLString;
+        } else {
+            NSString *storeAppId = [data[@"appId"] isKindOfClass:NSString.class] ? data[@"appId"] : @"";
+            if (storeAppId.length == 0) {
+                return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"openAppStore requires an App Store app id.", nil)];
+            }
+            appSchemeURL = [NSString stringWithFormat:@"itms-apps://itunes.apple.com/app/id%@", storeAppId];
+        }
+        NSURL *appSchemeURLObject = [NSURL URLWithString:appSchemeURL];
+        return @([AutoValueOnMainThread(^id{ return @([UIApplication.sharedApplication openURL:appSchemeURLObject]); }) boolValue]);
     }
     if ([operation isEqualToString:@"homescreen"] || [operation isEqualToString:@"lock"] || [operation isEqualToString:@"unlock"]) {
         if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
@@ -4325,6 +4392,10 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             self.audioStopWhenScriptEnd = NO;
             [self stopAllAudioPlayback];
         }
+        if (self.speechStopWhenScriptEnd) {
+            self.speechStopWhenScriptEnd = NO;
+            [self.speechSynthesizer stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
+        }
     }
     [self cleanupOverlayUI];
     dispatch_async(dispatch_get_main_queue(), ^{ if (completion) completion(result, error); });
@@ -4404,6 +4475,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     if (UIInterfaceOrientationIsPortrait(orientation)) orientationName = orientation == UIInterfaceOrientationPortraitUpsideDown ? @"portraitUpsideDown" : @"portrait";
     else if (UIInterfaceOrientationIsLandscape(orientation)) orientationName = orientation == UIInterfaceOrientationLandscapeLeft ? @"landscapeLeft" : @"landscapeRight";
     NSBundle *bundle = NSBundle.mainBundle;
+    NSLocale *activeLocale = NSLocale.currentLocale;
+    NSString *preferredLanguage = NSLocale.preferredLanguages.firstObject ?: @"";
     float batteryLevel = device.batteryLevel;
     BOOL charging = device.batteryState == UIDeviceBatteryStateCharging || device.batteryState == UIDeviceBatteryStateFull;
     if (!batteryMonitoringWasEnabled) device.batteryMonitoringEnabled = NO;
@@ -4417,7 +4490,12 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                                     @"orientation": orientationName,
                                     @"bundleId": bundle.bundleIdentifier ?: @"",
                                     @"appVersion": [bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"] ?: @"",
-                                    @"appBuild": [bundle objectForInfoDictionaryKey:@"CFBundleVersion"] ?: @"" } mutableCopy];
+                                    @"appBuild": [bundle objectForInfoDictionaryKey:@"CFBundleVersion"] ?: @"",
+                                    @"language": preferredLanguage,
+                                    @"country": [activeLocale objectForKey:NSLocaleCountryCode] ?: @"",
+                                    @"locale": activeLocale.localeIdentifier ?: @"",
+                                    @"timezone": NSTimeZone.localTimeZone.name ?: @"",
+                                    @"uptimeSeconds": @(NSProcessInfo.processInfo.systemUptime) } mutableCopy];
     NSDictionary *adapterInfo = [adapter deviceInfo];
     if (adapterInfo) [info addEntriesFromDictionary:adapterInfo];
     return info;

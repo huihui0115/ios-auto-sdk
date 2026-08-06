@@ -377,6 +377,11 @@ interface AutoDeviceAPI {
   isScreenOn(): boolean;
   isLocked(): boolean | null;
   keepScreenOn(value?: boolean): boolean;
+  getLanguage(): string;
+  getCountry(): string;
+  getLocale(): string;
+  getTimezone(): string;
+  getUptime(): number;
 }
 
 interface AutoMediaAPI {
@@ -425,7 +430,18 @@ interface AutoAppAPI {
   launchByPrefix(bundleIdPrefix: string): boolean;
   getAppVersion(): string;
   getPackageName(): string;
+  openSettings(): boolean;
+  openAppStore(appId: string): boolean;
 }
+
+interface AutoSpeechAPI {
+  speak(text: string, options?: AutoSpeechOptions, stopWhenScriptEnd?: boolean): boolean;
+  tts(text: string, options?: AutoSpeechOptions, stopWhenScriptEnd?: boolean): boolean;
+  stop(): boolean;
+  stopSpeak(): boolean;
+}
+
+type AutoSpeechOptions = { rate?: number; volume?: number; language?: string };
 
 
 interface AutoScreenAPI {
@@ -893,6 +909,11 @@ declare function getOneNodeInfo(selector: AutoSelectorLike): unknown;
 declare function getNodeInfo(selector: AutoSelectorLike): unknown;
 declare function getAppVersion(): string;
 declare function getPackageName(): string;
+declare function getLanguage(): string;
+declare function getCountry(): string;
+declare function getLocale(): string;
+declare function getTimezone(): string;
+declare function getUptime(): number;
 declare function launchAppByPrefix(bundleIdPrefix: string): boolean;
 declare function getScreenWidthHeightText(): string;
 declare function setScreenMetrics(width: number, height: number): boolean;
@@ -912,6 +933,12 @@ declare function slidePath(points: Array<[number, number]> | Array<{ x: number; 
 declare function slide_path(points: Array<[number, number]> | Array<{ x: number; y: number }>, durationMs?: number): boolean;
 declare function touchAndSlide(x1: number, y1: number, x2: number, y2: number, durationMs?: number): boolean;
 declare function openURL(url: string): boolean;
+declare function openAppSetting(): boolean;
+declare function openAppStore(appId: string): boolean;
+declare function speak(text: string, options?: AutoSpeechOptions, stopWhenScriptEnd?: boolean): boolean;
+declare function tts(text: string, options?: AutoSpeechOptions, stopWhenScriptEnd?: boolean): boolean;
+declare function speechStop(): boolean;
+declare function stopSpeak(): boolean;
 declare function getClipboard(): string | null;
 declare function setClipboard(text: string): boolean;
 declare function getBrightness(): number;

@@ -355,35 +355,54 @@ check(engineSource.includes('@"allowSystemControl"') && engineSource.includes('@
       engineSource.includes('isEqualToString:@"openurl"'),
       'System control must be configurable, capability-reported, bounded, and URL schemes validated');
 const bootstrapSource = read('Sources/AutoSDK/AutoBootstrapScript.m');
-check(bootstrapSource.includes("_dv('clipboardGet')") && bootstrapSource.includes("_dv('clipboardSet'") &&
-      bootstrapSource.includes("_dv('brightnessGet')") && bootstrapSource.includes("_dv('brightnessSet'") &&
-      bootstrapSource.includes("_dv('volumeGet')") && bootstrapSource.includes("_dv('vibrate'") &&
-      bootstrapSource.includes("operation:'openURL'") && bootstrapSource.includes("operation:'homescreen'") &&
-      bootstrapSource.includes('g.openURL=') && bootstrapSource.includes('homeScreen:function()'),
+// Decode concatenated ObjC string literals so content checks are immune to chunk splitting.
+const bootstrapScript = (() => {
+  const bsStart = bootstrapSource.indexOf('return @"');
+  const bsTerm = '"})(this);"';
+  const bsAt = bsStart >= 0 ? bootstrapSource.indexOf(bsTerm, bsStart) : -1;
+  if (bsAt < 0) return '';
+  const bsBlock = bootstrapSource.slice(bsStart, bsAt + bsTerm.length);
+  return [...bsBlock.matchAll(/@?"((?:\\.|[^"\\])*)"/g)].map(m => JSON.parse('"' + m[1] + '"')).join('');
+})();
+check(bootstrapScript.includes("_dv('clipboardGet')") && bootstrapScript.includes("_dv('clipboardSet'") &&
+      bootstrapScript.includes("_dv('brightnessGet')") && bootstrapScript.includes("_dv('brightnessSet'") &&
+      bootstrapScript.includes("_dv('volumeGet')") && bootstrapScript.includes("_dv('vibrate'") &&
+      bootstrapScript.includes("operation:'openURL'") && bootstrapScript.includes("operation:'homescreen'") &&
+      bootstrapScript.includes('g.openURL=') && bootstrapScript.includes('homeScreen:function()'),
       'Bootstrap must expose clipboard, brightness, volume, vibration, openURL and home-screen operations with globals');
-check(bootstrapSource.includes("keepScreenOn:function(value)") && bootstrapSource.includes("_dv('keepScreenOn'") &&
-      bootstrapSource.includes('g.keepScreenOn=deviceApi.keepScreenOn'),
+check(bootstrapScript.includes("keepScreenOn:function(value)") && bootstrapScript.includes("_dv('keepScreenOn'") &&
+      bootstrapScript.includes('g.keepScreenOn=deviceApi.keepScreenOn'),
       'Bootstrap must expose device.keepScreenOn and its global alias');
-check(bootstrapSource.includes("loadHTML:function(token,html)") && bootstrapSource.includes("_nn('webViewLoadHTML'"),
+check(bootstrapScript.includes("loadHTML:function(token,html)") && bootstrapScript.includes("_nn('webViewLoadHTML'"),
       'Bootstrap must expose webView.loadHTML');
-check(bootstrapSource.includes('function ocrFind(') && bootstrapSource.includes('g.ocr=base.ocr') &&
-      bootstrapSource.includes('g.ocrClick=ocrClick') && bootstrapSource.includes('g.ocrText=ocrText'),
+check(bootstrapScript.includes('function ocrFind(') && bootstrapScript.includes('g.ocr=base.ocr') &&
+      bootstrapScript.includes('g.ocrClick=ocrClick') && bootstrapScript.includes('g.ocrText=ocrText'),
       'Bootstrap must expose ocrClick/ocrText convenience helpers and the ocr global');
-check(bootstrapSource.includes('function _dv(') && bootstrapSource.includes('function _md(') && bootstrapSource.includes('function _nn('),
+check(bootstrapScript.includes('function _dv(') && bootstrapScript.includes('function _md(') && bootstrapScript.includes('function _nn('),
       'Bootstrap must define the compact bridge helpers');
-check(bootstrapSource.includes("_md('saveImage'") && bootstrapSource.includes("_md('saveImageBase64'") &&
-      bootstrapSource.includes("_md('saveVideo'") && bootstrapSource.includes("_md('saveScreenshot'") &&
-      bootstrapSource.includes('var mediaApi=') && bootstrapSource.includes('g.media=mediaApi') &&
-      bootstrapSource.includes('saveImageToAlbum:function') && bootstrapSource.includes('saveVideoToAlbum:function'),
+check(bootstrapScript.includes('getLanguage:function(){return _dv(\'language\');}') &&
+      bootstrapScript.includes('getUptime:function(){return _dv(\'uptime\');}') &&
+      bootstrapScript.includes('g.getLanguage=deviceApi.getLanguage') && bootstrapScript.includes('g.getUptime=deviceApi.getUptime'),
+      'Bootstrap must expose locale/timezone/uptime device getters');
+check(bootstrapScript.includes('openSettings:function(){return bridge.invokeApp({operation:\'openSettings\'});}') &&
+      bootstrapScript.includes('openAppStore:function(appId)') && bootstrapScript.includes('g.openAppSetting=appApi.openSettings'),
+      'Bootstrap must expose openSettings/openAppSetting/openAppStore');
+check(bootstrapScript.includes('var speechApi=') && bootstrapScript.includes("_nn('speak',[") &&
+      bootstrapScript.includes("_nn('speechStop',[])") && bootstrapScript.includes('g.speak=speechApi.speak'),
+      'Bootstrap must expose speak/speechStop and the speech namespace');
+check(bootstrapScript.includes("_md('saveImage'") && bootstrapScript.includes("_md('saveImageBase64'") &&
+      bootstrapScript.includes("_md('saveVideo'") && bootstrapScript.includes("_md('saveScreenshot'") &&
+      bootstrapScript.includes('var mediaApi=') && bootstrapScript.includes('g.media=mediaApi') &&
+      bootstrapScript.includes('saveImageToAlbum:function') && bootstrapScript.includes('saveVideoToAlbum:function'),
       'Bootstrap must wire photo-library media operations and aliases');
-check(bootstrapSource.includes('var screenDrawApi=') && bootstrapSource.includes('screenDrawInit') &&
-      bootstrapSource.includes('var floatBallApi=') && bootstrapSource.includes('floatBallShow') &&
-      bootstrapSource.includes('g.screenDraw=screenDrawApi') && bootstrapSource.includes('g.floatBall=floatBallApi') &&
-      bootstrapSource.includes('g.setFloatBallPoint=') && bootstrapSource.includes('var nodeApi=') &&
-      bootstrapSource.includes('keptNodes') && bootstrapSource.includes('toPinYin:function') &&
-      bootstrapSource.includes('stripUtf8Bom:function') && bootstrapSource.includes('fromUnicode:function') &&
-      bootstrapSource.includes('nodeApi.at') && bootstrapSource.includes('invokeNodeSnapshot') &&
-      bootstrapSource.includes('var floatLogApi=') && bootstrapSource.includes('floatLogShow'),
+check(bootstrapScript.includes('var screenDrawApi=') && bootstrapScript.includes('screenDrawInit') &&
+      bootstrapScript.includes('var floatBallApi=') && bootstrapScript.includes('floatBallShow') &&
+      bootstrapScript.includes('g.screenDraw=screenDrawApi') && bootstrapScript.includes('g.floatBall=floatBallApi') &&
+      bootstrapScript.includes('g.setFloatBallPoint=') && bootstrapScript.includes('var nodeApi=') &&
+      bootstrapScript.includes('keptNodes') && bootstrapScript.includes('toPinYin:function') &&
+      bootstrapScript.includes('stripUtf8Bom:function') && bootstrapScript.includes('fromUnicode:function') &&
+      bootstrapScript.includes('nodeApi.at') && bootstrapScript.includes('invokeNodeSnapshot') &&
+      bootstrapScript.includes('var floatLogApi=') && bootstrapScript.includes('floatLogShow'),
       'Bootstrap must expose screenDraw, floatBall, node.keep/unkeep, node.at, nodeSnapshot, floatLog and pinyin/BOM/unicode string helpers');
 check(engineSource.includes('screenDrawInit') && engineSource.includes('floatBallShow') &&
       engineSource.includes('ensureOverlayWindow') && engineSource.includes('AutoScriptToPinYin') &&
@@ -395,11 +414,11 @@ check(read('Sources/AutoSDK/AutoScriptSupport.m').includes('CFStringTransform') 
       read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCFStringTransformToLatin') &&
       read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCFStringTransformStripCombiningMarks'),
       'toPinYin must use the system Latin transform with combining marks stripped');
-check(bootstrapSource.includes('formatDate:function') && bootstrapSource.includes('sleepRandom=function') &&
-      bootstrapSource.includes('startWith:function') && bootstrapSource.includes('padZero:function') &&
-      bootstrapSource.includes('isInstalled:function') && bootstrapSource.includes('getTotalMemory=function') &&
-      bootstrapSource.includes('getLineCount=fileApi.lineCount') && bootstrapSource.includes('g.formatDate=stringsApi.formatDate') &&
-      bootstrapSource.includes('g.sleepRandom=base.sleepRandom') && bootstrapSource.includes('g.isInstalled=appApi.isInstalled'),
+check(bootstrapScript.includes('formatDate:function') && bootstrapScript.includes('sleepRandom=function') &&
+      bootstrapScript.includes('startWith:function') && bootstrapScript.includes('padZero:function') &&
+      bootstrapScript.includes('isInstalled:function') && bootstrapScript.includes('getTotalMemory=function') &&
+      bootstrapScript.includes('getLineCount=fileApi.lineCount') && bootstrapScript.includes('g.formatDate=stringsApi.formatDate') &&
+      bootstrapScript.includes('g.sleepRandom=base.sleepRandom') && bootstrapScript.includes('g.isInstalled=appApi.isInstalled'),
       'Bootstrap must expose date formatting, sleepRandom, string helpers, isInstalled and memory aliases');
 check(engineSource.includes('deviceMemoryInfo') && engineSource.includes('isEqualToString:@"memory"'),
       'Engine must expose device memory information');
@@ -407,31 +426,31 @@ check(engineSource.includes('isEqualToString:@"toast"') && engineSource.includes
       'Engine must provide a built-in toast fallback for unregistered hosts');
 check(engineSource.includes('[nativePayload[@"arguments"] isKindOfClass:NSArray.class]'),
       'The built-in toast must parse arguments with a bracketed message send');
-check(bootstrapSource.includes('getMemoryInfo:function') && bootstrapSource.includes("_dv('memory')") &&
-      bootstrapSource.includes('writeLines:function') && bootstrapSource.includes("callFile('move'") &&
-      bootstrapSource.includes('rename:function') && bootstrapSource.includes('base.toast=function') &&
-      bootstrapSource.includes('base.toastLog=function') && bootstrapSource.includes('g.toast=base.toast'),
+check(bootstrapScript.includes('getMemoryInfo:function') && bootstrapScript.includes("_dv('memory')") &&
+      bootstrapScript.includes('writeLines:function') && bootstrapScript.includes("callFile('move'") &&
+      bootstrapScript.includes('rename:function') && bootstrapScript.includes('base.toast=function') &&
+      bootstrapScript.includes('base.toastLog=function') && bootstrapScript.includes('g.toast=base.toast'),
       'Bootstrap must expose memory info, file move/rename/writeLines, and toast helpers');
 check(read('Sources/AutoSDK/AutoScriptSupport.m').includes('isEqualToString:@"move"') &&
       read('Sources/AutoSDK/AutoScriptSupport.m').includes('Unable to move path.'),
       'Sandbox file operations must support move with overwrite semantics');
-check(bootstrapSource.includes('activeTimerCount>=10000') && bootstrapSource.includes("RangeError('Too many active timers')"), 'JavaScript timers must be bounded');
-check(bootstrapSource.includes('activeTimers[id]') && bootstrapSource.includes('delete activeTimers[id]'), 'Timers must support cancellation from inside an active interval callback');
-check(bootstrapSource.includes('function pushTimer') && bootstrapSource.includes('function popTimer') &&
-      !bootstrapSource.includes('timers.sort(') && !bootstrapSource.includes('timers.shift()'),
+check(bootstrapScript.includes('activeTimerCount>=10000') && bootstrapScript.includes("RangeError('Too many active timers')"), 'JavaScript timers must be bounded');
+check(bootstrapScript.includes('activeTimers[id]') && bootstrapScript.includes('delete activeTimers[id]'), 'Timers must support cancellation from inside an active interval callback');
+check(bootstrapScript.includes('function pushTimer') && bootstrapScript.includes('function popTimer') &&
+      !bootstrapScript.includes('timers.sort(') && !bootstrapScript.includes('timers.shift()'),
       'Timer draining must use a bounded priority heap instead of repeated full-array sorting');
-check(bootstrapSource.includes('cancelled[id]=true') && bootstrapSource.includes('delete cancelled[timer.id]'), 'Queued timer cancellation must not leak cancellation markers');
-check(bootstrapSource.includes('function ensureRunning()') && bootstrapSource.includes('guardMethods(base)') &&
-      bootstrapSource.includes('ensureRunning();return _nn(String(key)'),
+check(bootstrapScript.includes('cancelled[id]=true') && bootstrapScript.includes('delete cancelled[timer.id]'), 'Queued timer cancellation must not leak cancellation markers');
+check(bootstrapScript.includes('function ensureRunning()') && bootstrapScript.includes('guardMethods(base)') &&
+      bootstrapScript.includes('ensureRunning();return _nn(String(key)'),
       'Script stop must reject subsequent automation and native bridge calls');
-check(bootstrapSource.includes('delete g.__bridge;delete g.__console') &&
+check(bootstrapScript.includes('delete g.__bridge;delete g.__console') &&
       engineSource.includes('[drainTimers callWithArguments:@[]]') &&
-      !bootstrapSource.includes('evaluateScript:@"__autoDrainTimers();"'),
+      !bootstrapScript.includes('evaluateScript:@"__autoDrainTimers();"'),
       'Bootstrap internals and timer draining must not remain user-overridable globals');
-check(bootstrapSource.includes('g.randomInt=base.randomInt') &&
-      bootstrapSource.includes('if(max==null){max=min;min=0;}') &&
-      bootstrapSource.includes("replace(/[^A-Za-z0-9+/=_-]/g,'')") &&
-      !bootstrapSource.includes('indexOf(str.charAt(i++))'),
+check(bootstrapScript.includes('g.randomInt=base.randomInt') &&
+      bootstrapScript.includes('if(max==null){max=min;min=0;}') &&
+      bootstrapScript.includes("replace(/[^A-Za-z0-9+/=_-]/g,'')") &&
+      !bootstrapScript.includes('indexOf(str.charAt(i++))'),
       'Bootstrap random() must accept a single bound and base64 decode must handle unpadded input correctly');
 check(engineSource.includes('hasSuffix:@".js"') && engineSource.includes('!containsWhitespace') &&
       engineSource.includes('!containsCodeCharacters'),
@@ -522,7 +541,7 @@ check(scriptSupport.includes('maxStorageEntries') &&
       scriptSupport.includes('data.length > maximumBytes') &&
       scriptSupport.includes('removeObjectForKey:defaultsKey'),
       'Script storage must bound entries before decoding and remain recoverable when corrupt');
-check(bootstrapSource.includes('x1:x1,y1:y1,x2:x2,y2:y2') && bootstrapSource.includes('g.app=appApi'), 'AutoBootstrapScript is missing swipe coordinates or app lifecycle bindings');
+check(bootstrapScript.includes('x1:x1,y1:y1,x2:x2,y2:y2') && bootstrapScript.includes('g.app=appApi'), 'AutoBootstrapScript is missing swipe coordinates or app lifecycle bindings');
 const uiKitAdapter = read('Sources/AutoSDK/AutoUIKitAdapter.m');
 check(uiKitAdapter.includes('AutoUIKitHandleRegistry') && uiKitAdapter.includes('strongToWeakObjectsMapTable'), 'UIKit node handles must use a weak direct lookup registry');
 check(uiKitAdapter.includes('expression ?: NSNull.null') && uiKitAdapter.includes('length] > 1024'), 'UIKit regex cache must retain invalid bounded patterns');
@@ -596,7 +615,7 @@ check(debugServerSource.includes('AutoDebugRequestTimeout') &&
       'Debug request deadlines must cover one-hour scripts and honor bounded client budgets');
 check(scriptSupport.includes('AutoFileOperationLock') && scriptSupport.includes('@synchronized (AutoFileOperationLock())'), 'Sandbox file operations must serialize size checks and mutations');
 check(scriptSupport.includes('maxFileCopyBytes') && scriptSupport.includes('maxFileListItems') && scriptSupport.includes('maxFileOperationItems'), 'Sandbox directory operations must have byte and item budgets');
-check(scriptSupport.includes('maxFileLineCount') && bootstrapSource.includes("callFile('readLines'"), 'Line reads must be bounded before creating JavaScript strings');
+check(scriptSupport.includes('maxFileLineCount') && bootstrapScript.includes("callFile('readLines'"), 'Line reads must be bounded before creating JavaScript strings');
 check(scriptSupport.includes('.autosdk-download-') && scriptSupport.includes('removeItemAtURL:staging'), 'Staged copies and downloads must be cleaned up on failure');
 check(!read('Examples/TemplateApp/App/AppDelegate.m').includes('debug token: %@'), 'Template must not write the complete debug token to the system log');
 check(!read('Examples/TemplateApp/README.md').includes('debug token: %@') && !read('Examples/TemplateApp/README.md').includes('per-launch token'), 'Template documentation must not recommend logging or rotating the installation token every launch');
@@ -789,12 +808,12 @@ check(read('vscode-extension/LICENSE.txt').includes('AUTOSDK SOFTWARE LICENSE'),
 check(read('docs/index.html').includes('AutoSDK 文档中心'),
       'docs/index.html landing page must exist for GitHub Pages');
 check(read('Sources/AutoSDK/AutoBootstrapScript.m').includes('bridge.invokeTouch({fingers:normalized})') &&
-      bootstrapSource.includes('base.gesture=function(actions)') &&
-      bootstrapSource.includes('base.multiGesture=function(fingers)') &&
-      bootstrapSource.includes('base.pinch=function(x,y,scale,duration)') &&
-      bootstrapSource.includes('g.pinch=base.pinch'),
+      bootstrapScript.includes('base.gesture=function(actions)') &&
+      bootstrapScript.includes('base.multiGesture=function(fingers)') &&
+      bootstrapScript.includes('base.pinch=function(x,y,scale,duration)') &&
+      bootstrapScript.includes('g.pinch=base.pinch'),
       'Bootstrap must expose gesture, multiGesture and pinch on auto and as globals');
-check(bootstrapSource.includes("if(!normalized[t].length)throw new Error('gesture finger track must contain at least one action.')"),
+check(bootstrapScript.includes("if(!normalized[t].length)throw new Error('gesture finger track must contain at least one action.')"),
       'Bootstrap gesture must reject empty finger tracks');
 check(typeDefinitions.includes('interface AutoGestureAPI') &&
       typeDefinitions.includes('gesture(actions: AutoGestureAction[]): boolean') &&
@@ -807,13 +826,13 @@ check(read('Sources/AutoSDK/include/AutoWDAHTTPAdapter.h').includes('performMult
 check(read('Sources/AutoSDK/AutoWDAHTTPAdapter.m').includes('@"/actions" method:@"POST" body:body') &&
       wdaAdapter.includes('@"multiTouch": @YES'),
       'WDA adapter must implement multi-touch gestures and report the capability');
-check(bootstrapSource.includes('base.md5=function(s)') &&
-      bootstrapSource.includes('base.sha1=function(s)') &&
-      bootstrapSource.includes("callFile('imageSize'") &&
-      bootstrapSource.includes("callFile('md5File'") &&
-      bootstrapSource.includes("callFile('sha1File'") &&
-      bootstrapSource.includes('getSize:function(p){return fileApi.imageSize(p);}') &&
-      bootstrapSource.includes('g.md5=base.md5'),
+check(bootstrapScript.includes('base.md5=function(s)') &&
+      bootstrapScript.includes('base.sha1=function(s)') &&
+      bootstrapScript.includes("callFile('imageSize'") &&
+      bootstrapScript.includes("callFile('md5File'") &&
+      bootstrapScript.includes("callFile('sha1File'") &&
+      bootstrapScript.includes('getSize:function(p){return fileApi.imageSize(p);}') &&
+      bootstrapScript.includes('g.md5=base.md5'),
       'Bootstrap must expose string hashes, file image size and file hashes');
 check(typeDefinitions.includes('md5(text: string): string') &&
       typeDefinitions.includes('sha1(text: string): string') &&
@@ -824,16 +843,16 @@ check(read('Sources/AutoSDK/AutoScriptSupport.m').includes('AutoScriptMD5Hex(NSD
       read('Sources/AutoSDK/AutoScriptSupport.m').includes('CGImageSourceCreateWithData') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('[name isEqualToString:@"md5"]'),
       'Native support must implement MD5/SHA1 digests and image-size metadata');
-check(bootstrapSource.includes('base.screenshotRegion=function(x,y,w,h)') &&
-      bootstrapSource.includes('base.childCount=function(s)') &&
-      bootstrapSource.includes('base.randomString=function(len,chars)') &&
-      bootstrapSource.includes('base.randomCharNumber=function(len)') &&
-      bootstrapSource.includes('base.drag=function(x1,y1,x2,y2,duration)') &&
-      bootstrapSource.includes('base.launchAppByPrefix=function(prefix)') &&
-      bootstrapSource.includes('g.screenshotRegion=base.screenshotRegion') &&
-      bootstrapSource.includes('g.launchAppByPrefix=base.launchAppByPrefix'),
+check(bootstrapScript.includes('base.screenshotRegion=function(x,y,w,h)') &&
+      bootstrapScript.includes('base.childCount=function(s)') &&
+      bootstrapScript.includes('base.randomString=function(len,chars)') &&
+      bootstrapScript.includes('base.randomCharNumber=function(len)') &&
+      bootstrapScript.includes('base.drag=function(x1,y1,x2,y2,duration)') &&
+      bootstrapScript.includes('base.launchAppByPrefix=function(prefix)') &&
+      bootstrapScript.includes('g.screenshotRegion=base.screenshotRegion') &&
+      bootstrapScript.includes('g.launchAppByPrefix=base.launchAppByPrefix'),
       'Bootstrap must expose screenshotRegion, childCount, randomString, drag and launchAppByPrefix');
-check(bootstrapSource.includes('getScreenWidthHeightText:function(){return deviceApi.getScreenWidth()') &&
+check(bootstrapScript.includes('getScreenWidthHeightText:function(){return deviceApi.getScreenWidth()') &&
       typeDefinitions.includes('getScreenWidthHeightText(): string') &&
       typeDefinitions.includes('screenshotRegion(x: number, y: number, width: number, height: number): string | null') &&
       typeDefinitions.includes('launchByPrefix(bundleIdPrefix: string): boolean') &&
@@ -842,14 +861,14 @@ check(bootstrapSource.includes('getScreenWidthHeightText:function(){return devic
 check(read('Sources/AutoSDK/AutoEngine.m').includes('invokeScreenshotRegion:(JSValue *)payload') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('CGImageCreateWithImageInRect'),
       'Engine must implement region screenshots with CoreGraphics cropping');
-check(bootstrapSource.includes('base.swipeUp=function(percent,duration)') &&
-      bootstrapSource.includes('base.swipeDown=function(percent,duration)') &&
-      bootstrapSource.includes('base.swipeLeft=function(percent,duration)') &&
-      bootstrapSource.includes('base.swipeRight=function(percent,duration)') &&
-      bootstrapSource.includes('g.swipeUp=base.swipeUp') &&
-      bootstrapSource.includes('g.swipeRight=base.swipeRight'),
+check(bootstrapScript.includes('base.swipeUp=function(percent,duration)') &&
+      bootstrapScript.includes('base.swipeDown=function(percent,duration)') &&
+      bootstrapScript.includes('base.swipeLeft=function(percent,duration)') &&
+      bootstrapScript.includes('base.swipeRight=function(percent,duration)') &&
+      bootstrapScript.includes('g.swipeUp=base.swipeUp') &&
+      bootstrapScript.includes('g.swipeRight=base.swipeRight'),
       'Bootstrap must expose direction swipe helpers on auto and as globals');
-check(bootstrapSource.includes("operation:'appList'") &&
+check(bootstrapScript.includes("operation:'appList'") &&
       typeDefinitions.includes('appList(): Array<{ bundleId: string; name: string }>') &&
       typeDefinitions.includes('installedApps(): Array<{ bundleId: string; name: string }>') &&
       typeDefinitions.includes('declare function swipeUp(percent?: number, durationMs?: number): boolean') &&
@@ -858,9 +877,9 @@ check(bootstrapSource.includes("operation:'appList'") &&
 check(wdaAdapter.includes('@"/wda/apps" method:@"GET"') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('installedApplicationsWithError:&error'),
       'WDA adapter and engine must implement the installed-apps query');
-check(bootstrapSource.includes('base.execAsync=function(fn)') &&
-      bootstrapSource.includes('base.execSync=function(fn)') &&
-      bootstrapSource.includes('base.longClickPoint=function(x,y,duration)') &&
+check(bootstrapScript.includes('base.execAsync=function(fn)') &&
+      bootstrapScript.includes('base.execSync=function(fn)') &&
+      bootstrapScript.includes('base.longClickPoint=function(x,y,duration)') &&
       typeDefinitions.includes('interface AutoThread') &&
       typeDefinitions.includes('execAsync(fn: Function, ...args: unknown[]): AutoThread | null') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('invokeExecAsync:(JSValue *)payload') &&
