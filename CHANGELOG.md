@@ -6,6 +6,26 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-08-07
+
+### Added
+
+- **http.head / http.patch REST 动词**：`http.head(url, options?)`、`http.patch(url, body?, options?)`，
+  与 get/post/put/delete 一致走统一 guard 与 options 通道，REST 全家桶补齐。
+- **http.requestEx(url, options?)**：EasyClick 兼容别名，与 http() 完全等价，
+  返回完整响应对象（status/headers/body）。
+- **ocr.newOcr(defaults?) OCR 引擎实例**（EasyClick 对标）：实例方法
+  `ocrImage(path, options?)` / `ocrBitmap(bitmap, options?)` / `ocr(path, options?)`
+  对沙盒图片文件做 Vision OCR（经 screenshotPath 通道，而非当前屏幕），
+  每次调用自动合并实例默认参数；ocrBitmap 接受路径或 {path} 句柄。
+- **bootstrap 压缩重构**：删除 guard 前 6 处死重别名与 getJSON 重复定义，
+  get/post/put/delete 内联函数统一为 `function hv(m,b)` 动词工厂，净省 328B
+  （61416→61283/61440，余 157B），为后续功能腾出预算。
+
+### Fixed
+
+- **文档生成器 bug**：ocrClick 示例卡混入一行无关映射表项
+  （`'ocrBaidu(...)': '...'`），用户复制示例即语法错误，已清除。
 ## [1.24.0] - 2026-08-07
 
 ### Added

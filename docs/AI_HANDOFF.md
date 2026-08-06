@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 54（v1.24.0，2026-08-07）。
+> 最后更新：Round 55（v1.25.0，2026-08-07）。
 
 ---
 
@@ -121,8 +121,8 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 - ~~`touchDown/touchMove/touchUp`~~ 已完成（Round 50，分指暂存 + touchUp() 全抬）。
 - `image.readBitmap/bitmapToImage/base64Bitmap/bitmapBase64/saveBitmap`
   位图对象模型（返回语义与 EasyClick 不同，需设计或明确文档标注）。
-- `ocr.newOcr/ocrInstance.ocrBitmap/ocrImage` 实例化 OCR 引擎包装。
-- `http.requestEx/agentRequestEx` 增强请求（agent 类不可行，requestEx 可考虑）。
+- ~~`ocr.newOcr/ocrInstance.ocrBitmap/ocrImage`~~ 已完成（Round 55，实例合并默认参数，ocrImage 对沙盒图片文件 OCR）。
+- ~~`http.requestEx`~~ 已完成（Round 55，等价 http() 别名）；`agentRequestEx` 属 agent 远程类，记录为不可实现。
 
 ### 不可实现（记录为缺口即可）
 - `imeApi.*`（需自建输入法）、`ecNetCard.*`/BLE/OTG/HID（硬件）、
@@ -211,6 +211,11 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R55（v1.25.0）：**压缩重构 + REST 补全 + OCR 引擎实例**——删除 guard 前 6 处死重别名、
+  getJSON 重复定义，get/post/put/delete 统一为 hv 动词工厂（净省 328B）；新增
+  http.head/http.patch/http.requestEx（EasyClick/REST 对标）与 ocr.newOcr(defaults?)
+  引擎实例（ocrImage/ocrBitmap/ocr 走 screenshotPath 对图片文件 OCR）；修复文档
+  生成器 ocrClick 示例混入垃圾行 bug；bootstrap 61283/61440（余 157B），测试 82 项。
 - R54（v1.24.0）：**HTTP 安全审计 + REST 便捷别名**——修复 multipart Content-Disposition
   头注入（表单字段名/文件名未校验引号与控制字符，新增 AutoHTTPFieldNameIsValid
   在 3 处上传点统一拦截）；bootstrap 新增 http.put(url, body?, options?) /

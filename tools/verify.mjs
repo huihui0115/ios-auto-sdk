@@ -719,9 +719,15 @@ check(engineSource.includes('AutoSQLiteMaxRows') &&
 check(engineSource.includes('AutoHTTPFieldNameIsValid') &&
       engineSource.includes('Upload file names must not contain quotes or control characters'),
       'Multipart field and file names must be validated against header injection');
-check(bootstrapScript.includes('httpApi.put=function(url,body,options)') &&
-      bootstrapScript.includes('httpApi.delete=function(url,options)'),
-      'Bootstrap http module must expose put/delete convenience wrappers');
+check(bootstrapScript.includes("httpApi.put=hv('PUT',1)") &&
+      bootstrapScript.includes("httpApi.delete=hv('DELETE')") &&
+      bootstrapScript.includes("httpApi.head=hv('HEAD')") &&
+      bootstrapScript.includes("httpApi.patch=hv('PATCH',1)") &&
+      bootstrapScript.includes('httpApi.requestEx=httpApi;') &&
+      bootstrapScript.includes('function hv(m,b){'),
+      'Bootstrap http module must expose put/delete/head/patch/requestEx via the shared verb helper');
+check(bootstrapScript.includes('base.ocr.newOcr=function(d){'),
+      'Bootstrap ocr module must expose the newOcr engine-instance factory');
 check(builtinAdapterSource.includes('AutoBuiltinXPathToQuery') &&
       builtinAdapterSource.includes('AutoBuiltinSplitXPathConditions') &&
       builtinAdapterSource.includes('"xpathSubset"') &&
@@ -756,6 +762,7 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
     check(script.includes('g.auto='), 'AutoBootstrapScript does not install the auto global');
     let stopped = false;
     let lastHTTPOptions;
+    let lastOCROptions;
     let lastDeviceOperation;
     let lastAppOperation;
     let lastMediaOperation;
@@ -764,6 +771,7 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
       __bridge: new Proxy({}, { get: (_, key) => {
         if (key === 'invokeIsStopped') return () => stopped;
         if (key === 'invokeHTTP') return value => { lastHTTPOptions = value; return {}; };
+        if (key === 'invokeOCR') return value => { lastOCROptions = value; return []; };
         if (key === 'invokeFile') return value => { lastFileOperation = value; if (value.operation === 'readLines') return ['first', 'second']; if (value.operation === 'list') return [{ name: 'a.txt', path: '/sandbox/a.txt', isDirectory: false }]; return true; };
         if (key === 'invokeDevice') return value => { lastDeviceOperation = value; return value.operation === 'info' ? { model: 'test' } : true; };
         if (key === 'invokeApp') return value => { lastAppOperation = value; return true; };
@@ -784,6 +792,18 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
           'HTTP POST aliases must retain their function identity');
     check(context.http?.downloadFile === context.http?.downloadFileDefault,
           'HTTP download aliases must retain their function identity');
+    check(context.http?.requestEx === context.http &&
+          typeof context.http?.head === 'function' && typeof context.http?.patch === 'function',
+          'HTTP requestEx/head/patch must be exposed on the http facade');
+    context.http.head('https://example.invalid');
+    check(lastHTTPOptions?.method === 'HEAD', 'http.head must issue HEAD requests');
+    context.http.patch('https://example.invalid', { a: 1 });
+    check(lastHTTPOptions?.method === 'PATCH' && lastHTTPOptions?.body?.a === 1,
+          'http.patch must issue PATCH requests with a body');
+    const ocrInstance = context.ocr.newOcr({ language: 'zh' });
+    ocrInstance.ocrImage('shots/ocr.png');
+    check(lastOCROptions?.screenshotPath === 'shots/ocr.png' && lastOCROptions?.language === 'zh',
+          'ocr.newOcr instances must merge defaults and OCR image files via screenshotPath');
     check(context.auto?.storage === context.storages?.create,
           'Storage factory aliases must retain their function identity');
     check(context.http?.length === 2 && context.http?.get?.length === 2 &&

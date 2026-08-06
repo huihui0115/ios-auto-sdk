@@ -365,6 +365,12 @@ test('http.getJSON and http.get pass options to the bridge', () => {
   sandbox.http.delete('https://example.com/del', { timeout: 1000 });
   assert.equal(calls.http.at(-1).method, 'DELETE');
   assert.equal(calls.http.at(-1).timeout, 1000);
+  sandbox.http.head('https://example.com/head');
+  assert.equal(calls.http.at(-1).method, 'HEAD');
+  sandbox.http.patch('https://example.com/patch', { v: 2 });
+  assert.equal(calls.http.at(-1).method, 'PATCH');
+  assert.deepEqual(calls.http.at(-1).body, { v: 2 });
+  assert.equal(sandbox.http.requestEx, sandbox.http);
 });
 
 test('http params merge into query strings and cookies/files/formData forward', () => {
@@ -383,6 +389,21 @@ test('http params merge into query strings and cookies/files/formData forward', 
   assert.deepEqual(last.formData, { note: 'hi' });
   assert.deepEqual(last.cookies, { sid: 'abc' });
   assert.equal(last.method, 'POST');
+});
+
+test('ocr.newOcr builds instances merging defaults over invokeOCR', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(typeof sandbox.ocr.newOcr, 'function');
+  const engine = sandbox.ocr.newOcr({ mode: 'fast', height: 100 });
+  const items = engine.ocrImage('/sandbox/shot.png');
+  assert.deepEqual(calls.ocr.at(-1), { mode: 'fast', height: 100, screenshotPath: '/sandbox/shot.png' });
+  assert.equal(items[0].text, 'hello');
+  engine.ocrBitmap({ path: '/sandbox/handle.png' }, { mode: 'accurate' });
+  assert.deepEqual(calls.ocr.at(-1), { mode: 'accurate', height: 100, screenshotPath: '/sandbox/handle.png' });
+  engine.ocr('/sandbox/direct.png');
+  assert.equal(calls.ocr.at(-1).screenshotPath, '/sandbox/direct.png');
+  sandbox.ocr.newOcr().ocrImage(null);
+  assert.equal(calls.ocr.at(-1).screenshotPath, undefined);
 });
 
 test('storage put/get/remove/contains/clear/keys', () => {

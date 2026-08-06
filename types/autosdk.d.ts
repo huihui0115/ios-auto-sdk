@@ -287,6 +287,12 @@ interface AutoHTTP {
   put(url: string, body?: unknown, options?: AutoHTTPOptions): AutoHTTPResponse;
   /** DELETE convenience wrapper (AutoJS parity). */
   delete(url: string, options?: AutoHTTPOptions): AutoHTTPResponse;
+  /** HEAD convenience wrapper (REST parity, Round 55). */
+  head(url: string, options?: AutoHTTPOptions): AutoHTTPResponse;
+  /** PATCH convenience wrapper (REST parity, Round 55). */
+  patch(url: string, body?: unknown, options?: AutoHTTPOptions): AutoHTTPResponse;
+  /** EasyClick requestEx parity: identical to http() - returns the full response object. */
+  requestEx(url: string, options?: AutoHTTPOptions): AutoHTTPResponse;
   downloadFile(url: string, path: string, options?: AutoHTTPOptions): boolean;
   httpGetDefault(url: string, options?: AutoHTTPOptions): AutoHTTPResponse;
   downloadFileDefault(url: string, path: string, options?: AutoHTTPOptions): boolean;
@@ -946,7 +952,20 @@ declare function swipeRight(percent?: number, durationMs?: number): boolean;
 declare function sleep(milliseconds: number): boolean;
 declare function saveImageToAlbum(path: string): boolean;
 declare function keepScreenOn(value?: boolean): boolean;
-declare function ocr(options?: AutoOCROptions): AutoOCRItem[];
+interface AutoOCRInstance {
+  /** Run OCR on a sandbox image file (screen capture is replaced by the given path). */
+  ocrImage(path: string, options?: AutoOCROptions): AutoOCRItem[];
+  /** EasyClick bitmap parity: accepts a path or a {path} handle; same as ocrImage. */
+  ocrBitmap(bitmap: string | { path: string }, options?: AutoOCROptions): AutoOCRItem[];
+  /** Alias of ocrImage. */
+  ocr(path: string, options?: AutoOCROptions): AutoOCRItem[];
+}
+interface AutoOCRFunction {
+  (options?: AutoOCROptions): AutoOCRItem[];
+  /** EasyClick parity: build an OCR engine instance with preset default options (Round 55). */
+  newOcr(defaults?: AutoOCROptions): AutoOCRInstance;
+}
+declare const ocr: AutoOCRFunction;
 declare function ocrClick(text: string, timeoutMs?: number): boolean;
 declare function ocrText(text: string, timeoutMs?: number): AutoOCRItem | null;
 interface AutoOCRBaiduOptions {

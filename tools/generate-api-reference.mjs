@@ -369,7 +369,7 @@ APIS.push({ cat:'storage', sig:'storages.create(name).keys() / all() / contains(
 main();` });
 
 // ==== 补齐：HTTP 别名 ====
-APIS.push({ cat:'http', sig:'httpGet(url, options?) / httpPost(url, body?, options?) / http.put(url, body?, options?) / http.delete(url, options?)', title:'HTTP 全局简写', desc:'AutoJS 风格全局简写，等价于 http.get / http.post；http.put(url, body?) / http.delete(url) 提供 REST 动词包装（Round 54+）。', params:[['url','string','请求地址'],['body','any','POST 请求体'],['options','object','可选配置']], returns:'AutoHTTPResponse', example:`function main(){
+APIS.push({ cat:'http', sig:'httpGet(url, options?) / httpPost(url, body?, options?) / http.put(url, body?, options?) / http.delete(url, options?) / http.head(url, options?) / http.patch(url, body?, options?) / http.requestEx(url, options?)', title:'HTTP 全局简写', desc:'AutoJS 风格全局简写，等价于 http.get / http.post；http.put/delete/head/patch 提供完整 REST 动词包装，http.requestEx 为 EasyClick 兼容别名（与 http() 相同，返回完整响应对象）（Round 54-55）。', params:[['url','string','请求地址'],['body','any','POST 请求体'],['options','object','可选配置']], returns:'AutoHTTPResponse', example:`function main(){
   if (auto.capabilities().http !== true) return;
   const r = httpGet("https://example.com", { timeout: 5000 });
   logd("status=" + r.status);
@@ -1048,13 +1048,18 @@ APIS.push({ cat:'vision', sig:'ocr(options?)', title:'文字识别（OCR）', de
 }
 main();` });
 APIS.push({ cat:'vision', sig:'ocrClick(text, timeoutMs?)', title:'识别并点击文字', desc:'反复 OCR 直到屏幕出现包含指定文本的识别项，然后点击该文本中心点；timeoutMs 默认 10000 毫秒，超时返回 false。用于「看不到控件」时按文字坐标点击，对标 AScript ocr 文字点击。', params:[['text','string','要匹配的文本（包含即命中）'],['timeoutMs','number','可选，总超时毫秒，默认 10000']], returns:'boolean', example:`function main(){
-  'ocrBaidu(image, apiKey, secretKey)': 'AScript 第三方 OCR · 百度智能云通用文字识别',
   const ok = ocrClick("确定");
   logd("点到了吗: " + ok);
 }
 main();` });APIS.push({ cat:'vision', sig:'ocrText(text, timeoutMs?)', title:'识别并读取文字', desc:'反复 OCR 直到屏幕出现包含指定文本的识别项，返回该项（含 text/bounds/confidence），超时返回 null。可配合 ocrClick 先确认文本出现再操作。', params:[['text','string','要匹配的文本（包含即命中）'],['timeoutMs','number','可选，总超时毫秒，默认 10000']], returns:'AutoOCRItem | null', example:`function main(){
   const item = ocrText("开始");
   if (item) logd("坐标: " + item.bounds.x + "," + item.bounds.y);
+}
+main();` });
+APIS.push({ cat:'vision', sig:'ocr.newOcr(defaults?) / instance.ocrImage(path, options?) / instance.ocrBitmap(bitmap, options?)', title:'OCR 引擎实例（newOcr）', desc:'EasyClick 对标的 OCR 引擎实例：ocr.newOcr(defaults?) 创建带默认参数的实例，instance.ocrImage(path) 对沙盒图片文件做文字识别（而非当前屏幕），ocrBitmap 接受路径或 {path} 句柄（本 SDK 位图模型采用路径句柄语义）。实例方法每次调用都会合并默认参数，适合复用同一区域/模式反复识别。', params:[['defaults','object','可选，默认 OCR 参数 {x,y,width,height,mode...}'],['path','string','沙盒内图片文件绝对路径'],['options','object','可选，本次调用参数（覆盖默认值）']], returns:'AutoOCRInstance / AutoOCRItem[]', example:`function main(){
+  const engine = ocr.newOcr({ mode: "fast" });
+  const items = engine.ocrImage("/var/mobile/.../Library/shot.png");
+  for (const item of items) logd(item.text);
 }
 main();` });
 APIS.push({ cat:'http', sig:'ws.connect(url) / ws.poll(handle) / ws.send(handle, text) / ws.close(handle)', title:'WebSocket 客户端', desc:'轮询式 WebSocket 客户端，对标 AScript WebSocket 与 kuaijs 云控：connect 建立 ws:// 或 wss:// 连接并返回句柄；poll 从消息队列取事件 {type: open|message|close|error, text?}（无事件返回 null）；send 发送文本帧（未连接返回 false）；close 关闭连接。消息队列上限 512 条，脚本停止时自动关闭全部连接。', params:[['url','string','ws:// 或 wss:// 地址'],['handle','number','connect 返回的句柄'],['text','string','要发送的文本']], returns:'number | AutoWebSocketEvent | null | boolean', example:`function main(){
