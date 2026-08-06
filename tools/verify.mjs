@@ -340,6 +340,11 @@ check(/type === 'selectorResult'[\s\S]{0,800}state\.match = null[\s\S]{0,200}ele
       'Inspector selector results must clear stale match overlays and region selections');
 
 const engineSource = read('Sources/AutoSDK/AutoEngine.m');
+check(engineSource.includes('AutoAppSchemeForName') && engineSource.includes('isEqualToString:@"getappscheme"') &&
+      engineSource.includes('isEqualToString:@"launchbyscheme"'),
+      'Engine must keep the built-in App URL scheme lookup and launch ops');
+check(engineSource.includes('hasTorch') && engineSource.includes('torchMode'),
+      'Engine must keep the native flashlight/torch device op');
 check(engineSource.includes('waitPollInterval') && engineSource.includes('pollInterval * 1.5'), 'waitFor must use bounded polling backoff');
 check(engineSource.includes('NSError *destinationError = nil;') && engineSource.includes('&destinationError'),
       'HTTP download destination validation must declare its error pointer');

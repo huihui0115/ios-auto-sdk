@@ -121,6 +121,12 @@
 | ~~P2~~ ✅ | Node.at(x,y)、控件 scroll、selected | 中 | 已实现：node.at + Node 对象（click/scroll/selected/rect）；pinch 已有手势级 base.pinch |
 | ~~P2~~ ✅ | floatLog 悬浮日志窗 | 中 | 已实现：UITextView 悬浮窗（floatLog.show/log/clear） |
 | ~~P3~~ ✅ | 截图缓存 cache/is_cache | 中 | 已实现：screen.cache/isCache + screenshotPath 源图 |
+| ~~P1~~ ✅ | device.setFlashlight / torch（手电筒） | 低 | 已实现：AVCaptureDevice 闪光灯，R27 |
+| ~~P1~~ ✅ | app.getAppScheme / launchByScheme（URL Scheme 库） | 低 | 已实现：内置 40+ 常用 App 映射，R28 |
+| ~~P1~~ ✅ | app.getFrontmostApp（前台应用） | 低 | 已实现：前台 bundleId，R29 |
+| ~~P1~~ ✅ | ocrBaidu / ocrBaiduText（第三方 OCR） | 中 | 已实现：百度通用文字识别，R30 |
+| P2 | YOLO / OpenCV / tomato 本地模型 | 高 | 需 CoreML 模型文件，可后续插拔 |
+| P2 | reboot / deactivate | 高 | 系统级私有 API，免越狱不可行 |
 | P3 | ESP32 HID 硬件模式 | 高 | 固件 + Broadcast Extension |
 
 > 结论：AutoSDK 与 AScript 在"图色/OCR/媒体/HTTP/线程/悬浮 UI"等能力上基本对齐，

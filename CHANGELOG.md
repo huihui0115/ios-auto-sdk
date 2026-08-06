@@ -7,6 +7,7 @@ All notable changes to AutoSDK are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Round 32: 原生审计 + 对标文档刷新。** 深挖审计 AutoEngine/AutoScriptSupport：zip 路径穿越防护（`..`/绝对路径拒绝）、中央目录与 CRC/尺寸边界、图片裁剪零宽防护、HTTP 字节限制 clamp、NSNull→JS 桥接均健壮，无新增 bug；verify 新增原生侧静态断言（scheme 库 ops / 手电筒 torch / 前台应用）；刷新 `docs/EASYCLICK_COMPARISON.md` 覆盖清单（215→242 卡片，各分类计数对齐）与 `docs/ASCRIPT_COMPARISON.md` 缺口清单（标记 R27-R30 已实现项 + 剩余不可行项）。文档 244 条；测试 65 项全绿。
 - **Round 31: 教程网页更新。** `docs/guide/index.html` 函数计数刷新为 244，新增「5.4 常用新能力速查」小节（手电筒 / App Scheme 库 / getFrontmostApp / 百度 OCR 的复制即用示例）；本轮无代码逻辑变更，verify/测试/文档全绿。
 - **Round 30: 百度 OCR 封装。** 新增 `ocrBaidu(imageBase64, apiKey, secretKey, options?)` / `ocrBaiduText(...)`：自动获取 access_token 后直传图片 base64 调用百度通用文字识别，返回 `{text, lines}`；对标 AScript 第三方 OCR 能力（需自备百度智能云 Key 与 allowNetwork 权限）。bootstrap 解码体积 60057 → 61178（仍在 60KB 预算内），d.ts/文档/verify/测试同步。文档 244 条；测试 65 项全绿。
 - **Round 29: bootstrap 压缩 + 前台应用查询。** 压缩 stringsApi（正则化 isUpper/isLower/isNumber/isIntrger/isLetter/isChinese + SS 取值助手），bootstrap 解码体积 61221 → 60057（释放约 1.1KB 预算）；新增 `app.getFrontmostApp()` / 全局 `getFrontmostApp()`（前台 bundleId，对标 AScript get_frontmost_app / EasyClick getFrontmostApp()），d.ts/文档/verify/测试同步。文档 243 条；测试 64 项全绿。

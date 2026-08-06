@@ -70,26 +70,26 @@ The following surfaces must not be described as production-complete yet:
 5. Add workers/parallel JavaScript contexts and a safe execution interrupt mechanism.
 6. Upgrade point-in-time screenshots and node JSON into a continuous visual inspector.
 
-## 函数级覆盖清单（2026-08-05）
+## 函数级覆盖清单（2026-08-06）
 
-交互式速查 `docs/api-reference.html` 收录 215 个可运行示例，分 13 个分类，
+交互式速查 `docs/api-reference.html` 收录 242 个可运行示例（244 个函数），分 13 个分类，
 每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
 
 | 分类 | 函数数 | 亮点 |
 | --- | --- | --- |
-| 日志与调试 | 8 | console 分级、toast/toastLog、alert/exit/restartScript、sleep |
-| 触摸与节点 | 34 | 坐标/节点点击、滑动/手势/pinch、输入、节点查询（getChild/getSiblings/clickCenter/clickRandom）、node.keep/unkeep |
-| 图色与OCR | 22 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素（screen.getColor/getColorRGB/getColorHex）、多点比对（findColors/isColors）、OCR |
-| App与应用控制 | 18 | launch/activate/terminate/state/openURL/homeScreen/current/appList/isInstalled/getAppName/isRunning/锁屏解锁 |
-| 设备与系统 | 24 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID |
+| 日志与调试 | 9 | console 分级、toast/toastLog、alert/exit/restartScript、sleep |
+| 触摸与节点 | 43 | 坐标/节点点击、滑动/手势/pinch、输入、节点查询（getChild/getSiblings/clickCenter/clickRandom）、node.keep/unkeep |
+| 图色与OCR | 28 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素（screen.getColor/getColorRGB/getColorHex）、多点比对（findColors/isColors）、OCR |
+| App与应用控制 | 21 | launch/activate/terminate/state/openURL/homeScreen/current/appList/isInstalled/getAppName/isRunning/锁屏解锁 |
+| 设备与系统 | 29 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID |
 | 坐标与屏幕 | 5 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
-| 文件 | 37 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
+| 文件 | 38 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
 | 存储 | 10 | 命名 typed store |
-| 网络HTTP | 9 | get/post/postJSON/getJSON/download/通用请求 |
-| 相册媒体 | 10 | saveImage/saveImageBase64/saveVideo/saveScreenshot/deleteAllPhotos/deleteAllVideos/deleteAllMedia/playMp3/stopMp3/相册权限 |
+| 网络HTTP | 10 | get/post/postJSON/getJSON/download/通用请求 |
+| 相册媒体 | 11 | saveImage/saveImageBase64/saveVideo/saveScreenshot/deleteAllPhotos/deleteAllVideos/deleteAllMedia/playMp3/stopMp3/相册权限 |
 | 定时器与工具 | 21 | 定时器、execAsync/execSync 线程、uuid、base64、sha 系列、AES-128、random |
 | 字符串工具 | 14 | trim/split/chars/hex/类型判断/拼音 toPinYin/BOM 清洗/Unicode 还原 |
-| 悬浮窗口 | 2 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
+| 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 
 本轮新增（Round 14）：`screen.*` EasyClick 兼容图色模块（getColor/getColorRGB/getColorHex + 找图找色/OCR/截图入口）、全局别名 `screen`/`string`、`app.getAppName`/`app.isRunning`；
 本轮新增（Round 12）：`formatDate/dateFormat`（yyyy/MM/dd/HH/mm/ss/SSS/E 星期）、`sleepRandom` 随机睡眠、
