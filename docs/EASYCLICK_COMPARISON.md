@@ -72,7 +72,7 @@ The following surfaces must not be described as production-complete yet:
 
 ## 函数级覆盖清单（2026-08-06）
 
-交互式速查 `docs/api-reference.html` 收录 243 个可运行示例（246 个函数），分 13 个分类，
+交互式速查 `docs/api-reference.html` 收录 243 个可运行示例（247 个函数），分 13 个分类，
 每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
 
 | 分类 | 函数数 | 亮点 |
@@ -81,7 +81,7 @@ The following surfaces must not be described as production-complete yet:
 | 触摸与节点 | 43 | 坐标/节点点击、滑动/手势/pinch、输入、节点查询（getChild/getSiblings/clickCenter/clickRandom）、node.keep/unkeep |
 | 图色与OCR | 29 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素（screen.getColor/getColorRGB/getColorHex）、多点比对（findColors/isColors）、OCR、二维码/条形码识别 scanCode |
 | App与应用控制 | 21 | launch/activate/terminate/state/openURL/homeScreen/current/appList/isInstalled/getAppName/isRunning/锁屏解锁 |
-| 设备与系统 | 29 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID |
+| 设备与系统 | 30 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID |
 | 坐标与屏幕 | 5 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
 | 文件 | 38 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
 | 存储 | 10 | 命名 typed store |

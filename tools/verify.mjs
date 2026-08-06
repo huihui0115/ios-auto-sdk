@@ -173,6 +173,11 @@ check(typeDefinitions.includes('stat(path: string): AutoFileStat | null') && typ
 check(typeDefinitions.includes('volumeUp(): boolean') && typeDefinitions.includes('volumeDown(): boolean') &&
       typeDefinitions.includes('isScreenOn(): boolean'),
       'Type definitions must declare device volume keys and screen-state queries');
+check(['getDeviceInfo','getScreenWidth','getScreenHeight','getScale','getModel','getOSVersion',
+      'getDeviceName','getBattery','isCharging','getOrientation','getDeviceId','getDeviceAlias',
+      'getSerialNo','volumeUp','volumeDown','getMemoryInfo','isRunning','isDir','isFile']
+      .every(n => typeDefinitions.includes('declare function ' + n)),
+      'Type definitions must declare the device/app/file global shorthands');
 check(typeDefinitions.includes('getJSON(url: string') &&
       typeDefinitions.includes('width(): number') &&
       typeDefinitions.includes('declare function setScreenMetrics') &&
@@ -395,6 +400,8 @@ check(bootstrapScript.includes("wsApi={connect:function(u){return _nn('wsConnect
       bootstrapScript.includes("close:function(h){return _nn('wsClose'") &&
       bootstrapScript.includes('g.ws=wsApi'),
       'Bootstrap must expose the WebSocket client and its global alias');
+check(['getDeviceInfo','getScreenWidth','getScreenHeight','getScale','getModel','getOSVersion','getDeviceName','getBattery','isCharging','getOrientation','getDeviceId','getDeviceAlias','getSerialNo','volumeUp','volumeDown','getMemoryInfo'].every(n => bootstrapScript.includes('g.' + n + '=deviceApi.' + n)),
+      'Bootstrap must export deviceApi shorthand globals');
 
 check(bootstrapScript.includes('function _dv(') && bootstrapScript.includes('function _md(') && bootstrapScript.includes('function _nn('),
       'Bootstrap must define the compact bridge helpers');

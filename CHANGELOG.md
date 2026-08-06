@@ -10,6 +10,15 @@ All notable changes to AutoSDK are documented here. The format follows
 
 - Next.
 
+## [1.6.0] - 2026-08-06
+
+### Added
+
+- **设备查询全局简写补齐（20 个）。** deviceApi 成员补全局导出（EasyClick/AScript 全局风格）：
+  getDeviceInfo/getScreenWidth/getScreenHeight/getScale/getModel/getOSVersion/getDeviceName/getBattery/isCharging/getOrientation/
+  getDeviceId/getDeviceAlias/getSerialNo/volumeUp/volumeDown/getMemoryInfo/isRunning/isDir/isFile；d.ts/文档/verify/测试同步，测试 69 项。
+- **文档修正：getOrientation 返回方向名称字符串**（portrait/landscapeLeft/landscapeRight/portraitUpsideDown），非角度数字；d.ts 返回类型同步为 string。
+
 ## [1.5.0] - 2026-08-06
 
 ### Added

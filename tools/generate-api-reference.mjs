@@ -1098,6 +1098,14 @@ APIS.push({ cat:'device', sig:'device.getScreenWidth() / getScreenHeight()', tit
   logd("缩放: " + device.getScale());
 }
 main();` });
+APIS.push({ cat:'device', sig:'getOrientation() / getBattery() / isCharging() / getModel() / getOSVersion() / getDeviceName() / getScale() / getDeviceId() / getSerialNo() / getMemoryInfo() / volumeUp() / volumeDown()', title:'设备信息全局简写', desc:'deviceApi 常用查询的全局简写（EasyClick 全局风格）：getOrientation 屏幕方向名称（portrait/landscapeLeft/landscapeRight/portraitUpsideDown）、getBattery 电量百分比、isCharging 充电中、getModel 机型、getOSVersion 系统版本、getDeviceName 设备名、getScale 屏幕缩放比、getDeviceId 设备标识、getSerialNo 序列号、getMemoryInfo 内存（total/available/used 字节）、volumeUp/volumeDown 音量键。', params:[], returns:'number | string | boolean | object', example:`function main(){
+  logd("方向: " + getOrientation() + " 电量: " + getBattery() + "%");
+  logd("机型: " + getModel() + " iOS " + getOSVersion());
+  if (!isCharging()) volumeUp();
+  const m = getMemoryInfo();
+  logd("可用内存: " + Math.round(m.available / 1024 / 1024) + " MB");
+}
+main();` });
 APIS.push({ cat:'device', sig:'device.getScreenWidthHeightText()', title:'屏幕宽高文本', desc:'EasyClick 兼容别名：返回 "宽x高" 字符串，如 "390x844"。', params:[], returns:'string', example:`function main(){
   logd("屏幕: " + device.getScreenWidthHeightText());
 }
@@ -1327,7 +1335,7 @@ APIS.push({ cat:'file', sig:'file.readExcelRow(path, sheetIndex?, row?)', title:
   logd(JSON.stringify(cells));
 }
 main();` });
-APIS.push({ cat:'file', sig:'file.stat(path) / getSize / getModifiedTime / isDir / isFile', title:'文件状态查询', desc:'查询文件大小（字节）、修改时间（毫秒时间戳）、是否为目录/文件；路径不存在时 stat 返回 null。', params:[['path','string','路径']], returns:'object|null / number|null / boolean', example:`function main(){
+APIS.push({ cat:'file', sig:'file.stat(path) / getSize / getModifiedTime / isDir / isFile', title:'文件状态查询', desc:'查询文件大小（字节）、修改时间（毫秒时间戳）、是否为目录/文件；路径不存在时 stat 返回 null。全局简写 isDir(path)/isFile(path) 可直接调用。', params:[['path','string','路径']], returns:'object|null / number|null / boolean', example:`function main(){
   const s = file.stat("data/a.txt");
   if (s) logd("大小: " + s.size + " 修改: " + s.modifiedAtMs);
   logd("是目录: " + file.isDir("data"));
@@ -1680,7 +1688,7 @@ APIS.push({ cat:'app', sig:'app.getAppName(bundleId)', title:'应用显示名称
   logd("名称: " + (name || "未安装"));
 }
 main();` });
-APIS.push({ cat:'app', sig:'app.isRunning(bundleId)', title:'应用是否在运行', desc:'判断应用是否处于前台或后台运行状态（state >= 2 即视为运行中），可用于任务流程中的状态轮询。', params:[['bundleId','string','应用 bundle id']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'app', sig:'app.isRunning(bundleId)', title:'应用是否在运行', desc:'判断应用是否处于前台或后台运行状态（state >= 2 即视为运行中），可用于任务流程中的状态轮询。全局简写 isRunning(bundleId) 可直接调用。', params:[['bundleId','string','应用 bundle id']], returns:'boolean', example:`function main(){
   if (app.isRunning("com.apple.mobilesafari")) {
     logd("Safari 正在运行");
   }

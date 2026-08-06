@@ -1307,6 +1307,40 @@ test('ocrBaidu fetches token, posts base64 image and joins words', () => {
   assert.equal(typeof sandbox.auto.ocrBaidu, 'function');
 });
 
+test('isRunning / isDir / isFile global shorthands route correctly', () => {
+  const { sandbox, calls } = boot();
+  sandbox.isRunning('com.tencent.xin');
+  assert.deepEqual(calls.app.at(-1), { operation: 'state', bundleId: 'com.tencent.xin' });
+  sandbox.isDir('/tmp');
+  assert.deepEqual(calls.file.at(-1), { operation: 'stat', path: '/tmp' });
+  sandbox.isFile('/tmp/a.txt');
+  assert.deepEqual(calls.file.at(-1), { operation: 'stat', path: '/tmp/a.txt' });
+});
+
+test('device global shorthand exports mirror deviceApi members', () => {
+  const { sandbox, calls } = boot();
+  sandbox.getOrientation();
+  assert.deepEqual(calls.device.at(-1), { operation: 'orientation' });
+  sandbox.getModel();
+  assert.deepEqual(calls.device.at(-1), { operation: 'model' });
+  sandbox.getBattery();
+  assert.deepEqual(calls.device.at(-1), { operation: 'battery' });
+  sandbox.isCharging();
+  assert.deepEqual(calls.device.at(-1), { operation: 'isCharging' });
+  sandbox.getScreenWidth();
+  assert.deepEqual(calls.device.at(-1), { operation: 'screenWidth' });
+  sandbox.getScreenHeight();
+  assert.deepEqual(calls.device.at(-1), { operation: 'screenHeight' });
+  sandbox.getDeviceInfo();
+  assert.deepEqual(calls.device.at(-1), { operation: 'info' });
+  sandbox.volumeUp();
+  assert.deepEqual(calls.device.at(-1), { operation: 'volumeUp' });
+  sandbox.getMemoryInfo();
+  assert.deepEqual(calls.device.at(-1), { operation: 'memory' });
+  sandbox.getOSVersion();
+  assert.deepEqual(calls.device.at(-1), { operation: 'osVersion' });
+});
+
 test('ws client routes connect/poll/send/close to native bridge', () => {
   const { sandbox, calls } = boot();
   sandbox.ws.connect('wss://example.com/sock');
