@@ -728,6 +728,13 @@ check(bootstrapScript.includes("httpApi.put=hv('PUT',1)") &&
       'Bootstrap http module must expose put/delete/head/patch/requestEx via the shared verb helper');
 check(bootstrapScript.includes('base.ocr.newOcr=function(d){'),
       'Bootstrap ocr module must expose the newOcr engine-instance factory');
+check(bootstrapScript.includes('function bp(b){return b&&b.path||b;}') &&
+      bootstrapScript.includes('readBitmap:bh') &&
+      bootstrapScript.includes('base64Bitmap:function(x,p)'),
+      'Bootstrap image module must expose the path-handle bitmap model helpers');
+check(bootstrapScript.includes('fileApi.readFile=fileApi.readText') &&
+      bootstrapScript.includes('deviceApi.getDeviceInfo=deviceApi.info'),
+      'EasyClick file/device aliases must be rebuilt after guarding to stay in budget');
 check(builtinAdapterSource.includes('AutoBuiltinXPathToQuery') &&
       builtinAdapterSource.includes('AutoBuiltinSplitXPathConditions') &&
       builtinAdapterSource.includes('"xpathSubset"') &&
@@ -804,6 +811,25 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
     ocrInstance.ocrImage('shots/ocr.png');
     check(lastOCROptions?.screenshotPath === 'shots/ocr.png' && lastOCROptions?.language === 'zh',
           'ocr.newOcr instances must merge defaults and OCR image files via screenshotPath');
+    check(context.file?.readFile === context.file?.readText &&
+          context.device?.getDeviceInfo === context.device?.info,
+          'File and device aliases must keep their documented function identity');
+    const bitmapHandle = context.image.readBitmap('/sandbox/a.png');
+    check(bitmapHandle?.path === '/sandbox/a.png' && bitmapHandle?.isBitmap === true,
+          'image.readBitmap must return a path-handle bitmap object');
+    context.image.bitmapBase64(bitmapHandle);
+    check(lastFileOperation?.operation === 'readBase64' && lastFileOperation?.path === '/sandbox/a.png',
+          'image.bitmapBase64 must unwrap handles to their sandbox path');
+    context.image.base64Bitmap('QUFBQ==', '/sandbox/b.png');
+    check(lastFileOperation?.operation === 'writeBase64' && lastFileOperation?.path === '/sandbox/b.png',
+          'image.base64Bitmap must write base64 data and return a handle');
+    context.image.saveBitmap(bitmapHandle, '/sandbox/c.png');
+    check(lastFileOperation?.operation === 'copy' && lastFileOperation?.destination === '/sandbox/c.png',
+          'image.saveBitmap must copy the handle path to the destination');
+    context.image.getBitmapPixelColor(bitmapHandle, 1, 2);
+    check(lastFileOperation?.operation === 'imagePixelAt' && lastFileOperation?.path === '/sandbox/a.png' &&
+          lastFileOperation?.args?.x === 1 && lastFileOperation?.args?.y === 2,
+          'image.getBitmapPixelColor must route through imagePixelAt with unwrapped path');
     check(context.auto?.storage === context.storages?.create,
           'Storage factory aliases must retain their function identity');
     check(context.http?.length === 2 && context.http?.get?.length === 2 &&
@@ -962,7 +988,7 @@ check(bootstrapScript.includes('base.md5=function(s)') &&
       bootstrapScript.includes("callFile('imageSize'") &&
       bootstrapScript.includes("callFile('md5File'") &&
       bootstrapScript.includes("callFile('sha1File'") &&
-      bootstrapScript.includes('getSize:function(p){return fileApi.imageSize(p);}') &&
+      bootstrapScript.includes('getSize:function(p){return fileApi.imageSize(bp(p));}') &&
       bootstrapScript.includes('g.md5=base.md5'),
       'Bootstrap must expose string hashes, file image size and file hashes');
 check(bootstrapScript.includes('deleteAllFile:function(p){var items=fileApi.list(p);') &&
@@ -972,8 +998,8 @@ check(bootstrapScript.includes('deleteAllFile:function(p){var items=fileApi.list
       bootstrapScript.includes("'vibrateLong','vibrateShort'].forEach") &&
       bootstrapScript.includes('var clog=function(){consoleBridge.log(formatLog(arguments));};') &&
       bootstrapScript.includes('findColors:cmpC,isColors:cmpC,cmpColor:cmpC,') &&
-      bootstrapScript.includes('readFile:function(p){return fileApi.readText(p);}') &&
-      bootstrapScript.includes('writeFile:function(p,t){return fileApi.writeText(p,t);}') &&
+      bootstrapScript.includes('fileApi.readFile=fileApi.readText;') &&
+      bootstrapScript.includes('fileApi.writeFile=fileApi.writeText;') &&
       bootstrapScript.includes("lines.join('\\n')") &&
       !bootstrapScript.includes('String.fromCharCode(10)'),
       'Bootstrap must keep EasyClick deleteAllFile semantics, vibration aliases and compact file aliases');

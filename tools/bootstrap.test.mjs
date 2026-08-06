@@ -1477,6 +1477,38 @@ test('isRunning / isDir / isFile global shorthands route correctly', () => {
   assert.deepEqual(calls.file.at(-1), { operation: 'stat', path: '/tmp' });
   sandbox.isFile('/tmp/a.txt');
   assert.deepEqual(calls.file.at(-1), { operation: 'stat', path: '/tmp/a.txt' });
+test('round56: bitmap path-handle model round-trips through file ops', () => {
+  const { sandbox, calls } = boot();
+  const bmp = sandbox.image.readBitmap('/sandbox/a.png');
+  assert.deepEqual(bmp, { path: '/sandbox/a.png', isBitmap: true });
+  assert.equal(sandbox.image.bitmapToImage(bmp), '/sandbox/a.png');
+  sandbox.image.bitmapBase64(bmp);
+  assert.equal(calls.file.at(-1).operation, 'readBase64');
+  assert.equal(calls.file.at(-1).path, '/sandbox/a.png');
+  const out = sandbox.image.base64Bitmap('QUFBQ==', '/sandbox/b.png');
+  assert.equal(calls.file.at(-1).operation, 'writeBase64');
+  assert.equal(out.path, '/sandbox/b.png');
+  assert.equal(out.isBitmap, true);
+  sandbox.image.saveBitmap(bmp, '/sandbox/c.png');
+  assert.equal(calls.file.at(-1).operation, 'copy');
+  assert.equal(calls.file.at(-1).destination, '/sandbox/c.png');
+  sandbox.image.getBitmapPixelColor(bmp, 3, 4);
+  assert.equal(calls.file.at(-1).operation, 'imagePixelAt');
+  assert.equal(calls.file.at(-1).path, '/sandbox/a.png');
+  assert.deepEqual(calls.file.at(-1).args, { x: 3, y: 4 });
+  // imageProcess ops and size getters accept handles too
+  sandbox.image.getWidth(bmp);
+  assert.equal(calls.file.at(-1).operation, 'imageSize');
+  assert.equal(calls.file.at(-1).path, '/sandbox/a.png');
+  sandbox.image.gray(bmp, '/sandbox/gray.png');
+  assert.equal(calls.file.at(-1).operation, 'imageProcess');
+  assert.equal(calls.file.at(-1).path, '/sandbox/a.png');
+  // aliases keep identity with their canonical methods
+  assert.equal(sandbox.file.readFile, sandbox.file.readText);
+  assert.equal(sandbox.file.getLineText, sandbox.file.readLine);
+  assert.equal(sandbox.device.getDeviceInfo, sandbox.device.info);
+});
+
 });
 
 test('device global shorthand exports mirror deviceApi members', () => {

@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 55（v1.25.0，2026-08-07）。
+> 最后更新：Round 56（v1.26.0，2026-08-07）。
 
 ---
 
@@ -119,8 +119,8 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 ### 可实现（JS 别名/封装，注意 60KB 预算）
 
 - ~~`touchDown/touchMove/touchUp`~~ 已完成（Round 50，分指暂存 + touchUp() 全抬）。
-- `image.readBitmap/bitmapToImage/base64Bitmap/bitmapBase64/saveBitmap`
-  位图对象模型（返回语义与 EasyClick 不同，需设计或明确文档标注）。
+- ~~`image.readBitmap/bitmapToImage/base64Bitmap/bitmapBase64/saveBitmap`~~
+  已完成（Round 56，路径句柄模型；getBitmapPixelColor 一并补齐；文档已标注语义差异）。
 - ~~`ocr.newOcr/ocrInstance.ocrBitmap/ocrImage`~~ 已完成（Round 55，实例合并默认参数，ocrImage 对沙盒图片文件 OCR）。
 - ~~`http.requestEx`~~ 已完成（Round 55，等价 http() 别名）；`agentRequestEx` 属 agent 远程类，记录为不可实现。
 
@@ -211,6 +211,11 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R56（v1.26.0）：**位图模型（路径句柄）落地**——image.readBitmap 返回 {path,isBitmap}
+  句柄，saveBitmap/bitmapBase64/base64Bitmap/bitmapToImage/getBitmapPixelColor 补齐
+  EasyClick 位图 API；句柄在全部 image 操作中自动解包（bp/bh/fb helper + _ff 解包）；
+  二轮压缩（guard 后别名引用 + 直接引用转换）-334B；bootstrap 61376/61440（余 64B），
+  测试 83 项，文档 260 函数。
 - R55（v1.25.0）：**压缩重构 + REST 补全 + OCR 引擎实例**——删除 guard 前 6 处死重别名、
   getJSON 重复定义，get/post/put/delete 统一为 hv 动词工厂（净省 328B）；新增
   http.head/http.patch/http.requestEx（EasyClick/REST 对标）与 ocr.newOcr(defaults?)

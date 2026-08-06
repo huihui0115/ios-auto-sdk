@@ -6,6 +6,29 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.26.0] - 2026-08-07
+
+### Added
+
+- **位图模型（EasyClick 对标，路径句柄语义）**：
+  - `image.readBitmap(path)`：加载位图句柄 `{path, isBitmap}`；
+  - `image.saveBitmap(bitmap, dest)`：位图另存为（复制底层文件）；
+  - `image.bitmapBase64(bitmap)` / `image.base64Bitmap(base64, path)`：Base64 互转；
+  - `image.bitmapToImage(bitmap)`：解包为沙盒路径；
+  - `image.getBitmapPixelColor(bitmap, x, y)`：取位图像素颜色；
+  - 句柄可直接传给 image.compress/clip/scale/gray/rotate/pixelAt/toBase64/
+    getWidth/getHeight/getSize（_ff 与尺寸查询自动解包）；ocr.newOcr 实例方法同样支持。
+  - 语义说明：EasyClick 位图是内存对象，本 SDK 采用沙盒文件句柄——能力等价、零额外内存；
+    EasyClick scaleBitmap/rotateBitmap/clipBitmap 由 image.scale(handle,...,dest) 等文件落盘等价覆盖，
+    releaseBitmap 因无内存驻留不再需要。
+- **二轮压缩重构（-334B）**：fileApi/deviceApi 的 EasyClick 别名（readFile/writeFile/
+  readAllLines/getLineText/md5File/sha1File/mkdirs/getSandBoxDir/getSandBoxFilePath/
+  getDeviceInfo）由自转发包装改为 guard 后直接引用赋值（且保持别名===原函数的恒等性）；
+  getPixelColor/getColor/base64.encode/decode/time 改直接引用；新增 bp/bh/fb 句柄助手。
+
+### Fixed
+
+- 无行为性 bug 修复（本轮 83 项 Node 测试全绿，含新位图往返测试）。
 ## [1.25.0] - 2026-08-07
 
 ### Added

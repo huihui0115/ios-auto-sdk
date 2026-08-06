@@ -1814,9 +1814,17 @@ APIS.push({ cat:'vision', sig:'findColorCount(colors, threshold?, x?, y?, ex?, e
   logd("匹配颜色点数量: " + n);
 }
 main();` });
-APIS.push({ cat:'file', sig:'image.toBase64(path)', title:'图片转 Base64', desc:'把沙盒内图片文件读为 Base64 字符串（对标 AScript image_to_base64），可直接用于 http bodyBase64、media.saveImageBase64 或 base64.decode。', params:[['path','string','沙盒内图片路径']], returns:'string | null', example:`function main(){
+APIS.push({ cat:'file', sig:'image.toBase64(path | bitmap)', title:'图片转 Base64', desc:'把沙盒内图片文件读为 Base64 字符串（对标 AScript image_to_base64），可直接用于 http bodyBase64、media.saveImageBase64 或 base64.decode；接受路径或位图句柄（Round 56+）。', params:[['path','string|object','沙盒内图片路径或位图句柄']], returns:'string | null', example:`function main(){
   const b64 = image.toBase64("shots/sample.png");
   logd("Base64 长度: " + (b64 ? b64.length : 0));
+}
+main();` });
+APIS.push({ cat:'file', sig:'image.readBitmap(path) / image.saveBitmap(bitmap, dest) / image.bitmapBase64(bitmap) / image.base64Bitmap(base64, path) / image.bitmapToImage(bitmap) / image.getBitmapPixelColor(bitmap, x, y)', title:'位图模型（EasyClick 对标）', desc:'EasyClick 位图 API 对标：本 SDK 位图为路径句柄（{path, isBitmap}）——readBitmap(path) 加载句柄，saveBitmap 另存（复制）到 dest，bitmapBase64/base64Bitmap 做 Base64 互转，bitmapToImage 解包为路径，getBitmapPixelColor 取像素色。句柄可直接传给 image.compress/clip/scale/gray/rotate/pixelAt/toBase64/getWidth/getHeight（自动解包）。语义说明：EasyClick 位图是内存对象，本 SDK 采用沙盒文件句柄，能力等价、实现更省内存。', params:[['path','string','沙盒内图片文件路径'],['bitmap','object|string','位图句柄或路径'],['dest','string','另存目标路径'],['base64','string','Base64 图片数据']], returns:'AutoBitmapHandle / string / boolean', example:`function main(){
+  const bmp = image.readBitmap("shots/sample.png");
+  const b64 = image.bitmapBase64(bmp);
+  image.saveBitmap(bmp, "shots/copy.png");
+  const color = image.getBitmapPixelColor(bmp, 10, 10);
+  logd("尺寸 " + image.getWidth(bmp) + "x" + image.getHeight(bmp));
 }
 main();` });
 APIS.push({ cat:'touch', sig:'node.find(selector) / node.findOne(selector) / findNode(selector)', title:'查找节点（Node 对象）', desc:'对标 AScript Selector().find()：按选择器查找第一个匹配节点，返回带方法的高级 Node 对象（.click()/.tap()/.rect/.text 等）；未找到返回 null。选择器支持 {id,label,text,type,visible} 或 XPath。node.click(dur)/tap_hold(dur)/longClick(dur) 的 dur 单位为秒，如 node.tap_hold(1.5) 长按 1.5 秒。', params:[['selector','object|string','节点选择器']], returns:'AutoNode|null', example:`function main(){

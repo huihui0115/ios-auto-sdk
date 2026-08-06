@@ -829,6 +829,11 @@ declare const device: AutoDeviceAPI;
 declare const media: AutoMediaAPI;
 declare const app: AutoAppAPI;
 declare const http: AutoHTTP;
+/** Bitmap handle: this SDK models bitmaps as sandbox path handles (Round 56). */
+interface AutoBitmapHandle {
+  path: string;
+  isBitmap: boolean;
+}
 declare const image: {
   findImage: AutoAPI["findImage"];
   findColor: AutoAPI["findColor"];
@@ -839,18 +844,30 @@ declare const image: {
   pixel: AutoAPI["getPixelColor"];
   screenshot: AutoAPI["screenshot"];
   clipRegion: AutoAPI["screenshotRegion"];
-  getSize(path: string): ReturnType<AutoFileAPI["imageSize"]>;
-  getWidth(path: string): number | null;
-  getHeight(path: string): number | null;
-  clip(src: string, x: number, y: number, ex: number, ey: number, dest: string): string | null;
-  scale(src: string, width: number, height: number, dest: string): string | null;
-  gray(src: string, dest: string): string | null;
-  binaryzation(src: string, dest: string, threshold?: number): string | null;
-  rotate(src: string, degrees: number, dest: string): string | null;
-  compress(src: string, dest: string, quality?: number): string | null;
-  compress(src: string, quality: number, dest: string): string | null;
-  pixelAt(src: string, x: number, y: number): AutoPixelColor | null;
-  toBase64(path: string): string | null;
+  getSize(path: string | AutoBitmapHandle): ReturnType<AutoFileAPI["imageSize"]>;
+  getWidth(path: string | AutoBitmapHandle): number | null;
+  getHeight(path: string | AutoBitmapHandle): number | null;
+  clip(src: string | AutoBitmapHandle, x: number, y: number, ex: number, ey: number, dest: string): string | null;
+  scale(src: string | AutoBitmapHandle, width: number, height: number, dest: string): string | null;
+  gray(src: string | AutoBitmapHandle, dest: string): string | null;
+  binaryzation(src: string | AutoBitmapHandle, dest: string, threshold?: number): string | null;
+  rotate(src: string | AutoBitmapHandle, degrees: number, dest: string): string | null;
+  compress(src: string | AutoBitmapHandle, dest: string, quality?: number): string | null;
+  compress(src: string | AutoBitmapHandle, quality: number, dest: string): string | null;
+  pixelAt(src: string | AutoBitmapHandle, x: number, y: number): AutoPixelColor | null;
+  toBase64(path: string | AutoBitmapHandle): string | null;
+  /** Load a bitmap handle for a sandbox image file (EasyClick readBitmap parity). */
+  readBitmap(path: string): AutoBitmapHandle;
+  /** Unwrap a bitmap handle to its sandbox path (EasyClick toImage parity). */
+  bitmapToImage(bitmap: AutoBitmapHandle | string): string;
+  /** Copy the bitmap file to dest (EasyClick saveBitmap parity). */
+  saveBitmap(bitmap: AutoBitmapHandle | string, dest: string): boolean;
+  /** Read a bitmap file as base64 (EasyClick bitmapBase64 parity). */
+  bitmapBase64(bitmap: AutoBitmapHandle | string): string | null;
+  /** Write base64 image data to path, returning a handle (EasyClick base64Bitmap parity). */
+  base64Bitmap(base64: string, path: string): AutoBitmapHandle;
+  /** Pixel color of a bitmap file (EasyClick getBitmapPixelColor parity). */
+  getBitmapPixelColor(bitmap: AutoBitmapHandle | string, x: number, y: number): AutoPixelColor | null;
   findColorCount(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, maxCount?: number): number;
   saveToAlbum: AutoAPI["saveImageToAlbum"];
   saveBase64ToAlbum: AutoAPI["saveImageBase64ToAlbum"];
