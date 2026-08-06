@@ -185,8 +185,11 @@ Selector().label("确认").click().find(3000);            // AScript 链式风�
 <tr><td>id / label / name(text) / value / type</td><td>精确匹配</td><td>idMatch / labelMatch / textMatch / valueMatch / typeMatch</td></tr>
 <tr><td>enabled / visible / selected / accessible</td><td>状态过滤</td><td>—</td></tr>
 <tr><td>index / depth / childCount / bounds</td><td>结构过滤</td><td>—</td></tr></table>
-<div class="note warn">内置 no-WDA 适配器暂不支持 <code>xpath</code>/<code>predicate</code>（返回清晰错误）；
-用 text/label/id/type + Match 正则组合可覆盖绝大多数场景。先在<a href="#/inspector">控件查找器</a>里验证选择器再写进脚本。</div></article>
+<div class="note ok"><b>xpath 子集（Round 53+）</b>：内置 no-WDA 适配器支持有界 xpath 子集，单步写法：
+<code>//Button</code>、<code>//*[@text='确认']</code>、<code>//*[contains(@text,'确认')]</code>、
+<code>//Button[@text='a' and @id='b']</code>、<code>//ScrollView[2]</code>（第 2 个匹配）、
+<code>//Image[starts-with(@id,'icon_')]</code>；属性支持 @text/@label/@name/@value/@id/@type/@index/@depth。
+不支持嵌套路径（如 <code>//a/b</code>）与 <code>predicate</code>（返回清晰错误）。先在<a href="#/inspector">控件查找器</a>里验证选择器再写进脚本。</div></article>
 <article class="page" id="page-node-object">
 <h1>控件对象（Node）</h1>
 <p><code>node.find(selector)</code> 返回带方法的 Node 对象，可链式操作：</p>
@@ -350,8 +353,9 @@ main();</code></pre>
 <p><b>Q: 和 WDA 方案比有什么优势？</b><br>A: 无需额外的 WebDriverAgent Runner 进程、无 8100 端口转发，
 控件检索为系统级 AX 直查（毫秒级），触摸为 IOHIDEvent 真实注入。</p>
 <h2>脚本编写</h2>
-<p><b>Q: 支持 xpath 选择器吗？</b><br>A: 宿主 UIKit 路径支持；内置跨 App AX 路径暂不支持 xpath/predicate
-（会返回清晰错误），请用 text/desc/id/type + Matches 正则组合。</p>
+<p><b>Q: 支持 xpath 选择器吗？</b><br>A: 宿主 UIKit 路径支持完整 xpath；内置跨 App AX 路径支持<b>有界子集</b>
+（Round 53+）：<code>//Type[@attr='v']</code>、<code>contains/starts-with/ends-with(@attr,'v')</code>、
+<code>and</code> 组合、位置下标 <code>//ScrollView[2]</code>；不支持嵌套路径与 predicate（返回清晰错误）。</p>
 <p><b>Q: 脚本里怎么适配不同分辨率？</b><br>A: 优先控件检索；必须用坐标时用 <code>setScreenMetrics(w,h)</code> 
 做设计稿坐标换算（<code>metrics.x()/y()</code>）。</p>
 <p><b>Q: 死循环停不下来怎么办？</b><br>A: 纯 JS 密集循环无法被抢占式中断，循环体内调用任意 bridge 函数
@@ -542,7 +546,7 @@ main();</code></pre>
 <section class="fn" id="fn-72">
 <h3>链式选择器</h3>
 <div class="sig"><code>Selector().text(v).textContains(v).textStartsWith(v).textEndsWith(v).textMatches(p).textMatch(p).desc(v).descContains(v).descMatches(p).label(v).labelContains(v).labelMatches(p).labelMatch(p).value(v).valueContains(v).valueMatches(p).valueMatch(p).name(v).nameMatches(p).nameMatch(p).id(v).idMatch(p).type(t).typeMatch(p).clickable().visible().enabled().index(i).depth(d).bounds(x,y,w,h).xpath(p).predicate(p).one() / find_one() / find_once() / find() / findAll() / find_all() / all() / exists() / waitFor(ms) / wait_for(ms) / click() / tap() / clickCenter() / longClick(d) / selector(init?)</code><button class="copy" data-copy="sig-72">复制</button></div>
-<p class="desc">AScript 风格链式选择器：text/textContains/textStartsWith/textEndsWith/textMatches、desc/descContains/descMatches、label/labelContains/labelMatches、value/name/id/type、clickable/visible/enabled/selected、index/depth/bounds/xpath/predicate 逐层叠加条件；EasyClick 风格 textMatch/nameMatch/labelMatch/valueMatch/idMatch/typeMatch 正则匹配别名与对应 *Matches 方法同效；终端方法 findOne()/one()/find_one()/find_once() 取单个、find()/findAll()/all()/find_all() 取列表、exists() 判断存在、waitFor(timeoutMs)/wait_for() 等待出现、click()/tap()/longClick(d) 直接操作。</p>
+<p class="desc">AScript 风格链式选择器：text/textContains/textStartsWith/textEndsWith/textMatches、desc/descContains/descMatches、label/labelContains/labelMatches、value/name/id/type、clickable/visible/enabled/selected、index/depth/bounds/xpath/predicate 逐层叠加条件（xpath 在内置 no-WDA 路径支持有界子集：//Type[@attr='v']/contains/starts-with/ends-with/and/位置下标；predicate 仅宿主 UIKit 路径支持）；EasyClick 风格 textMatch/nameMatch/labelMatch/valueMatch/idMatch/typeMatch 正则匹配别名与对应 *Matches 方法同效；终端方法 findOne()/one()/find_one()/find_once() 取单个、find()/findAll()/all()/find_all() 取列表、exists() 判断存在、waitFor(timeoutMs)/wait_for() 等待出现、click()/tap()/longClick(d) 直接操作。</p>
 <table class="pt"><tr><th>参数</th><th>类型</th><th>说明</th></tr><tr><td><code>v</code></td><td>string</td><td>匹配文本</td></tr><tr><td><code>t</code></td><td>string</td><td>控件类型，如 Button</td></tr><tr><td><code>timeoutMs</code></td><td>number</td><td>waitFor 超时毫秒，默认 10000</td></tr></table>
 <div class="ret"><b>返回值</b> <code>AutoNodeObject | AutoNodeObject[] | boolean</code></div>
 <div class="exhead"><span>示例（可直接复制运行）</span><button class="copy" data-copy="ex-72">复制</button></div>

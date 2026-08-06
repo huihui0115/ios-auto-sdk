@@ -684,6 +684,207 @@ static NSString *AutoBuiltinStringOrNil(id value) {
 
 #pragma mark Selector matching
 
+static NSString *AutoBuiltinRegexEscape(NSString *value) {
+    NSMutableString *escaped = [NSMutableString stringWithCapacity:value.length + 8];
+    for (NSUInteger i = 0; i < value.length; i++) {
+        unichar c = [value characterAtIndex:i];
+        if (strchr("\\.+*?()[]{}^$|", c)) [escaped appendFormat:@"\\%C", c];
+        else [escaped appendString:[NSString stringWithCharacters:&c length:1]];
+    }
+    return escaped;
+}
+
+static NSString *AutoBuiltinXPathAttributeKey(NSString *attribute, NSError **error) {
+    NSString *name = attribute.lowercaseString;
+    if ([name isEqualToString:@"text"]) return @"text";
+    if ([name isEqualToString:@"label"] || [name isEqualToString:@"name"]) return @"label";
+    if ([name isEqualToString:@"value"]) return @"value";
+    if ([name isEqualToString:@"id"] || [name isEqualToString:@"identifier"]) return @"id";
+    if ([name isEqualToString:@"type"]) return @"type";
+    if ([name isEqualToString:@"index"]) return @"index";
+    if ([name isEqualToString:@"depth"]) return @"depth";
+    if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration,
+        [NSString stringWithFormat:@"Built-in xpath subset supports @text/@label/@name/@value/@id/@type/@index/@depth only (got @%@).", attribute]);
+    return nil;
+}
+
+static NSArray<NSString *> *AutoBuiltinSplitXPathConditions(NSString *predicate) {
+    NSMutableArray<NSString *> *parts = [NSMutableArray array];
+    NSMutableString *current = [NSMutableString string];
+    unichar quote = 0;
+    for (NSUInteger i = 0; i < predicate.length; i++) {
+        unichar c = [predicate characterAtIndex:i];
+        if (quote) {
+            [current appendString:[NSString stringWithCharacters:&c length:1]];
+            if (c == quote) quote = 0;
+            continue;
+        }
+        if (c == '\'' || c == '"') {
+            quote = c;
+            [current appendString:[NSString stringWithCharacters:&c length:1]];
+            continue;
+        }
+        if (c == 'a' && i + 3 <= predicate.length &&
+            [predicate compare:@"and" options:0 range:NSMakeRange(i, 3)] == NSOrderedSame &&
+            (i == 0 || [predicate characterAtIndex:i - 1] == ' ') &&
+            (i + 3 == predicate.length || [predicate characterAtIndex:i + 3] == ' ')) {
+            [parts addObject:current];
+            current = [NSMutableString string];
+            i += 3;
+            continue;
+        }
+        [current appendString:[NSString stringWithCharacters:&c length:1]];
+    }
+    [parts addObject:current];
+    return parts;
+}
+
+static BOOL AutoBuiltinXPathValueIsQuoted(NSString *valuePart, NSString **outValue) {
+    if (valuePart.length < 2) return NO;
+    unichar first = [valuePart characterAtIndex:0];
+    if ((first != '\'' && first != '"') || [valuePart characterAtIndex:valuePart.length - 1] != first) return NO;
+    *outValue = [valuePart substringWithRange:NSMakeRange(1, valuePart.length - 2)];
+    return YES;
+}
+
+static BOOL AutoBuiltinParseXPathCondition(NSString *rawCondition, NSMutableDictionary *query, NSError **error) {
+    NSString *condition = [rawCondition stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+    if (condition.length == 0 || condition.length > 256) {
+        if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath condition must be 1-256 characters.");
+        return NO;
+    }
+    NSRange paren = [condition rangeOfString:@"("];
+    NSRange eq = [condition rangeOfString:@"="];
+    if (paren.location != NSNotFound && (eq.location == NSNotFound || paren.location < eq.location)) {
+        NSString *fn = [[condition substringToIndex:paren.location] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet].lowercaseString;
+        if (![condition hasSuffix:@")"]) {
+            if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath function call must end with ')'.");
+            return NO;
+        }
+        NSString *inner = [condition substringWithRange:NSMakeRange(paren.location + 1, condition.length - paren.location - 2)];
+        NSRange comma = [inner rangeOfString:@","];
+        if (comma.location == NSNotFound) {
+            if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath function needs (@attr,'value') arguments.");
+            return NO;
+        }
+        NSString *attrPart = [[inner substringToIndex:comma.location] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+        NSString *valuePart = [[inner substringFromIndex:comma.location + 1] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+        if (![attrPart hasPrefix:@"@"]) {
+            if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath function first argument must be @attribute.");
+            return NO;
+        }
+        NSString *key = AutoBuiltinXPathAttributeKey([attrPart substringFromIndex:1], error);
+        if (!key) return NO;
+        if ([key isEqualToString:@"index"] || [key isEqualToString:@"depth"]) {
+            if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath contains()/starts-with()/ends-with() cannot target @index/@depth.");
+            return NO;
+        }
+        NSString *value = nil;
+        if (!AutoBuiltinXPathValueIsQuoted(valuePart, &value)) {
+            if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath function value must be a quoted string.");
+            return NO;
+        }
+        NSString *escaped = AutoBuiltinRegexEscape(value);
+        if ([fn isEqualToString:@"contains"]) query[[key stringByAppendingString:@"Match"]] = escaped;
+        else if ([fn isEqualToString:@"starts-with"]) query[[key stringByAppendingString:@"Match"]] = [@"^" stringByAppendingString:escaped];
+        else if ([fn isEqualToString:@"ends-with"]) query[[key stringByAppendingString:@"Match"]] = [escaped stringByAppendingString:@"$"];
+        else {
+            if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath supports contains()/starts-with()/ends-with() only.");
+            return NO;
+        }
+        return YES;
+    }
+    if (eq.location == NSNotFound) {
+        if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath condition must look like @attr='value' or contains(@attr,'value').");
+        return NO;
+    }
+    NSString *attrPart = [[condition substringToIndex:eq.location] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+    NSString *valuePart = [[condition substringFromIndex:eq.location + 1] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+    if (![attrPart hasPrefix:@"@"]) {
+        if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath condition left side must be @attribute.");
+        return NO;
+    }
+    NSString *key = AutoBuiltinXPathAttributeKey([attrPart substringFromIndex:1], error);
+    if (!key) return NO;
+    NSString *quotedValue = nil;
+    if (AutoBuiltinXPathValueIsQuoted(valuePart, &quotedValue)) {
+        if ([key isEqualToString:@"index"] || [key isEqualToString:@"depth"]) {
+            query[key] = @([quotedValue integerValue]);
+        } else {
+            query[key] = quotedValue;
+        }
+        return YES;
+    }
+    if ([key isEqualToString:@"index"] || [key isEqualToString:@"depth"]) {
+        NSCharacterSet *nonDigits = [NSCharacterSet.decimalDigitCharacterSet invertedSet];
+        if (valuePart.length == 0 || [valuePart rangeOfCharacterFromSet:nonDigits].location != NSNotFound) {
+            if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath @index/@depth need integer values.");
+            return NO;
+        }
+        query[key] = @([valuePart integerValue]);
+        return YES;
+    }
+    if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath text attribute values must be quoted.");
+    return NO;
+}
+
+/** Translates the supported xpath subset (//Type[@attr='v' and contains(@attr,'v')][n])
+ *  into native query keys. Unsupported syntax returns nil with a descriptive error. */
+static NSDictionary *AutoBuiltinXPathToQuery(NSString *xpath, NSInteger *positionalIndex, NSError **error) {
+    *positionalIndex = 0;
+    if (xpath.length == 0 || xpath.length > 512) {
+        if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath must be 1-512 characters.");
+        return nil;
+    }
+    if (![xpath hasPrefix:@"//"] ||
+        [xpath rangeOfString:@"/" options:0 range:NSMakeRange(2, xpath.length - 2)].location != NSNotFound) {
+        if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath subset supports a single //Type step only (no nested paths).");
+        return nil;
+    }
+    NSString *rest = [xpath substringFromIndex:2];
+    NSString *nodeTest = rest;
+    NSString *predicate = nil;
+    NSRange open = [rest rangeOfString:@"["];
+    if (open.location != NSNotFound) {
+        if (![rest hasSuffix:@"]"] || open.location + 1 >= rest.length - 1) {
+            if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath predicate must be a single [...] block.");
+            return nil;
+        }
+        nodeTest = [rest substringToIndex:open.location];
+        predicate = [rest substringWithRange:NSMakeRange(open.location + 1, rest.length - open.location - 2)];
+    }
+    nodeTest = [nodeTest stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+    if (nodeTest.length == 0) {
+        if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath needs a node test such as //* or //Button.");
+        return nil;
+    }
+    NSMutableDictionary *query = [NSMutableDictionary dictionary];
+    if (![nodeTest isEqualToString:@"*"]) {
+        if ([nodeTest rangeOfString:@"[^A-Za-z0-9_]" options:NSRegularExpressionSearch].location != NSNotFound) {
+            if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath node test must be * or an identifier (letters/digits/underscore).");
+            return nil;
+        }
+        query[@"type"] = nodeTest;
+    }
+    if (predicate.length > 0) {
+        NSString *trimmedPredicate = [predicate stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+        NSCharacterSet *nonDigits = [NSCharacterSet.decimalDigitCharacterSet invertedSet];
+        if (trimmedPredicate.length > 0 && [trimmedPredicate rangeOfCharacterFromSet:nonDigits].location == NSNotFound) {
+            NSInteger position = [trimmedPredicate integerValue];
+            if (position < 1) {
+                if (error) *error = AutoBuiltinError(AutoSDKErrorInvalidConfiguration, @"Built-in xpath positional predicate starts at 1.");
+                return nil;
+            }
+            *positionalIndex = position;
+            return query;
+        }
+        for (NSString *condition in AutoBuiltinSplitXPathConditions(trimmedPredicate)) {
+            if (!AutoBuiltinParseXPathCondition(condition, query, error)) return nil;
+        }
+    }
+    return query;
+}
+
 - (BOOL)text:(NSString *)text matchesPattern:(NSString *)pattern {
     if (pattern.length == 0) return YES;
     if (text.length == 0) return NO;
@@ -759,9 +960,9 @@ static NSString *AutoBuiltinStringOrNil(id value) {
         if (fabs([bounds[@"height"] doubleValue] - AutoBuiltinDouble(boundsQuery[@"height"], 0)) > 0.5) return NO;
     }
 
-    if (AutoBuiltinStringOrNil(query[@"xpath"]).length > 0 || AutoBuiltinStringOrNil(query[@"predicate"]).length > 0) {
+    if (AutoBuiltinStringOrNil(query[@"predicate"]).length > 0) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationUnavailable,
-            @"Built-in adapter does not support xpath/predicate selectors; use text/label/id/type match fields.");
+            @"Built-in adapter does not support predicate selectors; xpath supports a bounded subset (//Type[@attr='value']); use text/label/id/type match fields.");
         return NO;
     }
     return YES;
@@ -777,6 +978,19 @@ static NSString *AutoBuiltinStringOrNil(id value) {
     } else {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: selector must be a string or object.");
         return nil;
+    }
+    NSInteger xpathPosition = 0;
+    if (AutoBuiltinStringOrNil(query[@"xpath"]).length > 0) {
+        NSError *xpathError = nil;
+        NSDictionary *translated = AutoBuiltinXPathToQuery(query[@"xpath"], &xpathPosition, &xpathError);
+        if (!translated) {
+            if (error) *error = xpathError;
+            return nil;
+        }
+        NSMutableDictionary *merged = [query mutableCopy];
+        [merged removeObjectForKey:@"xpath"];
+        [merged addEntriesFromDictionary:translated];
+        query = merged;
     }
     NSString *handle = AutoBuiltinStringOrNil(query[@"handle"]);
     if (handle.length > 0 && [handle hasPrefix:AutoBuiltinHandlePrefix]) {
@@ -803,6 +1017,10 @@ static NSString *AutoBuiltinStringOrNil(id value) {
             if (error) *error = matchError;
             return nil;
         }
+    }
+    if (xpathPosition > 0) {
+        if ((NSInteger)matches.count < xpathPosition) return @[];
+        return @[matches[xpathPosition - 1]];
     }
     return matches;
 }
@@ -1733,6 +1951,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
               @"swipeScroll": @(touchReady),
               @"multiTouch": @(touchReady),
               @"nodes": @(axReady),
+              @"xpathSubset": @(axReady),
               @"stableNodeHandles": @NO,
               @"screenshot": @YES,
               @"findColor": @YES,

@@ -716,6 +716,11 @@ check(engineSource.includes('AutoSQLiteMaxRows') &&
       engineSource.includes('rows.count < AutoSQLiteMaxRows') &&
       engineSource.includes('sqlite accepts one statement per call'),
       'SQLite query rows must be bounded and multi-statement SQL must be rejected explicitly');
+check(builtinAdapterSource.includes('AutoBuiltinXPathToQuery') &&
+      builtinAdapterSource.includes('AutoBuiltinSplitXPathConditions') &&
+      builtinAdapterSource.includes('"xpathSubset"') &&
+      builtinAdapterSource.includes('Built-in xpath subset supports a single //Type step only'),
+      'Built-in adapter must translate the bounded xpath subset into native query keys');
 check(read('Sources/AutoSDK/include/AutoSDK.h').includes('#import "AutoBuiltinAdapter.h"') &&
       templateSettingsSource.includes('AutoBuiltinAdapter *adapter = [AutoBuiltinAdapter new]') &&
       !templateSettingsSource.includes('AutoWDAHTTPAdapter') &&

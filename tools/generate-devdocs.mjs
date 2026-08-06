@@ -144,8 +144,11 @@ Selector().label("确认").click().find(3000);            // AScript 链式风�
 <tr><td>id / label / name(text) / value / type</td><td>精确匹配</td><td>idMatch / labelMatch / textMatch / valueMatch / typeMatch</td></tr>
 <tr><td>enabled / visible / selected / accessible</td><td>状态过滤</td><td>—</td></tr>
 <tr><td>index / depth / childCount / bounds</td><td>结构过滤</td><td>—</td></tr></table>
-<div class="note warn">内置 no-WDA 适配器暂不支持 <code>xpath</code>/<code>predicate</code>（返回清晰错误）；
-用 text/label/id/type + Match 正则组合可覆盖绝大多数场景。先在<a href="#/inspector">控件查找器</a>里验证选择器再写进脚本。</div>` },
+<div class="note ok"><b>xpath 子集（Round 53+）</b>：内置 no-WDA 适配器支持有界 xpath 子集，单步写法：
+<code>//Button</code>、<code>//*[@text='确认']</code>、<code>//*[contains(@text,'确认')]</code>、
+<code>//Button[@text='a' and @id='b']</code>、<code>//ScrollView[2]</code>（第 2 个匹配）、
+<code>//Image[starts-with(@id,'icon_')]</code>；属性支持 @text/@label/@name/@value/@id/@type/@index/@depth。
+不支持嵌套路径（如 <code>//a/b</code>）与 <code>predicate</code>（返回清晰错误）。先在<a href="#/inspector">控件查找器</a>里验证选择器再写进脚本。</div>` },
 { id: 'node-object', group: '控件检索', title: '控件对象', html: `
 <h1>控件对象（Node）</h1>
 <p><code>node.find(selector)</code> 返回带方法的 Node 对象，可链式操作：</p>
@@ -314,8 +317,9 @@ main();</code></pre>
 <p><b>Q: 和 WDA 方案比有什么优势？</b><br>A: 无需额外的 WebDriverAgent Runner 进程、无 8100 端口转发，
 控件检索为系统级 AX 直查（毫秒级），触摸为 IOHIDEvent 真实注入。</p>
 <h2>脚本编写</h2>
-<p><b>Q: 支持 xpath 选择器吗？</b><br>A: 宿主 UIKit 路径支持；内置跨 App AX 路径暂不支持 xpath/predicate
-（会返回清晰错误），请用 text/desc/id/type + Matches 正则组合。</p>
+<p><b>Q: 支持 xpath 选择器吗？</b><br>A: 宿主 UIKit 路径支持完整 xpath；内置跨 App AX 路径支持<b>有界子集</b>
+（Round 53+）：<code>//Type[@attr='v']</code>、<code>contains/starts-with/ends-with(@attr,'v')</code>、
+<code>and</code> 组合、位置下标 <code>//ScrollView[2]</code>；不支持嵌套路径与 predicate（返回清晰错误）。</p>
 <p><b>Q: 脚本里怎么适配不同分辨率？</b><br>A: 优先控件检索；必须用坐标时用 <code>setScreenMetrics(w,h)</code> 
 做设计稿坐标换算（<code>metrics.x()/y()</code>）。</p>
 <p><b>Q: 死循环停不下来怎么办？</b><br>A: 纯 JS 密集循环无法被抢占式中断，循环体内调用任意 bridge 函数

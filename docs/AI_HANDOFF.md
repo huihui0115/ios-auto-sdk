@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 52（v1.22.0，2026-08-06）。
+> 最后更新：Round 53（v1.23.0，2026-08-07）。
 
 ---
 
@@ -135,7 +135,7 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 - 真机验证系统级 AX 控件查询（跨 App 毫秒级检索）与 SpringBoard 应用控制
   （launch/terminate/前台/锁屏/设置页解锁）。
 - `findImage` 已于 Round 49 实现（有界两阶段模板匹配）；
-  xpath/predicate 选择器在内置 AX 路径仍不支持（返回清晰错误）。
+  xpath 子集已于 Round 53 实现（单步 //Type[@attr='v'] 等翻译为原生查询键）；predicate 仍返回清晰错误。
 - 验证模板 App `AutoSDKAdapter=BUILTIN` 配置接线与 capabilities 降级路径。
 
 ### 工程质量待办
@@ -211,6 +211,9 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R53（v1.23.0）：**内置 no-WDA 补齐 xpath 子集**——AutoBuiltinXPathToQuery 把单步
+  //Type[@attr='v']/contains/starts-with/ends-with/and 组合/位置下标翻译成原生查询键
+  （512 字符上限、未知语法显式报错、capabilities.xpathSubset）；选择器卡片/devdocs/FAQ 同步。
 - R52（v1.22.0）：SQLite 加固（查询结果封顶 10 万行；多语句 SQL 显式报错，
   不再静默只跑第一条）；devdocs 补 3 篇指南（图色识别/发布程序/FAQ，28 页，
   对齐 AScript 文档结构）；verify 新锚点；零 bootstrap 改动（61201/61440）。

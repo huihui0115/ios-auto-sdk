@@ -6,6 +6,25 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-08-06
+
+### Added
+
+- **内置 no-WDA 适配器支持 xpath 子集**（此前直接报错拒绝，对标 AScript/EasyClick 的最大剩余缺口）：
+  - `AutoBuiltinXPathToQuery` 把单步 xpath 翻译为原生查询键：`//Button`、`//*`、
+    `//*[@text='确认']`、`//*[contains(@text,'确认')]`、`starts-with()/ends-with()`、
+    `[@a='x' and @b='y']` 组合、位置下标 `//ScrollView[2]`；
+  - 属性映射 @text/@label/@name/@value/@id/@type/@index/@depth；contains/starts/ends
+    走正则转义后的 *Match 通道，值里的括号/引号/`and` 均被正确处理；
+  - 有界设计：xpath 512 字符上限、单谓词块、单步（禁嵌套路径）、未知属性/未加引号
+    文本值/非法节点名全部显式报错；`predicate` 仍不支持（清晰错误）；
+  - `capabilities` 新增 `xpathSubset` 键；选择器 API 卡片、devdocs 选择器指南与 FAQ 同步。
+
+### Fixed
+
+- xpath 翻译器条件路由：`@text='contains(x)'` 这类「值里带括号」的等值条件曾被误判为
+  函数调用而报错，现按 `=` 与 `(` 的先后正确路由。
+
 ## [1.22.0] - 2026-08-06
 
 ### Added
