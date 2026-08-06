@@ -31,6 +31,20 @@
     NSBundle *bundle = NSBundle.mainBundle;
     NSString *configuredName = [NSUserDefaults.standardUserDefaults stringForKey:@"AutoSDKAdapter"];
     if (configuredName.length == 0) configuredName = [bundle objectForInfoDictionaryKey:@"AutoSDKAdapter"];
+    BOOL useBuiltin = configuredName.length > 0 &&
+        ([configuredName caseInsensitiveCompare:@"BUILTIN"] == NSOrderedSame ||
+         [configuredName caseInsensitiveCompare:@"BUILTIN-NOWDA"] == NSOrderedSame ||
+         [configuredName caseInsensitiveCompare:@"NOWDA"] == NSOrderedSame);
+    if (useBuiltin) {
+        AutoBuiltinAdapter *adapter = [AutoBuiltinAdapter new];
+        id maxNodes = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKMaxSnapshotNodes"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKMaxSnapshotNodes"];
+        if ([maxNodes isKindOfClass:NSNumber.class] && [maxNodes unsignedIntegerValue] > 0) adapter.maxSnapshotNodes = [maxNodes unsignedIntegerValue];
+        id maxDepth = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKMaxSnapshotDepth"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKMaxSnapshotDepth"];
+        if ([maxDepth isKindOfClass:NSNumber.class] && [maxDepth unsignedIntegerValue] > 0) adapter.maxSnapshotDepth = [maxDepth unsignedIntegerValue];
+        id screenshotCache = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKScreenshotCacheDuration"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKScreenshotCacheDuration"];
+        if ([screenshotCache isKindOfClass:NSNumber.class]) adapter.screenshotCacheDuration = [screenshotCache doubleValue];
+        return adapter;
+    }
     BOOL useWDA = configuredName.length > 0 &&
         ([configuredName caseInsensitiveCompare:@"WDA"] == NSOrderedSame ||
          [configuredName caseInsensitiveCompare:@"WDAHTTP"] == NSOrderedSame);

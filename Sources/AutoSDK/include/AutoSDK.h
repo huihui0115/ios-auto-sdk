@@ -2,7 +2,8 @@
 #import "AutoEngine.h"
 #import "AutoAutomationAdapter.h"
 #import "AutoUIKitAdapter.h"
-#import "AutoWDAHTTPAdapter.h"
+#import "AutoBuiltinAdapter.h"
+#import "AutoWDAHTTPAdapter.h" /* legacy external-WDA fallback */
 #import "AutoDebugServer.h"
 #import "AutoHTTPSupport.h"
 #import "AutoSDKError.h"

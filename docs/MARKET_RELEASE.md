@@ -62,7 +62,7 @@ CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
 6. 导出：分享到 Files/隔空投送，确认内容完整。
 7. 重命名/删除：重名时给出明确错误；删除后列表刷新。
 8. 设置页：确认 Debug URL/Token 显示；Wi-Fi 开关切换后日志面板地址变化。
-9. WDA：手机上有 WDA-compatible Runner 时，开启 Use WDA adapter、
+9. 跨 App 模式：首选内置 no-WDA（设置 AutoSDKAdapter=BUILTIN，需特签构建，见 docs/NO_WDA_ARCHITECTURE.md）；仅当内置能力缺失时才用 legacy WDA：手机上有 WDA-compatible Runner 时，开启 Use WDA adapter、
    填 Runner URL 和 Target Bundle ID → Apply → 运行跨 App 脚本。
 10. 回环：关 Wi-Fi 开关后，`npm run debug -- --token <token>` 走 USB 隧道
     能连上并运行脚本。
@@ -70,9 +70,10 @@ CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
 
 ## 5. 已知边界（写进应用内说明，避免售后）
 
-- 跨 App 自动化依赖 WDA Runner：它需要单独签名运行，免费签名环境下
+- 跨 App 自动化主路线为内置 no-WDA 适配器，但其系统级能力依赖特签信任上下文，需按 docs/NO_WDA_ARCHITECTURE.md 完成真机验证；legacy 路线仍依赖 WDA Runner：它需要单独签名运行，免费签名环境下
   不一定每个 iOS 版本都能启动。
 - `AutoUIKitAdapter` 只能自动化本 App 自己的 UIKit 视图。
+- 内置 no-WDA 适配器暂不支持模板找图（findImage）与 xpath/predicate 选择器，硬件按键注入受限。
 - Wi-Fi 调试未加密（仅 token 认证），只建议在可信网络使用。
 - 脚本引擎不是沙盒外的完整浏览器：无 DOM/网络不受控能力，HTTP 默认关闭。
 
@@ -82,4 +83,4 @@ CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
 2. 跑一遍第 3 节的静态检查和 CI 构建。
 3. 人工过一遍第 4 节清单。
 4. 把未签名 IPA 上传商店/分发后台，附上第 5 节说明。
-5. 打 tag：`git tag v1.15.0 && git push origin v1.15.0`。
+5. 打 tag：`git tag v1.16.0 && git push origin v1.16.0`。

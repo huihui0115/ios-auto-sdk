@@ -756,6 +756,23 @@ const templateSettingsSource = read('Examples/TemplateApp/App/AutoTemplateSettin
 check(templateSettingsSource.includes('makeAutomationAdapter') && templateSettingsSource.includes('applyEngineConfiguration') &&
       templateSettingsSource.includes('wifiIPv4Address') && !templateSettingsSource.includes('registerNativeMethod:@"toast"'),
       'Template configuration must build adapters and rely on the engine built-in toast');
+const builtinAdapterSource = read('Sources/AutoSDK/AutoBuiltinAdapter.m');
+check(builtinAdapterSource.includes('IOHIDEventSystemClientCreate') &&
+      builtinAdapterSource.includes('IOHIDEventCreateDigitizerEvent') &&
+      builtinAdapterSource.includes('IOHIDEventSystemClientDispatchEvent') &&
+      builtinAdapterSource.includes('AXUIElementCreateSystemWide') &&
+      builtinAdapterSource.includes('LSApplicationWorkspace') &&
+      builtinAdapterSource.includes('SBSLockDevice') &&
+      builtinAdapterSource.includes('BKSTerminateApplication') &&
+      builtinAdapterSource.includes('@"scope": @"systemWide"') &&
+      !builtinAdapterSource.includes('#import <Accessibility/') &&
+      !builtinAdapterSource.includes('#import <IOKit/'),
+      'Built-in no-WDA adapter must resolve IOHID/Accessibility/SpringBoard symbols at runtime without linking private frameworks');
+check(read('Sources/AutoSDK/include/AutoSDK.h').includes('#import "AutoBuiltinAdapter.h"') &&
+      templateSettingsSource.includes('AutoBuiltinAdapter *adapter = [AutoBuiltinAdapter new]') &&
+      templateSettingsSource.includes('@"BUILTIN-NOWDA"') &&
+      templateSettingsSource.includes('@"NOWDA"'),
+      'Built-in adapter must be exported and selectable from template configuration (BUILTIN/NOWDA)');
 const engineHeader = read('Sources/AutoSDK/include/AutoEngine.h');
 check(engineHeader.includes('saveDeployedScriptNamed:') && engineHeader.includes('deployedScriptContentNamed:') &&
       engineHeader.includes('renameDeployedScriptNamed:'), 'Engine must expose deployed-script save/read/rename APIs');

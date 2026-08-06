@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 45（v1.15.0，2026-08-06）。
+> 最后更新：Round 46（v1.16.0，2026-08-06）。
 
 ---
 
@@ -18,8 +18,13 @@ TrollAutoScript / AutoJS / kuaijs）。核心思路：
 - 脚本通过 **bridge 对象**（`__bridge`）调用原生方法：`invokeClick`、
   `invokeDevice`、`invokeFile`、`invokeHTTP`、`invokeNodeSnapshot`、
   `invokeExecAsync`、`invokeNative`（通用 name/arguments 通道）等约 84 个。
-- 不依赖越狱/巨魔签名：宿主 App 是普通 App，自动化能力受 iOS 沙盒限制，
-  跨 App 操作通过可选的 WDA/XCTest 适配器（`AutoWDAHTTPAdapter`）。
+- 宿主 App 是普通 App（免越狱）；**Round 46 起跨 App 自动化主路线是内置
+  no-WDA 适配器 `AutoBuiltinAdapter`**（IOHIDEvent 真实触摸注入 + AXUIElement
+  系统级控件查询 + SpringBoard 应用控制，全部私有 API 运行时 dlopen/dlsym
+  解析，不链接私有框架），对标 AScript Agent 模式；外部 WDA/XCTest 适配器
+  （`AutoWDAHTTPAdapter`）降级为 legacy 回退。触摸注入与系统级 AX 需要
+  允许私有 API 的构建（TrollStore/开发者签名），详见
+  `docs/NO_WDA_ARCHITECTURE.md`。
 
 ## 2. 架构速览
 
@@ -40,7 +45,9 @@ bridge (__bridge 对象，JSValue block)
    ▼
 原生实现 (AutoEngine.m / AutoScriptSupport.m / AutoHTTPSupport.m)
    ├── UIKit 适配器（宿主 App 内自动化）AutoUIKitAdapter
-   ├── WDA 适配器（跨 App，需外部 Runner）AutoWDAHTTPAdapter
+   ├── 内置 no-WDA 适配器（跨 App 主路线）AutoBuiltinAdapter
+   │      IOHIDEvent 触摸注入 + 系统级 AX 控件 + SpringBoard 应用控制
+   ├── WDA 适配器（legacy 回退，需外部 Runner）AutoWDAHTTPAdapter
    └── 不可用回退 AutoUnavailableAdapter
 ```
 
@@ -55,6 +62,9 @@ bridge (__bridge 对象，JSValue block)
 | `Sources/AutoSDK/AutoScriptSupport.m` | 文件沙盒、HTTP 安全、HMAC、sqlite、yolo 等支持层 |
 | `Sources/AutoSDK/AutoHTTPSupport.m` | HTTP 协议实现 |
 | `Sources/AutoSDK/AutoDebugServer.m` | WebSocket 调试服务（VS Code 扩展对接） |
+| `Sources/AutoSDK/AutoBuiltinAdapter.m` | 内置 no-WDA 适配器（IOHIDEvent 触摸注入 + 系统级 AX 查询 + SpringBoard/BackBoard 应用控制 + 截图/OCR，私有 API 全运行时解析，~76KB LF） |
+| `Sources/AutoSDK/include/AutoBuiltinAdapter.h` | 内置适配器头（maxSnapshotNodes/maxSnapshotDepth/screenshotCacheDuration） |
+| `docs/NO_WDA_ARCHITECTURE.md` | 内置 no-WDA 适配器架构/启用方式/签名要求/真机验证计划 |
 | `types/autosdk.d.ts` | TypeScript 类型声明（与文档闭环） |
 | `tools/verify.mjs` | 一致性断言（bootstrap/原生/d.ts/文档/版本） |
 | `tools/bootstrap.test.mjs` | bootstrap 行为测试（Node vm + mock bridge） |
@@ -66,12 +76,16 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 45 / v1.15.0）
+## 4. 当前状态（Round 46 / v1.16.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **60895 / 61440**（预算 60×1024 UTF-16 码元）。
 - 文档 **257 个函数 / 257 个可运行示例 / 13 个分类**；测试 **79 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`。
+- **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
+  `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制），WDA 降为 legacy；
+  模板 App `makeAutomationAdapter` 支持 `BUILTIN`/`BUILTIN-NOWDA`/`NOWDA` 值；
+  架构与签名要求见 `docs/NO_WDA_ARCHITECTURE.md`。
 
 已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -111,7 +125,16 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 ### 不可实现（记录为缺口即可）
 - `imeApi.*`（需自建输入法）、`ecNetCard.*`/BLE/OTG/HID（硬件）、
   agent 远程调用、OpenCV 级 `matchTemplate`（当前 CoreGraphics）、
-  实时触摸注入（UIKit 限制，需 WDA/私有适配器）、无限纯 JS 循环抢占停止。
+  无限纯 JS 循环抢占停止。（实时触摸注入已由 Round 46 内置适配器解决。）
+
+### Round 46 内置适配器真机验证待办（下轮优先）
+- 真机验证 IOHIDEvent 触摸注入（需允许私有 API 的签名：TrollStore/开发者证书；
+  App Store 构建会被审核拒绝，capabilities 会如实降级报告）。
+- 真机验证系统级 AX 控件查询（跨 App 毫秒级检索）与 SpringBoard 应用控制
+  （launch/terminate/前台/锁屏/设置页解锁）。
+- 内置适配器截图路径的 `findImage` 尚未实现（返回清晰错误）；
+  xpath/predicate 选择器在内置 AX 路径不支持（返回清晰错误）。
+- 验证模板 App `AutoSDKAdapter=BUILTIN` 配置接线与 capabilities 降级路径。
 
 ### 工程质量待办
 - 原生 `Tests/` 目前只有 AutoEngineTests / AutoHTTPProtocolTests，可在
@@ -181,6 +204,11 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   previousSiblings（nr 工厂）；set_text/clear_text 引用化（余 140B）。
 - R45（v1.15.0）：node.allChildren() 递归子孙；dp helper 压缩 -405B +
   修复 boundsInfo 不可重定义 TypeError（余 545B）。
+- R46（v1.16.0）：**内置 no-WDA 适配器 AutoBuiltinAdapter**（IOHIDEvent 真实
+  触摸注入 + AXUIElement 系统级控件查询 + SpringBoard/BackBoard/LS 应用控制 +
+  UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
+  外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
+  docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
 
 ## 10. 新 AI 接手第一步
 

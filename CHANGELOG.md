@@ -6,6 +6,39 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-08-06
+
+### Added
+
+- **内置 no-WDA 适配器 `AutoBuiltinAdapter`**：跨 App 自动化主路线，不再依赖外部
+  WDA Runner（对标 AScript Agent no-WDA 模式 / kuaijs）：
+  - **IOHIDEvent 真实触摸注入**：系统级 digitizer 事件（tap/长按/滑动/拖拽），
+    W3C 多点手势时序回放（performMultiTouch 按相对 duration 毫秒播放）。
+  - **AXUIElement 系统级控件查询**：跨 App 毫秒级检索，支持
+    text/label/name/value/id/type 及各自正则匹配、enabled/selected/depth/index/bounds
+    过滤与关系遍历；句柄 `axb:<索引路径>`，描述符键与 UIKit 适配器一致。
+  - **应用控制**：LSApplicationWorkspace 已装应用列表、SpringBoard 启动、
+    BackBoard 终止、前台 bundleId 检测、锁屏、打开系统设置页（App-prefs 解锁）。
+  - **截图与图色**：UIGetScreenImage 系统级截图（宿主窗口回退），
+    pixelColor/findColor/compareColors/findMultiColor 位图扫描，Vision OCR。
+  - 所有私有符号 dlopen/dlsym 运行时解析，不链接任何私有框架；
+    capabilities 按运行时解析结果如实降级（scope=systemWide, adapter=builtin）。
+- **模板 App**：`makeAutomationAdapter` 支持 `BUILTIN`/`BUILTIN-NOWDA`/`NOWDA`，
+  新增配置键 AutoSDKMaxSnapshotNodes/AutoSDKMaxSnapshotDepth/AutoSDKScreenshotCacheDuration。
+- **文档**：新架构文档 `docs/NO_WDA_ARCHITECTURE.md`（架构/能力表/启用方式/
+  签名要求/真机验证计划/已知限制）；README 与 MARKET_RELEASE 改为内置优先叙述。
+
+### Changed
+
+- **WDA 降级**：`AutoWDAHTTPAdapter` 保留为 legacy 回退，不再是跨 App 主路线。
+- **verify**：新增内置适配器静态锚点（IOHID/AX/SpringBoard 符号、scope systemWide、
+  禁止静态 import 私有框架头、模板 BUILTIN 接线）。
+
+### Notes
+
+- 触摸注入与系统级 AX 需允许私有 API 的构建（TrollStore/开发者签名）；
+  真机验证列入下轮待办。本轮零 bootstrap JS 改动（60895/61440，余 545B）。
+
 ## [1.15.0] - 2026-08-06
 
 ### Added

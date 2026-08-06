@@ -21,11 +21,13 @@
 - 脚本可取消：`stopScript`/`scriptTimeout` 在桥接调用、`auto.sleep` 和定时器回调处协作式中断脚本
 - CocoaPods 和 Swift Package Manager 接入骨架
 - 基于公共 API 的 `AutoUIKitAdapter`，可直接自动化宿主 App 自己的 UIKit 视图
+- 内置 no-WDA 适配器 `AutoBuiltinAdapter`：IOHIDEvent 真实触摸注入 + 系统级无障碍控件查询 + 应用控制，无外部 WDA 进程（面向 TrollStore/企业签构建，架构与签名要求见 `docs/NO_WDA_ARCHITECTURE.md`）
 
 > 📖 中文图文教程（离线网页版，双击即开）：[docs/guide/index.html](docs/guide/index.html)（安装 → 连接 → 第一行代码 → 调试）。
 > 🤖 AI 交接手册（换 AI 继续迭代前必读）：[`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md) + 根目录 [`AGENTS.md`](AGENTS.md)。
 > 🆚 对标文档：[`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)（EasyClick）、[`docs/TROLLAUTOSCRIPT_COMPARISON.md`](docs/TROLLAUTOSCRIPT_COMPARISON.md)（TrollAutoScript）、[`docs/ASCRIPT_COMPARISON.md`](docs/ASCRIPT_COMPARISON.md)（AScript）、[`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)（AutoScript）。
 > 🚀 免巨魔路线（对标 AScript/kuaijs）：[`docs/NO_TROLLSTORE.md`](docs/NO_TROLLSTORE.md)——免费签名安装 / XCTest 激活 WDA / HID 模式。
+> 🔥 内置 no-WDA 架构（Round 46 起的主路线）：[`docs/NO_WDA_ARCHITECTURE.md`](docs/NO_WDA_ARCHITECTURE.md)——放弃外挂 WDA，触摸/控件/应用控制全部内置。
 > 🚀 想快速上手？先看 [`docs/QUICK_START.md`](docs/QUICK_START.md)（第三方 10 分钟跑通
 > 「写脚本 → 构建 IPA → 安装 → 调试」）。与 AutoScript 的定位/能力对比见
 > [`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)。
@@ -45,7 +47,7 @@ pod 'AutoSDK', :path => '../AutoSDK'
 
 ### 配置自动化适配器
 
-宿主 App 必须实现 `AutoAutomationAdapter`，把 `click`、控件查找、截图等操作转发到自己的 XCTest/WDA 层：
+宿主 App 通过 `AutoAutomationAdapter` 接入自动化能力。跨 App 自动化首选内置 no-WDA 的 `AutoBuiltinAdapter`（需特签构建）；App Store 安全构建用 `AutoUIKitAdapter`（仅宿主 App 内）；外部 WDA 仅作 legacy 回退：
 
 ```objc
 AutoEngine *engine = AutoEngine.sharedEngine;
@@ -75,7 +77,7 @@ AutoEngine *engine = AutoEngine.sharedEngine;
 
 没有设置适配器时，SDK 使用 `AutoUnavailableAdapter` 并返回明确错误，不会假装执行 UI 操作。
 
-`AutoUIKitAdapter` 支持 `id`、`label`、`type`、`value` 及组合选择器，可完成宿主 App 内点击、输入、滚动、节点查询、截图和 Vision OCR。需要跨 App 时可使用 [`AutoWDAHTTPAdapter`](Sources/AutoSDK/include/AutoWDAHTTPAdapter.h)，连接设备上单独运行的 WDA-compatible Runner；它不把 XCTest 私有代码伪装成普通 SDK；跨 App 自动化需要单独安装/激活 WDA Runner（免巨魔路线见 `docs/NO_TROLLSTORE.md`）。
+`AutoUIKitAdapter` 支持 `id`、`label`、`type`、`value` 及组合选择器，可完成宿主 App 内点击、输入、滚动、节点查询、截图和 Vision OCR。跨 App 自动化主路线是内置 no-WDA 的 [`AutoBuiltinAdapter`](Sources/AutoSDK/include/AutoBuiltinAdapter.h)：IOHIDEvent 注入真实触摸、系统级无障碍接口查询控件、LSApplicationWorkspace/SpringBoardServices 控制应用，全部私有符号运行时解析、缺能力时如实报错（签名要求与验证计划见 `docs/NO_WDA_ARCHITECTURE.md`）。[`AutoWDAHTTPAdapter`](Sources/AutoSDK/include/AutoWDAHTTPAdapter.h) 保留为 legacy 回退：连接设备上单独运行的 WDA-compatible Runner，需要单独安装/激活（免巨魔路线见 `docs/NO_TROLLSTORE.md`）。
 
 ## 脚本 API
 > 📚 交互式 API 速查（分类导航 + 搜索 + 一键复制可运行示例）：[docs/api-reference.html](docs/api-reference.html)，浏览器双击即开。
@@ -128,9 +130,11 @@ auto.toast("自定义方法由 Native 注册");
 
 ## 重要限制
 
-普通 App 进程不能稳定调用 Apple 未公开的 XCTest/WDA 私有接口。生产集成应将
-真实 WDA/XCTest 代码放在宿主自己的开发/企业签名目标中，并实现适配器；不要把
-私有符号、未授权的 USB 隧道或后台设备管理默认打进 App Store 构建。
+`AutoBuiltinAdapter` 通过 dlopen/dlsym 运行时解析私有符号，从不链接私有框架；
+系统级触摸注入与跨 App 控件读取需要特签分发（TrollStore/企业签）提供的信任
+上下文，且可用面随 iOS 版本变化，必须按 `docs/NO_WDA_ARCHITECTURE.md` 第 5 节
+做真机验证。App Store 构建只允许 `AutoUIKitAdapter`：不要把私有符号调用、
+未授权的 USB 隧道或后台设备管理默认打进商店包。
 
 Windows 环境无法编译 iOS Framework。请在 macOS + Xcode 14+ 上执行：
 
