@@ -355,14 +355,24 @@ check(engineSource.includes('@"allowSystemControl"') && engineSource.includes('@
       engineSource.includes('isEqualToString:@"openurl"'),
       'System control must be configurable, capability-reported, bounded, and URL schemes validated');
 const bootstrapSource = read('Sources/AutoSDK/AutoBootstrapScript.m');
-check(bootstrapSource.includes("operation:'clipboardGet'") && bootstrapSource.includes("operation:'clipboardSet'") &&
-      bootstrapSource.includes("operation:'brightnessGet'") && bootstrapSource.includes("operation:'brightnessSet'") &&
-      bootstrapSource.includes("operation:'volumeGet'") && bootstrapSource.includes("operation:'vibrate'") &&
+check(bootstrapSource.includes("_dv('clipboardGet')") && bootstrapSource.includes("_dv('clipboardSet'") &&
+      bootstrapSource.includes("_dv('brightnessGet')") && bootstrapSource.includes("_dv('brightnessSet'") &&
+      bootstrapSource.includes("_dv('volumeGet')") && bootstrapSource.includes("_dv('vibrate'") &&
       bootstrapSource.includes("operation:'openURL'") && bootstrapSource.includes("operation:'homescreen'") &&
       bootstrapSource.includes('g.openURL=') && bootstrapSource.includes('homeScreen:function()'),
       'Bootstrap must expose clipboard, brightness, volume, vibration, openURL and home-screen operations with globals');
-check(bootstrapSource.includes("operation:'saveImage'") && bootstrapSource.includes("operation:'saveImageBase64'") &&
-      bootstrapSource.includes("operation:'saveVideo'") && bootstrapSource.includes("operation:'saveScreenshot'") &&
+check(bootstrapSource.includes("keepScreenOn:function(value)") && bootstrapSource.includes("_dv('keepScreenOn'") &&
+      bootstrapSource.includes('g.keepScreenOn=deviceApi.keepScreenOn'),
+      'Bootstrap must expose device.keepScreenOn and its global alias');
+check(bootstrapSource.includes("loadHTML:function(token,html)") && bootstrapSource.includes("_nn('webViewLoadHTML'"),
+      'Bootstrap must expose webView.loadHTML');
+check(bootstrapSource.includes('function ocrFind(') && bootstrapSource.includes('g.ocr=base.ocr') &&
+      bootstrapSource.includes('g.ocrClick=ocrClick') && bootstrapSource.includes('g.ocrText=ocrText'),
+      'Bootstrap must expose ocrClick/ocrText convenience helpers and the ocr global');
+check(bootstrapSource.includes('function _dv(') && bootstrapSource.includes('function _md(') && bootstrapSource.includes('function _nn('),
+      'Bootstrap must define the compact bridge helpers');
+check(bootstrapSource.includes("_md('saveImage'") && bootstrapSource.includes("_md('saveImageBase64'") &&
+      bootstrapSource.includes("_md('saveVideo'") && bootstrapSource.includes("_md('saveScreenshot'") &&
       bootstrapSource.includes('var mediaApi=') && bootstrapSource.includes('g.media=mediaApi') &&
       bootstrapSource.includes('saveImageToAlbum:function') && bootstrapSource.includes('saveVideoToAlbum:function'),
       'Bootstrap must wire photo-library media operations and aliases');
@@ -397,7 +407,7 @@ check(engineSource.includes('isEqualToString:@"toast"') && engineSource.includes
       'Engine must provide a built-in toast fallback for unregistered hosts');
 check(engineSource.includes('[nativePayload[@"arguments"] isKindOfClass:NSArray.class]'),
       'The built-in toast must parse arguments with a bracketed message send');
-check(bootstrapSource.includes('getMemoryInfo:function') && bootstrapSource.includes("operation:'memory'") &&
+check(bootstrapSource.includes('getMemoryInfo:function') && bootstrapSource.includes("_dv('memory')") &&
       bootstrapSource.includes('writeLines:function') && bootstrapSource.includes("callFile('move'") &&
       bootstrapSource.includes('rename:function') && bootstrapSource.includes('base.toast=function') &&
       bootstrapSource.includes('base.toastLog=function') && bootstrapSource.includes('g.toast=base.toast'),
@@ -412,7 +422,7 @@ check(bootstrapSource.includes('function pushTimer') && bootstrapSource.includes
       'Timer draining must use a bounded priority heap instead of repeated full-array sorting');
 check(bootstrapSource.includes('cancelled[id]=true') && bootstrapSource.includes('delete cancelled[timer.id]'), 'Queued timer cancellation must not leak cancellation markers');
 check(bootstrapSource.includes('function ensureRunning()') && bootstrapSource.includes('guardMethods(base)') &&
-      bootstrapSource.includes('ensureRunning();return bridge.invokeNative'),
+      bootstrapSource.includes('ensureRunning();return _nn(String(key)'),
       'Script stop must reject subsequent automation and native bridge calls');
 check(bootstrapSource.includes('delete g.__bridge;delete g.__console') &&
       engineSource.includes('[drainTimers callWithArguments:@[]]') &&
@@ -457,8 +467,14 @@ check(read('Tests/AutoSDKTests/AutoHTTPProtocolTests.m').includes('mergedConfig[
       'HTTP protocol tests must inject their NSURLProtocol class through configuration');
 check(engineSource.includes('setPolicy:policy forTask:') && engineSource.includes('removePolicyForTask:'),
       'Per-task redirect policies must be registered before resume and removed after completion');
-check(!engineSource.includes('[session invalidateAndCancel]') && !engineSource.includes('finishTasksAndInvalidate'),
-      'The shared HTTP session must never be invalidated per request');
+{
+  const sharedStart = engineSource.indexOf('static NSURLSession *AutoHTTPSharedSession');
+  const sharedReturn = engineSource.indexOf('return session;', sharedStart);
+  const sharedBlock = sharedStart >= 0 && sharedReturn > sharedStart
+    ? engineSource.slice(sharedStart, sharedReturn + 15) : '';
+  check(sharedBlock.length > 0 && !sharedBlock.includes('invalidateAndCancel') && !sharedBlock.includes('finishTasksAndInvalidate'),
+        'The shared HTTP session must never be invalidated per request');
+}
 check(engineSource.includes('maxHTTPRequestBytes') && engineSource.includes('countOfBytesExpectedToReceive'), 'HTTP request and response memory must be bounded before decoding');
 check(engineSource.includes('responseData.length > maximumResponseBytes') &&
       engineSource.includes('countOfBytesExpectedToReceive') && engineSource.includes('countOfBytesReceived'),

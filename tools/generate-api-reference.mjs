@@ -41,6 +41,7 @@ const REFS = {
   'audioPlay(path, volume?, stopWhenScriptEnd?)': 'AScript audio_play 按 ID 管理',
   'audioStop(id?)': 'AScript audio_stop',
   'device.isLocked()': 'AScript system.is_locked',
+  'device.keepScreenOn()': 'EasyClick keepScreenOn() · AutoJS device.keepScreenOn()',
   'Selector().text(v).type(t).findOne()': 'AScript Selector 链式选择器',
   'clickPoint(x, y)': 'EasyClick clickPoint() · AutoJS click(x, y)',
   'doubleClickPoint(x, y, interval?)': 'EasyClick doubleClickPoint() · AutoJS click(x, y, true)',
@@ -717,7 +718,7 @@ APIS.push({ cat:'touch', sig:'click(x, y, jitter?) / click(selector)', title:'�
   const ok2 = click({text: "确定"});      // 控件点击
   logd("点击: " + ok1 + " " + ok2);
 }
-main();` });APIS.push({ cat:'touch', sig:'Selector().text(v).type(t).findOne() / selector(init?)', title:'链式选择器', desc:'AScript 风格链式选择器：text/textContains/textStartsWith/textEndsWith/textMatches、desc/descContains/descMatches、label/labelContains/labelMatches、value/name/id/type、clickable/visible/enabled/selected、index/depth/bounds/xpath/predicate 逐层叠加条件；终端方法 findOne()/one()/find_one()/find_once() 取单个、find()/findAll()/all()/find_all() 取列表、exists() 判断存在、waitFor(timeoutMs)/wait_for() 等待出现、click()/tap()/longClick(d) 直接操作。', params:[['v','string','匹配文本'],['t','string','控件类型，如 Button'],['timeoutMs','number','waitFor 超时毫秒，默认 10000']], returns:'AutoNodeObject | AutoNodeObject[] | boolean', example:`function main(){
+main();` });APIS.push({ cat:'touch', sig:'Selector().text(v).textContains(v).textStartsWith(v).textEndsWith(v).textMatches(p).desc(v).descContains(v).descMatches(p).label(v).labelContains(v).labelMatches(p).value(v).valueContains(v).valueMatches(p).name(v).nameMatches(p).id(v).type(t).clickable().visible().enabled().index(i).depth(d).bounds(x,y,w,h).xpath(p).predicate(p).one() / find_one() / find_once() / find() / findAll() / find_all() / all() / exists() / waitFor(ms) / wait_for(ms) / click() / tap() / clickCenter() / longClick(d) / selector(init?)', title:'链式选择器', desc:'AScript 风格链式选择器：text/textContains/textStartsWith/textEndsWith/textMatches、desc/descContains/descMatches、label/labelContains/labelMatches、value/name/id/type、clickable/visible/enabled/selected、index/depth/bounds/xpath/predicate 逐层叠加条件；终端方法 findOne()/one()/find_one()/find_once() 取单个、find()/findAll()/all()/find_all() 取列表、exists() 判断存在、waitFor(timeoutMs)/wait_for() 等待出现、click()/tap()/longClick(d) 直接操作。', params:[['v','string','匹配文本'],['t','string','控件类型，如 Button'],['timeoutMs','number','waitFor 超时毫秒，默认 10000']], returns:'AutoNodeObject | AutoNodeObject[] | boolean', example:`function main(){
   const node = Selector().textContains("确").type("Button").findOne();
   if (node) node.click();
   const list = selector({ text: "开始" }).findAll();
@@ -875,7 +876,7 @@ APIS.push({ cat:'touch', sig:'scrollIntoView(selector)', title:'滚动到可见'
   if (ok) click({text: "底部按钮"});
 }
 main();` });
-APIS.push({ cat:'vision', sig:'screenshot()', title:'截屏', desc:'截取当前屏幕，返回 PNG 的 Base64 字符串。', params:[], returns:'string PNG base64', example:`function main(){
+APIS.push({ cat:'vision', sig:'screenshot() / capture()', title:'截屏', desc:'截取当前屏幕，返回 PNG 的 Base64 字符串。', params:[], returns:'string PNG base64', example:`function main(){
   const png = screenshot();
   logd("截图长度: " + png.length);
 }
@@ -966,7 +967,15 @@ APIS.push({ cat:'vision', sig:'ocr(options?)', title:'文字识别（OCR）', de
   }
 }
 main();` });
-APIS.push({ cat:'vision', sig:'image.findImage / findColor / pixel / screenshot', title:'图色模块别名', desc:'image 命名空间提供图色函数别名，便于移植。', params:[], returns:'同对应函数', example:`function main(){
+APIS.push({ cat:'vision', sig:'ocrClick(text, timeoutMs?)', title:'识别并点击文字', desc:'反复 OCR 直到屏幕出现包含指定文本的识别项，然后点击该文本中心点；timeoutMs 默认 10000 毫秒，超时返回 false。用于「看不到控件」时按文字坐标点击，对标 AScript ocr 文字点击。', params:[['text','string','要匹配的文本（包含即命中）'],['timeoutMs','number','可选，总超时毫秒，默认 10000']], returns:'boolean', example:`function main(){
+  const ok = ocrClick("确定");
+  logd("点到了吗: " + ok);
+}
+main();` });APIS.push({ cat:'vision', sig:'ocrText(text, timeoutMs?)', title:'识别并读取文字', desc:'反复 OCR 直到屏幕出现包含指定文本的识别项，返回该项（含 text/bounds/confidence），超时返回 null。可配合 ocrClick 先确认文本出现再操作。', params:[['text','string','要匹配的文本（包含即命中）'],['timeoutMs','number','可选，总超时毫秒，默认 10000']], returns:'AutoOCRItem | null', example:`function main(){
+  const item = ocrText("开始");
+  if (item) logd("坐标: " + item.bounds.x + "," + item.bounds.y);
+}
+main();` });APIS.push({ cat:'vision', sig:'image.findImage / findColor / pixel / screenshot', title:'图色模块别名', desc:'image 命名空间提供图色函数别名，便于移植。', params:[], returns:'同对应函数', example:`function main(){
   const png = image.screenshot();
   const m = image.findColor("#ffffff", {x: 0, y: 0, width: 100, height: 100});
   const p = image.pixel(10, 10);
@@ -1088,7 +1097,12 @@ APIS.push({ cat:'device', sig:'device.volumeUp() / device.volumeDown()', title:'
   logd("音量+ " + ok);
 }
 main();` });
-APIS.push({ cat:'device', sig:'device.isLocked()', title:'是否锁屏', desc:'返回设备当前是否处于锁屏状态；isScreenOn() 为反向查询（点亮/未锁屏）。对标 AScript system.is_locked。', params:[], returns:'boolean', example:`function main(){
+APIS.push({ cat:'device', sig:'device.keepScreenOn(on?) / keepScreenOn(on?)', title:'屏幕常亮开关', desc:'开启/关闭屏幕常亮（防止自动锁屏），默认开启。on=false 时恢复系统自动锁屏策略。对标 EasyClick keepScreenOn()。', params:[['on','boolean','可选，默认 true：true 保持常亮，false 恢复自动锁屏']], returns:'boolean', example:`function main(){
+  device.keepScreenOn(true);   // 常亮
+  sleep(30000);
+  keepScreenOn(false);         // 恢复自动锁屏
+}
+main();` });APIS.push({ cat:'device', sig:'device.isLocked()', title:'是否锁屏', desc:'返回设备当前是否处于锁屏状态；isScreenOn() 为反向查询（点亮/未锁屏）。对标 AScript system.is_locked。', params:[], returns:'boolean', example:`function main(){
   if (device.isLocked()) logd("设备已锁屏");
 }
 main();` });APIS.push({ cat:'device', sig:'device.isScreenOn()', title:'屏幕状态', desc:'查询屏幕是否点亮（未锁屏），WDA 真机支持；宿主适配器不支持时返回错误。', params:[], returns:'boolean', example:`function main(){
@@ -1359,7 +1373,7 @@ APIS.push({ cat:'media', sig:'auto.saveImageToAlbum / image.saveToAlbum 等别�
 }
 main();` });
 
-APIS.push({ cat:'strings', sig:'webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.takeMessage(token) / webView.injectBridge(token) / webView.release(token)', title:'webView 悬浮网页', desc:'在 App 内创建并显示一个悬浮 WKWebView：init 创建（返回 token），show 指定位置尺寸显示，hidden 隐藏，eval 在页面执行 JS 并返回结果，takeMessage 拉取页面发来的消息（页面通过 window.webkit.messageHandlers.autosdk.postMessage(payload) 发送，injectBridge 注入 window.autosdkBridge.postMessage 便捷封装），release 释放。对标 TrollAutoScript/AScript WebWindow 双向通道。', params:[['url','string','可选，首页网址，默认 about:blank'],['token','string','webView.init 返回的标识'],['x/y/width/height','number','可选，显示位置与尺寸'],['js','string','要执行的 JavaScript']], returns:'string token | boolean | unknown', example:`function main(){
+APIS.push({ cat:'strings', sig:'webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.takeMessage(token) / webView.injectBridge(token) / webView.release(token) / webView.loadHTML(token, html)', title:'webView 悬浮网页', desc:'在 App 内创建并显示一个悬浮 WKWebView：init 创建（返回 token），show 指定位置尺寸显示，hidden 隐藏，eval 在页面执行 JS 并返回结果，takeMessage 拉取页面发来的消息（页面通过 window.webkit.messageHandlers.autosdk.postMessage(payload) 发送，injectBridge 注入 window.autosdkBridge.postMessage 便捷封装），release 释放。对标 TrollAutoScript/AScript WebWindow 双向通道。', params:[['url','string','可选，首页网址，默认 about:blank'],['token','string','webView.init 返回的标识'],['x/y/width/height','number','可选，显示位置与尺寸'],['js','string','要执行的 JavaScript']], returns:'string token | boolean | unknown', example:`function main(){
   const token = webView.init("https://example.com");
   webView.show(token, 0, 100, 390, 600);
   const title = webView.eval(token, "document.title");

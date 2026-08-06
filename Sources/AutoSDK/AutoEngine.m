@@ -2320,7 +2320,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     }
     if ([operation isEqualToString:@"clipboardGet"] || [operation isEqualToString:@"clipboardSet"] ||
         [operation isEqualToString:@"brightnessGet"] || [operation isEqualToString:@"brightnessSet"] ||
-        [operation isEqualToString:@"volumeGet"] || [operation isEqualToString:@"vibrate"]) {
+        [operation isEqualToString:@"volumeGet"] || [operation isEqualToString:@"vibrate"] ||
+        [operation isEqualToString:@"keepScreenOn"]) {
         if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
             return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
         }
@@ -2351,6 +2352,14 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Brightness must be between 0 and 1.", nil)];
         }
         AutoValueOnMainThread(^id{ UIScreen.mainScreen.brightness = value; return @YES; });
+        return @YES;
+    }
+    if ([operation isEqualToString:@"keepScreenOn"]) {
+        BOOL keepOn = AutoBoolean(data[@"value"], YES);
+        AutoValueOnMainThread(^id{
+            UIApplication.sharedApplication.idleTimerDisabled = keepOn;
+            return @YES;
+        });
         return @YES;
     }
     if ([operation isEqualToString:@"volumeGet"]) {
@@ -2604,7 +2613,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         }
         if ([name isEqualToString:@"webViewInit"] || [name isEqualToString:@"webViewShow"] ||
             [name isEqualToString:@"webViewHidden"] || [name isEqualToString:@"webViewEval"] ||
-            [name isEqualToString:@"webViewTakeMessage"] || [name isEqualToString:@"webViewRelease"]) {
+            [name isEqualToString:@"webViewTakeMessage"] || [name isEqualToString:@"webViewLoadHTML"] ||
+            [name isEqualToString:@"webViewRelease"]) {
             NSArray *webArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
             return [self handleWebViewOperation:name arguments:webArgs];
         }
@@ -2788,6 +2798,11 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     }
     if ([name isEqualToString:@"webViewHidden"]) {
         [webView removeFromSuperview];
+        return @YES;
+    }
+    if ([name isEqualToString:@"webViewLoadHTML"]) {
+        NSString *html = args.count > 1 && [args[1] isKindOfClass:NSString.class] ? args[1] : @"";
+        [webView loadHTMLString:html baseURL:nil];
         return @YES;
     }
     if ([name isEqualToString:@"webViewRelease"]) {

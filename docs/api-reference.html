@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>25</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>18</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>26</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>10</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>27</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>18</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>27</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>10</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -265,13 +265,13 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="Selector().text(v).type(t).findOne() / selector(init?) 链式选择器">
+<article class="card" data-search="Selector().text(v).textContains(v).textStartsWith(v).textEndsWith(v).textMatches(p).desc(v).descContains(v).descMatches(p).label(v).labelContains(v).labelMatches(p).value(v).valueContains(v).valueMatches(p).name(v).nameMatches(p).id(v).type(t).clickable().visible().enabled().index(i).depth(d).bounds(x,y,w,h).xpath(p).predicate(p).one() / find_one() / find_once() / find() / findAll() / find_all() / all() / exists() / waitFor(ms) / wait_for(ms) / click() / tap() / clickCenter() / longClick(d) / selector(init?) 链式选择器">
   <header class="card-head">
-    <h4><code>Selector().text(v).type(t).findOne() / selector(init?)</code> <span class="cname">链式选择器</span></h4>
+    <h4><code>Selector().text(v).textContains(v).textStartsWith(v).textEndsWith(v).textMatches(p).desc(v).descContains(v).descMatches(p).label(v).labelContains(v).labelMatches(p).value(v).valueContains(v).valueMatches(p).name(v).nameMatches(p).id(v).type(t).clickable().visible().enabled().index(i).depth(d).bounds(x,y,w,h).xpath(p).predicate(p).one() / find_one() / find_once() / find() / findAll() / find_all() / all() / exists() / waitFor(ms) / wait_for(ms) / click() / tap() / clickCenter() / longClick(d) / selector(init?)</code> <span class="cname">链式选择器</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">AScript 风格链式选择器：text/textContains/textStartsWith/textEndsWith/textMatches、desc/descContains/descMatches、label/labelContains/labelMatches、value/name/id/type、clickable/visible/enabled/selected、index/depth/bounds/xpath/predicate 逐层叠加条件；终端方法 findOne()/one()/find_one()/find_once() 取单个、find()/findAll()/all()/find_all() 取列表、exists() 判断存在、waitFor(timeoutMs)/wait_for() 等待出现、click()/tap()/longClick(d) 直接操作。</p>
-  <div class="ref"><b>对标</b> AScript Selector 链式选择器</div>
+  
   <div class="params"><b>参数</b><div class="param"><code class="pname">v</code><span class="ptype">string</span><span class="pdesc">匹配文本</span></div><div class="param"><code class="pname">t</code><span class="ptype">string</span><span class="pdesc">控件类型，如 Button</span></div><div class="param"><code class="pname">timeoutMs</code><span class="ptype">number</span><span class="pdesc">waitFor 超时毫秒，默认 10000</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoNodeObject | AutoNodeObject[] | boolean</span></div>
   <pre><code>function main(){
@@ -923,10 +923,10 @@ main();</code></pre>
 </article>
 </section>
 <section id="vision" class="cat" style="--c:#ea580c">
-  <h2><span class="tag">图色与OCR</span><i>25</i></h2>
-  <article class="card" data-search="screenshot() 截屏">
+  <h2><span class="tag">图色与OCR</span><i>27</i></h2>
+  <article class="card" data-search="screenshot() / capture() 截屏">
   <header class="card-head">
-    <h4><code>screenshot()</code> <span class="cname">截屏</span></h4>
+    <h4><code>screenshot() / capture()</code> <span class="cname">截屏</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">截取当前屏幕，返回 PNG 的 Base64 字符串。</p>
@@ -1166,6 +1166,36 @@ main();</code></pre>
   for (const item of items) {
     logd(item.text + " @ " + JSON.stringify(item.bounds));
   }
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="ocrClick(text, timeoutMs?) 识别并点击文字">
+  <header class="card-head">
+    <h4><code>ocrClick(text, timeoutMs?)</code> <span class="cname">识别并点击文字</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">反复 OCR 直到屏幕出现包含指定文本的识别项，然后点击该文本中心点；timeoutMs 默认 10000 毫秒，超时返回 false。用于「看不到控件」时按文字坐标点击，对标 AScript ocr 文字点击。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">要匹配的文本（包含即命中）</span></div><div class="param"><code class="pname">timeoutMs</code><span class="ptype">number</span><span class="pdesc">可选，总超时毫秒，默认 10000</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = ocrClick("确定");
+  logd("点到了吗: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="ocrText(text, timeoutMs?) 识别并读取文字">
+  <header class="card-head">
+    <h4><code>ocrText(text, timeoutMs?)</code> <span class="cname">识别并读取文字</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">反复 OCR 直到屏幕出现包含指定文本的识别项，返回该项（含 text/bounds/confidence），超时返回 null。可配合 ocrClick 先确认文本出现再操作。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">要匹配的文本（包含即命中）</span></div><div class="param"><code class="pname">timeoutMs</code><span class="ptype">number</span><span class="pdesc">可选，总超时毫秒，默认 10000</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoOCRItem | null</span></div>
+  <pre><code>function main(){
+  const item = ocrText("开始");
+  if (item) logd("坐标: " + item.bounds.x + "," + item.bounds.y);
 }
 main();</code></pre>
 </article>
@@ -1603,7 +1633,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="device" class="cat" style="--c:#dc2626">
-  <h2><span class="tag">设备与系统</span><i>26</i></h2>
+  <h2><span class="tag">设备与系统</span><i>27</i></h2>
   <article class="card" data-search="device.getIPAddress() / device.getIP() / getIPAddress() / getIP() 获取局域网 IP">
   <header class="card-head">
     <h4><code>device.getIPAddress() / device.getIP() / getIPAddress() / getIP()</code> <span class="cname">获取局域网 IP</span></h4>
@@ -1922,6 +1952,22 @@ main();</code></pre>
   <pre><code>function main(){
   const ok = device.volumeUp();
   logd("音量+ " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.keepScreenOn(on?) / keepScreenOn(on?) 屏幕常亮开关">
+  <header class="card-head">
+    <h4><code>device.keepScreenOn(on?) / keepScreenOn(on?)</code> <span class="cname">屏幕常亮开关</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">开启/关闭屏幕常亮（防止自动锁屏），默认开启。on=false 时恢复系统自动锁屏策略。对标 EasyClick keepScreenOn()。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">on</code><span class="ptype">boolean</span><span class="pdesc">可选，默认 true：true 保持常亮，false 恢复自动锁屏</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  device.keepScreenOn(true);   // 常亮
+  sleep(30000);
+  keepScreenOn(false);         // 恢复自动锁屏
 }
 main();</code></pre>
 </article>
@@ -3571,9 +3617,9 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.takeMessage(token) / webView.injectBridge(token) / webView.release(token) webView 悬浮网页">
+<article class="card" data-search="webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.takeMessage(token) / webView.injectBridge(token) / webView.release(token) / webView.loadHTML(token, html) webView 悬浮网页">
   <header class="card-head">
-    <h4><code>webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.takeMessage(token) / webView.injectBridge(token) / webView.release(token)</code> <span class="cname">webView 悬浮网页</span></h4>
+    <h4><code>webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.takeMessage(token) / webView.injectBridge(token) / webView.release(token) / webView.loadHTML(token, html)</code> <span class="cname">webView 悬浮网页</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
   <p class="desc">在 App 内创建并显示一个悬浮 WKWebView：init 创建（返回 token），show 指定位置尺寸显示，hidden 隐藏，eval 在页面执行 JS 并返回结果，takeMessage 拉取页面发来的消息（页面通过 window.webkit.messageHandlers.autosdk.postMessage(payload) 发送，injectBridge 注入 window.autosdkBridge.postMessage 便捷封装），release 释放。对标 TrollAutoScript/AScript WebWindow 双向通道。</p>
@@ -3810,7 +3856,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 234 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 237 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

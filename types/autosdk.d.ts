@@ -375,6 +375,8 @@ interface AutoDeviceAPI {
   volumeUp(): boolean;
   volumeDown(): boolean;
   isScreenOn(): boolean;
+  isLocked(): boolean | null;
+  keepScreenOn(value?: boolean): boolean;
 }
 
 interface AutoMediaAPI {
@@ -630,6 +632,7 @@ interface AutoWebViewAPI {
   eval(token: string, js: string): unknown;
   takeMessage(token: string): unknown;
   injectBridge(token: string): boolean;
+  loadHTML(token: string, html: string): boolean;
   release(token: string): boolean;
 }
 
@@ -815,6 +818,10 @@ declare function swipeLeft(percent?: number, durationMs?: number): boolean;
 declare function swipeRight(percent?: number, durationMs?: number): boolean;
 declare function sleep(milliseconds: number): boolean;
 declare function saveImageToAlbum(path: string): boolean;
+declare function keepScreenOn(value?: boolean): boolean;
+declare function ocr(options?: AutoOCROptions): AutoOCRItem[];
+declare function ocrClick(text: string, timeoutMs?: number): boolean;
+declare function ocrText(text: string, timeoutMs?: number): AutoOCRItem | null;
 declare function saveImageBase64ToAlbum(base64: string): boolean;
 declare function saveVideoToAlbum(path: string): boolean;
 declare function deleteAllPhotos(): number;
@@ -863,7 +870,7 @@ declare function stopMp3(): boolean;
 declare function audioPlay(path: string, volume?: number, stopWhenScriptEnd?: boolean): { id: number; playing: boolean };
 declare function audioStop(id?: number): boolean;
 declare function isScreenOn(): boolean;
-declare function isLocked(): boolean;
+declare function isLocked(): boolean | null;
 declare function selector(init?: AutoSelector): AutoSelectorBuilder;
 declare const Selector: { (init?: AutoSelector): AutoSelectorBuilder; new (init?: AutoSelector): AutoSelectorBuilder };
 declare function findColorEx(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, limit?: number, direction?: number): AutoPoint[] | null;

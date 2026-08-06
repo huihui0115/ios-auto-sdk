@@ -58,7 +58,7 @@
 | FindImages.find(...) | findImage / screen.findImage | ✅ 找图（支持全分辨率） |
 | CompareColors.compare(...) | compareColors / screen.isColors / cmpColor | ✅ 多点比色 |
 | CountingColor.count(...) | findColorCount / screen.findColorCount | ✅ 颜色数量统计 |
-| ocr（内置） | ocr() / screen.ocr() | ✅ 本地 Vision OCR |
+| ocr（内置） | ocr() / screen.ocr() + ocrClick(text)/ocrText(text) | ✅ 本地 Vision OCR；按文字点击/查找 |
 | ocr-baidu / ocr-tomato / opencv / yolo | 无 | ❌ 第三方 OCR/模型（需模型与网络） |
 
 ### node（控件）
@@ -80,7 +80,7 @@
 | --- | --- | --- |
 | app_start / app_stop / app_current / app_list / app_state | app.launch / terminate / current / appList / state | ✅ |
 | scheme_start / open_url | app.openURL / openURL | ✅ |
-| lock / unlock / is_locked | app.lock / app.unlock + device.isLocked / device.isScreenOn | ✅（WDA systemActions）|
+| lock / unlock / is_locked / keep_screen_on | app.lock / app.unlock + device.isLocked / device.isScreenOn + device.keepScreenOn(on?) / keepScreenOn() | ✅（WDA systemActions + 防自动锁屏）|
 | get_uuid / get_ios_version / get_ip_address | uuid() / getOSVersion() / device.getIPAddress() | ✅ 含局域网 IP |
 | get_device_id / name / model / battery | device.getDeviceId/Name/Model/Battery | ✅ |
 | notify（本地通知） | notify(body, title?) | ✅ UNUserNotificationCenter 本地通知 |
@@ -97,7 +97,7 @@
 | save_pic2photo / save_video2photo | media.saveImage(path或URL) / saveVideo / saveScreenshot | ✅ 支持 http(s) URL 自动下载 |
 | requests 库 | http.get/post/getJSON/download + cookies/params/multipart 上传（files/formData） | ✅ 对标 requests 会话能力 |
 | threading 库 | execAsync / execSync / setTimeout / setInterval | ✅ |
-| WebWindow（HTML UI + JS 双向通信） | webView.*（悬浮 WKWebView + eval + takeMessage/injectBridge） | ✅ JS→脚本消息通道 |
+| WebWindow（HTML UI + JS 双向通信） | webView.*（悬浮 WKWebView + eval + takeMessage/injectBridge + loadHTML） | ✅ JS→脚本消息通道；loadHTML 直接加载本地 HTML 字符串 |
 | FloatWindow 悬浮日志窗 | floatLog.show/log/clear/hide/destroy | ✅ 悬浮日志窗：可拖动、保留最近 200 行 |
 
 ## 四、AScript 有而 AutoSDK 没有的（缺口清单）

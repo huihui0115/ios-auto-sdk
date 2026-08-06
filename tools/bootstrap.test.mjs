@@ -1170,6 +1170,36 @@ test('node longClick/tap_hold use seconds and webView message channel forwards',
   assert.ok(String(evalCall.arguments[1]).includes("autosdkBridge"));
   assert.ok(String(evalCall.arguments[1]).includes("messageHandlers.autosdk"));
 });
+test('keepScreenOn, webView.loadHTML, ocrClick/ocrText and auto proxy fallback route correctly', () => {
+  const { sandbox, calls, bridge } = boot();
+  sandbox.device.keepScreenOn(true);
+  assert.deepEqual(calls.device.at(-1), { operation: 'keepScreenOn', value: true });
+  sandbox.keepScreenOn(false);
+  assert.deepEqual(calls.device.at(-1), { operation: 'keepScreenOn', value: false });
+  sandbox.keepScreenOn();
+  assert.deepEqual(calls.device.at(-1), { operation: 'keepScreenOn', value: true });
+  sandbox.auto.keepScreenOn(false); // auto proxy falls back to deviceApi
+  assert.deepEqual(calls.device.at(-1), { operation: 'keepScreenOn', value: false });
+  sandbox.auto.deleteAllPhotos(); // auto proxy falls back to mediaApi
+  assert.deepEqual(calls.media.at(-1), { operation: 'deleteAllPhotos' });
+  sandbox.webView.loadHTML('w1', '<html><body>hi</body></html>');
+  assert.deepEqual(calls.native.at(-1), { name: 'webViewLoadHTML', arguments: ['w1', '<html><body>hi</body></html>'] });
+  sandbox.webView.loadHTML('w2', null);
+  assert.deepEqual(calls.native.at(-1), { name: 'webViewLoadHTML', arguments: ['w2', ''] });
+  bridge.invokeOCR = () => [{ text: '确定按钮', confidence: 0.95, bounds: { x: 100, y: 200, width: 40, height: 20 } }];
+  const before = calls.clickPoint.length;
+  assert.equal(sandbox.ocrClick('确定'), true);
+  assert.equal(calls.clickPoint.length, before + 1);
+  assert.deepEqual(calls.clickPoint.at(-1), { x: 120, y: 210 });
+  const item = sandbox.ocrText('确定');
+  assert.equal(item && item.text, '确定按钮');
+  bridge.invokeOCR = () => [{ text: 'other', confidence: 0.9 }];
+  assert.equal(sandbox.ocrClick('nonexistent', 1), false);
+  assert.equal(sandbox.ocrText('nonexistent', 1), null);
+  assert.equal(sandbox.ocr({ mode: 'fast' }).length, 1);
+  assert.equal(typeof sandbox.auto.ocrClick, 'function');
+});
+
 test('device isScreenOn/isLocked expose lock state', () => {
   const { sandbox } = boot();
   assert.equal(sandbox.isScreenOn(), true);
