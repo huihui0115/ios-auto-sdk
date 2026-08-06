@@ -31,50 +31,20 @@
     NSBundle *bundle = NSBundle.mainBundle;
     NSString *configuredName = [NSUserDefaults.standardUserDefaults stringForKey:@"AutoSDKAdapter"];
     if (configuredName.length == 0) configuredName = [bundle objectForInfoDictionaryKey:@"AutoSDKAdapter"];
-    BOOL useBuiltin = configuredName.length > 0 &&
-        ([configuredName caseInsensitiveCompare:@"BUILTIN"] == NSOrderedSame ||
-         [configuredName caseInsensitiveCompare:@"BUILTIN-NOWDA"] == NSOrderedSame ||
-         [configuredName caseInsensitiveCompare:@"NOWDA"] == NSOrderedSame);
-    if (useBuiltin) {
-        AutoBuiltinAdapter *adapter = [AutoBuiltinAdapter new];
-        id maxNodes = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKMaxSnapshotNodes"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKMaxSnapshotNodes"];
-        if ([maxNodes isKindOfClass:NSNumber.class] && [maxNodes unsignedIntegerValue] > 0) adapter.maxSnapshotNodes = [maxNodes unsignedIntegerValue];
-        id maxDepth = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKMaxSnapshotDepth"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKMaxSnapshotDepth"];
-        if ([maxDepth isKindOfClass:NSNumber.class] && [maxDepth unsignedIntegerValue] > 0) adapter.maxSnapshotDepth = [maxDepth unsignedIntegerValue];
+    BOOL useUIKit = configuredName.length > 0 &&
+        [configuredName caseInsensitiveCompare:@"UIKIT"] == NSOrderedSame;
+    if (useUIKit) {
+        AutoUIKitAdapter *adapter = [AutoUIKitAdapter new];
         id screenshotCache = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKScreenshotCacheDuration"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKScreenshotCacheDuration"];
         if ([screenshotCache isKindOfClass:NSNumber.class]) adapter.screenshotCacheDuration = [screenshotCache doubleValue];
         return adapter;
     }
-    BOOL useWDA = configuredName.length > 0 &&
-        ([configuredName caseInsensitiveCompare:@"WDA"] == NSOrderedSame ||
-         [configuredName caseInsensitiveCompare:@"WDAHTTP"] == NSOrderedSame);
-    if (useWDA) {
-        NSString *urlString = [NSUserDefaults.standardUserDefaults stringForKey:@"AutoSDKWDAURL"];
-        if (urlString.length == 0) urlString = [bundle objectForInfoDictionaryKey:@"AutoSDKWDAURL"];
-        NSURL *url = [NSURL URLWithString:urlString.length > 0 ? urlString : @"http://127.0.0.1:8100"];
-        NSString *bundleId = [NSUserDefaults.standardUserDefaults stringForKey:@"AutoSDKWDABundleId"];
-        if (bundleId.length == 0) bundleId = [bundle objectForInfoDictionaryKey:@"AutoSDKWDABundleId"];
-        NSTimeInterval timeout = [NSUserDefaults.standardUserDefaults doubleForKey:@"AutoSDKWDATimeout"];
-        if (timeout <= 0) timeout = [[bundle objectForInfoDictionaryKey:@"AutoSDKWDATimeout"] doubleValue];
-        if (timeout <= 0) timeout = 15;
-        NSString *scheme = url.scheme.lowercaseString;
-        if (url.host.length > 0 && ([scheme isEqualToString:@"http"] || [scheme isEqualToString:@"https"])) {
-            AutoWDAHTTPAdapter *adapter = [[AutoWDAHTTPAdapter alloc] initWithBaseURL:url
-                                                                   applicationBundleId:bundleId
-                                                                                timeout:timeout];
-            id sourceCache = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKWDASourceCacheDuration"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKWDASourceCacheDuration"];
-            if ([sourceCache isKindOfClass:NSNumber.class]) adapter.sourceCacheDuration = [sourceCache doubleValue];
-            id screenshotCache = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKWDAScreenshotCacheDuration"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKWDAScreenshotCacheDuration"];
-            if ([screenshotCache isKindOfClass:NSNumber.class]) adapter.screenshotCacheDuration = [screenshotCache doubleValue];
-            id settings = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKWDASettings"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKWDASettings"];
-            if ([settings isKindOfClass:NSDictionary.class]) adapter.sessionSettings = settings;
-            id ignoreSettings = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKWDAIgnoreUnsupportedSettings"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKWDAIgnoreUnsupportedSettings"];
-            if ([ignoreSettings isKindOfClass:NSNumber.class]) adapter.ignoresUnsupportedSessionSettings = [ignoreSettings boolValue];
-            return adapter;
-        }
-        NSLog(@"[TemplateApp] Invalid WDA configuration; falling back to AutoUIKitAdapter.");
-    }
-    AutoUIKitAdapter *adapter = [AutoUIKitAdapter new];
+    // Default: built-in no-WDA adapter (system-wide touch injection + accessibility).
+    AutoBuiltinAdapter *adapter = [AutoBuiltinAdapter new];
+    id maxNodes = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKMaxSnapshotNodes"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKMaxSnapshotNodes"];
+    if ([maxNodes isKindOfClass:NSNumber.class] && [maxNodes unsignedIntegerValue] > 0) adapter.maxSnapshotNodes = [maxNodes unsignedIntegerValue];
+    id maxDepth = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKMaxSnapshotDepth"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKMaxSnapshotDepth"];
+    if ([maxDepth isKindOfClass:NSNumber.class] && [maxDepth unsignedIntegerValue] > 0) adapter.maxSnapshotDepth = [maxDepth unsignedIntegerValue];
     id screenshotCache = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKScreenshotCacheDuration"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKScreenshotCacheDuration"];
     if ([screenshotCache isKindOfClass:NSNumber.class]) adapter.screenshotCacheDuration = [screenshotCache doubleValue];
     return adapter;

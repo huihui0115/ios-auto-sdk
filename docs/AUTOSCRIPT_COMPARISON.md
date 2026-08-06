@@ -1,5 +1,7 @@
 # AutoScript vs AutoSDK
 
+> ⚠️ 注意（v1.17.0）：`AutoWDAHTTPAdapter` 已移除，跨 App 自动化统一走内置 no-WDA 适配器（`AutoBuiltinAdapter`，见 `docs/NO_WDA_ARCHITECTURE.md`）。本文涉及 WDA 的内容为历史存档。
+
 Audit date: 2026-08-05
 
 > AutoScript（用户常简称为 ascript）是一款面向 iOS 用户的 JavaScript

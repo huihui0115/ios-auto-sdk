@@ -6,11 +6,12 @@ Exact fields are `id`, `label`, `name`/`text`, `value`, and `type`. Their
 filters include `enabled`/`enable`, `visible`, `selected`, `accessible`,
 `index`, `depth`, `childCount`, and `bounds`:
 
-`AutoWDAHTTPAdapter` additionally accepts `xpath`, `predicate`, and
-`classChain`. WDA element descriptors include `elementId`, `wdElementId`, and
-`sessionId`; those handles are valid only for that WDA session. Parent/child
-descriptors returned by WDA source traversal are marked `sourceDerived` and
-use an absolute XPath selector, so refresh them after the UI changes.
+The built-in no-WDA adapter (`AutoBuiltinAdapter`) accepts the same exact and
+regex fields; its descriptors carry `handle`/`parentHandle` identifiers derived
+from accessibility tree paths. Handles stop matching after the UI changes, so
+re-query after navigation. `xpath`/`predicate` selectors are not supported by
+the built-in adapter and return a clear error (the legacy WDA adapter was
+removed in v1.17.0).
 
 ```javascript
 const login = auto.findElement({id: "login-button", type: "Button"});
@@ -60,7 +61,7 @@ Available operations:
 - `auto.clickCenter(node)` and `auto.clickRandom(node)` activate a point inside
   a descriptor through the current adapter.
 - `auto.scrollIntoView(selector)` scrolls the nearest ancestor `UIScrollView` in
-  UIKit mode or the WDA element scroll route in WDA mode.
+  UIKit mode; the built-in no-WDA adapter scrolls with real injected swipes.
 
 UIKit descriptors contain stable, non-retaining handles associated with live
 views. A handle stops matching after that view is deallocated. Re-query after

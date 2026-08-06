@@ -3,7 +3,7 @@
 > 数据来源：TrollAutoScript 官方文档站（docs.trollautoscript.com，抓取日期 2026-08-05）。
 > TrollAutoScript 是一个运行在 TrollStore 上的独立自动化工具，使用 Lua 5.4，
 > 需要越狱通道（TrollStore）才能获得系统级权限；AutoSDK 是嵌入宿主 App 的
-> Objective-C SDK，跨 App 自动化走 WDA Runner。两者定位不同，下表按
+> Objective-C SDK，跨 App 自动化走内置 no-WDA 适配器。两者定位不同，下表按
 > 「能力模块」逐项对比 AutoSDK 现状。
 
 图例：✅ 已有等价能力 ｜ 🟡 部分等价 ｜ ❌ 暂无（多数需私有 API / TrollStore 系统权限）
@@ -20,8 +20,8 @@
 | 设备模块 device.*（38 项） | 亮度/音量/振动/方向/电池/内存/机型 等 | ✅ getBrightness/setBrightness/getVolume/vibrate/getOrientation/getBattery/getMemoryInfo/getModel/getOSVersion 等；❌ 飞行模式/闪光灯/WiFi MAC/蓝牙 MAC/蜂窝开关 等需私有 API |
 | 屏幕模块 screen.* | getColor/getColorRGB/findImage/findColors/isColors/visionOcr/paddleOcr/TomatoOCR/loadImageFile/keep/unkeep | ✅ 新增 `screen.getColor/getColorRGB/getColorHex/findImage/findColor/findColorEx/findNotColor/findMultiColor/findColors/isColors/cmpColor/ocr/screenshot`（EasyClick 兼容入口，等价全局函数）；❌ paddleOcr/TomatoOCR（需模型）、loadImageFile/keep/unkeep |
 | 图片对象模块 | clip/scale/gray/binarization/rotate/findImage/findColors/isColors/pngData/show/turnLeft/turnRight | ✅ `image.clip/scale/gray/binaryzation/rotate/pixelAt/findImage/findColor`；🟡 turnLeft/turnRight 可用 `image.rotate(90/270)`；❌ show（悬浮预览图片）、cvFindImage（OpenCV）、paddleOcr |
-| 模拟触摸模块 | tap/down/move/up/msleep/press/radius/setpDelay | ✅ clickPoint/gesture（down/move/up/长按/滑动）/pinch/swipe；❌ 压力与半径定制（WDA 能力限制） |
-| 模拟按键模块 key.* | press/down/up/sendText/inputText/clear | 🟡 `input(selector,text)/setText` 通过辅助功能输入；❌ 系统级硬件按键事件（仅 WDA 音量键） |
+| 模拟触摸模块 | tap/down/move/up/msleep/press/radius/setpDelay | ✅ clickPoint/gesture（down/move/up/长按/滑动）/pinch/swipe；❌ 压力与半径定制（当前内置适配器能力限制） |
+| 模拟按键模块 key.* | press/down/up/sendText/inputText/clear | 🟡 `input(selector,text)/setText` 通过辅助功能输入；❌ 系统级硬件按键事件（需适配器支持） |
 | 节点模块 node.* | byText/byClassName/byPath/GetText/GetFrame/GetPoint/GetSize/GetCenterPoint/GetSubNode/GetSuperNode/keep/unkeep/GetAlpha/GetHidden | ✅ findElement/findElements/exists/waitFor/getText/getBounds/getChildren/getParent/getChild/getSiblings/childCount/scrollIntoView；✅ 本轮补齐 `node.keep/unkeep`（JS 保持表）+ 全局 `keepNode/unkeepNode`；❌ GetAlpha/GetHidden、GetSuperClassName、byMatch 复杂匹配 |
 | 应用模块 app.* | run/close/openUrl/version/frontBid/isRuning/isInstalled/installIpa/uninstall/dataPath/iconData/groupInfo/localizedName | ✅ launch/activate/terminate/state/current/openURL/getAppVersion/appList/app.getAppName/app.isRunning/isInstalled/homeScreen/lock/unlock；❌ installIpa/uninstall/dataPath/iconData/groupInfo 需私有 API |
 | 剪贴板 pasteboard.* | read/write | ✅ device.getClipboard/setClipboard（1 MiB 上限） |

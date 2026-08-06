@@ -261,7 +261,7 @@ APIS.push({ cat:'app', sig:'app.getAppScheme(name) / app.launchByScheme(name) / 
   getAppScheme('com.alipay.iphoneclient');   // 全局简写
 }
 main();` });
-APIS.push({ cat:'app', sig:'app.lock() / app.unlock()', title:'锁屏 / 解锁', desc:'锁屏或解锁设备（需 WDA systemActions 能力）。', params:[], returns:'boolean', example:`function main(){
+APIS.push({ cat:'app', sig:'app.lock() / app.unlock()', title:'锁屏 / 解锁', desc:'锁屏或解锁设备（需适配器 systemActions 能力，内置 no-WDA 适配器支持）。', params:[], returns:'boolean', example:`function main(){
   app.lock();
   auto.sleep(1000);
   app.unlock();
@@ -535,7 +535,7 @@ APIS.push({ cat:'timer', sig:'sleepRandom(min, max?)', title:'随机睡眠', des
   sleepRandom(1000); // 0~1000ms
 }
 main();` });
-APIS.push({ cat:'app', sig:'app.isInstalled(bundleId) / isInstalled(bundleId)', title:'应用是否已安装', desc:'通过已安装应用列表（WDA /wda/apps）判断指定 bundleId 是否安装；适配器不支持 appList 时返回 false。', params:[['bundleId','string','应用 bundle id']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'app', sig:'app.isInstalled(bundleId) / isInstalled(bundleId)', title:'应用是否已安装', desc:'通过已安装应用列表判断指定 bundleId 是否安装（内置 no-WDA 适配器经 LSApplicationWorkspace 提供）；适配器不支持 appList 时返回 false。', params:[['bundleId','string','应用 bundle id']], returns:'boolean', example:`function main(){
   if (app.isInstalled("com.apple.mobilesafari")) {
     logd("Safari 已安装");
   }
@@ -808,7 +808,7 @@ APIS.push({ cat:'touch', sig:'longClick(selector, duration?)', title:'长按', d
   logd("长按: " + ok);
 }
 main();` });
-APIS.push({ cat:'touch', sig:'gesture(actions)', title:'单指手势', desc:'按 W3C 指针动作序列执行单指手势：down/move/up/wait 会自动归一化为 pointerDown/pointerMove/pointerUp/pause。需要 WDA 适配器支持真实触摸注入（capabilities.multiTouch）。', params:[['actions','Array<{type,x,y,duration}>','动作序列：{type:"down",x,y} 按下、{type:"move",x,y,duration} 移动、{type:"up"} 抬起、{type:"wait",duration} 等待']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'touch', sig:'gesture(actions)', title:'单指手势', desc:'按 W3C 指针动作序列执行单指手势：down/move/up/wait 会自动归一化为 pointerDown/pointerMove/pointerUp/pause。需要适配器支持真实触摸注入（capabilities.multiTouch，内置 no-WDA 适配器支持）。', params:[['actions','Array<{type,x,y,duration}>','动作序列：{type:"down",x,y} 按下、{type:"move",x,y,duration} 移动、{type:"up"} 抬起、{type:"wait",duration} 等待']], returns:'boolean', example:`function main(){
   const ok = auto.gesture([
     {type: "down", x: 100, y: 200},
     {type: "move", x: 300, y: 400, duration: 500},
@@ -817,7 +817,7 @@ APIS.push({ cat:'touch', sig:'gesture(actions)', title:'单指手势', desc:'按
   logd("手势: " + ok);
 }
 main();` });
-APIS.push({ cat:'touch', sig:'multiGesture(fingers)', title:'多指手势', desc:'并行执行多根手指的触摸序列，每根手指一个动作数组；常用于双指缩放、旋转等复杂手势。需要 WDA 适配器支持真实触摸注入。', params:[['fingers','Array<Array<{type,x,y,duration}>>','每根手指的 down/move/up/wait 动作序列']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'touch', sig:'multiGesture(fingers)', title:'多指手势', desc:'并行执行多根手指的触摸序列，每根手指一个动作数组；常用于双指缩放、旋转等复杂手势。需要适配器支持真实触摸注入（内置 no-WDA 适配器支持）。', params:[['fingers','Array<Array<{type,x,y,duration}>>','每根手指的 down/move/up/wait 动作序列']], returns:'boolean', example:`function main(){
   const ok = auto.multiGesture([
     [{type: "down", x: 100, y: 300}, {type: "move", x: 100, y: 100, duration: 300}, {type: "up"}],
     [{type: "down", x: 300, y: 300}, {type: "move", x: 300, y: 100, duration: 300}, {type: "up"}]
@@ -825,7 +825,7 @@ APIS.push({ cat:'touch', sig:'multiGesture(fingers)', title:'多指手势', desc
   logd("双指上滑: " + ok);
 }
 main();` });
-APIS.push({ cat:'touch', sig:'pinch(x, y, scale, duration?)', title:'双指缩放', desc:'以 (x,y) 为中心双指缩放，scale>1 放大、scale<1 缩小；duration 为毫秒。需要 WDA 适配器支持真实触摸注入。', params:[['x','number','中心横坐标'],['y','number','中心纵坐标'],['scale','number','缩放倍率（>1 放大，<1 缩小）'],['duration','number','毫秒，默认 300']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'touch', sig:'pinch(x, y, scale, duration?)', title:'双指缩放', desc:'以 (x,y) 为中心双指缩放，scale>1 放大、scale<1 缩小；duration 为毫秒。需要适配器支持真实触摸注入（内置 no-WDA 适配器支持）。', params:[['x','number','中心横坐标'],['y','number','中心纵坐标'],['scale','number','缩放倍率（>1 放大，<1 缩小）'],['duration','number','毫秒，默认 300']], returns:'boolean', example:`function main(){
   const ok = auto.pinch(200, 400, 1.5, 400);
   logd("放大: " + ok);
 }
@@ -859,7 +859,7 @@ APIS.push({ cat:'touch', sig:'swipeRight(percent?, durationMs?)', title:'右滑'
   swipeRight(0.5);
   logd("右滑完成");
 }
-main();` });APIS.push({ cat:'touch', sig:'drag(x1, y1, x2, y2, durationMs?)', title:'拖拽', desc:'从起点按下并按住，再移动到终点松开（长按拖拽），durationMs 为总毫秒数（默认 600）。需要 WDA 真实触摸注入。', params:[['x1','number','起点 X'],['y1','number','起点 Y'],['x2','number','终点 X'],['y2','number','终点 Y'],['durationMs','number','可选，毫秒']], returns:'boolean', example:`function main(){
+main();` });APIS.push({ cat:'touch', sig:'drag(x1, y1, x2, y2, durationMs?)', title:'拖拽', desc:'从起点按下并按住，再移动到终点松开（长按拖拽），durationMs 为总毫秒数（默认 600）。需要真实触摸注入（内置 no-WDA 适配器支持）。', params:[['x1','number','起点 X'],['y1','number','起点 Y'],['x2','number','终点 X'],['y2','number','终点 Y'],['durationMs','number','可选，毫秒']], returns:'boolean', example:`function main(){
   drag(190, 400, 190, 200, 800);   // 按住列表项向下拖动
 }
 main();` });
@@ -1128,7 +1128,7 @@ APIS.push({ cat:'app', sig:'terminateApp(bundleId)', title:'结束应用', desc:
   logd("结束: " + ok);
 }
 main();` });
-APIS.push({ cat:'app', sig:'appState(bundleId)', title:'应用状态', desc:'读取 WDA 应用状态码（4 表示前台运行）。', params:[['bundleId','string','Bundle ID']], returns:'number', example:`function main(){
+APIS.push({ cat:'app', sig:'appState(bundleId)', title:'应用状态', desc:'读取应用状态码（4 表示前台运行）。', params:[['bundleId','string','Bundle ID']], returns:'number', example:`function main(){
   const state = appState("com.apple.Preferences");
   logd("状态码: " + state);
 }
@@ -1138,18 +1138,18 @@ APIS.push({ cat:'app', sig:'openURL(url)', title:'打开链接', desc:'打开 ht
   logd("打开: " + ok);
 }
 main();` });
-APIS.push({ cat:'app', sig:'app.homeScreen() / lock() / unlock()', title:'主屏幕 / 锁屏 / 解锁', desc:'WDA 适配器支持的系统级操作。', params:[], returns:'boolean', example:`function main(){
+APIS.push({ cat:'app', sig:'app.homeScreen() / lock() / unlock()', title:'主屏幕 / 锁屏 / 解锁', desc:'内置 no-WDA 适配器支持的系统级操作（systemActions 能力）。', params:[], returns:'boolean', example:`function main(){
   logd("回主屏幕: " + app.homeScreen());
   logd("锁屏: " + app.lock());
   logd("解锁: " + app.unlock());
 }
 main();` });
-APIS.push({ cat:'app', sig:'app.current() / currentApp()', title:'当前前台应用', desc:'返回当前前台 App 的 Bundle ID（WDA /wda/activeAppInfo）；宿主适配器不支持时返回错误。', params:[], returns:'string|null', example:`function main(){
+APIS.push({ cat:'app', sig:'app.current() / currentApp()', title:'当前前台应用', desc:'返回当前前台 App 的 Bundle ID（内置 no-WDA 适配器经 SpringBoard 提供）；适配器不支持时返回错误。', params:[], returns:'string|null', example:`function main(){
   const current = app.current();
   logd("当前前台: " + current);
 }
 main();` });
-APIS.push({ cat:'app', sig:'app.appList() / installedApps()', title:'已安装应用列表', desc:'返回已安装应用的 {bundleId, name} 数组（WDA /wda/apps）。支持宿主注入的适配器也可实现；不支持时返回错误。', params:[], returns:'Array<{bundleId, name}>', example:`function main(){
+APIS.push({ cat:'app', sig:'app.appList() / installedApps()', title:'已安装应用列表', desc:'返回已安装应用的 {bundleId, name} 数组（内置 no-WDA 适配器经 LSApplicationWorkspace 提供）；不支持时返回错误。', params:[], returns:'Array<{bundleId, name}>', example:`function main(){
   const apps = app.appList();
   logd("已安装: " + apps.length + " 个应用");
   for (const item of apps.slice(0, 10)) logd(item.bundleId + " → " + item.name);
@@ -1240,7 +1240,7 @@ APIS.push({ cat:'device', sig:'device.vibrateShort()', title:'短振动', desc:'
   logd("短振动完成");
 }
 main();` });
-APIS.push({ cat:'device', sig:'device.volumeUp() / device.volumeDown()', title:'音量加/减键', desc:'模拟按下系统音量加/减键（WDA 真机按键注入）；宿主适配器不支持时返回错误，可用 capabilities() 判断。', params:[], returns:'boolean', example:`function main(){
+APIS.push({ cat:'device', sig:'device.volumeUp() / device.volumeDown()', title:'音量加/减键', desc:'模拟按下系统音量加/减键（真机按键注入）；适配器不支持时返回错误，可用 capabilities() 判断。', params:[], returns:'boolean', example:`function main(){
   const ok = device.volumeUp();
   logd("音量+ " + ok);
 }
@@ -1266,7 +1266,7 @@ main();` });APIS.push({ cat:'device', sig:'device.setFlashlight(on?) / device.to
 main();` });APIS.push({ cat:'device', sig:'device.isLocked()', title:'是否锁屏', desc:'返回设备当前是否处于锁屏状态；isScreenOn() 为反向查询（点亮/未锁屏）。对标 AScript system.is_locked。', params:[], returns:'boolean', example:`function main(){
   if (device.isLocked()) logd("设备已锁屏");
 }
-main();` });APIS.push({ cat:'device', sig:'device.isScreenOn()', title:'屏幕状态', desc:'查询屏幕是否点亮（未锁屏），WDA 真机支持；宿主适配器不支持时返回错误。', params:[], returns:'boolean', example:`function main(){
+main();` });APIS.push({ cat:'device', sig:'device.isScreenOn()', title:'屏幕状态', desc:'查询屏幕是否点亮（未锁屏）；适配器不支持时返回错误。', params:[], returns:'boolean', example:`function main(){
   if (device.isScreenOn()) logd("屏幕已点亮");
   else logd("屏幕已熄灭");
 }
@@ -1798,7 +1798,7 @@ APIS.push({ cat:'file', sig:'image.toBase64(path)', title:'图片转 Base64', de
   logd("Base64 长度: " + (b64 ? b64.length : 0));
 }
 main();` });
-APIS.push({ cat:'touch', sig:'node.find(selector) / node.findOne(selector) / findNode(selector)', title:'查找节点（Node 对象）', desc:'对标 AScript Selector().find()：按选择器查找第一个匹配节点，返回带方法的高级 Node 对象（.click()/.tap()/.rect/.text 等）；未找到返回 null。选择器支持 {id,label,text,type,visible} 或 XPath。node.click(dur)/tap_hold(dur)/longClick(dur) 的 dur 单位为秒（WDA 语义），如 node.tap_hold(1.5) 长按 1.5 秒。', params:[['selector','object|string','节点选择器']], returns:'AutoNode|null', example:`function main(){
+APIS.push({ cat:'touch', sig:'node.find(selector) / node.findOne(selector) / findNode(selector)', title:'查找节点（Node 对象）', desc:'对标 AScript Selector().find()：按选择器查找第一个匹配节点，返回带方法的高级 Node 对象（.click()/.tap()/.rect/.text 等）；未找到返回 null。选择器支持 {id,label,text,type,visible} 或 XPath。node.click(dur)/tap_hold(dur)/longClick(dur) 的 dur 单位为秒，如 node.tap_hold(1.5) 长按 1.5 秒。', params:[['selector','object|string','节点选择器']], returns:'AutoNode|null', example:`function main(){
   const node = node.find({ text: "确定" });
   if (node) {
     logd(node.rect.center.x, node.rect.center.y);
@@ -1822,7 +1822,7 @@ APIS.push({ cat:'touch', sig:'node.at(x, y) / nodeAt(x, y)', title:'坐标直查
   }
 }
 main();` });
-APIS.push({ cat:'touch', sig:'node.snapshot(maxResults?) / nodeSnapshot(maxResults?)', title:'节点快照', desc:'返回当前控件树快照（带 handle/文本/类型/包围盒等完整属性，最多 2000 个），可用于批量分析页面结构；对标 WDA source dump。', params:[['maxResults','number','可选，最大节点数，默认 500']], returns:'AutoNode[]', example:`function main(){
+APIS.push({ cat:'touch', sig:'node.snapshot(maxResults?) / nodeSnapshot(maxResults?)', title:'节点快照', desc:'返回当前控件树快照（带 handle/文本/类型/包围盒等完整属性，最多 2000 个），可用于批量分析页面结构；对标系统级控件树 dump（内置 no-WDA 适配器毫秒级遍历）。', params:[['maxResults','number','可选，最大节点数，默认 500']], returns:'AutoNode[]', example:`function main(){
   const nodes = node.snapshot(500);
   const labels = nodes.map(n => n.label).filter(Boolean);
   logd(labels.slice(0, 20));

@@ -1,5 +1,7 @@
 # 与 AScript（ascript.cn）对比
 
+> ⚠️ 注意（v1.17.0）：`AutoWDAHTTPAdapter` 已移除，跨 App 自动化统一走内置 no-WDA 适配器（`AutoBuiltinAdapter`，见 `docs/NO_WDA_ARCHITECTURE.md`）。本文涉及 WDA 的内容为历史存档。
+
 > 对标日期：2026-08-05。AScript iOS 是运行在 iPhone/iPad 上的 **Python** 自动化引擎，主打
 > **免越狱 / 免签名 / 免开发者账号**（企业签名分发 + XCTest 激活 / ESP32 HID）。AutoSDK 是
 > **JavaScript** 引擎 + VS Code 调试的自动化 SDK。本文按"引擎形态 / 运行模式 / 模块函数"三层对比。

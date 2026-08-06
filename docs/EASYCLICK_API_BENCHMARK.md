@@ -19,7 +19,7 @@ are not implemented.
 | multiTouch | ✅ `gesture` / `multiGesture` / `pinch` | W3C 触摸动作 |
 | inputText / typingText | ✅ `input(selector,text)` / `setText` | 输入文字 |
 | openUrl | ✅ `openURL` | 打开链接 |
-| home / homeScreen / lockScreen / unlockScreen / isLocked | ✅ `app.homeScreen` / `app.lock` / `app.unlock` / `device.isScreenOn` | WDA 系统操作 |
+| home / homeScreen / lockScreen / unlockScreen / isLocked | ✅ `app.homeScreen` / `app.lock` / `app.unlock` / `device.isScreenOn` | 系统级操作（内置 no-WDA 适配器） |
 | getOrientation / adjustScreenOrientation / setOrientation | 🟡 `device.getOrientation` | 旋转控制未做 |
 | appLaunch / appLaunchEx | ✅ `launchApp` / `app.launch` | 启动应用 |
 | appLaunchByPrefix | ✅ `launchAppByPrefix(prefix)` / `app.launchByPrefix` | 按前缀启动 |
@@ -35,7 +35,7 @@ are not implemented.
 | EasyClick | AutoSDK | 说明 |
 | --- | --- | --- |
 | lockNode / releaseNode / lockNodeFromXml / setFetchNodeParam | ❌ | 节点锁定/抓取参数（iOS 限制） |
-| label / id / type / name / xpath / bounds / depth / visible / enable / selected / value / index / accessible | ✅ WDA 选择器 + `getAttribute` | 属性过滤 |
+| label / id / type / name / xpath / bounds / depth / visible / enable / selected / value / index / accessible | ✅ 选择器 + `getAttribute` | 属性过滤 |
 | getOneNodeInfo / getNodeInfo | ✅ `getOneNodeInfo(selector)` / `getNodeInfo(selector)` | 完整节点字典 |
 | child / childcount / parent / siblings / nextSiblings / previousSiblings / allChildren | ✅ `getChild` / `childCount` / `getParent` / `getSiblings` / `getPreviousSiblings` / `getNextSiblings` / `getChildren` | 层级遍历 |
 | clickCenter / clickRandom | ✅ `clickCenter` / `clickRandom` | 中心/随机点击 |

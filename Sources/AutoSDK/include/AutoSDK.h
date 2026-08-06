@@ -3,7 +3,6 @@
 #import "AutoAutomationAdapter.h"
 #import "AutoUIKitAdapter.h"
 #import "AutoBuiltinAdapter.h"
-#import "AutoWDAHTTPAdapter.h" /* legacy external-WDA fallback */
 #import "AutoDebugServer.h"
 #import "AutoHTTPSupport.h"
 #import "AutoSDKError.h"

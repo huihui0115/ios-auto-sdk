@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
@@ -233,96 +233,14 @@ check(rootLock.name === rootPackage.name && rootLock.version === rootPackage.ver
       rootLock.packages?.['']?.name === rootPackage.name && rootLock.packages?.['']?.version === rootPackage.version,
       'Root package-lock.json is missing or inconsistent with package.json');
 
-const wdaAdapter = read('Sources/AutoSDK/AutoWDAHTTPAdapter.m');
-check(wdaAdapter.includes('#import <Vision/Vision.h>'), 'WDA adapter must keep local Vision OCR support');
-check(wdaAdapter.includes('configuration.HTTPShouldUsePipelining = YES'), 'WDA adapter must reuse an HTTP session');
-check(wdaAdapter.includes('/wda/element/') && wdaAdapter.includes('findColor:'), 'WDA adapter is missing WDA scroll or color support');
-check(wdaAdapter.includes('@"ocr": @YES'), 'WDA adapter capabilities must report OCR support');
-check(wdaAdapter.includes('AutoWDAErrorIsInvalidSession') && wdaAdapter.includes('requestSessionSuffix:'), 'WDA adapter must retry an invalid session once');
-check(wdaAdapter.includes('AutoWDAErrorIsElementNotFound') && wdaAdapter.includes('requestSessionSuffix:@"/element"'), 'WDA exists must use a single-element lookup');
-check(wdaAdapter.includes('AutoWDAUnwrapSelector') &&
-      wdaAdapter.includes('AutoWDAMaxSelectorNestingDepth = 32') &&
-      wdaAdapter.includes('WDA selector nesting contains a cycle.') &&
-      wdaAdapter.includes('AutoWDAMaxSelectorTextLength'),
-      'WDA selector unwrapping must reject cycles, excessive depth, and oversized fields centrally');
-check(wdaAdapter.includes('AutoWDAErrorIsStaleElement') && wdaAdapter.includes('freshPayload'), 'WDA element actions must recover stale selector-backed handles');
-check(wdaAdapter.includes('usedSession:&elementSession') && wdaAdapter.includes('session:item[@"sessionId"]'), 'WDA element actions must stay bound to the session that created each handle');
-check(wdaAdapter.includes('- (NSString *)sessionId') && wdaAdapter.includes('- (NSDictionary<NSString *,id> *)sessionSettings'), 'WDA public session state getters must synchronize with mutation');
-check(wdaAdapter.includes('AutoWDAHTTPRedirectDelegate') && wdaAdapter.includes('sameScheme && sameHost && originPort == targetPort'), 'WDA redirects must stay on the configured origin');
-check(wdaAdapter.includes('/wda/apps/launch') && wdaAdapter.includes('@"appLifecycle": @YES'), 'WDA adapter is missing application lifecycle support');
-check(wdaAdapter.includes('@"/wda/homescreen"') && wdaAdapter.includes('@"/wda/lock"') &&
-      wdaAdapter.includes('@"/wda/unlock"') &&
-      wdaAdapter.includes('goToHomeScreenWithError:') && wdaAdapter.includes('lockDeviceWithError:') &&
-      wdaAdapter.includes('unlockDeviceWithError:') && wdaAdapter.includes('@"systemActions": @YES'),
-      'WDA adapter must implement the optional system-level endpoint methods and report them');
-check(wdaAdapter.includes('NSXMLParser') && wdaAdapter.includes('@"sourceDerived": @YES'), 'WDA adapter must mark source-derived node relationships');
-check(wdaAdapter.includes('childTypeCounts') && wdaAdapter.includes('initWithMaxNodes') && wdaAdapter.includes('cachedXPath'), 'WDA source parser must use bounded type counters and lazy XPath storage');
-check(wdaAdapter.includes('AutoWDAFindSourceNodeByAbsolutePath'), 'WDA source-derived XPath lookup must avoid full-tree scans');
-check(wdaAdapter.includes('objc_precise_lifetime') && wdaAdapter.includes('retainingRoot:&retainedRoot'), 'Zero-duration WDA source queries must retain the hierarchy while using weak parent links');
-check(wdaAdapter.includes('shouldResolveExternalEntities = NO') && wdaAdapter.includes('sourceMaxBytes'), 'WDA source parser must bound XML input');
-check(wdaAdapter.includes('AutoWDAMaxSourceDepth = 1024') &&
-      wdaAdapter.includes('shouldCancelLookup') &&
-      wdaAdapter.includes('WDA node lookup was cancelled.'),
-      'WDA source trees and selector scans must have depth and cancellation limits');
-check(wdaAdapter.includes('@"maxCandidates"') && wdaAdapter.includes('@"maxResults"'), 'WDA adapter must expose bounded image/OCR work');
-check(wdaAdapter.includes('(double)step * sqrt'), 'WDA adaptive image step must enforce the candidate budget');
-check(wdaAdapter.includes('AutoWDATemplateImage') && wdaAdapter.includes('totalCostLimit = 32 * 1024 * 1024'), 'WDA template cache must be bounded');
-check(wdaAdapter.includes('AutoWDAPixelImageMakeRegion') && wdaAdapter.includes('AutoWDAColorOffset'), 'WDA color/image scans must use ROI buffers and precompiled offsets');
-check(wdaAdapter.includes('AutoWDAPixelByteCount') && wdaAdapter.includes('combined pixel-buffer limit'), 'WDA image matching must bound its combined pixel working set');
-check(wdaAdapter.includes('verifiedCandidates') && wdaAdapter.includes('@"truncated"'), 'WDA image verification work must be explicitly bounded');
-check(wdaAdapter.includes('@"mode"') && wdaAdapter.includes('Vision OCR failed'), 'WDA adapter must expose OCR modes and isolate Vision errors');
-check(wdaAdapter.includes('AutoWDAMaxHTTPResponseBytes') && wdaAdapter.includes('AutoWDAMaxScreenshotBytes'), 'WDA responses and screenshots must be size-bounded');
-check(wdaAdapter.includes('AutoWDAMaxHTTPRequestBytes') &&
-      wdaAdapter.includes('completedResponseData = nil') &&
-      wdaAdapter.includes('__weak NSURLSessionDataTask *weakTask'),
-      'WDA requests must be bounded and temporary response/task references released promptly');
-check(wdaAdapter.includes('initWithBase64EncodedString:value options:0') &&
-      !wdaAdapter.includes('NSDataBase64DecodingIgnoreUnknownCharacters'),
-      'WDA screenshots must reject malformed base64 responses');
-check(wdaAdapter.includes('task.countOfBytesExpectedToReceive') && wdaAdapter.includes('MAX((NSUInteger)1, AutoWDAUnsigned(region[@"maxResults"], 1000))'), 'WDA transfers and default OCR result count must be bounded');
-check(wdaAdapter.includes('operationCancellationGeneration') &&
-      wdaAdapter.includes('cancelledBeforeStart') &&
-      wdaAdapter.includes('[self.activeTasks addObject:task]') &&
-      wdaAdapter.includes('[task resume]'),
-      'WDA request creation and cancellation must be linearized with a generation');
-check(wdaAdapter.includes('visualOperationLock') && wdaAdapter.includes('activeVisionRequests') &&
-      wdaAdapter.includes('scannedCandidates') && wdaAdapter.includes('comparedPixels'),
-      'WDA visual work, Vision cancellation, and color comparisons must be bounded');
-check(wdaAdapter.includes('settingsApplicationLock') && wdaAdapter.includes('settingsGeneration') &&
-      wdaAdapter.includes('settingsAppliedGeneration') && wdaAdapter.includes('settingsAttemptedGeneration'),
-      'WDA session settings must be single-flight and configuration-generation aware');
-check(wdaAdapter.includes('AutoWDAOperationCancellationThreadKey') &&
-      wdaAdapter.includes('operationCancellationThreadKey') &&
-      wdaAdapter.includes('operationCleanupTimeoutThreadKey') &&
-      wdaAdapter.includes('requestCleanupPath') &&
-      wdaAdapter.includes('installCancellationContextForGeneration') &&
-      wdaAdapter.includes('ownsCancellationContext'),
-      'WDA composite requests must propagate per-adapter cancellation to nested requests');
-check(wdaAdapter.includes('AutoWDAErrorIsUnsupportedCommand') && wdaAdapter.includes('remembersAttempt'),
-      'WDA settings retries must distinguish unsupported settings from transient failures');
-check(wdaAdapter.includes('invalidateVisualCachesLocked') &&
-      wdaAdapter.includes('[self invalidateVisualCachesLocked]'),
-      'WDA session transitions must invalidate visual cache generations atomically');
-check(wdaAdapter.includes('windowSizeCacheGeneration') &&
-      wdaAdapter.includes('self.windowSizeCacheGeneration == requestGeneration') &&
-      wdaAdapter.includes('self.windowSizeCacheGeneration == windowRequestGeneration'),
-      'WDA window-size cache writes must reject results invalidated during visual or source requests');
-check(wdaAdapter.includes('statusCode == 405') && wdaAdapter.includes('statusCode == 501') &&
-      wdaAdapter.includes('statusCode == 404 && !AutoWDAErrorIsInvalidSession(error)'),
-      'WDA settings must remember bare unsupported-endpoint HTTP responses');
-check(wdaAdapter.includes('parser.shouldCancel') && wdaAdapter.includes('cancelledAfterParse'),
-      'WDA source parsing and cache commits must remain cancellation-aware');
-check(wdaAdapter.includes('operationGeneration != self.operationCancellationGeneration') &&
-      wdaAdapter.includes('@"Screenshot was cancelled."'),
-      'WDA screenshot cache hits must re-check cancellation while holding the cache lock');
-check(wdaAdapter.includes('expression ?: NSNull.null') && wdaAdapter.includes('length] > 1024'), 'WDA regex cache must retain invalid bounded patterns');
-check(wdaAdapter.includes('AutoWDADouble(value[@"x"], NAN)') &&
-      wdaAdapter.includes('width < 0 || height < 0'),
-      'WDA element bounds must reject null, non-finite, and negative values');
+// Round 47: external WDA support is removed; the built-in no-WDA adapter is the only cross-app path.
+check(!existsSync('Sources/AutoSDK/AutoWDAHTTPAdapter.m') && !existsSync('Sources/AutoSDK/include/AutoWDAHTTPAdapter.h'),
+      'AutoWDAHTTPAdapter must stay removed; the built-in no-WDA adapter is the only cross-app path');
 check(read('docs/LUA_FRAMEWORK_AUDIT.md').includes('LuaTouch'), 'Lua framework audit document is missing');
 const templatePlist = read('Examples/TemplateApp/App/Info.plist');
-check(templatePlist.includes('NSAllowsLocalNetworking'), 'Template must allow loopback WDA networking');
-check(templatePlist.includes('AutoSDKAdapter') && templatePlist.includes('AutoSDKWDAURL'), 'Template must expose WDA adapter configuration');
+check(templatePlist.includes('NSAllowsLocalNetworking'), 'Template must allow loopback networking for the debug server');
+check(templatePlist.includes('AutoSDKAdapter') && templatePlist.includes('BUILTIN') && !templatePlist.includes('AutoSDKWDAURL'),
+      'Template must default to the built-in no-WDA adapter and carry no WDA configuration');
 check(extensionLock.version === extensionPackage.version, 'VS Code extension version differs from package-lock.json');
 check(extensionLock.packages?.['']?.version === extensionPackage.version, 'VS Code extension root lock version is inconsistent');
 check(extensionPackage.private === true && extensionPackage.license === 'UNLICENSED',
@@ -708,7 +626,8 @@ check(uiKitAdapter.includes('AutoUIKitColorPoint') &&
 check(uiKitAdapter.includes('examinedLanguages = MIN((NSUInteger)64') &&
       uiKitAdapter.includes('examinedWords = MIN((NSUInteger)1000'),
       'UIKit OCR option parsing must bound invalid language and custom-word inputs');
-check(uiKitAdapter.includes('@"nodeId"') && uiKitAdapter.includes('@"parentId"') && wdaAdapter.includes('@"nodeId"'), 'Node snapshots must expose hierarchy identifiers');
+check(uiKitAdapter.includes('@"nodeId"') && uiKitAdapter.includes('@"parentId"') && read('Sources/AutoSDK/AutoBuiltinAdapter.m').includes('@"parentHandle"'),
+      'Node snapshots must expose hierarchy identifiers');
 const debugServerSource = read('Sources/AutoSDK/AutoDebugServer.m');
 check(debugServerSource.includes('(void)retainedData') && debugServerSource.includes('dispatch_data_create_concat'), 'Debug transport must retain and concatenate framed data without a full payload copy');
 check(debugServerSource.includes('nw_interface_type_cellular') && debugServerSource.includes('nw_interface_type_loopback') && debugServerSource.includes('token.length < 16'), 'Debug transport must restrict and authenticate Wi-Fi listeners');
@@ -750,7 +669,7 @@ check(editorSource.includes('saveDeployedScriptNamed:name script:') && editorSou
       'Script editor must save deployed scripts, run, and avoid the keyboard');
 const settingsSource = read('Examples/TemplateApp/App/SettingsViewController.m');
 check(settingsSource.includes('AutoSDKVersionString') && settingsSource.includes('applyEngineConfiguration') &&
-      settingsSource.includes('wifiToggled:') && settingsSource.includes('wdaToggled:'),
+      settingsSource.includes('wifiToggled:') && settingsSource.includes('builtinToggled:'),
       'Settings must show the SDK version and re-apply adapter configuration');
 const templateSettingsSource = read('Examples/TemplateApp/App/AutoTemplateSettings.m');
 check(templateSettingsSource.includes('makeAutomationAdapter') && templateSettingsSource.includes('applyEngineConfiguration') &&
@@ -770,9 +689,9 @@ check(builtinAdapterSource.includes('IOHIDEventSystemClientCreate') &&
       'Built-in no-WDA adapter must resolve IOHID/Accessibility/SpringBoard symbols at runtime without linking private frameworks');
 check(read('Sources/AutoSDK/include/AutoSDK.h').includes('#import "AutoBuiltinAdapter.h"') &&
       templateSettingsSource.includes('AutoBuiltinAdapter *adapter = [AutoBuiltinAdapter new]') &&
-      templateSettingsSource.includes('@"BUILTIN-NOWDA"') &&
-      templateSettingsSource.includes('@"NOWDA"'),
-      'Built-in adapter must be exported and selectable from template configuration (BUILTIN/NOWDA)');
+      !templateSettingsSource.includes('AutoWDAHTTPAdapter') &&
+      !read('Sources/AutoSDK/include/AutoSDK.h').includes('AutoWDAHTTPAdapter'),
+      'Built-in no-WDA adapter must be the default template adapter with no WDA remnants');
 const engineHeader = read('Sources/AutoSDK/include/AutoEngine.h');
 check(engineHeader.includes('saveDeployedScriptNamed:') && engineHeader.includes('deployedScriptContentNamed:') &&
       engineHeader.includes('renameDeployedScriptNamed:'), 'Engine must expose deployed-script save/read/rename APIs');
@@ -969,12 +888,10 @@ check(typeDefinitions.includes('interface AutoGestureAPI') &&
       typeDefinitions.includes('pinch(x: number, y: number, scale: number, durationMs?: number): boolean') &&
       typeDefinitions.includes('declare function gesture('),
       'Type definitions must describe the multi-touch gesture API');
-check(read('Sources/AutoSDK/include/AutoWDAHTTPAdapter.h').includes('performMultiTouch:') &&
-      read('Sources/AutoSDK/include/AutoAutomationAdapter.h').includes('performMultiTouch:'),
-      'Adapter headers must declare performMultiTouch');
-check(read('Sources/AutoSDK/AutoWDAHTTPAdapter.m').includes('@"/actions" method:@"POST" body:body') &&
-      wdaAdapter.includes('@"multiTouch": @YES'),
-      'WDA adapter must implement multi-touch gestures and report the capability');
+check(read('Sources/AutoSDK/include/AutoAutomationAdapter.h').includes('performMultiTouch:'),
+      'Adapter protocol must declare performMultiTouch');
+check(builtinAdapterSource.includes('performMultiTouch:') && builtinAdapterSource.includes('@"multiTouch": @(touchReady)'),
+      'Built-in no-WDA adapter must implement multi-touch gestures and report the capability');
 check(bootstrapScript.includes('base.md5=function(s)') &&
       bootstrapScript.includes('base.sha1=function(s)') &&
       bootstrapScript.includes("callFile('imageSize'") &&
@@ -1071,9 +988,9 @@ check(bootstrapScript.includes("avf('appList')") &&
       typeDefinitions.includes('declare function swipeUp(percent?: number, durationMs?: number): boolean') &&
       typeDefinitions.includes('declare function swipeDown(percent?: number, durationMs?: number): boolean'),
       'Type definitions must describe direction swipes and installed-app listing');
-check(wdaAdapter.includes('@"/wda/apps" method:@"GET"') &&
+check(builtinAdapterSource.includes('installedApplicationsWithError:') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('installedApplicationsWithError:&error'),
-      'WDA adapter and engine must implement the installed-apps query');
+      'Built-in adapter and engine must implement the installed-apps query');
 check(bootstrapScript.includes('base.execAsync=function(fn)') &&
       bootstrapScript.includes('base.execSync=function(fn)') &&
       bootstrapScript.includes('base.longClickPoint=function(x,y,duration)') &&
@@ -1095,8 +1012,10 @@ for (const scriptPath of ['Examples/TemplateApp/Scripts/hello.js', 'Examples/Tem
 check(read('Examples/TemplateApp/Scripts/hello.js').includes('device.setClipboard') &&
       read('Examples/TemplateApp/Scripts/demo-api.js').includes('auto.capabilities().http'),
       'Template bundled scripts must exercise device/system APIs and guard HTTP by capability');
-check(wdaAdapter.includes('@"appList": @YES'),
-      'WDA adapter capabilities must advertise the installed-app list');
+check(builtinAdapterSource.includes('@"appList": @(appListReady)') &&
+      builtinAdapterSource.includes('@"appLifecycle": @(appControlReady)') &&
+      builtinAdapterSource.includes('@"systemActions": @(systemActionsReady)'),
+      'Built-in adapter capabilities must advertise app list, lifecycle, and system actions');
 check(read('Examples/TemplateApp/Scripts/demo-api.js').includes('swipeUp(0.4, 250)') &&
       read('Examples/TemplateApp/Scripts/demo-api.js').includes('app.appList()') &&
       read('Examples/TemplateApp/Scripts/demo-api.js').includes('caps.appList === true'),

@@ -54,8 +54,8 @@ Windows 上从完成的 workflow 下载工件并解出 IPA 即可。**不需要�
 
 > 免费签名的限制：7 天过期需重签；同一 Apple ID 最多同时 3 个签名 App。
 > App 本体（脚本引擎 / 图色 OCR / 相册 / 文件 / HTTP / 存储 / 悬浮窗 / 宿主
-> App 内自动化）全部可用；跨 App 控件自动化需要额外激活 WDA（XCTest 激活
-> 路线见 [NO_TROLLSTORE.md](NO_TROLLSTORE.md)）。
+> App 内自动化）全部可用；跨 App 控件自动化走内置 no-WDA 适配器，需要允许
+> 私有 API 的构建（TrollStore/开发者证书），见 [NO_WDA_ARCHITECTURE.md](NO_WDA_ARCHITECTURE.md)。
 
 ## 3. 跑脚本
 
@@ -70,8 +70,8 @@ USB 端口转发（iproxy）都支持。
 
 ## 4. 下一步
 
-- 跨 App 控件自动化（对标 AScript Agent 模式）：见
-  [NO_TROLLSTORE.md](NO_TROLLSTORE.md) 的路线 B（XCTest 激活 WDA）。
+- 跨 App 控件自动化（对标 AScript Agent 模式）：内置 no-WDA 适配器，见
+  [NO_WDA_ARCHITECTURE.md](NO_WDA_ARCHITECTURE.md)（需特签构建）。
 - 企业签名分发（免 7 天续签）：用企业开发者证书签名 IPA，用户信任企业开发者
   即可安装。
 - 发布清单与包名修改：见 [MARKET_RELEASE.md](MARKET_RELEASE.md)。

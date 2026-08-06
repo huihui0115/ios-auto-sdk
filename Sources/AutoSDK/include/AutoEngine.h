@@ -46,7 +46,7 @@ typedef id _Nullable (^AutoNativeMethodHandler)(NSArray *args);
 /** Total/free system memory and this process's memory footprint in bytes. */
 - (NSDictionary<NSString *, id> *)deviceMemoryInfo;
 
-/** Set the host's XCTest/WDA adapter. Must be called before runScript:. */
+/** Set the automation adapter (built-in no-WDA / UIKit). Must be called before runScript:. */
 - (void)setAutomationAdapter:(id<AutoAutomationAdapter>)adapter;
 
 /** Starts the authenticated loopback WebSocket debug transport. */

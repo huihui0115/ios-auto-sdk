@@ -16,7 +16,7 @@ gestureReport.gesture = auto.gesture([
   { type: "up" }
 ]);
 
-// 3. Multi-touch pinch and custom multi-finger tracks (need WDA multiTouch)
+// 3. Multi-touch pinch and custom multi-finger tracks (built-in no-WDA adapter multiTouch)
 if (gestureMultiTouch) {
   gestureReport.pinch = auto.pinch(160, 300, 2.0, 300);
   gestureReport.multiGesture = auto.multiGesture([

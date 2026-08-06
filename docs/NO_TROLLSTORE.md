@@ -3,9 +3,10 @@
 > 对标 AScript / kuaijs 的市场方向：不需要 TrollStore（巨魔），不需要越狱、不需要开发者账号，
 > 普通用户也能装、能用。2026-08 起 AutoSDK **分发路径已完全去掉 TrollStore**：
 > 产物为未签名 IPA，用 Apple ID 免费签名即可安装（详见 [WINDOWS_SIDELOAD.md](WINDOWS_SIDELOAD.md)）；
-> 本文说明跨 App 自动化（WDA）的免巨魔路线。
+> 本文的 WDA 内容已归档：v1.17.0 起 AutoSDK 已完全移除 WDA 客户端（AutoWDAHTTPAdapter），
+> 跨 App 自动化统一走内置 no-WDA 适配器（见 [NO_WDA_ARCHITECTURE.md](NO_WDA_ARCHITECTURE.md)），无需再"激活 WDA"。
 
-## 一、现状：分发已免巨魔，跨 App 自动化仍需 WDA
+## 一、现状：分发已免巨魔，跨 App 自动化走内置 no-WDA（以下 WDA 内容为历史归档）
 
 AutoSDK 模板 App 是一个 **unsigned IPA**：
 

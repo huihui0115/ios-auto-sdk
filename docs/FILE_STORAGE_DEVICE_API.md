@@ -98,8 +98,7 @@ hardware serial number or control other apps through `AutoUIKitAdapter`.
 ## System control
 
 The engine can also read and write device-global system state from the
-process it runs in (the host app in embedded mode, or the automation app in
-WDA mode):
+process it runs in (the host app in embedded mode):
 
 ```javascript
 const clip = device.getClipboard();        // string | null
@@ -108,14 +107,14 @@ const brightness = device.getBrightness(); // 0...1
 device.setBrightness(0.5);                  // true (validated to 0...1)
 const volume = device.getVolume();         // 0...1 (read-only)
 device.vibrate(300);                        // true (advisory duration, capped)
-device.volumeUp();   // WDA runners: press the volume-up hardware key
-device.volumeDown(); // WDA runners: press the volume-down hardware key
-device.isScreenOn();  // WDA runners: is the screen unlocked/on
+device.volumeUp();   // press the volume-up hardware key (adapter support required)
+device.volumeDown(); // press the volume-down hardware key (adapter support required)
+device.isScreenOn();  // is the screen on/unlocked (adapter support required)
 auto.openURL("myapp://open?id=42");        // true when the system opened it
 auto.openURL("https://example.com");
-app.homeScreen();  // WDA runners: go to the home screen
-app.lock();        // WDA runners: lock the device
-app.unlock();      // WDA runners: unlock the device
+app.homeScreen();  // built-in no-WDA adapter: go to the home screen
+app.lock();        // built-in no-WDA adapter: lock the device
+app.unlock();      // built-in no-WDA adapter: unlock the device
 ```
 
 Top-level aliases `auto.getClipboard`, `auto.setClipboard`,
@@ -124,8 +123,8 @@ Top-level aliases `auto.getClipboard`, `auto.setClipboard`,
 Clipboard text is capped at 1 MiB; brightness must be in 0...1; `openURL`
 accepts `http(s)` URLs and safe custom schemes (file, data, javascript, ftp
 and websocket targets are rejected); `homeScreen`/`lock`/`unlock` require
-an adapter that implements them (the WDA adapter does; embedded adapters
-usually return an unavailable error).
+an adapter that implements them (the built-in no-WDA adapter does via
+SpringBoard services; the host-app UIKit adapter returns an unavailable error).
 
 `toast(message)` is built into the engine and shows a short overlay in the
 host app's key window; hosts may still override it by registering a native

@@ -1,7 +1,11 @@
 # Runtime performance
 
 The SDK keeps the default automation behavior compatible while reducing
-temporary allocations and repeated WDA work.
+temporary allocations and repeated adapter work.
+
+> Note (v1.17.0): `AutoWDAHTTPAdapter` has been removed. Every WDA-related
+> budget and description below is archived for reference; the current
+> cross-app path is the built-in no-WDA adapter (see `NO_WDA_ARCHITECTURE.md`).
 
 ## What is optimized
 

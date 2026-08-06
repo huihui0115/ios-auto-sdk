@@ -1,5 +1,7 @@
 # TrollStore, WDA and Lua automation
 
+> ⚠️ 注意（v1.17.0）：`AutoWDAHTTPAdapter` 已移除，跨 App 自动化统一走内置 no-WDA 适配器（`AutoBuiltinAdapter`，见 `docs/NO_WDA_ARCHITECTURE.md`）。本文涉及 WDA 的内容为历史存档。
+
 Audit date: 2026-08-02
 
 ## 结论

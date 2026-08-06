@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 46（v1.16.0，2026-08-06）。
+> 最后更新：Round 47（v1.17.0，2026-08-06）。
 
 ---
 
@@ -21,8 +21,8 @@ TrollAutoScript / AutoJS / kuaijs）。核心思路：
 - 宿主 App 是普通 App（免越狱）；**Round 46 起跨 App 自动化主路线是内置
   no-WDA 适配器 `AutoBuiltinAdapter`**（IOHIDEvent 真实触摸注入 + AXUIElement
   系统级控件查询 + SpringBoard 应用控制，全部私有 API 运行时 dlopen/dlsym
-  解析，不链接私有框架），对标 AScript Agent 模式；外部 WDA/XCTest 适配器
-  （`AutoWDAHTTPAdapter`）降级为 legacy 回退。触摸注入与系统级 AX 需要
+  解析，不链接私有框架），对标 AScript Agent 模式；外部 WDA/XCTest 适配器（`AutoWDAHTTPAdapter`）
+  已在 Round 47 **完全移除**（无回退）。触摸注入与系统级 AX 需要
   允许私有 API 的构建（TrollStore/开发者签名），详见
   `docs/NO_WDA_ARCHITECTURE.md`。
 
@@ -45,9 +45,8 @@ bridge (__bridge 对象，JSValue block)
    ▼
 原生实现 (AutoEngine.m / AutoScriptSupport.m / AutoHTTPSupport.m)
    ├── UIKit 适配器（宿主 App 内自动化）AutoUIKitAdapter
-   ├── 内置 no-WDA 适配器（跨 App 主路线）AutoBuiltinAdapter
+   ├── 内置 no-WDA 适配器（唯一跨 App 路线）AutoBuiltinAdapter
    │      IOHIDEvent 触摸注入 + 系统级 AX 控件 + SpringBoard 应用控制
-   ├── WDA 适配器（legacy 回退，需外部 Runner）AutoWDAHTTPAdapter
    └── 不可用回退 AutoUnavailableAdapter
 ```
 
@@ -76,16 +75,19 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 46 / v1.16.0）
+## 4. 当前状态（Round 47 / v1.17.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **60895 / 61440**（预算 60×1024 UTF-16 码元）。
 - 文档 **257 个函数 / 257 个可运行示例 / 13 个分类**；测试 **79 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
-  `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制），WDA 降为 legacy；
-  模板 App `makeAutomationAdapter` 支持 `BUILTIN`/`BUILTIN-NOWDA`/`NOWDA` 值；
-  架构与签名要求见 `docs/NO_WDA_ARCHITECTURE.md`。
+  `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制）。
+- **Round 47 清场**：`AutoWDAHTTPAdapter` 及其全部测试/配置/verify 锚点/文档
+  已完全移除；内置 no-WDA 是唯一跨 App 路线。模板 App 默认 BUILTIN，
+  设置页为“内置 no-WDA / UIKit”开关；内置 capabilities 新增
+  `appList`/`appLifecycle`/`systemActions` 键（运行时探测）。架构与签名要求见
+  `docs/NO_WDA_ARCHITECTURE.md`。
 
 已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -209,6 +211,11 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R47（v1.17.0）：**完全移除外部 WDA**（AutoWDAHTTPAdapter.h/.m、~760 行测试、
+  42 个 verify 锚点、模板 WDA 配置与 Info.plist 键、docs/WDA_ADAPTER.md）；
+  内置 no-WDA 为唯一跨 App 路线；内置 capabilities 补 appList/appLifecycle/
+  systemActions（运行时探测）；模板默认 BUILTIN、设置页内置/UIKit 开关；
+  全部文档/教程/扩展措辞同步。零 bootstrap 改动（60895/61440）。
 
 ## 10. 新 AI 接手第一步
 

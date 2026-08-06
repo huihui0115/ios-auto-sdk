@@ -7,21 +7,14 @@ typedef NS_ENUM(NSInteger, AutoSettingsRow) {
     AutoSettingsRowDebugToken,
     AutoSettingsRowDebugPort,
     AutoSettingsRowWiFi,
-    AutoSettingsRowWDASwitch,
-    AutoSettingsRowWDAURL,
-    AutoSettingsRowWDABundleId,
-    AutoSettingsRowWDATimeout,
-    AutoSettingsRowWDAApply,
+    AutoSettingsRowBuiltinSwitch,
     AutoSettingsRowVersion,
     AutoSettingsRowCount
 };
 
 @interface SettingsViewController ()
 @property (nonatomic, strong) UISwitch *wifiSwitch;
-@property (nonatomic, strong) UISwitch *wdaSwitch;
-@property (nonatomic, strong) UITextField *wdaURLField;
-@property (nonatomic, strong) UITextField *wdaBundleField;
-@property (nonatomic, strong) UITextField *wdaTimeoutField;
+@property (nonatomic, strong) UISwitch *builtinSwitch;
 @end
 
 @implementation SettingsViewController
@@ -35,7 +28,6 @@ typedef NS_ENUM(NSInteger, AutoSettingsRow) {
     self.title = @"Settings";
     [self.tableView registerClass:UITableViewCell.class forCellReuseIdentifier:@"cell"];
     [self.tableView registerClass:UITableViewCell.class forCellReuseIdentifier:@"switch-cell"];
-    [self.tableView registerClass:UITableViewCell.class forCellReuseIdentifier:@"field-cell"];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -49,20 +41,22 @@ typedef NS_ENUM(NSInteger, AutoSettingsRow) {
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     if (section == 0) return 4;   // Debug
-    if (section == 1) return 5;   // WDA
+    if (section == 1) return 1;   // Adapter
     return 1;                     // Info
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
     if (section == 0) return @"Debug Server (VS Code)";
-    if (section == 1) return @"WDA Runner (cross-app automation)";
+    if (section == 1) return @"Automation adapter";
     return @"About";
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     if (section == 1) {
-        return @"Enabling WDA sends automation to a WDA-compatible runner "
-               @"(for example WebDriverAgent) on this device. Changes apply immediately.";
+        return @"The built-in no-WDA adapter automates any app on the device "
+               @"(IOHIDEvent touch injection + system-wide accessibility). "
+               @"Turn it off to automate only this host app with the UIKit adapter. "
+               @"Changes apply immediately.";
     }
     return nil;
 }
@@ -105,48 +99,14 @@ typedef NS_ENUM(NSInteger, AutoSettingsRow) {
             cell.accessoryView = self.wifiSwitch;
         }
     } else if (indexPath.section == 1) {
-        if (indexPath.row == AutoSettingsRowWDASwitch) {
-            cell = [tableView dequeueReusableCellWithIdentifier:@"switch-cell" forIndexPath:indexPath];
-            cell.textLabel.text = @"Use WDA adapter";
-            NSString *adapter = [defaults stringForKey:@"AutoSDKAdapter"];
-            if (adapter.length == 0) adapter = [bundle objectForInfoDictionaryKey:@"AutoSDKAdapter"];
-            self.wdaSwitch = [UISwitch new];
-            self.wdaSwitch.on = adapter.length > 0 && ([adapter caseInsensitiveCompare:@"WDA"] == NSOrderedSame || [adapter caseInsensitiveCompare:@"WDAHTTP"] == NSOrderedSame);
-            [self.wdaSwitch addTarget:self action:@selector(wdaToggled:) forControlEvents:UIControlEventValueChanged];
-            cell.accessoryView = self.wdaSwitch;
-        } else if (indexPath.row == AutoSettingsRowWDAApply) {
-            cell = [tableView dequeueReusableCellWithIdentifier:@"cell" forIndexPath:indexPath];
-            cell.textLabel.text = @"Apply WDA Settings";
-            cell.textLabel.textColor = self.view.tintColor;
-        } else {
-            cell = [tableView dequeueReusableCellWithIdentifier:@"field-cell" forIndexPath:indexPath];
-            cell.selectionStyle = UITableViewCellSelectionStyleNone;
-            UITextField *field = nil;
-            if (indexPath.row == AutoSettingsRowWDAURL) {
-                cell.textLabel.text = @"Runner URL";
-                field = self.wdaURLField ?: (self.wdaURLField = [UITextField new]);
-                field.keyboardType = UIKeyboardTypeURL;
-                field.text = [defaults stringForKey:@"AutoSDKWDAURL"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKWDAURL"];
-            } else if (indexPath.row == AutoSettingsRowWDABundleId) {
-                cell.textLabel.text = @"Target Bundle ID";
-                field = self.wdaBundleField ?: (self.wdaBundleField = [UITextField new]);
-                field.autocapitalizationType = UITextAutocapitalizationTypeNone;
-                field.text = [defaults stringForKey:@"AutoSDKWDABundleId"];
-            } else {
-                cell.textLabel.text = @"Timeout (s)";
-                field = self.wdaTimeoutField ?: (self.wdaTimeoutField = [UITextField new]);
-                field.keyboardType = UIKeyboardTypeDecimalPad;
-                double timeout = [defaults doubleForKey:@"AutoSDKWDATimeout"];
-                if (timeout <= 0) timeout = [[bundle objectForInfoDictionaryKey:@"AutoSDKWDATimeout"] doubleValue];
-                if (timeout <= 0) timeout = 15;
-                field.text = [NSString stringWithFormat:@"%.0f", timeout];
-            }
-            field.font = [UIFont systemFontOfSize:15];
-            field.textAlignment = NSTextAlignmentRight;
-            field.frame = CGRectMake(0, 0, 180, 30);
-            field.clearButtonMode = UITextFieldViewModeWhileEditing;
-            cell.accessoryView = field;
-        }
+        cell = [tableView dequeueReusableCellWithIdentifier:@"switch-cell" forIndexPath:indexPath];
+        cell.textLabel.text = @"Built-in no-WDA adapter";
+        NSString *adapter = [defaults stringForKey:@"AutoSDKAdapter"];
+        if (adapter.length == 0) adapter = [bundle objectForInfoDictionaryKey:@"AutoSDKAdapter"];
+        self.builtinSwitch = [UISwitch new];
+        self.builtinSwitch.on = adapter.length == 0 || [adapter caseInsensitiveCompare:@"UIKIT"] != NSOrderedSame;
+        [self.builtinSwitch addTarget:self action:@selector(builtinToggled:) forControlEvents:UIControlEventValueChanged];
+        cell.accessoryView = self.builtinSwitch;
     } else {
         cell = [tableView dequeueReusableCellWithIdentifier:@"cell" forIndexPath:indexPath];
         cell.selectionStyle = UITableViewCellSelectionStyleNone;
@@ -158,9 +118,6 @@ typedef NS_ENUM(NSInteger, AutoSettingsRow) {
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    if (indexPath.section == 1 && indexPath.row == AutoSettingsRowWDAApply) {
-        [self applyWDASettings];
-    }
 }
 
 - (void)wifiToggled:(UISwitch *)sender {
@@ -168,24 +125,9 @@ typedef NS_ENUM(NSInteger, AutoSettingsRow) {
     [AutoTemplateSettings applyEngineConfiguration];
 }
 
-- (void)wdaToggled:(UISwitch *)sender {
-    [NSUserDefaults.standardUserDefaults setObject:sender.on ? @"WDA" : @"UIKit" forKey:@"AutoSDKAdapter"];
+- (void)builtinToggled:(UISwitch *)sender {
+    [NSUserDefaults.standardUserDefaults setObject:sender.on ? @"BUILTIN" : @"UIKIT" forKey:@"AutoSDKAdapter"];
     [AutoTemplateSettings applyEngineConfiguration];
-}
-
-- (void)applyWDASettings {
-    [self.view endEditing:YES];
-    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
-    NSString *url = [self.wdaURLField.text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
-    if (url.length == 0) url = @"http://127.0.0.1:8100";
-    [defaults setObject:url forKey:@"AutoSDKWDAURL"];
-    [defaults setObject:[self.wdaBundleField.text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet]
-                 forKey:@"AutoSDKWDABundleId"];
-    double timeout = [self.wdaTimeoutField.text doubleValue];
-    if (timeout < 1) timeout = 15;
-    [defaults setDouble:MIN(timeout, 120) forKey:@"AutoSDKWDATimeout"];
-    [AutoTemplateSettings applyEngineConfiguration];
-    [self.tableView reloadData];
 }
 
 @end

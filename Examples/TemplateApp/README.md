@@ -30,8 +30,9 @@ the scripts in `Scripts`.
   Mail, ...) with the toolbar action button.
 - Rename: rename a deployed script; the engine rejects name collisions.
 - Settings: shows the debug WebSocket URL and token, toggles Wi-Fi debug mode,
-  and configures the optional WDA runner (URL, target bundle id, timeout).
-  Apply re-creates the automation adapter and re-applies engine config.
+  and switches between the built-in no-WDA adapter (default, cross-app) and
+  the host-app UIKit adapter. Toggling re-creates the automation adapter and
+  re-applies engine config.
 - Debug: with `AutoSDKDebugAllowWiFi`, the log panel shows the phone's
   `ws://` URL and installation token for `npm run debug`.
 
@@ -52,13 +53,13 @@ duplicating setup in `AppDelegate.m`:
 }
 ```
 
-`AutoUIKitAdapter` automates only views owned by this application. Replace it
-with a separately signed XCTest/WDA adapter when cross-application automation
-is required. Set `AutoSDKAdapter` to `WDA` in `App/Info.plist` or
-`NSUserDefaults` and configure `AutoSDKWDAURL`, `AutoSDKWDABundleId`, and
-`AutoSDKWDATimeout` (default `http://127.0.0.1:8100`). Selecting `WDA` does
-not embed XCTest or create the Runner; you must run a WDA-compatible Runner
-separately on the phone.
+The default adapter is `AutoBuiltinAdapter`, the built-in no-WDA engine:
+IOHIDEvent touch injection, system-wide accessibility node queries, and
+SpringBoard app control, with every private symbol resolved at runtime
+(`docs/NO_WDA_ARCHITECTURE.md`). It requires a private-API-permitted build
+(TrollStore or developer signing). Set `AutoSDKAdapter` to `UIKIT` in
+`App/Info.plist` or `NSUserDefaults` to restrict automation to views owned
+by this application with the public-API `AutoUIKitAdapter`.
 
 ## Files integration
 

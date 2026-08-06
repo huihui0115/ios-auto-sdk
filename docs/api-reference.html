@@ -349,7 +349,7 @@ main();</code></pre>
     <h4><code>gesture(actions)</code> <span class="cname">单指手势</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">按 W3C 指针动作序列执行单指手势：down/move/up/wait 会自动归一化为 pointerDown/pointerMove/pointerUp/pause。需要 WDA 适配器支持真实触摸注入（capabilities.multiTouch）。</p>
+  <p class="desc">按 W3C 指针动作序列执行单指手势：down/move/up/wait 会自动归一化为 pointerDown/pointerMove/pointerUp/pause。需要适配器支持真实触摸注入（capabilities.multiTouch，内置 no-WDA 适配器支持）。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">actions</code><span class="ptype">Array&lt;{type,x,y,duration}&gt;</span><span class="pdesc">动作序列：{type:"down",x,y} 按下、{type:"move",x,y,duration} 移动、{type:"up"} 抬起、{type:"wait",duration} 等待</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
@@ -368,7 +368,7 @@ main();</code></pre>
     <h4><code>multiGesture(fingers)</code> <span class="cname">多指手势</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">并行执行多根手指的触摸序列，每根手指一个动作数组；常用于双指缩放、旋转等复杂手势。需要 WDA 适配器支持真实触摸注入。</p>
+  <p class="desc">并行执行多根手指的触摸序列，每根手指一个动作数组；常用于双指缩放、旋转等复杂手势。需要适配器支持真实触摸注入（内置 no-WDA 适配器支持）。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">fingers</code><span class="ptype">Array&lt;Array&lt;{type,x,y,duration}&gt;&gt;</span><span class="pdesc">每根手指的 down/move/up/wait 动作序列</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
@@ -386,7 +386,7 @@ main();</code></pre>
     <h4><code>pinch(x, y, scale, duration?)</code> <span class="cname">双指缩放</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">以 (x,y) 为中心双指缩放，scale&gt;1 放大、scale&lt;1 缩小；duration 为毫秒。需要 WDA 适配器支持真实触摸注入。</p>
+  <p class="desc">以 (x,y) 为中心双指缩放，scale&gt;1 放大、scale&lt;1 缩小；duration 为毫秒。需要适配器支持真实触摸注入（内置 no-WDA 适配器支持）。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">中心横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">中心纵坐标</span></div><div class="param"><code class="pname">scale</code><span class="ptype">number</span><span class="pdesc">缩放倍率（&gt;1 放大，&lt;1 缩小）</span></div><div class="param"><code class="pname">duration</code><span class="ptype">number</span><span class="pdesc">毫秒，默认 300</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
@@ -493,7 +493,7 @@ main();</code></pre>
     <h4><code>drag(x1, y1, x2, y2, durationMs?)</code> <span class="cname">拖拽</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">从起点按下并按住，再移动到终点松开（长按拖拽），durationMs 为总毫秒数（默认 600）。需要 WDA 真实触摸注入。</p>
+  <p class="desc">从起点按下并按住，再移动到终点松开（长按拖拽），durationMs 为总毫秒数（默认 600）。需要真实触摸注入（内置 no-WDA 适配器支持）。</p>
   <div class="ref"><b>对标</b> EasyClick drag()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">x1</code><span class="ptype">number</span><span class="pdesc">起点 X</span></div><div class="param"><code class="pname">y1</code><span class="ptype">number</span><span class="pdesc">起点 Y</span></div><div class="param"><code class="pname">x2</code><span class="ptype">number</span><span class="pdesc">终点 X</span></div><div class="param"><code class="pname">y2</code><span class="ptype">number</span><span class="pdesc">终点 Y</span></div><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">可选，毫秒</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
@@ -857,7 +857,7 @@ main();</code></pre>
     <h4><code>node.find(selector) / node.findOne(selector) / findNode(selector)</code> <span class="cname">查找节点（Node 对象）</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">对标 AScript Selector().find()：按选择器查找第一个匹配节点，返回带方法的高级 Node 对象（.click()/.tap()/.rect/.text 等）；未找到返回 null。选择器支持 {id,label,text,type,visible} 或 XPath。node.click(dur)/tap_hold(dur)/longClick(dur) 的 dur 单位为秒（WDA 语义），如 node.tap_hold(1.5) 长按 1.5 秒。</p>
+  <p class="desc">对标 AScript Selector().find()：按选择器查找第一个匹配节点，返回带方法的高级 Node 对象（.click()/.tap()/.rect/.text 等）；未找到返回 null。选择器支持 {id,label,text,type,visible} 或 XPath。node.click(dur)/tap_hold(dur)/longClick(dur) 的 dur 单位为秒，如 node.tap_hold(1.5) 长按 1.5 秒。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">节点选择器</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoNode|null</span></div>
@@ -911,7 +911,7 @@ main();</code></pre>
     <h4><code>node.snapshot(maxResults?) / nodeSnapshot(maxResults?)</code> <span class="cname">节点快照</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">返回当前控件树快照（带 handle/文本/类型/包围盒等完整属性，最多 2000 个），可用于批量分析页面结构；对标 WDA source dump。</p>
+  <p class="desc">返回当前控件树快照（带 handle/文本/类型/包围盒等完整属性，最多 2000 个），可用于批量分析页面结构；对标系统级控件树 dump（内置 no-WDA 适配器毫秒级遍历）。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">maxResults</code><span class="ptype">number</span><span class="pdesc">可选，最大节点数，默认 500</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoNode[]</span></div>
@@ -1549,7 +1549,7 @@ main();</code></pre>
     <h4><code>app.lock() / app.unlock()</code> <span class="cname">锁屏 / 解锁</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">锁屏或解锁设备（需 WDA systemActions 能力）。</p>
+  <p class="desc">锁屏或解锁设备（需适配器 systemActions 能力，内置 no-WDA 适配器支持）。</p>
   
   
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
@@ -1565,7 +1565,7 @@ main();</code></pre>
     <h4><code>app.isInstalled(bundleId) / isInstalled(bundleId)</code> <span class="cname">应用是否已安装</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">通过已安装应用列表（WDA /wda/apps）判断指定 bundleId 是否安装；适配器不支持 appList 时返回 false。</p>
+  <p class="desc">通过已安装应用列表判断指定 bundleId 是否安装（内置 no-WDA 适配器经 LSApplicationWorkspace 提供）；适配器不支持 appList 时返回 false。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">应用 bundle id</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
@@ -1626,7 +1626,7 @@ main();</code></pre>
     <h4><code>appState(bundleId)</code> <span class="cname">应用状态</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">读取 WDA 应用状态码（4 表示前台运行）。</p>
+  <p class="desc">读取应用状态码（4 表示前台运行）。</p>
   <div class="ref"><b>对标</b> EasyClick getAppState()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">Bundle ID</span></div></div>
   <div class="ret"><b>返回值</b> <span>number</span></div>
@@ -1656,7 +1656,7 @@ main();</code></pre>
     <h4><code>app.homeScreen() / lock() / unlock()</code> <span class="cname">主屏幕 / 锁屏 / 解锁</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">WDA 适配器支持的系统级操作。</p>
+  <p class="desc">内置 no-WDA 适配器支持的系统级操作（systemActions 能力）。</p>
   <div class="ref"><b>对标</b> EasyClick home()/lock()/unlock() · AutoJS home()</div>
   
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
@@ -1672,7 +1672,7 @@ main();</code></pre>
     <h4><code>app.current() / currentApp()</code> <span class="cname">当前前台应用</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">返回当前前台 App 的 Bundle ID（WDA /wda/activeAppInfo）；宿主适配器不支持时返回错误。</p>
+  <p class="desc">返回当前前台 App 的 Bundle ID（内置 no-WDA 适配器经 SpringBoard 提供）；适配器不支持时返回错误。</p>
   
   
   <div class="ret"><b>返回值</b> <span>string|null</span></div>
@@ -1687,7 +1687,7 @@ main();</code></pre>
     <h4><code>app.appList() / installedApps()</code> <span class="cname">已安装应用列表</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">返回已安装应用的 {bundleId, name} 数组（WDA /wda/apps）。支持宿主注入的适配器也可实现；不支持时返回错误。</p>
+  <p class="desc">返回已安装应用的 {bundleId, name} 数组（内置 no-WDA 适配器经 LSApplicationWorkspace 提供）；不支持时返回错误。</p>
   <div class="ref"><b>对标</b> EasyClick getInstalledApps() · AutoJS app.getInstalledApps()</div>
   
   <div class="ret"><b>返回值</b> <span>Array&lt;{bundleId, name}&gt;</span></div>
@@ -2140,7 +2140,7 @@ main();</code></pre>
     <h4><code>device.volumeUp() / device.volumeDown()</code> <span class="cname">音量加/减键</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">模拟按下系统音量加/减键（WDA 真机按键注入）；宿主适配器不支持时返回错误，可用 capabilities() 判断。</p>
+  <p class="desc">模拟按下系统音量加/减键（真机按键注入）；适配器不支持时返回错误，可用 capabilities() 判断。</p>
   
   
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
@@ -2220,7 +2220,7 @@ main();</code></pre>
     <h4><code>device.isScreenOn()</code> <span class="cname">屏幕状态</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">查询屏幕是否点亮（未锁屏），WDA 真机支持；宿主适配器不支持时返回错误。</p>
+  <p class="desc">查询屏幕是否点亮（未锁屏）；适配器不支持时返回错误。</p>
   
   
   <div class="ret"><b>返回值</b> <span>boolean</span></div>

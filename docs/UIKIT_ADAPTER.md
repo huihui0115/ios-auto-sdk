@@ -63,7 +63,7 @@ short cache is invalidated after clicks, input, swipes, and scrolling.
 
 UIKit has no public API for synthesizing arbitrary long-press touches or
 driving another application. `longClick` and cross-app operations therefore
-return explicit errors; use a host-provided WDA adapter for those operations.
+return explicit errors; use the built-in no-WDA adapter (`AutoBuiltinAdapter`) for those operations.
 `clickPoint` and `doubleClickPoint` activate the hit-tested host control; they
 do not claim to synthesize low-level touch events. Inspect this distinction at
 runtime with `auto.capabilities()`.

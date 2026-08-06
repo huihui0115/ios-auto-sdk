@@ -34,7 +34,7 @@ node tools/auto-sdk.mjs build-remote --repo 你的账号/你的仓库 --output .
 GitHub 重新构建安装。两个现成示例：
 
 - `hello.js`：首次运行演示（设备信息、沙盒文件、存储、定时器、系统能力）
-- `demo-api.js`：API 全家桶演示（不依赖特定界面，直接看返回结果）- `gesture-demo.js`：滑动、自定义手势、多指与捏合（需 WDA `multiTouch`）
+- `demo-api.js`：API 全家桶演示（不依赖特定界面，直接看返回结果）- `gesture-demo.js`：滑动、自定义手势、多指与捏合（需内置 no-WDA 适配器 `multiTouch`）
 - `vision-demo.js`：截图、取色、找色、多色比较、OCR、模板找图
 - `media-demo.js`：把截图/图片写入 iOS 相册（需 `mediaLibraryWrite`）
 
@@ -47,8 +47,8 @@ storages.create("cfg").put("key", 1);         // 命名存储
 auto.click({ label: "登录", type: "Button" }); // 点击（宿主内）
 device.setClipboard("text");                  // 系统剪贴板
 auto.openURL("https://example.com");          // 打开 URL
-app.homeScreen();                             // 回主屏幕（需 WDA 适配器）
-device.volumeUp();                             // 音量加（需 WDA 适配器）
+app.homeScreen();                             // 回主屏幕（内置 no-WDA 适配器）
+device.volumeUp();                             // 音量加（需适配器硬件按键能力）
 ```
 
 完整 API 参考：
@@ -77,8 +77,8 @@ device.volumeUp();                             // 音量加（需 WDA 适配器�
 
 ## 常见问题
 
-- **想自动化别的 App？** 需要设备上运行 WDA 兼容 Runner，并在宿主 App 里
-  把适配器切到 `AutoWDAHTTPAdapter`（模板通过 `AutoSDKAdapter` 配置项切换）。
+- **想自动化别的 App？** 内置 no-WDA 适配器默认开启（需 TrollStore/开发者签名
+  构建，见 `docs/NO_WDA_ARCHITECTURE.md`）；App Store 安全构建用 UIKit 适配器，仅宿主 App 内。
 - **脚本无限循环卡死？** 公共 JavaScriptCore 无法硬中断纯 JS 死循环；
   桥接调用与定时器都会响应 `stopScript`/超时，极端情况重启 App。
 - **想让别人不碰构建直接用？** 本项目定位是「开发者的 SDK」。若要给最终

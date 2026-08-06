@@ -1563,6 +1563,10 @@ static NSString *AutoBuiltinStringOrNil(id value) {
 - (NSDictionary<NSString *, id> *)capabilities {
     BOOL touchReady = [AutoBuiltinTouchEngine sharedEngine].isReady;
     BOOL axReady = [AutoBuiltinAccessibilityEngine sharedEngine].isAvailable;
+    BOOL appListReady = NSClassFromString(@"LSApplicationWorkspace") != nil;
+    BOOL appControlReady = AutoBuiltinSymbol(AutoBuiltinFrameworkSpringBoardServices, "SBSLaunchApplicationWithIdentifier") != NULL;
+    BOOL systemActionsReady = AutoBuiltinSymbol(AutoBuiltinFrameworkSpringBoardServices, "SBSLockDevice") != NULL &&
+        AutoBuiltinSymbol(AutoBuiltinFrameworkSpringBoardServices, "SBSOpenSensitiveURLAndUnlock") != NULL;
     return @{ @"scope": @"systemWide",
               @"adapter": @"builtin",
               @"requiresMainThread": @NO,
@@ -1583,6 +1587,9 @@ static NSString *AutoBuiltinStringOrNil(id value) {
               @"findImage": @NO,
               @"opencv": @NO,
               @"ocr": @YES,
+              @"appList": @(appListReady),
+              @"appLifecycle": @(appControlReady),
+              @"systemActions": @(systemActionsReady),
               @"note": @"Built-in no-WDA mode requires a TrollStore/enterprise-signed host app for system-wide operation." };
 }
 

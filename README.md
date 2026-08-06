@@ -10,7 +10,7 @@
 - JavaScriptCore 执行本地脚本、Bundle 脚本和远程 URL
 - 全局 `auto` API：点击、滑动、输入、稳定节点查询、图色、截图、OCR、沙盒文件、命名存储、设备信息和受控 HTTP
 - HTTP 对标 Python requests：GET/POST/PUT/PATCH/DELETE、`headers/cookies/params`、`files` multipart 文件上传 + `formData`、JSON/Base64 响应、下载与 `requireSuccess`
-- 系统能力（`allowSystemControl` 可开关）：剪贴板读写、屏幕亮度、系统音量、振动、打开 URL、Wi-Fi IP（`device.getIPAddress`）、本地通知（`notify(body, title?)`）；WDA Runner 额外支持主屏幕/锁屏/解锁、音量键、屏幕状态
+- 系统能力（`allowSystemControl` 可开关）：剪贴板读写、屏幕亮度、系统音量、振动、打开 URL、Wi-Fi IP（`device.getIPAddress`）、本地通知（`notify(body, title?)`）；内置 no-WDA 适配器额外支持主屏幕/锁屏/解锁（音量键/屏幕状态以能力报告为准）
 - 图像处理：`image.clip/scale/gray/binaryzation/rotate/compress/pixelAt/toBase64/findColorCount`（JPEG 压缩对标 AScript image_compress）
 - 相册（`allowMediaLibrary` 可开关）：保存沙盒图片、视频、Base64 图片或截图到 iOS“照片”，并支持 `media.deleteAllPhotos/deleteAllVideos/deleteAllMedia` 清空相册（返回删除数量）
 - plist 读写：`file.readPlist/writePlist` 与全局 `plist.read/plist.write`（XML plist）
@@ -47,7 +47,7 @@ pod 'AutoSDK', :path => '../AutoSDK'
 
 ### 配置自动化适配器
 
-宿主 App 通过 `AutoAutomationAdapter` 接入自动化能力。跨 App 自动化首选内置 no-WDA 的 `AutoBuiltinAdapter`（需特签构建）；App Store 安全构建用 `AutoUIKitAdapter`（仅宿主 App 内）；外部 WDA 仅作 legacy 回退：
+宿主 App 通过 `AutoAutomationAdapter` 接入自动化能力。跨 App 自动化首选内置 no-WDA 的 `AutoBuiltinAdapter`（需特签构建）；App Store 安全构建用 `AutoUIKitAdapter`（仅宿主 App 内）。Round 47 起外部 WDA 适配器已完全移除：
 
 ```objc
 AutoEngine *engine = AutoEngine.sharedEngine;
@@ -77,7 +77,7 @@ AutoEngine *engine = AutoEngine.sharedEngine;
 
 没有设置适配器时，SDK 使用 `AutoUnavailableAdapter` 并返回明确错误，不会假装执行 UI 操作。
 
-`AutoUIKitAdapter` 支持 `id`、`label`、`type`、`value` 及组合选择器，可完成宿主 App 内点击、输入、滚动、节点查询、截图和 Vision OCR。跨 App 自动化主路线是内置 no-WDA 的 [`AutoBuiltinAdapter`](Sources/AutoSDK/include/AutoBuiltinAdapter.h)：IOHIDEvent 注入真实触摸、系统级无障碍接口查询控件、LSApplicationWorkspace/SpringBoardServices 控制应用，全部私有符号运行时解析、缺能力时如实报错（签名要求与验证计划见 `docs/NO_WDA_ARCHITECTURE.md`）。[`AutoWDAHTTPAdapter`](Sources/AutoSDK/include/AutoWDAHTTPAdapter.h) 保留为 legacy 回退：连接设备上单独运行的 WDA-compatible Runner，需要单独安装/激活（免巨魔路线见 `docs/NO_TROLLSTORE.md`）。
+`AutoUIKitAdapter` 支持 `id`、`label`、`type`、`value` 及组合选择器，可完成宿主 App 内点击、输入、滚动、节点查询、截图和 Vision OCR。跨 App 自动化主路线是内置 no-WDA 的 [`AutoBuiltinAdapter`](Sources/AutoSDK/include/AutoBuiltinAdapter.h)：IOHIDEvent 注入真实触摸、系统级无障碍接口查询控件、LSApplicationWorkspace/SpringBoardServices 控制应用，全部私有符号运行时解析、缺能力时如实报错（签名要求与验证计划见 `docs/NO_WDA_ARCHITECTURE.md`）。Round 47 起外部 WDA 适配器（`AutoWDAHTTPAdapter`）已完全移除，不再保留回退，避免双路线维护成本。
 
 ## 脚本 API
 > 📚 交互式 API 速查（分类导航 + 搜索 + 一键复制可运行示例）：[docs/api-reference.html](docs/api-reference.html)，浏览器双击即开。
@@ -116,7 +116,7 @@ auto.toast("自定义方法由 Native 注册");
 `setTimeout`/`setInterval` 在脚本主代码返回后继续执行，`runScript` 的完成回调会等定时器队列排空后才触发；`setInterval` 会持续运行，需调用 `stopScript`（或等待 `scriptTimeout` 超时）才会停止。`scriptTimeout` 是包含定时器回调在内的总执行预算。
 新增 EasyClick 风格的坐标适配与常用工具：`setScreenMetrics(width, height)` 按设计稿设置分辨率基准，配合 `getScreenMetrics()`、`metrics.point(x, y)` 适配多机型；另有 `uuid()`、`base64.encode/decode`、`http.getJSON`、`auto.clickCenter/clickRandom`、`auto.getChild/getSiblings` 等封装。全部 160+ 函数见上方交互式速查（254 个函数、13 个分类，每卡带 EasyClick/AutoJS 对标与可复制示例）。
 
-`findImage` 使用适配器实现的模板相似度匹配，`findColor` 使用 RGBA 容差扫描；`AutoUIKitAdapter` 的 `ocr` 使用系统 Vision 框架离线执行。`AutoWDAHTTPAdapter` 会把 WDA 截图拉回 SDK 进程后执行图色和 Vision OCR，不需要 OpenCV，但仍然需要单独可用的 WDA Runner。
+`findImage` 使用适配器实现的模板相似度匹配，`findColor` 使用 RGBA 容差扫描；`AutoUIKitAdapter` 的 `ocr` 使用系统 Vision 框架离线执行。内置 no-WDA 适配器在系统级截图后直接执行图色扫描与 Vision OCR，不需要 OpenCV。
 
 节点对象是带稳定弱关联句柄的可序列化描述，不会强持有 UIKit 对象；可以把 `findElement` 返回值再次传给 `getText`、`getBounds`、`getParent` 等 API。视图销毁后句柄自动失效。HTTP 默认关闭，需显式配置 `allowNetwork: @YES`，请求仅允许 `http` 和 `https`。
 

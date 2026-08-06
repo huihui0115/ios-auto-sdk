@@ -21,24 +21,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>AutoSDKAdapter</key>
-	<string>UIKit</string>
-	<key>AutoSDKWDAURL</key>
-	<string>http://127.0.0.1:8100</string>
-	<key>AutoSDKWDABundleId</key>
-	<string></string>
-	<key>AutoSDKWDATimeout</key>
-	<real>15</real>
-	<key>AutoSDKWDASourceCacheDuration</key>
-	<real>0.15</real>
-	<key>AutoSDKWDAScreenshotCacheDuration</key>
-	<real>0</real>
-	<key>AutoSDKWDAIgnoreUnsupportedSettings</key>
-	<true/>
-	<key>AutoSDKWDASettings</key>
-	<dict>
-		<key>shouldUseCompactResponses</key>
-		<true/>
-	</dict>
+	<string>BUILTIN</string>
+	<key>AutoSDKMaxSnapshotNodes</key>
+	<integer>5000</integer>
+	<key>AutoSDKMaxSnapshotDepth</key>
+	<integer>30</integer>
 	<key>AutoSDKScreenshotCacheDuration</key>
 	<real>0</real>
 	<key>AutoSDKDebugAllowWiFi</key>

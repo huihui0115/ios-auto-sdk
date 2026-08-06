@@ -2,7 +2,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/** In-app settings: debug server info, Wi-Fi toggle, and WDA runner configuration. */
+/** In-app settings: debug server info, Wi-Fi toggle, and adapter selection (built-in no-WDA / UIKit). */
 @interface SettingsViewController : UITableViewController
 @end
 

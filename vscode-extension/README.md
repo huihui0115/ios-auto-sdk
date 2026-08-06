@@ -90,8 +90,8 @@ screenshot and node-tree snapshot, selector/image/color tests, and generated
 click code. Selecting a local PNG/JPEG deploys a hashed copy into the phone's
 `debug-assets` directory before testing, so generated `auto.findImage` code
 uses a real persistent path. Region mode can execute bounded fast OCR and show
-the recognized words immediately. UIKit mode inspects the host app. WDA mode
-can inspect and operate other apps that WDA can access.
+the recognized words immediately. UIKit mode inspects the host app. The
+built-in no-WDA mode can inspect and operate any app on the device.
 
 **AutoSDK: Run Current Script** executes the editor contents immediately.
 **AutoSDK: Send Current Script to Device** stores a transpiled `.js` copy in

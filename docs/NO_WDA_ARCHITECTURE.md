@@ -1,8 +1,9 @@
 ﻿# 内置 no-WDA 架构（AutoBuiltinAdapter）
 
 > Round 46（v1.16.0）起，AutoSDK 的战略路径从"外挂 WDA"切换为"内置 no-WDA"，
-> 对齐 AScript Agent 模式 / kuaijs 的主流方案。外部 WDA 适配器保留为 legacy
-> 可选回退，不再是推荐路径。
+> 对齐 AScript Agent 模式 / kuaijs 的主流方案。**Round 47（v1.17.0）：外部 WDA
+> 适配器（AutoWDAHTTPAdapter）已完全移除**，不再保留任何回退；内置 no-WDA
+> 是唯一跨 App 路线。
 
 ## 1. 为什么放弃外部 WDA
 
@@ -43,9 +44,9 @@ capabilities.stableNodeHandles=NO 已如实标注）。
 
 宿主模板 App 配置 `AutoSDKAdapter`（NSUserDefaults 或 Info.plist）：
 
-- `BUILTIN` / `BUILTIN-NOWDA` / `NOWDA` → 内置 no-WDA 适配器（推荐）
-- `WDA` / `WDAHTTP` → legacy 外部 WDA（仅回退用途）
-- 其他/留空 → AutoUIKitAdapter（仅宿主 App 内，App Store 安全）
+- 默认 / `BUILTIN` / `BUILTIN-NOWDA` / `NOWDA` → 内置 no-WDA 适配器（唯一跨 App 路线）
+- `UIKIT` → AutoUIKitAdapter（仅宿主 App 内，App Store 安全）
+- `WDA` / `WDAHTTP` 值已随适配器在 v1.17.0 移除。
 
 可选配置：`AutoSDKMaxSnapshotNodes`（默认 5000）、
 `AutoSDKMaxSnapshotDepth`（默认 30）、`AutoSDKScreenshotCacheDuration`。
@@ -73,7 +74,7 @@ capabilities.stableNodeHandles=NO 已如实标注）。
 ## 6. 已知限制（诚实标注）
 
 - `findImage`（模板匹配）内置适配器尚未实现，返回清晰错误；用图色/OCR
-  方案替代，或临时回退 UIKit/WDA 适配器。
+  方案替代，或临时切换 UIKit 适配器（仅宿主 App 内）。
 - xpath/predicate 选择器内置不支持（用 text/label/id/type + Match 正则）。
 - 硬件按键注入（音量键等）暂不支持；home 通过 SpringBoard 跳转实现。
 - 节点句柄非稳定句柄，UI 变化后需重新查询。

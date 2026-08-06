@@ -6,6 +6,40 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-08-06
+
+### Removed
+
+- **外部 WDA 适配器完全移除**：`AutoWDAHTTPAdapter.h/.m`（~1300 行客户端）、
+  24 个 WDA 专用 Xcode 测试、42 个 verify 锚点、模板 App 的 WDA 配置分支与
+  Info.plist 的 `AutoSDKWDA*` 键、`docs/WDA_ADAPTER.md`。内置 no-WDA
+  （`AutoBuiltinAdapter`）从此是**唯一**跨 App 路线，不再保留 legacy 回退，
+  避免双路线维护成本（用户决策：只做内置 no-WDA）。
+
+### Added
+
+- **内置 capabilities 补齐**：新增 `appList`/`appLifecycle`/`systemActions`
+  键，按运行时私有符号解析结果如实报告（此前只有 WDA 适配器报告这些键，
+  导致 demo/脚本的 capability 门控在内置适配器下误判）。
+- **verify 防回退锚点**：断言 WDA 文件不存在、AutoSDK.h/模板无 WDA 残留、
+  模板默认 BUILTIN。
+
+### Changed
+
+- **模板 App**：`makeAutomationAdapter` 简化为"默认内置、UIKIT 显式回退"；
+  设置页 WDA 区块（URL/BundleID/超时/Apply）替换为单一
+  "Built-in no-WDA adapter" 开关；Info.plist 默认 `AutoSDKAdapter=BUILTIN`。
+- **文档全量同步**：README/QUICK_START/MARKET_RELEASE/NO_WDA_ARCHITECTURE/
+  NODE_OPERATIONS/PERFORMANCE/WINDOWS_SIDELOAD 等改为内置唯一路线叙述；
+  历史审计文档（ASCRIPT/AUTOSCRIPT/TROLLSTORE_WDA_LUA/LUA_FRAMEWORK_AUDIT/
+  NO_TROLLSTORE）加 v1.17.0 归档 banner；docs 门户与教程页卡片更新；
+  api-reference 卡片与 VS Code 扩展措辞去 WDA 化。
+
+### Notes
+
+- 零 bootstrap JS 改动（60895/61440，余 545B）；Node 测试 79 项不变；
+  文档 257 函数不变。内置适配器真机验证仍为下轮优先待办。
+
 ## [1.16.0] - 2026-08-06
 
 ### Added

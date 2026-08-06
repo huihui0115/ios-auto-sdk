@@ -31,9 +31,9 @@ unavailable.
 | Storage | named typed key-value stores | named persistent JSON stores plus EasyClick-style typed wrappers, plus a local SQLite module (`sqlite.open/exec/query/close`, sandbox-confined, positional-param binding) | No JDBC layer; 1 MiB default namespace limit |
 | HTTP | generic requests, GET/POST/JSON, download, WebSocket | guarded HTTP methods, JSON/binary responses, multipart/form upload (`files`/`formData`), host allowlist, response limit, sandbox download, WebSocket client (`ws.*`) | Synchronous JS facade, no cookie jar API or proxy API |
 | Timers/threads | timeout/interval, async/sync thread APIs, workers | cooperative `sleep`, timeout/interval queues drained before completion, parallel `execAsync/execSync` threads (join/getResult/cancel, up to 8), native URLSession work | No retained event loop after script completion or worker runtime |
-| External transports/services | BLE events, OTG HID, Aux remote assistance, JDBC MySQL, and network-verification services | authenticated WebSocket debugging over loopback/USB or opt-in Wi-Fi, guarded HTTP, and an optional WDA HTTP adapter (legacy fallback) | No BLE/OTG/Aux controller, JDBC driver, or EasyClick service integration; cross-app automation now prefers the built-in no-WDA adapter, with the WDA HTTP adapter kept only as a legacy option needing a separately running Runner |
+| External transports/services | BLE events, OTG HID, Aux remote assistance, JDBC MySQL, and network-verification services | authenticated WebSocket debugging over loopback/USB or opt-in Wi-Fi, and guarded HTTP | No BLE/OTG/Aux controller, JDBC driver, or EasyClick service integration; cross-app automation uses the built-in no-WDA adapter (external WDA removed in v1.17.0) |
 | IDE/debug | IDE, live screen, node panel, logs, remote execution | VS Code completion/snippets, safe single-file TypeScript transpilation, persistent Wi-Fi/USB-forwarded connection, visual screenshot/node Inspector, node/image/color/OCR tests, code generation, deployed script/asset management, and Actions build/download | No continuous video stream, breakpoint debugger, TypeScript module bundler, package manager, or verified real-device tunnel session |
-| Deployment | signed EasyClick agent/IPA products, proxy IPA, Bluetooth and OTG HID paths | template app, unsigned IPA workflow (free Apple ID signing), built-in no-WDA adapter as the primary cross-app engine (private symbols resolved at runtime, no linked private frameworks), optional legacy WDA client | Built-in adapter requires a private-API-permitted build (TrollStore or developer signing) for touch injection and system-wide AX; not compiled or tested on Xcode or a real iPhone in this Windows workspace |
+| Deployment | signed EasyClick agent/IPA products, proxy IPA, Bluetooth and OTG HID paths | template app, unsigned IPA workflow (free Apple ID signing), built-in no-WDA adapter as the only cross-app engine (private symbols resolved at runtime, no linked private frameworks; external WDA removed in v1.17.0) | Built-in adapter requires a private-API-permitted build (TrollStore or developer signing) for touch injection and system-wide AX; not compiled or tested on Xcode or a real iPhone in this Windows workspace |
 
 ## Current quality assessment
 
@@ -51,10 +51,10 @@ The following surfaces must not be described as production-complete yet:
 
 - `AutoUIKitAdapter.longClick`: intentionally returns an unsupported error.
 - Cross-app automation: the built-in no-WDA adapter (`AutoBuiltinAdapter`)
-  is now the primary engine, but it calls private IOHIDEvent/AX/SpringBoard
-  APIs resolved at runtime; it needs a private-API-permitted build and has
-  not yet been validated on a real device. `AutoWDAHTTPAdapter` remains as a
-  legacy fallback and still needs a separately running WDA Runner.
+  is the only engine, but it calls private IOHIDEvent/AX/SpringBoard APIs
+  resolved at runtime; it needs a private-API-permitted build and has not yet
+  been validated on a real device. The external WDA adapter was removed in
+  v1.17.0 and will not return.
 - WDA parent/child/sibling nodes: derived from a point-in-time `/source` XML
   snapshot and represented by XPath, so they must be refreshed after UI changes.
 - Template matching: improved, but still a CoreGraphics matcher rather than OpenCV.
@@ -67,7 +67,7 @@ The following surfaces must not be described as production-complete yet:
 
 1. Run the GitHub Actions iOS build and fix every compiler warning/error.
 2. Install the unsigned IPA with free Apple ID signing and verify the debug server through direct Wi-Fi or a loopback `iproxy` tunnel.
-3. Validate the built-in no-WDA adapter on a real device (IOHIDEvent touch injection, system-wide AX queries, SpringBoard app control); keep the separately signed WDA Runner with `AutoWDAHTTPAdapter` only as a legacy fallback.
+3. Validate the built-in no-WDA adapter on a real device (IOHIDEvent touch injection, system-wide AX queries, SpringBoard app control); external WDA support was removed in v1.17.0 and is not coming back.
 4. Replace the basic matcher with an optional OpenCV-backed adapter.
 5. Add workers/parallel JavaScript contexts and a safe execution interrupt mechanism.
 6. Upgrade point-in-time screenshots and node JSON into a continuous visual inspector.
@@ -95,6 +95,7 @@ The following surfaces must not be described as production-complete yet:
 | 线程与工具模块 | 14 | thread.execAsync/execSync/cancelThread/stopAll/isCancelled、utils.dataMd5/fileMd5/randomInt/getRangeInt/getRatio/zip/unzip/readFileInZip/playMp3/stopMp3/deleteAllPhotos/deleteAllVideos/requestPhotoAuthorization、全局别名 getPasteboard/setPasteboard/openUrl/uploadToAlbum/childcount |
 | 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 
+本轮新增（Round 47）：完全移除外部 WDA 适配器（AutoWDAHTTPAdapter 及其测试/verify 锚点/模板配置/文档）——内置 no-WDA 成为唯一跨 App 路线，避免双路线维护成本；内置 capabilities 补 `appList`/`appLifecycle`/`systemActions` 键（运行时探测）；模板 App 默认 BUILTIN，设置页改为“内置 no-WDA / UIKit”开关；Node 侧测试仍 79 项，原生 Xcode 测试删除 24 个 WDA 专用用例（剩 58+14 项）、文档措辞全量同步；零 bootstrap 改动（60895/61440）；
 本轮新增（Round 46）：内置 no-WDA 适配器 `AutoBuiltinAdapter` 上线——IOHIDEvent 真实触摸注入（系统级，支持多点 W3C 手势时序回放）、AXUIElement 系统级控件查询（跨 App，毫秒级）、SpringBoard/BackBoard/LSApplicationWorkspace 应用控制（启动/终止/前台/锁屏/设置页）、UIGetScreenImage 截图 + Vision OCR；外部 WDA 依赖降级为 legacy 回退，主路线不再需要 WDA Runner（对标 AScript Agent no-WDA / kuaijs）；新架构文档 docs/NO_WDA_ARCHITECTURE.md；本轮零 bootstrap JS 改动（60895/61440）；
 本轮新增（Round 45）：`node.allChildren()` 递归子孙遍历（EasyClick 语义补齐）；dp helper 压缩 -405B（60895/61440），并修复 boundsInfo 无 bounds 节点刷新 rect/center 时的 TypeError；测试 79 项；
 本轮新增（Round 44）：节点对象新增 EasyClick 关系方法 `children()/parent()/siblings()/nextSiblings()/previousSiblings()`（返回包装节点，可链式操作）；nr 工厂挂载；文档 257 函数、测试 78 项；

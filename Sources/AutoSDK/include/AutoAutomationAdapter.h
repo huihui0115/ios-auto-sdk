@@ -3,8 +3,9 @@
 NS_ASSUME_NONNULL_BEGIN
 
 /**
- * Host applications provide this adapter to connect AutoSDK to their
- * XCTest/WDA integration. The SDK itself remains independent of private APIs.
+ * Host applications provide this adapter to connect AutoSDK to the UI they
+ * want to automate. The built-in no-WDA adapter (AutoBuiltinAdapter) is the
+ * default cross-app implementation; private symbols are resolved at runtime.
  */
 @protocol AutoAutomationAdapter <NSObject>
 
@@ -71,7 +72,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable NSNumber *)applicationStateForBundleId:(NSString *)bundleId error:(NSError * _Nullable * _Nullable)error;
 - (nullable NSString *)currentApplicationWithError:(NSError * _Nullable * _Nullable)error;
 - (nullable NSArray<NSDictionary<NSString *, id> *> *)installedApplicationsWithError:(NSError * _Nullable * _Nullable)error;
-/** System-level UI actions. WDA runners expose these; most embedded adapters do not. */
+/** System-level UI actions. The built-in no-WDA adapter implements these via SpringBoard services. */
 - (BOOL)pressButtonWithName:(NSString *)name error:(NSError * _Nullable * _Nullable)error;
 - (nullable NSNumber *)deviceLockedStateWithError:(NSError * _Nullable * _Nullable)error;
 - (BOOL)goToHomeScreenWithError:(NSError * _Nullable * _Nullable)error;
