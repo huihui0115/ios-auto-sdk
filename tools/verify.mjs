@@ -694,6 +694,12 @@ check(builtinAdapterSource.includes('IOHIDEventSystemClientCreate') &&
       !builtinAdapterSource.includes('#import <Accessibility/') &&
       !builtinAdapterSource.includes('#import <IOKit/'),
       'Built-in no-WDA adapter must resolve IOHID/Accessibility/SpringBoard symbols at runtime without linking private frameworks');
+check(builtinAdapterSource.includes('AutoBuiltinMaxImageComparisons') &&
+      builtinAdapterSource.includes('@"findImage": @YES'),
+      'Built-in adapter must implement bounded template image matching and report the capability');
+check(builtinAdapterSource.includes('AutoBuiltinBundleIdForAppName') &&
+      builtinAdapterSource.includes('com.tencent.xin'),
+      'Built-in adapter must resolve popular app names to bundle ids (AScript app_start parity)');
 check(read('Sources/AutoSDK/include/AutoSDK.h').includes('#import "AutoBuiltinAdapter.h"') &&
       templateSettingsSource.includes('AutoBuiltinAdapter *adapter = [AutoBuiltinAdapter new]') &&
       !templateSettingsSource.includes('AutoWDAHTTPAdapter') &&

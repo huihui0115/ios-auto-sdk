@@ -6,6 +6,31 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-08-06
+
+### Added
+
+- **内置 no-WDA 适配器模板找图 `findImage`**：系统级截图 + 有界两阶段匹配
+  （粗采样定位→全像素验证，逐通道容差 24），`similarity`/`threshold` 默认 0.9、
+  `region` 限定区域、`maxCandidates` 默认 64（上限 512），像素比较总数封顶
+  60M 保证有界；返回 {found, x, y, width, height, centerX, centerY, similarity}
+  （点坐标）。capabilities 的 `findImage` 如实报 YES。
+- **App 中文名启动库**：内置 60+ 常用应用 name→bundleId 映射（微信/支付宝/淘宝/
+  京东/拼多多/抖音/快手/哔哩哔哩/美团/高德/钉钉/设置/相机/Safari…），
+  `app.launch("微信")` / `app.terminate("淘宝")` / `app.appState("抖音")` 直接可用，
+  对标 AScript `system.app_start("微信")`；传 bundleId 行为不变。
+
+### Changed
+
+- 文档同步：NO_WDA_ARCHITECTURE 已知限制更新（findImage 已实现）、
+  EASYCLICK 对比矩阵图色/应用控制行、api-reference 卡片 desc、
+  MARKET_RELEASE 已知边界。verify 新增两个内置适配器锚点。
+
+### Notes
+
+- 零 bootstrap JS 改动（60895/61440，余 545B）；Node 测试 79 项；
+  内置适配器真机验证仍为下轮优先待办。
+
 ## [1.18.0] - 2026-08-06
 
 ### Added

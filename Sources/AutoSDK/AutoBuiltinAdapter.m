@@ -17,6 +17,10 @@ static const NSUInteger AutoBuiltinMaxNodeStringLength = 4096;
 static const NSUInteger AutoBuiltinMaxColorPoints = 4096;
 static const NSUInteger AutoBuiltinMaxColorCandidates = 2000000;
 static const NSUInteger AutoBuiltinMaxOCRItems = 500;
+static const NSUInteger AutoBuiltinMaxTemplateBytes = 8 * 1024 * 1024;
+static const NSUInteger AutoBuiltinDefaultImageCandidates = 64;
+static const NSUInteger AutoBuiltinMaxImageCandidates = 512;
+static const NSUInteger AutoBuiltinMaxImageComparisons = 60000000;
 static NSString * const AutoBuiltinHandlePrefix = @"axb:";
 
 static NSString * const AutoBuiltinFrameworkAccessibility = @"/System/Library/Frameworks/Accessibility.framework/Accessibility";
@@ -1181,8 +1185,44 @@ static NSString *AutoBuiltinStringOrNil(id value) {
 
 #pragma mark Application control
 
+static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
+    static NSDictionary<NSString *, NSString *> *table = nil;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        table = @{ @"微信": @"com.tencent.xin", @"QQ": @"com.tencent.mqq", @"TIM": @"com.tencent.tim",
+            @"企业微信": @"com.tencent.ww", @"支付宝": @"com.alipay.iphoneclient",
+            @"淘宝": @"com.taobao.taobao4iphone", @"闲鱼": @"com.taobao.fleamarket",
+            @"京东": @"com.360buy.jdmobile", @"拼多多": @"com.xunmeng.pinduoduo",
+            @"抖音": @"com.ss.iphone.ugc.Aweme", @"快手": @"com.gifshow.kuaishou",
+            @"哔哩哔哩": @"tv.danmaku.bilian", @"微博": @"com.sina.weibo",
+            @"小红书": @"com.xingin.discover", @"知乎": @"com.zhihu.ios", @"豆瓣": @"com.douban.frodo",
+            @"美团": @"com.meituan.imeituan", @"饿了么": @"me.ele.ios.eleme", @"滴滴": @"com.xiaojukeji.didi",
+            @"高德地图": @"com.autonavi.amap", @"高德": @"com.autonavi.amap", @"百度地图": @"com.baidu.map",
+            @"百度": @"com.baidu.BaiduMobile", @"网易云音乐": @"com.netease.cloudmusic",
+            @"QQ音乐": @"com.tencent.QQMusic", @"酷狗音乐": @"com.kugou.kugou",
+            @"爱奇艺": @"com.qiyi.iphone", @"优酷": @"com.youku.YouKu", @"腾讯视频": @"com.tencent.live4iphone",
+            @"芒果TV": @"com.hunantv.mgo", @"携程": @"com.ctrip.ctrip", @"去哪儿": @"com.qunar.iphoneclient",
+            @"铁路12306": @"com.chinarailway.global", @"12306": @"com.chinarailway.global",
+            @"顺丰": @"com.sf.courier", @"招商银行": @"cmb.pb", @"工商银行": @"com.icbc.iphone",
+            @"建设银行": @"com.ccb.ccbiphone", @"中国银行": @"com.chinamworld.bocmbci",
+            @"农业银行": @"com.abchina.bank", @"钉钉": @"com.laiwang.DingTalk", @"飞书": @"com.bytedance.lark",
+            @"WPS": @"cn.wps.moffice_eng", @"微信读书": @"com.tencent.weread", @"QQ邮箱": @"com.tencent.qqmail",
+            @"设置": @"com.apple.Preferences", @"相册": @"com.apple.mobileslideshow",
+            @"照片": @"com.apple.mobileslideshow", @"相机": @"com.apple.camera",
+            @"Safari": @"com.apple.mobilesafari", @"浏览器": @"com.apple.mobilesafari",
+            @"邮件": @"com.apple.MobileMail", @"信息": @"com.apple.MobileSMS", @"电话": @"com.apple.mobilephone",
+            @"地图": @"com.apple.Maps", @"App Store": @"com.apple.AppStore", @"快捷指令": @"com.apple.shortcuts",
+            @"时钟": @"com.apple.mobiletimer", @"计算器": @"com.apple.calculator",
+            @"备忘录": @"com.apple.mobilenotes", @"日历": @"com.apple.mobilecal",
+            @"文件": @"com.apple.DocumentsApp", @"音乐": @"com.apple.music" };
+    });
+    NSString *key = [name stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    return key.length > 0 ? table[key] : nil;
+}
+
 - (BOOL)launchApplicationWithBundleId:(NSString *)bundleId error:(NSError **)error {
-    if (!AutoBuiltinLaunchBundleId(bundleId)) {
+    NSString *resolved = AutoBuiltinBundleIdForAppName(bundleId) ?: bundleId;
+    if (!AutoBuiltinLaunchBundleId(resolved)) {
         if (error) *error = AutoBuiltinUnavailable(@"application launch (LSApplicationWorkspace/SpringBoardServices)");
         return NO;
     }
@@ -1194,7 +1234,8 @@ static NSString *AutoBuiltinStringOrNil(id value) {
 }
 
 - (BOOL)terminateApplicationWithBundleId:(NSString *)bundleId error:(NSError **)error {
-    if (!AutoBuiltinTerminateBundleId(bundleId)) {
+    NSString *resolved = AutoBuiltinBundleIdForAppName(bundleId) ?: bundleId;
+    if (!AutoBuiltinTerminateBundleId(resolved)) {
         if (error) *error = AutoBuiltinUnavailable(@"application termination (BKSTerminateApplication)");
         return NO;
     }
@@ -1208,7 +1249,8 @@ static NSString *AutoBuiltinStringOrNil(id value) {
         return nil;
     }
     /* 4 = running in foreground (matches the WDA/XCUIApplication convention). */
-    return [frontmost isEqualToString:bundleId] ? @4 : @1;
+    NSString *resolved = AutoBuiltinBundleIdForAppName(bundleId) ?: bundleId;
+    return [frontmost isEqualToString:resolved] ? @4 : @1;
 }
 
 - (NSString *)currentApplicationWithError:(NSError **)error {
@@ -1488,9 +1530,107 @@ static NSString *AutoBuiltinStringOrNil(id value) {
 }
 
 - (NSDictionary *)findImageAtPath:(NSString *)templatePath options:(NSDictionary *)options error:(NSError **)error {
-    if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationUnavailable,
-        @"Built-in adapter: template image matching is not implemented yet; use color/OCR-based matching or the UIKit/WDA adapters.");
-    return nil;
+    options = [options isKindOfClass:NSDictionary.class] ? options : @{};
+    NSData *templateData = [NSData dataWithContentsOfFile:templatePath
+                                                  options:NSDataReadingMappedIfSafe
+                                                    error:nil];
+    if (templateData.length == 0 || templateData.length > AutoBuiltinMaxTemplateBytes) {
+        if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed,
+            @"Built-in adapter: unable to read the image template (missing or larger than 8 MB).");
+        return nil;
+    }
+    AutoBuiltinBitmap needle;
+    if (!AutoBuiltinBitmapFromPNGData(templateData, &needle)) {
+        if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed,
+            @"Built-in adapter: unable to decode the image template.");
+        return nil;
+    }
+    NSData *png = [self screenshotWithError:error];
+    if (!png) { AutoBuiltinBitmapFree(&needle); return nil; }
+    AutoBuiltinBitmap hay;
+    if (!AutoBuiltinBitmapFromPNGData(png, &hay)) {
+        AutoBuiltinBitmapFree(&needle);
+        if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed,
+            @"Built-in adapter: unable to decode screenshot bitmap.");
+        return nil;
+    }
+    CGFloat scale = UIScreen.mainScreen.scale > 0 ? UIScreen.mainScreen.scale : 1;
+    size_t minX = 0, minY = 0, maxX = hay.width, maxY = hay.height;
+    NSDictionary *region = [options[@"region"] isKindOfClass:NSDictionary.class] ? options[@"region"] : nil;
+    if (region) {
+        CGFloat rx = [region[@"x"] doubleValue] * scale, ry = [region[@"y"] doubleValue] * scale;
+        CGFloat rw = [region[@"width"] doubleValue] * scale, rh = [region[@"height"] doubleValue] * scale;
+        if (rw > 0 && rh > 0) {
+            minX = (size_t)MAX(0, (NSInteger)floor(rx));
+            minY = (size_t)MAX(0, (NSInteger)floor(ry));
+            maxX = MIN(hay.width, (size_t)ceil(rx + rw));
+            maxY = MIN(hay.height, (size_t)ceil(ry + rh));
+        }
+    }
+    double threshold = [options[@"similarity"] respondsToSelector:@selector(doubleValue)] ? [options[@"similarity"] doubleValue] :
+                       ([options[@"threshold"] respondsToSelector:@selector(doubleValue)] ? [options[@"threshold"] doubleValue] : 0.9);
+    threshold = MIN(1.0, MAX(0.5, threshold));
+    NSUInteger maxCandidates = [options[@"maxCandidates"] respondsToSelector:@selector(unsignedIntegerValue)] ? [options[@"maxCandidates"] unsignedIntegerValue] : AutoBuiltinDefaultImageCandidates;
+    maxCandidates = MAX(1, MIN(maxCandidates, AutoBuiltinMaxImageCandidates));
+    NSDictionary *result = @{ @"found": @NO };
+    if (needle.width > 0 && needle.height > 0 &&
+        needle.width <= (maxX - minX) && needle.height <= (maxY - minY)) {
+        size_t step = (size_t)MAX(2, (NSInteger)llround(3 * scale));
+        NSUInteger comparisons = 0;
+        BOOL matched = NO;
+        double matchedSim = 0; size_t matchedX = 0, matchedY = 0;
+        for (size_t py = minY; py + needle.height <= maxY && !matched; py += step) {
+            for (size_t px = minX; px + needle.width <= maxX && !matched; px += step) {
+                NSUInteger coarseMatch = 0, coarseTotal = 0;
+                for (size_t ty = 0; ty < needle.height; ty += step) {
+                    const uint8_t *nrow = needle.bytes + ty * needle.bytesPerRow;
+                    const uint8_t *hrow = hay.bytes + (py + ty) * hay.bytesPerRow + px * 4;
+                    for (size_t tx = 0; tx < needle.width; tx += step) {
+                        const uint8_t *n = nrow + tx * 4;
+                        const uint8_t *h = hrow + tx * 4;
+                        if (abs((int)n[0] - (int)h[0]) <= 24 && abs((int)n[1] - (int)h[1]) <= 24 &&
+                            abs((int)n[2] - (int)h[2]) <= 24) coarseMatch += 1;
+                        coarseTotal += 1;
+                        if (++comparisons >= AutoBuiltinMaxImageComparisons) break;
+                    }
+                    if (comparisons >= AutoBuiltinMaxImageComparisons) break;
+                }
+                if (comparisons >= AutoBuiltinMaxImageComparisons) break;
+                if (coarseTotal > 0 && (double)coarseMatch / (double)coarseTotal >= threshold - 0.1) {
+                    NSUInteger fineMatch = 0, fineTotal = 0;
+                    BOOL stillPossible = YES;
+                    for (size_t ty = 0; ty < needle.height && stillPossible; ty++) {
+                        const uint8_t *nrow = needle.bytes + ty * needle.bytesPerRow;
+                        const uint8_t *hrow = hay.bytes + (py + ty) * hay.bytesPerRow + px * 4;
+                        for (size_t tx = 0; tx < needle.width; tx++) {
+                            const uint8_t *n = nrow + tx * 4;
+                            const uint8_t *h = hrow + tx * 4;
+                            if (abs((int)n[0] - (int)h[0]) <= 24 && abs((int)n[1] - (int)h[1]) <= 24 &&
+                                abs((int)n[2] - (int)h[2]) <= 24) fineMatch += 1;
+                            fineTotal += 1;
+                            if (++comparisons >= AutoBuiltinMaxImageComparisons) { stillPossible = NO; break; }
+                            if (fineTotal > 1024 && (double)fineMatch / (double)fineTotal < threshold - 0.05) { stillPossible = NO; break; }
+                        }
+                    }
+                    double fineSim = fineTotal > 0 ? (double)fineMatch / (double)fineTotal : 0;
+                    if (stillPossible && fineSim >= threshold) {
+                        matched = YES; matchedSim = fineSim; matchedX = px; matchedY = py;
+                    }
+                }
+            }
+        }
+        if (matched) {
+            result = @{ @"found": @YES,
+                        @"x": @(matchedX / scale), @"y": @(matchedY / scale),
+                        @"width": @(needle.width / scale), @"height": @(needle.height / scale),
+                        @"centerX": @((matchedX + needle.width / 2.0) / scale),
+                        @"centerY": @((matchedY + needle.height / 2.0) / scale),
+                        @"similarity": @(matchedSim) };
+        }
+    }
+    AutoBuiltinBitmapFree(&needle);
+    AutoBuiltinBitmapFree(&hay);
+    return result;
 }
 
 - (NSArray<NSDictionary<NSString *, id> *> *)ocrInRegion:(NSDictionary *)region error:(NSError **)error {
@@ -1584,7 +1724,7 @@ static NSString *AutoBuiltinStringOrNil(id value) {
               @"screenshot": @YES,
               @"findColor": @YES,
               @"multiColor": @YES,
-              @"findImage": @NO,
+              @"findImage": @YES,
               @"opencv": @NO,
               @"ocr": @YES,
               @"appList": @(appListReady),

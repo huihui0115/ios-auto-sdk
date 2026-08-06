@@ -73,7 +73,7 @@ CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
 - 跨 App 自动化唯一路线为内置 no-WDA 适配器，其系统级能力依赖特签信任上下文，需按 docs/NO_WDA_ARCHITECTURE.md 完成真机验证；
   v1.17.0 起外部 WDA 适配器已移除，无 legacy 回退。
 - `AutoUIKitAdapter` 只能自动化本 App 自己的 UIKit 视图。
-- 内置 no-WDA 适配器暂不支持模板找图（findImage）与 xpath/predicate 选择器，硬件按键注入受限。
+- 内置 no-WDA 适配器模板找图已支持（Round 49，有界两阶段）；xpath/predicate 选择器仍不支持，硬件按键注入受限。
 - Wi-Fi 调试未加密（仅 token 认证），只建议在可信网络使用。
 - 脚本引擎不是沙盒外的完整浏览器：无 DOM/网络不受控能力，HTTP 默认关闭。
 
@@ -83,4 +83,4 @@ CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
 2. 跑一遍第 3 节的静态检查和 CI 构建。
 3. 人工过一遍第 4 节清单。
 4. 把未签名 IPA 上传商店/分发后台，附上第 5 节说明。
-5. 打 tag：`git tag v1.18.0 && git push origin v1.18.0`。
+5. 打 tag：`git tag v1.19.0 && git push origin v1.19.0`。

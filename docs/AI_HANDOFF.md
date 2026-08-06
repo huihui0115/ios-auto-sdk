@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 48（v1.18.0，2026-08-06）。
+> 最后更新：Round 49（v1.19.0，2026-08-06）。
 
 ---
 
@@ -135,8 +135,8 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   App Store 构建会被审核拒绝，capabilities 会如实降级报告）。
 - 真机验证系统级 AX 控件查询（跨 App 毫秒级检索）与 SpringBoard 应用控制
   （launch/terminate/前台/锁屏/设置页解锁）。
-- 内置适配器截图路径的 `findImage` 尚未实现（返回清晰错误）；
-  xpath/predicate 选择器在内置 AX 路径不支持（返回清晰错误）。
+- `findImage` 已于 Round 49 实现（有界两阶段模板匹配）；
+  xpath/predicate 选择器在内置 AX 路径仍不支持（返回清晰错误）。
 - 验证模板 App `AutoSDKAdapter=BUILTIN` 配置接线与 capabilities 降级路径。
 
 ### 工程质量待办
@@ -212,6 +212,9 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R49（v1.19.0）：内置 no-WDA 适配器补 `findImage`（有界两阶段模板匹配，
+  capabilities.findImage=YES）+ App 中文名启动库（60+，launch/terminate/
+  appState 通用）；verify 锚点 + 文档/卡片同步。零 bootstrap 改动。
 - R48（v1.18.0）：**AScript 风格开发文档站** `docs/devdocs/index.html`（22 页：开始/控件检索散文页 +
   15 个 API 分类页，257 函数全渲染，每函数带参数表/返回值/一键复制示例/调试提示；
   顶栏搜索 + 侧栏树 + hash 路由，单文件离线）。顺带修复两个文档渲染 bug：

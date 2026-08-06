@@ -225,7 +225,7 @@ main();` });APIS.push({ cat:'device', sig:'device.setBrightness(value)', title:'
 main();` });
 
 // ==== 补齐：App 与应用控制 ====
-APIS.push({ cat:'app', sig:'app.launch(bundleId)', title:'启动应用', desc:'按 bundle id 启动应用。', params:[['bundleId','string','如 com.apple.mobilesafari']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'app', sig:'app.launch(bundleId)', title:'启动应用', desc:'按 bundle id 或常用 App 中文名启动应用。内置 no-WDA 适配器内置 60+ 应用启动库（微信/支付宝/淘宝/京东/拼多多/抖音/快手/哔哩哔哩/美团/高德/钉钉/设置/相机/Safari 等），app.launch("微信") 等价 AScript system.app_start("微信")；terminate/appState 同样接受名字。', params:[['bundleId','string','bundle id 或应用名，如 com.tencent.xin / 微信']], returns:'boolean', example:`function main(){
   app.launch("com.apple.mobilesafari");
   auto.sleep(1500);
 }
@@ -955,7 +955,7 @@ main();` });APIS.push({ cat:'vision', sig:'image.getSize(path)', title:'图片�
   const size = image.getSize("images/start.png");
   logd(size.width + " x " + size.height);
 }
-main();` });APIS.push({ cat:'vision', sig:'findImage(templatePath, options?)', title:'找图', desc:'在屏幕截图中查找模板图片，返回匹配位置与相似度。', params:[['templatePath','string','模板图片路径（沙盒内，支持 png/jpg）'],['options','object','可选，region/threshold 等']], returns:'AutoMatch {found, x, y, similarity}', example:`function main(){
+main();` });APIS.push({ cat:'vision', sig:'findImage(templatePath, options?)', title:'找图', desc:'在屏幕截图中查找模板图片，返回匹配位置与相似度。内置 no-WDA 适配器基于系统级截图做有界两阶段（粗采样→全像素验证）模板匹配：similarity/threshold 默认 0.9、region 限定区域、maxCandidates 上限，比较次数封顶 60M。对标 AScript FindImages.find / EasyClick findImage。', params:[['templatePath','string','模板图片路径（沙盒内，支持 png/jpg）'],['options','object','可选，region/threshold 等']], returns:'AutoMatch {found, x, y, similarity}', example:`function main(){
   const match = findImage("images/start.png", {threshold: 0.9});
   if (match.found) {
     logd("找到，中心: " + match.centerX + "," + match.centerY);

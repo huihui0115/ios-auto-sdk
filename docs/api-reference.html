@@ -997,7 +997,7 @@ main();</code></pre>
     <h4><code>findImage(templatePath, options?)</code> <span class="cname">找图</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">在屏幕截图中查找模板图片，返回匹配位置与相似度。</p>
+  <p class="desc">在屏幕截图中查找模板图片，返回匹配位置与相似度。内置 no-WDA 适配器基于系统级截图做有界两阶段（粗采样→全像素验证）模板匹配：similarity/threshold 默认 0.9、region 限定区域、maxCandidates 上限，比较次数封顶 60M。对标 AScript FindImages.find / EasyClick findImage。</p>
   <div class="ref"><b>对标</b> EasyClick findImage() · AutoJS findImage()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">templatePath</code><span class="ptype">string</span><span class="pdesc">模板图片路径（沙盒内，支持 png/jpg）</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">可选，region/threshold 等</span></div></div>
   <div class="ret"><b>返回值</b> <span>AutoMatch {found, x, y, similarity}</span></div>
@@ -1441,9 +1441,9 @@ main();</code></pre>
     <h4><code>app.launch(bundleId)</code> <span class="cname">启动应用</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">按 bundle id 启动应用。</p>
+  <p class="desc">按 bundle id 或常用 App 中文名启动应用。内置 no-WDA 适配器内置 60+ 应用启动库（微信/支付宝/淘宝/京东/拼多多/抖音/快手/哔哩哔哩/美团/高德/钉钉/设置/相机/Safari 等），app.launch("微信") 等价 AScript system.app_start("微信")；terminate/appState 同样接受名字。</p>
   
-  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">如 com.apple.mobilesafari</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">bundleId</code><span class="ptype">string</span><span class="pdesc">bundle id 或应用名，如 com.tencent.xin / 微信</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
   app.launch("com.apple.mobilesafari");
