@@ -31,16 +31,17 @@
 
 | AScript | AutoSDK | 说明 |
 | --- | --- | --- |
-| action.click(x, y, duration=20, jitter=0) | clickPoint(x, y) / longClickPoint(x, y, ms) | ✅ 坐标点击/长按 |
-| action.click_random(x1,y1,x2,y2) | clickRandom(selector) / clickPoint(随机点) | ✅ 区域随机点击 |
+| action.click(x, y, duration=20, jitter=0) | click(x, y, jitter?) / clickPoint(x, y) / longClickPoint(x, y, ms) | ✅ 坐标拟人点击（jitter 随机偏移）|
+| action.click_random(x1,y1,x2,y2) | clickRandomPoint(x1,y1,x2,y2) / clickRandom(x1,y1,x2,y2) | ✅ 区域随机点击（防检测）|
 | action.slide(x1,y1,x2,y2,duration) | swipe(x1,y1,x2,y2,duration) | ✅ 滑动 |
-| action.slide_path(points, ...) | gesture(actions) | ✅ 连续轨迹（W3C 手势） |
+| action.slide_path(points, ...) | slidePath(points, ms) / slide_path | ✅ 连续轨迹：按距离分配每段耗时 |
 | action.double_tap | doubleClickPoint(x, y) | ✅ 双击 |
-| action.touch_and_slide | gesture（down→move→up） | ✅ 可用手势组合实现 |
+| action.touch_and_slide | touchAndSlide(x1,y1,x2,y2,ms) | ✅ 两点直线滑动 |
 | action.input / keys | input(selector, text) / setText | ✅ 输入 |
 | action.key_press / key_press_hid | 无 | ❌ 系统按键（WDA 仅支持音量键；HID 模式可全键） |
 | action.home | homeScreen() | ✅ 回到主屏（需 WDA systemActions） |
 | action.slide_up/down/left/right | swipeUp/swipeDown/swipeLeft/swipeRight | ✅ 方向滑动 |
+| action 命名空间（action.click / action.slide_path / ...）| action.*（g.action = auto 全部触摸/输入/滑动能力）| ✅ 全局 action 命名空间，写法与 AScript 一致 |
 
 ### screen（图色）
 
@@ -50,13 +51,13 @@
 | screen.size / screen.ori | device.getScreenWidth/Height、getOrientation | ✅ |
 | screen.image_read / img / image_save | image.*（clip/scale/gray/rotate/pixelAt/saveToAlbum） | ✅ 图像读写处理 |
 | screen.image_crop / image_rotate | image.clip / image.rotate | ✅ |
-| screen.image_compress | 无 | 🟡 建议新增 image.compress（质量/尺寸压缩） |
+| screen.image_compress | image.compress(src, quality?, dest) | ✅ JPEG 质量压缩 |
 | screen.image_to_base64 | base64.encode / image 转 base64 | ✅ 可组合实现 |
-| screen.cache / is_cache | 无 | 🟡 截图缓存（性能优化） |
+| screen.cache / is_cache | screen.cache(on) / screen.isCache() / clearCache() | ✅ 截图缓存：复用同一张截图，findImage/findColor/ocr 全部命中缓存 |
 | FindColors.find(...) | screen.findColorEx / findMultiColor | ✅ 多点找色，返回 Point 可直接 click |
 | FindImages.find(...) | findImage / screen.findImage | ✅ 找图（支持全分辨率） |
 | CompareColors.compare(...) | compareColors / screen.isColors / cmpColor | ✅ 多点比色 |
-| CountingColor.count(...) | 无 | 🟡 建议新增 findColorCount（颜色数量统计） |
+| CountingColor.count(...) | findColorCount / screen.findColorCount | ✅ 颜色数量统计 |
 | ocr（内置） | ocr() / screen.ocr() | ✅ 本地 Vision OCR |
 | ocr-baidu / ocr-tomato / opencv / yolo | 无 | ❌ 第三方 OCR/模型（需模型与网络） |
 
@@ -64,14 +65,14 @@
 
 | AScript | AutoSDK | 说明 |
 | --- | --- | --- |
-| Selector().label("确定").find() / find_all() | findElement / findElements（id/label/type/text 选择器） | ✅ 控件查找 |
-| Selector 约束链（text/type/desc/...） | 组合选择器 + getChild/getSiblings 遍历 | ✅ |
+| Selector().label("确定").find() / find_all() | Selector() 链式 + findElement / node.find / node.findAll | ✅ Selector().text/desc/label/type...findOne/find/findAll |
+| Selector 约束链（text/type/desc/...） | Selector().text().desc().type().clickable()...（全链式）| ✅ 已实现 |
 | Node.click / tap | click(selector) / clickCenter | ✅ |
-| Node.tap_hold | longClick / longClickPoint | ✅ |
-| Node.scroll / pinch | 无 | 🟡 控件内滚动/捏合（WDA 手势可组合） |
+| Node.tap_hold | node.tap_hold(dur) / node.longClick(dur)（单位秒）| ✅ 长按秒语义（WDA）|
+| Node.scroll / pinch | node.scroll(direction, distance) + base.pinch | ✅ 节点滚动 / 双指捏合 |
 | Node.set_text / clear_text | input / setText / clearText | ✅ |
-| Node.selected | 无 | 🟡 选中态查询（可通过 getAttribute 扩展） |
-| Node.at(x, y) 按坐标取控件 | 无 | 🟡 建议新增（WDA element 按坐标定位） |
+| Node.selected | node.selected() / node.attr("selected") | ✅ 选中态查询 |
+| Node.at(x, y) 按坐标取控件 | node.at(x, y) / nodeAt(x, y) | ✅ 坐标命中：节点快照按包围盒筛选取最小面积 |
 
 ### system / device
 
@@ -79,10 +80,10 @@
 | --- | --- | --- |
 | app_start / app_stop / app_current / app_list / app_state | app.launch / terminate / current / appList / state | ✅ |
 | scheme_start / open_url | app.openURL / openURL | ✅ |
-| lock / unlock / is_locked | app.lock / unlock | ✅（WDA systemActions） |
-| get_uuid / get_ios_version / get_ip_address | uuid() / getOSVersion() / 无 | 🟡 getIPAddress 建议新增 |
+| lock / unlock / is_locked | app.lock / app.unlock + device.isLocked / device.isScreenOn | ✅（WDA systemActions）|
+| get_uuid / get_ios_version / get_ip_address | uuid() / getOSVersion() / device.getIPAddress() | ✅ 含局域网 IP |
 | get_device_id / name / model / battery | device.getDeviceId/Name/Model/Battery | ✅ |
-| notify（本地通知） | 无 | 🟡 notify(title, body) 建议新增 |
+| notify（本地通知） | notify(body, title?) | ✅ UNUserNotificationCenter 本地通知 |
 | set_clipboard / get_clipboard | setClipboard / getClipboard | ✅ |
 | KeyValue 存储 | storages.create(name) | ✅ |
 | R.name/root/home/res/img/ui/assets/rel | file.getSandBoxDir / file.* | ✅ 沙盒路径助手等价 |
@@ -92,12 +93,12 @@
 
 | AScript | AutoSDK | 说明 |
 | --- | --- | --- |
-| audio_play / audio_stop | playMp3 / stopMp3 | ✅ |
-| save_pic2photo / save_video2photo | media.saveImage / saveVideo / saveScreenshot | ✅ |
-| requests 库 | http.get/post/getJSON/download | ✅ |
+| audio_play / audio_stop | audioPlay(path,vol) / audioStop(id)（playMp3 为兼容别名）| ✅ 按 ID 多路播放/单独停止 |
+| save_pic2photo / save_video2photo | media.saveImage(path或URL) / saveVideo / saveScreenshot | ✅ 支持 http(s) URL 自动下载 |
+| requests 库 | http.get/post/getJSON/download + cookies/params/multipart 上传（files/formData） | ✅ 对标 requests 会话能力 |
 | threading 库 | execAsync / execSync / setTimeout / setInterval | ✅ |
-| WebWindow（HTML UI + JS 双向通信） | webView.*（悬浮 WKWebView + eval） | ✅ |
-| FloatWindow 悬浮日志窗 | console + 调试服务器；无悬浮日志窗 | 🟡 建议新增 floatLog 悬浮窗 |
+| WebWindow（HTML UI + JS 双向通信） | webView.*（悬浮 WKWebView + eval + takeMessage/injectBridge） | ✅ JS→脚本消息通道 |
+| FloatWindow 悬浮日志窗 | floatLog.show/log/clear/hide/destroy | ✅ 悬浮日志窗：可拖动、保留最近 200 行 |
 
 ## 四、AScript 有而 AutoSDK 没有的（缺口清单）
 
@@ -105,13 +106,13 @@
 | --- | --- | --- | --- |
 | P0 | 免巨魔分发（免费签名 + 企业签名） | 低（文档/构建） | 现有 unsigned IPA 可直接被 AltStore/Sideloadly 签名 |
 | P0 | XCTest 激活 WDA | 高 | 需 WDA xctest bundle + Windows/Mac 激活工具（go-ios） |
-| P1 | notify(title, body) 本地通知 | 低 | UNUserNotificationCenter，公共 API |
-| P1 | image.compress / image.toBase64 | 低 | 引擎内已有图像管线 |
-| P1 | findColorCount（颜色计数） | 低 | 复用像素扫描 |
-| P1 | device.getIPAddress() | 低 | 公共 API（getifaddrs） |
-| P2 | Node.at(x,y)、控件 scroll/pinch、selected | 中 | WDA 元素能力扩展 |
-| P2 | floatLog 悬浮日志窗 | 中 | WKWebView/悬浮视图封装 |
-| P3 | 截图缓存 cache/is_cache | 中 | 引擎内状态 |
+| ~~P1~~ ✅ | notify(body, title?) 本地通知 | 低 | 已实现：UNUserNotificationCenter |
+| ~~P1~~ ✅ | image.compress / image.toBase64 | 低 | 已实现：JPEG 质量压缩 + Base64 |
+| ~~P1~~ ✅ | findColorCount（颜色计数） | 低 | 已实现：复用像素扫描 |
+| ~~P1~~ ✅ | device.getIPAddress() | 低 | 已实现：getifaddrs（en0/en1） |
+| ~~P2~~ ✅ | Node.at(x,y)、控件 scroll、selected | 中 | 已实现：node.at + Node 对象（click/scroll/selected/rect）；pinch 已有手势级 base.pinch |
+| ~~P2~~ ✅ | floatLog 悬浮日志窗 | 中 | 已实现：UITextView 悬浮窗（floatLog.show/log/clear） |
+| ~~P3~~ ✅ | 截图缓存 cache/is_cache | 中 | 已实现：screen.cache/isCache + screenshotPath 源图 |
 | P3 | ESP32 HID 硬件模式 | 高 | 固件 + Broadcast Extension |
 
 > 结论：AutoSDK 与 AScript 在"图色/OCR/媒体/HTTP/线程/悬浮 UI"等能力上基本对齐，

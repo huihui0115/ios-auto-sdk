@@ -2086,6 +2086,20 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     }
 }
 
+- (NSData *)visualSourceDataWithOptions:(NSDictionary *)options error:(NSError **)error {
+    NSString *path = [options isKindOfClass:NSDictionary.class] && [options[@"screenshotPath"] isKindOfClass:NSString.class] ? options[@"screenshotPath"] : nil;
+    if (path.length > 0) {
+        if (path.length > 4096) {
+            if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration, @"screenshotPath exceeds 4096 characters.");
+            return nil;
+        }
+        NSData *data = [NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:error];
+        if (!data && error && !*error) *error = AutoWDAError(AutoSDKErrorFileOperationFailed, @"Unable to read the screenshotPath source image.");
+        return data;
+    }
+    return [self screenshotWithError:error];
+}
+
 - (NSDictionary *)findImageAtPath:(NSString *)templatePath options:(NSDictionary *)options error:(NSError **)error {
     NSUInteger operationGeneration = [self currentOperationCancellationGeneration];
     BOOL ownsCancellationContext = [self installCancellationContextForGeneration:operationGeneration];
@@ -2103,7 +2117,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
     }
     NSString *path = templatePath;
     UIImage *template = AutoWDATemplateImage(path);
-    NSData *screenshot = [self screenshotWithError:error];
+    NSData *screenshot = [self visualSourceDataWithOptions:options error:error];
     UIImage *screenImage = screenshot ? [UIImage imageWithData:screenshot] : nil;
     if (!template || !screenImage) {
         if (error && !*error) *error = AutoWDAError(AutoSDKErrorFileOperationFailed, [NSString stringWithFormat:@"Unable to load image template: %@", templatePath ?: @""]);
@@ -2245,7 +2259,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
         if (error) *error = AutoWDAError(AutoSDKErrorScriptCancelled, @"OCR was cancelled.");
         return nil;
     }
-    NSData *png = [self screenshotWithError:error];
+    NSData *png = [self visualSourceDataWithOptions:region error:error];
     UIImage *image = png ? [UIImage imageWithData:png] : nil;
     CGImageRef sourceImage = image.CGImage;
     if (!sourceImage) {
@@ -2391,7 +2405,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
         if (error) *error = AutoWDAError(AutoSDKErrorAutomationFailed, @"Color must be #RRGGBB, [r,g,b], or {r,g,b}.");
         return nil;
     }
-    NSData *png = [self screenshotWithError:error];
+    NSData *png = [self visualSourceDataWithOptions:options error:error];
     UIImage *image = png ? [UIImage imageWithData:png] : nil;
     CGImageRef screenCGImage = image.CGImage;
     if (!screenCGImage) {
@@ -2515,7 +2529,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
         if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration, @"compareColors accepts at most 4096 points.");
         return NO;
     }
-    NSData *png = [self screenshotWithError:error];
+    NSData *png = [self visualSourceDataWithOptions:options error:error];
     UIImage *image = png ? [UIImage imageWithData:png] : nil;
     AutoWDAPixelImage pixels = AutoWDAPixelImageMake(image.CGImage);
     if (!pixels.bytes) {
@@ -2581,7 +2595,7 @@ static NSURLSession *AutoWDACreateURLSession(NSURL *baseURL, NSTimeInterval time
         if (error) *error = AutoWDAError(AutoSDKErrorInvalidConfiguration, @"findMultiColor accepts at most 256 offsets.");
         return nil;
     }
-    NSData *png = [self screenshotWithError:error];
+    NSData *png = [self visualSourceDataWithOptions:options error:error];
     UIImage *image = png ? [UIImage imageWithData:png] : nil;
     if (!image.CGImage) {
         if (error && !*error) *error = AutoWDAError(AutoSDKErrorAutomationFailed, @"Unable to decode the screenshot image.");

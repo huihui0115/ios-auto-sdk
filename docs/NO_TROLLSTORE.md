@@ -1,19 +1,21 @@
 # 免巨魔（No-TrollStore）改造方案
 
 > 对标 AScript / kuaijs 的市场方向：不需要 TrollStore（巨魔），不需要越狱、不需要开发者账号，
-> 普通用户也能装、能用。本文说明 AutoSDK 当前为什么依赖 TrollStore、以及三条免巨魔路线。
+> 普通用户也能装、能用。2026-08 起 AutoSDK **分发路径已完全去掉 TrollStore**：
+> 产物为未签名 IPA，用 Apple ID 免费签名即可安装（详见 [WINDOWS_SIDELOAD.md](WINDOWS_SIDELOAD.md)）；
+> 本文说明跨 App 自动化（WDA）的免巨魔路线。
 
-## 一、现状：为什么现在需要 TrollStore
+## 一、现状：分发已免巨魔，跨 App 自动化仍需 WDA
 
 AutoSDK 模板 App 是一个 **unsigned IPA**：
 
-- App 本体（JS 引擎 / 图色 OCR / 媒体 / 文件 / HTTP / 存储 / 悬浮窗）**不依赖任何特殊权限**，
-  任意签名都能运行。
+- App 本体（JS 引擎 / 图色 OCR / 媒体 / 文件 / HTTP / 存储 / 悬浮窗 / 宿主 App 内自动化）
+  **不依赖任何特殊权限**，用 Apple ID 免费签名即可运行，7 天续签一次。
 - 跨 App 的**控件自动化**依赖一个独立运行的 **WebDriverAgent（WDA）服务**（`http://127.0.0.1:8100`）。
-  在免越狱设备上让 WDA 跑起来，需要系统级权限——TrollStore 正是通过给 WDA 注入
-  `platform-application` 等 entitlement 来做到这一点。**这是唯一真正依赖 TrollStore 的部分。**
+  在免越狱设备上让 WDA 跑起来需要系统级权限：历史上 TrollStore 通过给 WDA 注入
+  `platform-application` 等 entitlement 实现，**这与 App 本身无关**。
 
-结论：**App 本体无需改动即可免巨魔；要免巨魔，关键是换一条"让 WDA 跑起来"的路径。**
+结论：**App 分发与日常自动化已完全免巨魔；跨 App 自动化只需换一条"让 WDA 跑起来"的路径。**
 
 ## 二、路线 A：免费签名安装（最快落地，今天就能用）
 

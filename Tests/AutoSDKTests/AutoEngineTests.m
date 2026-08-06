@@ -1241,7 +1241,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [engine initWithConfig:@{@"scriptTimeout": @5}];
     [engine setAutomationAdapter:adapter];
     XCTestExpectation *expectation = [self expectationWithDescription:@"script completion"];
-    [engine runScript:@"console.log('start'); auto.click({id:'button'}); auto.clickPoint(10,20); auto.doubleClickPoint(10,20); auto.getText({id:'title'}); const n=auto.findElement({id:'button'}); auto.findElements({type:'Button'}); auto.exists(n); auto.getAttribute(n,'type'); auto.getBounds(n); auto.getChildren(n); auto.getParent(n); auto.waitFor(n,100); auto.scrollIntoView(n); auto.findColor('#ff0000'); auto.getPixelColor(10,20); auto.compareColors([{x:10,y:20,color:'#ff0000'}]); auto.findMultiColor('#ff0000',[]); auto.ocr(); auto.app.launch('com.example.target'); auto.activateApp('com.example.target'); auto.app.terminate('com.example.target'); const state=auto.appState('com.example.target'); state;" completion:^(NSDictionary *result, NSError *error) {
+    [engine runScript:@"console.log('start'); auto.click({id:'button'}); auto.clickPoint(10,20); auto.doubleClickPoint(10,20); auto.getText({id:'title'}); const n=auto.findElement({id:'button'}); auto.findElements({type:'Button'}); auto.exists(n); auto.getAttribute(n,'type'); auto.getBounds(n); auto.getChildren(n); auto.getParent(n); auto.waitFor(n,100); auto.scrollIntoView(n); auto.findColor('#ff0000'); auto.getPixelColor(10,20); auto.compareColors([{x:10,y:20,color:'#ff0000'}]); auto.findMultiColor('#ff0000',[]); auto.ocr(); auto.app.launch('com.example.target'); auto.activateApp('com.example.target'); auto.app.terminate('com.example.target'); const hit=auto.node.at(10,20); auto.node.snapshot(10); auto.screen.cache(true); const cached=auto.screen.isCache(); auto.screen.cache(false); auto.floatLog.show(10,20,120,100); auto.floatLog.log('bridge-ok'); const logVisible=auto.floatLog.isShow(); auto.floatLog.hide(); auto.floatLog.destroy(); const state=auto.appState('com.example.target'); state;" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(error);
         XCTAssertEqualObjects(result[@"success"], @YES);
         XCTAssertEqualObjects(result[@"logs"][0][@"message"], @"start");
@@ -1921,6 +1921,50 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         [expectation fulfill];
     }];
     [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testDeviceIPAddressIsExposed {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"ip address"];
+    [engine runScript:@"device.getIPAddress();" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertTrue(result[@"value"] == nil || [result[@"value"] isKindOfClass:NSString.class] || [result[@"value"] isKindOfClass:NSNull.class],
+                      @"getIPAddress must return a string, null or NSNull");
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testNotifyNativeMethodIsExposed {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"notify"];
+    [engine runScript:@"notify('hello', 'AutoSDK');" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"value"], @YES);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testImageCompressWritesJPEG {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @10 }];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"image compress"];
+    NSString *script =
+        @"file.writeBase64('demo/one.png', 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');"
+         "const out = image.compress('demo/one.png', 0.5, 'demo/one-compressed.jpg');"
+         "const size = out ? file.stat(out).size : -1;"
+         "file.deleteAllFile('demo/one.png');file.deleteAllFile('demo/one-compressed.jpg');"
+         "({ out: out, size: size });";
+    [engine runScript:script completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertTrue([result[@"value"][@"out"] isKindOfClass:NSString.class], @"compress must return the destination path");
+        XCTAssertTrue([result[@"value"][@"size"] unsignedLongLongValue] > 0, @"compressed file must exist");
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:4 handler:nil];
 }
 
 @end

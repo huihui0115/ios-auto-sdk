@@ -34,6 +34,14 @@ const REFS = {
   'toastLog(message)': 'EasyClick toastLog() · AutoJS toast()',
   'sleep(milliseconds)': 'EasyClick sleep() · AutoJS sleep()',
   'click(selector)': 'EasyClick click() · AutoJS click()',
+  'click(x, y, jitter?)': 'AScript click(x, y, jitter) 拟人坐标点击',
+  'clickRandomPoint(x1, y1, x2, y2)': 'AScript click_random 区域随机点击',
+  'slidePath(points, durationMs?)': 'AScript slide_path 连续轨迹滑动',
+  'touchAndSlide(x1, y1, x2, y2, durationMs?)': 'AScript touch_and_slide',
+  'audioPlay(path, volume?, stopWhenScriptEnd?)': 'AScript audio_play 按 ID 管理',
+  'audioStop(id?)': 'AScript audio_stop',
+  'device.isLocked()': 'AScript system.is_locked',
+  'Selector().text(v).type(t).findOne()': 'AScript Selector 链式选择器',
   'clickPoint(x, y)': 'EasyClick clickPoint() · AutoJS click(x, y)',
   'doubleClickPoint(x, y, interval?)': 'EasyClick doubleClickPoint() · AutoJS click(x, y, true)',
   'longClick(selector, duration?)': 'EasyClick longClick() · AutoJS longClick()',
@@ -168,6 +176,11 @@ function card(api) {
 
 
 // ==== 补齐：设备与系统 ====
+APIS.push({ cat:'device', sig:'device.getIPAddress() / device.getIP() / getIPAddress() / getIP()', title:'获取局域网 IP', desc:'返回当前 Wi-Fi 的 IPv4 地址（en0/en1），未连接 Wi-Fi 时返回 null。对标 AScript system.get_ip_address。', params:[], returns:'string | null', example:`function main(){
+    const ip = device.getIPAddress();
+    console.log('IP:', ip);
+    return ip;
+}` });
 APIS.push({ cat:'device', sig:'device.getOSVersion()', title:'系统版本', desc:'返回 iOS 系统版本号，如 "17.5"。', params:[], returns:'string', example:`function main(){
   logd("iOS: " + device.getOSVersion());
 }
@@ -384,7 +397,12 @@ APIS.push({ cat:'media', sig:'playMp3(path, volume?, queue?, stopWhenScriptEnd?)
   stopMp3();
 }
 main();` });
-APIS.push({ cat:'media', sig:'media.requestPhotoAuthorization() / media.getPhotoAuthorizationStatus()', title:'相册权限', desc:'requestPhotoAuthorization 在首次调用时弹出系统授权（异步返回当前状态）；getPhotoAuthorizationStatus 只读取当前权限状态，不会弹窗。返回值为 notDetermined/restricted/denied/authorized/limited。', params:[], returns:'string 权限状态', example:`function main(){
+APIS.push({ cat:'media', sig:'media.audioPlay(path, volume?, stopWhenScriptEnd?) / media.audioStop(id?)', title:'音频播放（按 ID 管理）', desc:'audioPlay 并行播放音频并返回 {id, playing}，支持多个音频同时播放、按 id 单独停止；audioStop(id) 停止指定音频，不传 id 停止全部。全局简写 audioPlay/audioStop。对标 AScript audio_play / audio_stop。', params:[['path','string','沙盒内音频文件路径'],['volume','number','音量 0-100，默认 100'],['stopWhenScriptEnd','boolean','脚本结束时停止，默认 false'],['id','number','audioPlay 返回的播放器 ID']], returns:'{id: number, playing: boolean} | boolean', example:`function main(){
+  const info = media.audioPlay("sounds/bgm.mp3", 80);
+  logd("播放器 ID: " + info.id);
+  media.audioStop(info.id);   // 单独停止
+}
+main();` });APIS.push({ cat:'media', sig:'media.requestPhotoAuthorization() / media.getPhotoAuthorizationStatus()', title:'相册权限', desc:'requestPhotoAuthorization 在首次调用时弹出系统授权（异步返回当前状态）；getPhotoAuthorizationStatus 只读取当前权限状态，不会弹窗。返回值为 notDetermined/restricted/denied/authorized/limited。', params:[], returns:'string 权限状态', example:`function main(){
   logd("相册权限: " + getPhotoAuthorizationStatus());
   const status = media.requestPhotoAuthorization();
   logd("请求后: " + status);
@@ -672,6 +690,10 @@ APIS.push({ cat:'logs', sig:'console.log / console.info(message)', title:'控制
   console.error("错误");
 }
 main();` });
+APIS.push({ cat:'logs', sig:'notify(body, title?)', title:'本地通知', desc:'发送一条 iOS 本地通知（通知中心可见）；首次调用会请求通知权限，title 默认 AutoSDK。对标 AScript system.notify(msg, title)。', params:[['body','string','通知正文'],['title','string','通知标题，默认 AutoSDK']], returns:'boolean', example:`function main(){
+    notify('脚本执行完成', 'AutoSDK');
+    return true;
+}` });
 APIS.push({ cat:'logs', sig:'toast(message)', title:'悬浮提示', desc:'在手机上显示短暂悬浮提示（宿主 App 主窗口）。', params:[['message','string','提示文字']], returns:'boolean 是否成功显示', example:`function main(){
   toast("脚本运行中");
   toastLog("提示并写入日志");
@@ -690,7 +712,18 @@ APIS.push({ cat:'logs', sig:'sleep(milliseconds)', title:'暂停', desc:'协作�
 }
 main();` });
 
-APIS.push({ cat:'touch', sig:'click(selector)', title:'点击节点', desc:'点击第一个匹配的控件节点。', params:[['selector','object|string','节点选择器或节点句柄']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'touch', sig:'click(x, y, jitter?) / click(selector)', title:'点击（坐标拟人 / 控件）', desc:'两种用法：click(x, y, jitter?) 在坐标处点击，jitter 为 true 时在 ±6px 内随机偏移、为数字时按指定像素随机偏移（拟人防检测）；click(selector) 点击第一个匹配控件。对标 AScript click(x, y, jitter)。', params:[['x','number','横坐标'],['y','number','纵坐标'],['jitter','boolean|number','可选，拟人随机偏移：true=±6px，数字=±N px'],['selector','object|string','控件选择器']], returns:'boolean', example:`function main(){
+  const ok1 = click(190, 400, 3);        // 坐标拟人点击
+  const ok2 = click({text: "确定"});      // 控件点击
+  logd("点击: " + ok1 + " " + ok2);
+}
+main();` });APIS.push({ cat:'touch', sig:'Selector().text(v).type(t).findOne() / selector(init?)', title:'链式选择器', desc:'AScript 风格链式选择器：text/textContains/textStartsWith/textEndsWith/textMatches、desc/descContains/descMatches、label/labelContains/labelMatches、value/name/id/type、clickable/visible/enabled/selected、index/depth/bounds/xpath/predicate 逐层叠加条件；终端方法 findOne()/one()/find_one()/find_once() 取单个、find()/findAll()/all()/find_all() 取列表、exists() 判断存在、waitFor(timeoutMs)/wait_for() 等待出现、click()/tap()/longClick(d) 直接操作。', params:[['v','string','匹配文本'],['t','string','控件类型，如 Button'],['timeoutMs','number','waitFor 超时毫秒，默认 10000']], returns:'AutoNodeObject | AutoNodeObject[] | boolean', example:`function main(){
+  const node = Selector().textContains("确").type("Button").findOne();
+  if (node) node.click();
+  const list = selector({ text: "开始" }).findAll();
+  logd("匹配数: " + list.length);
+}
+main();` });APIS.push({ cat:'touch', sig:'click(selector)', title:'点击节点', desc:'点击第一个匹配的控件节点。', params:[['selector','object|string','节点选择器或节点句柄']], returns:'boolean', example:`function main(){
   const ok = click({text: "确定"});
   logd("点击结果: " + ok);
 }
@@ -730,6 +763,10 @@ main();` });
 APIS.push({ cat:'touch', sig:'pinch(x, y, scale, duration?)', title:'双指缩放', desc:'以 (x,y) 为中心双指缩放，scale>1 放大、scale<1 缩小；duration 为毫秒。需要 WDA 适配器支持真实触摸注入。', params:[['x','number','中心横坐标'],['y','number','中心纵坐标'],['scale','number','缩放倍率（>1 放大，<1 缩小）'],['duration','number','毫秒，默认 300']], returns:'boolean', example:`function main(){
   const ok = auto.pinch(200, 400, 1.5, 400);
   logd("放大: " + ok);
+}
+main();` });APIS.push({ cat:'touch', sig:'slidePath(points, durationMs?) / slide_path(points, durationMs?) / touchAndSlide(x1, y1, x2, y2, durationMs?)', title:'连续轨迹滑动', desc:'slidePath 沿 points 多段轨迹连续滑动（每段耗时按距离分配），points 支持 [[x,y],...] 或 [{x,y},...]；touchAndSlide 为两点直线滑动（等价 swipe）。对标 AScript slide_path / touch_and_slide。', params:[['points','Array<[x,y]|{x,y}>','轨迹点，至少 2 个'],['durationMs','number','可选，总时长毫秒，默认 600'],['x1/y1/x2/y2','number','touchAndSlide 起点与终点坐标']], returns:'boolean', example:`function main(){
+  const ok = slidePath([[100, 300], [200, 200], [300, 300]], 800);
+  logd("轨迹滑动: " + ok);
 }
 main();` });APIS.push({ cat:'touch', sig:'swipe(x1, y1, x2, y2, duration?)', title:'滑动', desc:'从 (x1,y1) 滑动到 (x2,y2)，duration 为秒数。', params:[['x1','number','起点横坐标'],['y1','number','起点纵坐标'],['x2','number','终点横坐标'],['y2','number','终点纵坐标'],['duration','number','可选，秒数']], returns:'boolean', example:`function main(){
   const ok = swipe(190, 600, 190, 200, 0.4);
@@ -877,6 +914,11 @@ main();` });APIS.push({ cat:'vision', sig:'findNotColor(colors, threshold?, x?, 
   logd(JSON.stringify(points));
 }
 main();` });
+APIS.push({ cat:'vision', sig:'image.compress(src, dest, quality?)', title:'图片压缩', desc:'把图片按 JPEG 质量压缩写入 dest（建议 dest 用 .jpg 后缀）；quality 为 0.05-1，默认 0.8。兼容旧写法 compress(src, quality, dest)。对标 AScript screen.image_compress。', params:[['src','string','源图片路径'],['dest','string','输出路径（.jpg）'],['quality','number','JPEG 质量 0.05-1，默认 0.8']], returns:'string | null 输出文件路径', example:`function main(){
+    const out = image.compress('shot.png', 0.5, 'shot-compressed.jpg');
+    console.log('compressed to', out);
+    return out;
+}` });
 APIS.push({ cat:'vision', sig:'image.clip(src, x, y, ex, ey, dest) / image.scale(src, width, height, dest) / image.gray(src, dest) / image.binaryzation(src, dest, threshold?) / image.rotate(src, degrees, dest)', title:'图像处理管线', desc:'路径式图像处理：clip 按区域裁剪，scale 缩放到指定宽高，gray 灰度化，binaryzation 二值化（threshold 0-255，默认 128），rotate 旋转 90 的倍数。坐标与尺寸沿用 image.getSize 的逻辑坐标空间；源文件受 maxFileReadBytes 限制，输出受 maxFileWriteBytes 限制，成功返回目标路径，失败返回 null。', params:[['src','string','源图片路径'],['dest','string','输出图片路径（.png/.jpg 决定编码）'],['x/y/ex/ey','number','裁剪区域（clip）'],['width/height','number','目标尺寸（scale）'],['threshold','number','二值化阈值（binaryzation）'],['degrees','number','旋转角度（rotate）']], returns:'string | null 目标路径', example:`function main(){
   const clipped = image.clip("shots/s.png", 0, 0, 390, 60, "shots/head.png");
   const scaled = image.scale("shots/s.png", 200, 400, "shots/small.png");
@@ -1046,7 +1088,10 @@ APIS.push({ cat:'device', sig:'device.volumeUp() / device.volumeDown()', title:'
   logd("音量+ " + ok);
 }
 main();` });
-APIS.push({ cat:'device', sig:'device.isScreenOn()', title:'屏幕状态', desc:'查询屏幕是否点亮（未锁屏），WDA 真机支持；宿主适配器不支持时返回错误。', params:[], returns:'boolean', example:`function main(){
+APIS.push({ cat:'device', sig:'device.isLocked()', title:'是否锁屏', desc:'返回设备当前是否处于锁屏状态；isScreenOn() 为反向查询（点亮/未锁屏）。对标 AScript system.is_locked。', params:[], returns:'boolean', example:`function main(){
+  if (device.isLocked()) logd("设备已锁屏");
+}
+main();` });APIS.push({ cat:'device', sig:'device.isScreenOn()', title:'屏幕状态', desc:'查询屏幕是否点亮（未锁屏），WDA 真机支持；宿主适配器不支持时返回错误。', params:[], returns:'boolean', example:`function main(){
   if (device.isScreenOn()) logd("屏幕已点亮");
   else logd("屏幕已熄灭");
 }
@@ -1241,6 +1286,12 @@ APIS.push({ cat:'storage', sig:'store.contains(key) / remove(key) / clear()', ti
   logd("已清空");
 }
 main();` });
+APIS.push({ cat:'http', sig:'http.get(url, options?) / http.post(url, body?, options?) / http.request(url, options?)', title:'请求选项：headers/cookies/params/文件上传', desc:'options 支持 method（GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS）、headers、cookies（对象，自动转 Cookie 头）、params/query（对象，自动拼查询串）、body（字符串/对象，对象自动 JSON）、bodyBase64、files（对象 {字段:沙盒路径}，multipart 文件上传，可配 formData 表单字段）、followRedirects、timeout、parseJson、requireSuccess。响应含 status/statusCode/ok/url/headers/body/bodyBase64/json/cookies（Set-Cookie 解析）。对标 Python requests。', params:[['url','string','http(s) 地址'],['options','object','method/headers/cookies/params/files 等']], returns:'AutoHTTPResponse', example:`function main(){
+    const r = http.get('https://httpbin.org/get', { params: { a: 1 }, cookies: { sid: 'x' } });
+    const up = http.post('https://httpbin.org/post', { files: { file: 'shot.png' }, formData: { note: 'hi' } });
+    console.log(r.status, up.status);
+    return up.cookies || {};
+}` });
 APIS.push({ cat:'http', sig:'http.get(url, options?)', title:'GET 请求', desc:'发送同步 GET 请求（需宿主配置 allowNetwork）。', params:[['url','string','http(s) 地址'],['options','object','可选，headers/timeout 等']], returns:'AutoHTTPResponse {status, body, json, headers}', example:`function main(){
   const cap = auto.capabilities();
   if (!cap.http) { loge("网络未启用，需要 allowNetwork=YES"); return; }
@@ -1274,7 +1325,7 @@ APIS.push({ cat:'http', sig:'http.request(url, options?) / httpGet / httpPost', 
 }
 main();` });
 
-APIS.push({ cat:'media', sig:'media.saveImage(path)', title:'保存图片到相册', desc:'把沙盒内图片写入系统相册；首次调用会弹 iOS 授权。', params:[['path','string','沙盒内图片路径，png/jpg']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'media', sig:'media.saveImage(path)', title:'保存图片到相册', desc:'把图片写入系统相册：path 支持沙盒路径或 http(s) 远程 URL（远程图片自动下载后保存，受 maxMediaBytes 限制）；首次调用会弹 iOS 授权。对标 AScript save_pic2photo(url)。', params:[['path','string','沙盒内图片路径或 http(s) URL，png/jpg']], returns:'boolean', example:`function main(){
   const ok = media.saveImage("images/result.png");
   logd("保存图片: " + ok);
 }
@@ -1308,10 +1359,12 @@ APIS.push({ cat:'media', sig:'auto.saveImageToAlbum / image.saveToAlbum 等别�
 }
 main();` });
 
-APIS.push({ cat:'strings', sig:'webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.release(token)', title:'webView 悬浮网页', desc:'在 App 内创建并显示一个悬浮 WKWebView：init 创建（返回 token），show 指定位置尺寸显示，hidden 隐藏，eval 在页面执行 JS 并返回结果，release 释放。对标 TrollAutoScript webView.init/show/hidden/eval/release。', params:[['url','string','可选，首页网址，默认 about:blank'],['token','string','webView.init 返回的标识'],['x/y/width/height','number','可选，显示位置与尺寸'],['js','string','要执行的 JavaScript']], returns:'string token | boolean | unknown', example:`function main(){
+APIS.push({ cat:'strings', sig:'webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.takeMessage(token) / webView.injectBridge(token) / webView.release(token)', title:'webView 悬浮网页', desc:'在 App 内创建并显示一个悬浮 WKWebView：init 创建（返回 token），show 指定位置尺寸显示，hidden 隐藏，eval 在页面执行 JS 并返回结果，takeMessage 拉取页面发来的消息（页面通过 window.webkit.messageHandlers.autosdk.postMessage(payload) 发送，injectBridge 注入 window.autosdkBridge.postMessage 便捷封装），release 释放。对标 TrollAutoScript/AScript WebWindow 双向通道。', params:[['url','string','可选，首页网址，默认 about:blank'],['token','string','webView.init 返回的标识'],['x/y/width/height','number','可选，显示位置与尺寸'],['js','string','要执行的 JavaScript']], returns:'string token | boolean | unknown', example:`function main(){
   const token = webView.init("https://example.com");
   webView.show(token, 0, 100, 390, 600);
   const title = webView.eval(token, "document.title");
+  webView.injectBridge(token);              // 注入 window.autosdkBridge.postMessage
+  const msg = webView.takeMessage(token);   // 拉取页面消息（轮询）
   logd("title: " + title);
   webView.hidden(token);
   webView.release(token);
@@ -1453,7 +1506,11 @@ APIS.push({ cat:'touch', sig:'auto.clickRandom(selector)', title:'随机点点�
   logd("随机点击: " + ok);
 }
 main();` });
-APIS.push({ cat:'touch', sig:'longClickPoint(x, y, durationMs?)', title:'长按坐标', desc:'在指定坐标长按，durationMs 默认 600 毫秒，最大 3000；走 W3C 手势实现。', params:[['x','number','横坐标'],['y','number','纵坐标'],['durationMs','number','可选，长按时长']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'touch', sig:'clickRandomPoint(x1, y1, x2, y2) / clickRandom(x1, y1, x2, y2)', title:'区域随机点击', desc:'在 (x1,y1) 到 (x2,y2) 矩形区域内随机取点点击，模拟真人、降低风控识别概率；clickRandom(selector) 仍支持节点范围随机点击。对标 AScript click_random。', params:[['x1','number','区域左上角横坐标'],['y1','number','区域左上角纵坐标'],['x2','number','区域右下角横坐标'],['y2','number','区域右下角纵坐标']], returns:'boolean', example:`function main(){
+  const ok = clickRandomPoint(100, 200, 300, 400);
+  logd("区域随机点击: " + ok);
+}
+main();` });APIS.push({ cat:'touch', sig:'longClickPoint(x, y, durationMs?)', title:'长按坐标', desc:'在指定坐标长按，durationMs 默认 600 毫秒，最大 3000；走 W3C 手势实现。', params:[['x','number','横坐标'],['y','number','纵坐标'],['durationMs','number','可选，长按时长']], returns:'boolean', example:`function main(){
   const ok = longClickPoint(200, 400, 800);
   logd("长按: " + ok);
 }
@@ -1556,5 +1613,69 @@ APIS.push({ cat:'file', sig:'image.toBase64(path)', title:'图片转 Base64', de
   logd("Base64 长度: " + (b64 ? b64.length : 0));
 }
 main();` });
+APIS.push({ cat:'touch', sig:'node.find(selector) / node.findOne(selector) / findNode(selector)', title:'查找节点（Node 对象）', desc:'对标 AScript Selector().find()：按选择器查找第一个匹配节点，返回带方法的高级 Node 对象（.click()/.tap()/.rect/.text 等）；未找到返回 null。选择器支持 {id,label,text,type,visible} 或 XPath。node.click(dur)/tap_hold(dur)/longClick(dur) 的 dur 单位为秒（WDA 语义），如 node.tap_hold(1.5) 长按 1.5 秒。', params:[['selector','object|string','节点选择器']], returns:'AutoNode|null', example:`function main(){
+  const node = node.find({ text: "确定" });
+  if (node) {
+    logd(node.rect.center.x, node.rect.center.y);
+    node.click();
+  }
+  const btn = findNode({ type: "XCUIElementTypeButton", label: "登录" });
+  if (btn) btn.tap();
+}
+main();` });
+APIS.push({ cat:'touch', sig:'node.findAll(selector) / findNodes(selector)', title:'查找全部节点', desc:'对标 AScript Selector().find_all()：按选择器查找所有匹配节点，返回 Node 对象数组；每个元素都带方法与属性。', params:[['selector','object|string','节点选择器']], returns:'AutoNode[]', example:`function main(){
+  const cells = node.findAll({ type: "XCUIElementTypeCell" });
+  logd("列表项数量:", cells.length);
+  for (const cell of cells) cell.click();
+}
+main();` });
+APIS.push({ cat:'touch', sig:'node.at(x, y) / nodeAt(x, y)', title:'坐标直查控件', desc:'对标 AScript Node.at(x, y)：直接获取屏幕坐标处最深层的可点击控件（从节点快照中按包围盒命中筛选，取面积最小者），返回 Node 对象；该坐标无控件时返回 null。坐标单位与 clickPoint 一致（物理像素）。', params:[['x','number','屏幕 x 坐标'],['y','number','屏幕 y 坐标']], returns:'AutoNode|null', example:`function main(){
+  const node = node.at(300, 600);
+  if (node) {
+    logd(node.label, node.rect);
+    node.click();
+  }
+}
+main();` });
+APIS.push({ cat:'touch', sig:'node.snapshot(maxResults?) / nodeSnapshot(maxResults?)', title:'节点快照', desc:'返回当前控件树快照（带 handle/文本/类型/包围盒等完整属性，最多 2000 个），可用于批量分析页面结构；对标 WDA source dump。', params:[['maxResults','number','可选，最大节点数，默认 500']], returns:'AutoNode[]', example:`function main(){
+  const nodes = node.snapshot(500);
+  const labels = nodes.map(n => n.label).filter(Boolean);
+  logd(labels.slice(0, 20));
+}
+main();` });
+APIS.push({ cat:'touch', sig:'node 对象方法：click() / tap() / tap_hold(ms) / longClick(ms) / scroll(direction?, distance?) / setText(v) / clearText() / selected() / exists() / attr(name) / boundsInfo()', title:'Node 对象操作', desc:'对标 AScript node 方法：click() 点击、tap() 原始点击、tap_hold/longClick 长按、scroll(up/down/left/right/visible, 屏数) 滚动或滚入视野、setText/clearText 设置/清空输入、selected() 选中态、exists() 是否仍存在、attr(name) 读属性、boundsInfo() 刷新坐标。属性：rect/bounds（含 x,y,left,top,right,bottom,width,height,center,origin）、text/label/type/enabled/visible/selected/index/info。', params:[['method','string','节点方法']], returns:'any', example:`function main(){
+  const input = node.find({ type: "XCUIElementTypeTextField", enabled: true });
+  if (input) {
+    input.clearText();
+    input.setText("hello");
+    input.click();
+  }
+  const cell = node.at(200, 400);
+  if (cell) cell.scroll("down", 1);
+}
+main();` });
+APIS.push({ cat:'vision', sig:'screen.cache(on) / screen.isCache() / screen.clearCache()', title:'截图缓存', desc:'对标 AScript screen.cache()：开启后首次截图会被缓存，后续 screen.screenshot()/findImage/findColor/findMultiColor/findColors/ocr 复用同一张截图（通过 screenshotPath 传给原生），图色操作速度大幅提升，适合多条件判断同一画面；关闭后恢复实时截图。', params:[['on','boolean','true 开启缓存，false 关闭']], returns:'boolean', example:`function main(){
+  screen.cache(true);
+  const img = screen.findImage("logo.png");
+  const c1 = screen.findColor("#ff0000", { x: 10, y: 10 });
+  const text = screen.ocr({ x: 0, y: 0, width: 200, height: 100 });
+  screen.cache(false);
+  logd("isCache:", screen.isCache());
+}
+main();` });
+APIS.push({ cat:'ui', sig:'floatLog.show(x?, y?, w?, h?) / floatLog.log(text) / floatLog.clear() / floatLog.hide() / floatLog.isShow() / floatLog.destroy()', title:'悬浮日志窗', desc:'对标 AScript FloatWindow：在屏幕上显示可拖动的悬浮日志窗口，log() 追加文本（自动保留最近 200 行并滚动到底部），适合实时查看脚本运行日志；destroy() 彻底销毁窗口。', params:[['x','number','可选，窗口 x'],['y','number','可选，窗口 y'],['w','number','可选，窗口宽，默认 260'],['h','number','可选，窗口高，默认 180']], returns:'boolean', example:`function main(){
+  floatLog.show(20, 120, 280, 200);
+  floatLog.log("脚本开始");
+  for (let i = 1; i <= 3; i++) {
+    sleep(500);
+    floatLog.log("步骤 " + i + " 完成");
+  }
+  sleep(2000);
+  floatLog.clear();
+  floatLog.hide();
+}
+main();` });
+
 writeFileSync(join(root, 'docs', 'api-reference.html'), render(), 'utf8');
+
 console.log('Generated docs/api-reference.html with ' + APIS.length + ' functions.');

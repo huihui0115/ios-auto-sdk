@@ -59,6 +59,24 @@ if (auto.capabilities().http === true) {
   report.http = "disabled";
 }
 
+// 6b. AScript-parity additions: Wi-Fi IP, local notification, image compression, HTTP requests options
+report.wifiIP = device.getIPAddress();
+report.notifySent = notify("demo-api.js completed", "AutoSDK");
+file.mkdirs("demo");
+file.writeBase64("demo/one.png", "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+const compressed = image.compress("demo/one.png", 0.5, "demo/one-compressed.jpg");
+report.compressed = file.exists(compressed || "");
+file.deleteAllFile("demo/one.png");
+file.deleteAllFile("demo/one-compressed.jpg");
+if (auto.capabilities().http === true) {
+  try {
+    const withParams = http.get("https://example.com", { params: { a: 1 }, cookies: { demo: "1" }, timeout: 5000 });
+    report.httpParamsOk = String(withParams && withParams.url).indexOf("a=1") >= 0;
+  } catch (e) {
+    report.httpParamsError = String(e);
+  }
+}
+
 // 7. Direction swipes and installed-app list (guarded by capabilities)
 const caps = auto.capabilities();
 if (caps.swipe === true) {
@@ -219,8 +237,60 @@ try {
   report.nodeError = String(e);
 }
 
-report;
+// 19. Node objects, screen cache and floatLog (round 20, benchmark AScript)
+try {
+  report.nodeApi = {
+    hasFind: typeof node.find === "function",
+    hasAt: typeof node.at === "function",
+    hasSnapshot: typeof node.snapshot === "function",
+    atPoint: node.at(10, 10) !== null ? String(node.at(10, 10).type || "") : "none",
+  };
+} catch (e) {
+  report.nodeError = String(e);
+}
+try {
+  report.screenCache = {
+    isCache: screen.isCache(),
+    enabled: screen.cache(true),
+    cacheOn: screen.isCache(),
+    screenshotReused: typeof screen.screenshot() === "string",
+    cleared: screen.cache(false),
+  };
+} catch (e) {
+  report.screenCacheError = String(e);
+}
+try {
+  floatLog.show(20, 120, 280, 200);
+  floatLog.log("demo-api.js round 20");
+  report.floatLog = { shown: true, isShow: floatLog.isShow(), hidden: floatLog.hide() };
+  floatLog.destroy();
+} catch (e) {
+  report.floatLogError = String(e);
+}
 
+// 21. Round 21: humanized click, random region click, slidePath, Selector, audio by id, lock state
+try {
+  const jitterPoint = click(190, 400, 3);          // AScript-style click(x, y, jitter)
+  const regionPoint = clickRandomPoint(100, 200, 300, 400);
+  const track = slidePath([[100, 300], [200, 200], [300, 300]], 800);
+  report.round21 = {
+    clickJitter: typeof jitterPoint === "boolean",
+    clickRandomPoint: regionPoint,
+    slidePath: track,
+    hasSelector: typeof Selector === "function",
+    hasSlidePath: typeof slidePath === "function",
+    hasAudioPlay: typeof audioPlay === "function",
+    hasAudioStop: typeof audioStop === "function",
+    isScreenOn: typeof isScreenOn === "function" ? isScreenOn() : null,
+    isLocked: typeof isLocked === "function" ? isLocked() : null,
+  };
+  const sel = Selector().textContains("确").type("Button");
+  report.round21.selectorText = sel && sel._q && sel._q.textMatch != null;
+} catch (e) {
+  report.round21Error = String(e);
+}
+
+report;
 // 17. Date formatting, random sleep and string toolkit (round 12)
 try {
   report.dateFormat = formatDate(time(), "yyyy-MM-dd HH:mm:ss");
@@ -274,5 +344,26 @@ if (caps.appList === true) {
   }
 }
 
-report;
+// 21. Round 21: humanized click, random region click, slidePath, Selector, audio by id, lock state
+try {
+  const jitterPoint = click(190, 400, 3);          // AScript-style click(x, y, jitter)
+  const regionPoint = clickRandomPoint(100, 200, 300, 400);
+  const track = slidePath([[100, 300], [200, 200], [300, 300]], 800);
+  report.round21 = {
+    clickJitter: typeof jitterPoint === "boolean",
+    clickRandomPoint: regionPoint,
+    slidePath: track,
+    hasSelector: typeof Selector === "function",
+    hasSlidePath: typeof slidePath === "function",
+    hasAudioPlay: typeof audioPlay === "function",
+    hasAudioStop: typeof audioStop === "function",
+    isScreenOn: typeof isScreenOn === "function" ? isScreenOn() : null,
+    isLocked: typeof isLocked === "function" ? isLocked() : null,
+  };
+  const sel = Selector().textContains("确").type("Button");
+  report.round21.selectorText = sel && sel._q && sel._q.textMatch != null;
+} catch (e) {
+  report.round21Error = String(e);
+}
 
+report;

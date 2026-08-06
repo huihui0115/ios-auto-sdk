@@ -391,6 +391,44 @@ static double AutoSupportImageScale(NSDictionary *properties) {
     return MAX(0.01, scale);
 }
 
+static BOOL AutoSupportWriteJPEGImage(CGImageRef image, NSURL *destinationURL, double quality, NSDictionary *config, NSError **error) {
+    if (!image) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to produce the compressed image.", nil);
+        return NO;
+    }
+    NSMutableData *data = [NSMutableData data];
+    CGImageDestinationRef destination = CGImageDestinationCreateWithData((__bridge CFMutableDataRef)data, CFSTR("public.jpeg"), 1, NULL);
+    if (!destination) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to create a JPEG encoder.", nil);
+        return NO;
+    }
+    NSDictionary *options = @{ (__bridge NSString *)kCGImageDestinationLossyCompressionQuality: @(quality) };
+    CGImageDestinationAddImage(destination, image, (__bridge CFDictionaryRef)options);
+    BOOL finalized = CGImageDestinationFinalize(destination);
+    CFRelease(destination);
+    if (!finalized) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to encode the compressed image.", nil);
+        return NO;
+    }
+    NSUInteger maximum = AutoSupportByteLimit(config, @"maxFileWriteBytes", 10 * 1024 * 1024, 64 * 1024 * 1024);
+    if (data.length > maximum) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Output image exceeds maxFileWriteBytes.", nil);
+        return NO;
+    }
+    NSError *directoryError = nil;
+    if (![NSFileManager.defaultManager createDirectoryAtURL:destinationURL.URLByDeletingLastPathComponent
+                                withIntermediateDirectories:YES attributes:nil error:&directoryError]) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to create the destination directory.", directoryError);
+        return NO;
+    }
+    NSError *writeError = nil;
+    if (![data writeToURL:destinationURL options:NSDataWritingAtomic error:&writeError]) {
+        if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to write the compressed image.", writeError);
+        return NO;
+    }
+    return YES;
+}
+
 static BOOL AutoSupportWriteImage(CGImageRef image, NSURL *destinationURL, NSDictionary *config, NSError **error) {
     if (!image) {
         if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to produce the processed image.", nil);
@@ -1621,10 +1659,16 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
             processed = AutoSupportImageMono(image, YES, (NSUInteger)MIN(255, MAX(0, threshold)));
         } else if ([sub isEqualToString:@"rotate"]) {
             processed = AutoSupportImageRotate(image, (NSInteger)AutoSupportFiniteDouble(args[@"degrees"], 0));
+        } else if ([sub isEqualToString:@"compress"]) {
+            double quality = AutoSupportFiniteDouble(args[@"quality"], 0.8);
+            quality = MIN(1.0, MAX(0.05, quality));
+            BOOL written = AutoSupportWriteJPEGImage(image, destinationURL, quality, config, error);
+            CGImageRelease(image);
+            return written ? destinationURL.path : nil;
         } else {
             CGImageRelease(image);
             if (error) *error = AutoSupportError(AutoSDKErrorInvalidConfiguration,
-                                                 @"imageProcess sub must be clip, scale, gray, binaryzation or rotate.", nil);
+                                                 @"imageProcess sub must be clip, scale, gray, binaryzation, rotate or compress.", nil);
             return nil;
         }
         CGImageRelease(image);

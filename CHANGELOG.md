@@ -7,6 +7,26 @@ All notable changes to AutoSDK are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Round 23: AScript 命名对齐与类型修复。** `Selector()` 新增 `find_one/find_once/find_all/wait_for` snake_case 终端别名；Node 对象新增 `set_text/clear_text` 别名；新增全局 `action.*` 命名空间（`action.click(x,y,jitter)`、`action.slide_path(points,ms)` 等，写法与 AScript 一致）；`screen.capture()` 截图别名。修复 `image.compress` 签名类型错误（可选参数 quality 后跟必选 dest 违反 TS 规则）：现支持 `compress(src, dest, quality?)` 标准写法并兼容旧 `compress(src, quality, dest)`；修复 d.ts `AutoNodeObject` 与 `AutoNode.selected` 属性/方法冲突（改用 `Omit`，全量 tsc 校验零错误，移除 `--skipLibCheck` 掩盖）。对标表补齐 Round 21 漏写行。测试 57 项全绿。
+- **Round 22: 修复 longClick 单位 bug、媒体 URL 下载、webView 双向通道。** `node.tap_hold(d)/longClick(d)/click(d)` 的时长统一为秒（WDA 语义），修复默认 `1000` 被当作 1000 秒 clamp 成 60 秒长按的问题；`media.saveImage/saveVideo`（及 `playMp3/audioPlay`）支持 http(s) 远程 URL，自动下载到临时目录后处理（受 `maxMediaBytes` 限制，超时 90 秒），对标 AScript `save_pic2photo(url)`；webView 新增 `takeMessage(token)` 与 `injectBridge(token)`：页面通过 `window.webkit.messageHandlers.autosdk.postMessage(payload)` 发消息、脚本轮询 `takeMessage` 拉取，对标 WebWindow JS→脚本双向通道。文档/对标表/d.ts 同步，测试 56 项全绿。
+- **Round 21: AScript 拟人操作 / Selector 链式 / 音频按 ID（234 函数）。** 新增 `Selector()` 链式选择器（`text/textContains/textStartsWith/textEndsWith/textMatches`、`desc/descContains/descMatches`、`label/labelContains/labelMatches`、`value/name/id/type`、`clickable/visible/enabled/selected`、`index/depth/bounds/xpath/predicate`，终端方法 `findOne/one/find/findAll/all/exists/waitFor/click/tap/longClick`），对标 AScript Selector；`click(x, y, jitter?)` 坐标拟人点击（jitter=true ±6px、数字=±N px）且兼容 `click(selector)`；`clickRandomPoint(x1,y1,x2,y2)` 与 `clickRandom(x1,y1,x2,y2)` 区域随机点击；`slidePath(points, ms)` 连续轨迹滑动（按距离分配每段耗时）+ `slide_path/touchAndSlide` 别名；原生 `audioPlay(path, volume?, stopWhenScriptEnd?)` 返回播放器 ID 并支持多路并行、`audioStop(id?)` 单独停止（`playMp3/stopMp3` 保留兼容）；`device.isLocked()` 锁屏状态查询。文档/对标表/d.ts 同步更新，测试 55 项全绿。
+- **Round 20: AScript 控件/截图缓存/悬浮日志补齐（228 函数）。** 新增 `node.at(x, y)` 坐标直查控件与高级
+  Node 对象（`node.find/findAll/snapshot`，节点带 `click/tap/tap_hold/longClick/scroll/setText/clearText/
+  selected/exists/attr/rect/bounds/center/info` 方法与属性，对标 AScript Node.at + node 方法）；新增
+  `screen.cache(on)/isCache()/clearCache()` 截图缓存（对标 AScript screen.cache，开启后
+  screenshot/findImage/findColor/findMultiColor/findColors/ocr 复用同一张截图，原生新增 `screenshotPath`
+  源图选项）；新增 `floatLog` 悬浮日志窗（对标 AScript FloatWindow，可拖动、保留最近 200 行）。新增原生
+  `invokeNodeSnapshot` 桥接（复用 WDA/UIKit 节点快照，最大 2000 节点）。API 文档、类型声明、
+  VS Code 补全、对标表与 3 组新回归测试同步更新。
+- **Round 17/18: AScript requests 会话能力 + 系统功能补齐。** HTTP 模块对标 Python
+  requests：新增 `cookies`（自动 Cookie 头）、`params/query`（自动拼查询串）、
+  `files`（multipart 文件上传，支持 `formData` 表单字段），响应新增
+  `cookies`（Set-Cookie 解析）；新增 `device.getIPAddress()`（getifaddrs，
+  对标 AScript system.get_ip_address）、`notify(body, title?)`（本地通知，
+  对标 AScript system.notify）、`image.compress(src, quality?, dest)`
+  （JPEG 质量压缩，对标 AScript screen.image_compress）。类型声明、VS Code 补全、
+  本地 API 文档（221 函数）与 XCTest 覆盖同步更新。
+
 - **Round 16: 彻底移除 TrollStore 分发路径（对标 AScript / kuaijs 免巨魔）。**
   构建工作流改为 `Build AutoSDK IPA`，IPA 工件更名 `AutoSDKTemplate-ipa`；
   VS Code 插件命令 `AutoSDK: Build TrollStore IPA` 更名 `AutoSDK: Build IPA`

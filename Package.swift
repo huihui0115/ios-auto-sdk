@@ -26,6 +26,7 @@ let package = Package(
                 .linkedFramework("AVFoundation"),
                 .linkedFramework("AudioToolbox"),
                 .linkedFramework("Photos"),
+                .linkedFramework("UserNotifications"),
                 .linkedFramework("ImageIO"),
                 .linkedLibrary("z")
             ]

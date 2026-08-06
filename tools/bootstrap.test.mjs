@@ -36,10 +36,16 @@ function createSandbox() {
     touch: [], clickPoint: [], click: [], swipe: [], sleep: [], ocr: [], screenshot: [], findColorEx: [], findNotColor: [], media: [], pixel: [],
     execAsync: [],
     execOp: [],
+    nodeSnapshot: [],
+    findImage: [],
+    findColor: [],
+    findMultiColor: [],
+    compareColors: [],
   };
   const logs = [];
   let virtualNow = 0;
   let sleepRejected = false;
+  let nodeSnapshotData = [];
   const bridge = {
     invokeIsStopped: () => false,
     invokeSleep: (ms) => {
@@ -145,15 +151,16 @@ function createSandbox() {
     invokeGetText: () => 'sample text',
     invokeScreenshot: () => { calls.screenshot.push(1); return 'png-data'; },
     invokeScreenshotRegion: (data) => { calls.screenshot.push(data); return 'region-png'; },
-    invokeFindImage: () => ({ match: true, x: 11, y: 22, width: 5, height: 5 }),
-    invokeFindColor: () => ({ match: true, x: 11, y: 22 }),
+    invokeFindImage: (data) => { calls.findImage.push(data); return { match: true, x: 11, y: 22, width: 5, height: 5 }; },
+    invokeFindColor: (data) => { calls.findColor.push(data); return { match: true, x: 11, y: 22 }; },
     invokePixelColor: (data) => { calls.pixel.push(data); return { r: 1, g: 2, b: 3, a: 255, hex: '#010203' }; },
-    invokeCompareColors: () => true,
-    invokeFindMultiColor: () => ({ match: true, x: 11, y: 22 }),
+    invokeCompareColors: (data) => { calls.compareColors.push(data); return true; },
+    invokeFindMultiColor: (data) => { calls.findMultiColor.push(data); return { match: true, x: 11, y: 22 }; },
     invokeOCR: (region) => { calls.ocr.push(region); return [{ text: 'hello', confidence: 0.9 }]; },
     invokeExists: () => true,
     invokeFindElement: () => ({ handle: 'h1' }),
     invokeFindElements: () => [{ handle: 'h1' }],
+    invokeNodeSnapshot: (data) => { calls.nodeSnapshot.push(data); return nodeSnapshotData; },
     invokeWaitFor: () => true,
     invokeGetAttribute: () => 'attribute-value',
     invokeGetBounds: () => ({ x: 10, y: 20, width: 100, height: 50, centerX: 60, centerY: 45 }),
@@ -195,6 +202,7 @@ function createSandbox() {
     bridge, consoleBridge, calls, logs, files, store,
     clock: { now: () => virtualNow },
     setSleepRejected: (value) => { sleepRejected = value; },
+    setNodeSnapshot: (nodes) => { nodeSnapshotData = Array.isArray(nodes) ? nodes : []; },
   };
 }
 
@@ -208,6 +216,7 @@ function boot() {
   const drainTimers = vm.runInContext(loadBootstrap(), sandbox);
   return { sandbox, ...state, drainTimers };
 }
+
 
 test('bootstrap installs global facades', () => {
   const { sandbox } = boot();
@@ -330,6 +339,24 @@ test('http.getJSON and http.get pass options to the bridge', () => {
   assert.equal(calls.http.at(-1).parseJson, undefined);
   sandbox.http.post('https://example.com/post', { body: 'x' });
   assert.equal(calls.http.at(-1).method, 'POST');
+});
+
+test('http params merge into query strings and cookies/files/formData forward', () => {
+  const { sandbox, calls } = boot();
+  sandbox.http.get('https://example.com/api', { params: { a: 1, b: 'x' } });
+  assert.equal(calls.http.at(-1).url, 'https://example.com/api?a=1&b=x');
+  sandbox.http.get('https://example.com/api?existing=1', { params: { b: 2 } });
+  assert.equal(calls.http.at(-1).url, 'https://example.com/api?existing=1&b=2');
+  sandbox.http.get('https://example.com/api', { query: { q: 'hi' } });
+  assert.equal(calls.http.at(-1).url, 'https://example.com/api?q=hi');
+  sandbox.http.get('https://example.com/api', { params: { a: null, b: 0 } });
+  assert.equal(calls.http.at(-1).url, 'https://example.com/api?b=0');
+  sandbox.http.request('https://example.com/up', { method: 'POST', files: { file: 'a.png' }, formData: { note: 'hi' }, cookies: { sid: 'abc' } });
+  const last = calls.http.at(-1);
+  assert.deepEqual(last.files, { file: 'a.png' });
+  assert.deepEqual(last.formData, { note: 'hi' });
+  assert.deepEqual(last.cookies, { sid: 'abc' });
+  assert.equal(last.method, 'POST');
 });
 
 test('storage put/get/remove/contains/clear/keys', () => {
@@ -918,4 +945,235 @@ test('stopped scripts throw Script cancelled', () => {
   bridge.invokeIsStopped = () => true;
   assert.throws(() => sandbox.auto.sleep(1), /Script cancelled/);
   assert.throws(() => sandbox.file.readText('/x'), /Script cancelled/);
+});
+
+test('node module: at() hit-testing, rect helpers and method forwarding', () => {
+  const { sandbox, calls, setNodeSnapshot } = boot();
+  setNodeSnapshot([
+    { handle: 'root', type: 'XCUIElementTypeOther', bounds: { x: 0, y: 0, width: 390, height: 844 }, visible: true },
+    { handle: 'btn', id: 'ok', label: '确定', type: 'XCUIElementTypeButton', enabled: true, selected: false,
+      bounds: { x: 100, y: 200, width: 100, height: 50, centerX: 150, centerY: 225 } },
+    { handle: 'inner', label: '内层', bounds: { x: 110, y: 210, width: 40, height: 20 }, visible: true },
+  ]);
+  // at() picks the smallest containing element
+  const hit = sandbox.node.at(115, 215);
+  assert.equal(hit.handle, 'inner');
+  assert.equal(hit.label, '内层');
+  const hit2 = sandbox.node.at(160, 240);
+  assert.equal(hit2.handle, 'btn');
+  assert.equal(sandbox.node.at(999, 999), null);
+  assert.deepEqual(calls.nodeSnapshot.at(-1), { maxResults: 2000 });
+  // rect helpers
+  assert.equal(hit.rect.center.x, 130);
+  assert.equal(hit.rect.right, 150);
+  assert.equal(hit.rect.bottom, 230);
+  assert.equal(hit2.center.y, 225);
+  assert.equal(hit2.info.id, 'ok');
+  // methods forward
+  assert.equal(hit2.click(), true);
+  assert.equal(hit2.selected(), false);
+  assert.equal(hit2.exists(), true);
+  assert.equal(hit2.tap(), true);
+  assert.equal(hit2.tap_hold(500), true);
+  assert.equal(hit2.scroll(), true);
+  assert.equal(hit2.setText('x'), true);
+  assert.equal(hit2.attr('type'), 'attribute-value');
+  // node.find / node.findAll wrap raw element results
+  const single = sandbox.node.find({ id: 'ok' });
+  assert.equal(single.handle, 'h1');
+  assert.equal(typeof single.click, 'function');
+  const many = sandbox.node.findAll({ type: 'Button' });
+  assert.equal(many.length, 1);
+  assert.equal(many[0].handle, 'h1');
+  // global aliases
+  assert.equal(sandbox.findNode({ id: 'x' }).handle, 'h1');
+  assert.equal(sandbox.findNodes({ id: 'x' }).length, 1);
+  assert.equal(sandbox.nodeAt(10, 10).handle, 'root');
+  const snap = sandbox.node.snapshot(10);
+  assert.equal(snap.length, 3);
+  assert.deepEqual(calls.nodeSnapshot.at(-1), { maxResults: 10 });
+  assert.equal(typeof sandbox.nodeSnapshot, 'function');
+});
+
+test('screen.cache / isCache reuse screenshots and pass screenshotPath', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.screen.isCache(), false);
+  assert.equal(sandbox.screen.cache(true), true);
+  assert.equal(sandbox.screen.isCache(), true);
+  assert.equal(calls.screenshot.length, 1); // captured once on enable
+  // screenshot() reuses cached data without a native call
+  assert.equal(sandbox.screen.screenshot(), 'png-data');
+  assert.equal(calls.screenshot.length, 1);
+  const cached = '/sandbox/_autosdk_screen_cache.png';
+  sandbox.screen.findImage('a.png', { threshold: 0.9 });
+  assert.equal(calls.findImage.at(-1).options.screenshotPath, cached);
+  sandbox.screen.findColor('#ff0000', { x: 0, y: 0 }, { tolerance: 8 });
+  assert.equal(calls.findColor.at(-1).options.screenshotPath, cached);
+  sandbox.screen.findMultiColor('#000000', [{ dx: 1, dy: 1, color: '#fff' }], { x: 0, y: 0 });
+  assert.equal(calls.findMultiColor.at(-1).options.screenshotPath, cached);
+  sandbox.screen.findColors([{ x: 1, y: 1, color: '#fff' }]);
+  assert.equal(calls.compareColors.at(-1).options.screenshotPath, cached);
+  sandbox.screen.ocr({ mode: 'fast' });
+  assert.equal(calls.ocr.at(-1).screenshotPath, cached);
+  assert.equal(sandbox.screen.clearCache(), true);
+  assert.equal(sandbox.screen.isCache(), false);
+  const before = calls.screenshot.length;
+  sandbox.screen.screenshot();
+  assert.equal(calls.screenshot.length, before + 1);
+  sandbox.screen.findImage('a.png');
+  assert.equal(calls.findImage.at(-1).options.screenshotPath, undefined);
+});
+
+test('floatLog overlay API forwards native calls', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.floatLog.show(10, 20, 300, 200), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'floatLogShow', arguments: [10, 20, 300, 200] });
+  assert.equal(sandbox.floatLog.log('hello world'), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'floatLogLog', arguments: ['hello world'] });
+  assert.equal(sandbox.floatLog.clear(), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'floatLogClear', arguments: [] });
+  assert.equal(sandbox.floatLog.isShow(), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'floatLogIsShow', arguments: [] });
+  assert.equal(sandbox.floatLog.hide(), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'floatLogHide', arguments: [] });
+  assert.equal(sandbox.floatLog.destroy(), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'floatLogDestroy', arguments: [] });
+});
+
+test('Selector chainable class mirrors AScript selector API', () => {
+  const { sandbox, calls } = boot();
+  const sel = sandbox.Selector().text('确定').type('Button').clickable(true);
+  assert.deepEqual(sel._q, { text: '确定', type: 'Button', accessible: true });
+  assert.equal(typeof sandbox.Selector().descContains('账').findOne, 'function');
+  const one = sandbox.Selector().textContains('确').findOne();
+  assert.equal(one.handle, 'h1');
+  assert.equal(typeof one.click, 'function');
+  assert.equal(sandbox.Selector().textMatches('^确').find().length, 1);
+  const all = sandbox.selector({ id: 'ok' }).findAll();
+  assert.equal(all.length, 1);
+  assert.equal(all[0].handle, 'h1');
+  assert.equal(sandbox.selector({ label: 'x' }).exists(), true);
+  assert.equal(sandbox.Selector().descContains('账').waitFor(3000), true);
+  assert.equal(sandbox.Selector().text('a').click(), true);
+  assert.equal(calls.click.length, 1);
+  assert.equal(sandbox.Selector().text('a').tap(), true);
+  assert.equal(sandbox.Selector().text('a').longClick(800), true);
+  const contains = sandbox.Selector().textContains('a.b')._q;
+  assert.equal(contains.textMatch, '.*a\\.b.*');
+  const starts = sandbox.Selector().textStartsWith('ab')._q;
+  assert.equal(starts.textMatch, '^ab');
+  const ends = sandbox.Selector().textEndsWith('xy')._q;
+  assert.equal(ends.textMatch, 'xy$');
+  const bounds = sandbox.Selector().bounds(1, 2, 3, 4)._q.bounds;
+  assert.deepEqual(bounds, { x: 1, y: 2, width: 3, height: 4 });
+  assert.equal(sandbox.Selector().xpath('//XCUIElementTypeButton[1]')._q.xpath, '//XCUIElementTypeButton[1]');
+});
+
+test('click coordinates with jitter, element selectors, random region clicks and slidePath', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.click(100, 200), true);
+  assert.deepEqual(calls.clickPoint.at(-1), { x: 100, y: 200 });
+  sandbox.click(100, 200, true);
+  const j = calls.clickPoint.at(-1);
+  assert.ok(Math.abs(j.x - 100) <= 6 && Math.abs(j.y - 200) <= 6, 'jitter stays within default radius');
+  sandbox.click(100, 200, 2);
+  const j2 = calls.clickPoint.at(-1);
+  assert.ok(Math.abs(j2.x - 100) <= 2 && Math.abs(j2.y - 200) <= 2, 'numeric jitter radius respected');
+  assert.equal(sandbox.click({ id: 'ok' }), true);
+  assert.equal(calls.click.length, 1);
+  sandbox.clickRandomPoint(10, 20, 50, 60);
+  const rp = calls.clickPoint.at(-1);
+  assert.ok(rp.x >= 10 && rp.x <= 50 && rp.y >= 20 && rp.y <= 60);
+  sandbox.clickRandom(10, 20, 50, 60);
+  const rp2 = calls.clickPoint.at(-1);
+  assert.ok(rp2.x >= 10 && rp2.x <= 50 && rp2.y >= 20 && rp2.y <= 60);
+  assert.equal(sandbox.slidePath([[0, 0], [50, 100]], 500), true);
+  const track = calls.touch.at(-1).fingers[0];
+  assert.equal(track[0].type, 'pointerMove');
+  assert.equal(track[1].type, 'pointerDown');
+  assert.equal(track[2].type, 'pointerMove');
+  assert.equal(track[2].x, 50);
+  assert.equal(track[2].y, 100);
+  assert.ok(track[2].duration > 400 && track[2].duration <= 510);
+  assert.equal(track[3].type, 'pointerUp');
+  assert.equal(sandbox.slide_path([[0, 0], [1, 1]], 200), true);
+  assert.equal(sandbox.touchAndSlide(0, 0, 50, 100, 300), true);
+  assert.equal(calls.swipe.length, 1);
+  assert.equal(sandbox.slidePath([[0, 0]], 200), false);
+});
+
+test('audioPlay/audioStop manage players by id via native bridge', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.media.audioPlay('beep.mp3', 80), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'audioPlay', arguments: ['beep.mp3', 80, false] });
+  sandbox.audioPlay('bgm.mp3');
+  assert.deepEqual(calls.native.at(-1), { name: 'audioPlay', arguments: ['bgm.mp3', 100, false] });
+  sandbox.audioStop(2);
+  assert.deepEqual(calls.native.at(-1), { name: 'audioStop', arguments: [2] });
+  sandbox.audioStop();
+  assert.deepEqual(calls.native.at(-1), { name: 'audioStop', arguments: [0] });
+  assert.equal(sandbox.playMp3('a.mp3'), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'playMp3', arguments: ['a.mp3', 100, false, false] });
+  assert.equal(sandbox.stopMp3(), true);
+  assert.deepEqual(calls.native.at(-1), { name: 'stopMp3', arguments: [] });
+});
+
+test('image.compress supports (src, dest, quality?) and legacy (src, quality, dest)', () => {
+  const { sandbox, calls } = boot();
+  sandbox.image.compress("a.png", "out.jpg", 0.5);
+  const first = calls.file.at(-1);
+  assert.equal(first.sub, "compress");
+  assert.equal(first.destination, "out.jpg");
+  assert.equal(first.args.quality, 0.5);
+  sandbox.image.compress("a.png", 0.8, "out2.jpg");
+  const second = calls.file.at(-1);
+  assert.equal(second.destination, "out2.jpg");
+  assert.equal(second.args.quality, 0.8);
+  sandbox.image.compress("a.png", "out3.jpg");
+  const third = calls.file.at(-1);
+  assert.equal(third.destination, "out3.jpg");
+  assert.equal(third.args.quality, 0.8);
+});
+test('AScript snake_case aliases: Selector find_one/find_all, node set_text/clear_text, action.*, screen.capture', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.Selector().text("x").find_one().handle, "h1");
+  assert.equal(sandbox.Selector().text("x").find_once().handle, "h1");
+  assert.equal(sandbox.Selector().text("x").find_all().length, 1);
+  assert.equal(sandbox.Selector().text("x").wait_for(2000), true);
+  const n = sandbox.node.find({ id: "x" });
+  assert.equal(n.set_text("abc"), true);
+  assert.equal(n.clear_text(), true);
+  assert.equal(typeof sandbox.action, "object");
+  sandbox.action.click(100, 200);
+  assert.deepEqual(calls.clickPoint.at(-1), { x: 100, y: 200 });
+  sandbox.action.slide_path([[0, 0], [50, 50]], 300);
+  assert.equal(calls.touch.length, 1);
+  assert.equal(sandbox.screen.capture(), "png-data");
+});
+test('node longClick/tap_hold use seconds and webView message channel forwards', () => {
+  const { sandbox, calls, bridge } = boot();
+  let lastLongClick = null;
+  bridge.invokeLongClick = (data) => { lastLongClick = data; return true; };
+  const n = sandbox.node.find({ id: "x" });
+  assert.equal(n.tap_hold(), true);
+  assert.equal(lastLongClick.duration, 1, "tap_hold defaults to 1 second");
+  n.tap_hold(2.5);
+  assert.equal(lastLongClick.duration, 2.5);
+  n.longClick(3);
+  assert.equal(lastLongClick.duration, 3);
+  assert.equal(sandbox.webView.takeMessage("w1"), true);
+  assert.deepEqual(calls.native.at(-1), { name: "webViewTakeMessage", arguments: ["w1"] });
+  assert.equal(sandbox.webView.injectBridge("w1"), true);
+  const evalCall = calls.native.at(-1);
+  assert.equal(evalCall.name, "webViewEval");
+  assert.equal(evalCall.arguments[0], "w1");
+  assert.ok(String(evalCall.arguments[1]).includes("autosdkBridge"));
+  assert.ok(String(evalCall.arguments[1]).includes("messageHandlers.autosdk"));
+});
+test('device isScreenOn/isLocked expose lock state', () => {
+  const { sandbox } = boot();
+  assert.equal(sandbox.isScreenOn(), true);
+  assert.equal(sandbox.isLocked(), false);
+  assert.equal(sandbox.device.isScreenOn(), true);
+  assert.equal(sandbox.device.isLocked(), false);
 });

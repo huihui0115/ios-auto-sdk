@@ -80,6 +80,39 @@ interface AutoNode {
   bounds?: AutoRect;
 }
 
+interface AutoNodeRect {
+  x: number;
+  y: number;
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+  center: { x: number; y: number };
+  origin: { x: number; y: number };
+}
+
+interface AutoNodeObject extends Omit<AutoNode, "selected"> {
+  rect: AutoNodeRect | null;
+  bounds: AutoRect | AutoNodeRect | null;
+  center: { x: number; y: number } | null;
+  info: AutoNode;
+  click(durationSeconds?: number): boolean;
+  tap(): boolean;
+  tap_hold(durationSeconds?: number): boolean;
+  longClick(durationSeconds?: number): boolean;
+  scroll(direction?: 'up' | 'down' | 'left' | 'right' | 'visible', distance?: number): boolean;
+  setText(text: string): boolean;
+  clearText(): boolean;
+  set_text(text: string): boolean;
+  clear_text(): boolean;
+  selected(): boolean;
+  exists(): boolean;
+  attr(name: string): unknown;
+  boundsInfo(): AutoRect | null;
+}
+
 interface AutoMatch {
   found: boolean;
   truncated?: boolean;
@@ -170,7 +203,14 @@ interface AutoOCRItem {
 interface AutoHTTPOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
   headers?: Record<string, string>;
+  cookies?: Record<string, string>;
+  params?: Record<string, string | number | boolean>;
+  query?: Record<string, string | number | boolean>;
   body?: string | Record<string, unknown> | unknown[];
+  /** Multipart file upload: {fieldName: sandboxPath}. Overrides body when present. */
+  files?: Record<string, string>;
+  /** Form fields appended to a multipart upload. */
+  formData?: Record<string, string>;
   bodyBase64?: string;
   followRedirects?: boolean;
   timeout?: number;
@@ -193,6 +233,8 @@ interface AutoHTTPResponse {
   body: string;
   bodyBase64: string;
   json?: unknown;
+  /** Response Set-Cookie values parsed into a dictionary. */
+  cookies?: Record<string, string>;
 }
 
 interface AutoHTTP {
@@ -316,6 +358,8 @@ interface AutoDeviceAPI {
   getDeviceId(): string;
   getDeviceAlias(): string;
   getSerialNo(): string | null;
+  getIPAddress(): string | null;
+  getIP(): string | null;
   getAppVersion(): string;
   getPackageName(): string;
   getMemoryInfo(): { totalBytes: number; freeBytes: number; appUsedBytes: number };
@@ -397,6 +441,10 @@ interface AutoScreenAPI {
   cmpColor(points: AutoColorPoint[], options?: { tolerance?: number }): boolean;
   ocr(options?: AutoOCROptions): AutoOCRItem[];
   screenshot(): string;
+  capture(): string;
+  cache(on: boolean): boolean;
+  isCache(): boolean;
+  clearCache(): boolean;
 }
 
 interface AutoAPI {
@@ -580,6 +628,8 @@ interface AutoWebViewAPI {
   show(token: string, x?: number, y?: number, width?: number, height?: number): boolean;
   hidden(token: string): boolean;
   eval(token: string, js: string): unknown;
+  takeMessage(token: string): unknown;
+  injectBridge(token: string): boolean;
   release(token: string): boolean;
 }
 
@@ -602,10 +652,70 @@ interface AutoFloatBallAPI {
   isShow(): boolean;
 }
 
+interface AutoFloatLogAPI {
+  show(x?: number, y?: number, width?: number, height?: number): boolean;
+  log(text: string): boolean;
+  clear(): boolean;
+  hide(): boolean;
+  isShow(): boolean;
+  destroy(): boolean;
+}
+
+interface AutoSelectorBuilder {
+  text(value: string): AutoSelectorBuilder;
+  textContains(value: string): AutoSelectorBuilder;
+  textStartsWith(value: string): AutoSelectorBuilder;
+  textEndsWith(value: string): AutoSelectorBuilder;
+  textMatches(pattern: string): AutoSelectorBuilder;
+  desc(value: string): AutoSelectorBuilder;
+  descContains(value: string): AutoSelectorBuilder;
+  descMatches(pattern: string): AutoSelectorBuilder;
+  label(value: string): AutoSelectorBuilder;
+  labelContains(value: string): AutoSelectorBuilder;
+  labelMatches(pattern: string): AutoSelectorBuilder;
+  value(value: string): AutoSelectorBuilder;
+  valueContains(value: string): AutoSelectorBuilder;
+  valueMatches(pattern: string): AutoSelectorBuilder;
+  name(value: string): AutoSelectorBuilder;
+  nameMatches(pattern: string): AutoSelectorBuilder;
+  id(value: string): AutoSelectorBuilder;
+  type(value: string): AutoSelectorBuilder;
+  clickable(on?: boolean): AutoSelectorBuilder;
+  visible(on?: boolean): AutoSelectorBuilder;
+  enabled(on?: boolean): AutoSelectorBuilder;
+  selected(on?: boolean): AutoSelectorBuilder;
+  index(value: number): AutoSelectorBuilder;
+  depth(value: number): AutoSelectorBuilder;
+  bounds(x: number, y: number, width: number, height: number): AutoSelectorBuilder;
+  xpath(value: string): AutoSelectorBuilder;
+  predicate(value: string): AutoSelectorBuilder;
+  findOne(): AutoNodeObject | null;
+  one(): AutoNodeObject | null;
+  find_one(): AutoNodeObject | null;
+  find_once(): AutoNodeObject | null;
+  find(): AutoNodeObject[];
+  findAll(): AutoNodeObject[];
+  find_all(): AutoNodeObject[];
+  all(): AutoNodeObject[];
+  exists(): boolean;
+  waitFor(timeoutMs?: number): boolean;
+  wait_for(timeoutMs?: number): boolean;
+  click(): boolean;
+  tap(): boolean;
+  clickCenter(): boolean;
+  longClick(durationSeconds?: number): boolean;
+  clickRandom(): boolean;
+}
+
 interface AutoNodeAPI {
   keep(node: unknown): unknown;
   unkeep(node: unknown): unknown;
   keptCount(): number;
+  find(selector: AutoSelectorLike): AutoNodeObject | null;
+  findOne(selector: AutoSelectorLike): AutoNodeObject | null;
+  findAll(selector: AutoSelectorLike): AutoNodeObject[];
+  at(x: number, y: number): AutoNodeObject | null;
+  snapshot(maxResults?: number): AutoNode[];
 }
 
 interface AutoThread {
@@ -616,6 +726,7 @@ interface AutoThread {
 }
 
 declare const auto: AutoAPI;
+declare const action: AutoAPI;
 declare function toast(message: string): boolean;
 declare function toastLog(message: string): void;
 declare const file: AutoFileAPI;
@@ -645,6 +756,8 @@ declare const image: {
   gray(src: string, dest: string): string | null;
   binaryzation(src: string, dest: string, threshold?: number): string | null;
   rotate(src: string, degrees: number, dest: string): string | null;
+  compress(src: string, dest: string, quality?: number): string | null;
+  compress(src: string, quality: number, dest: string): string | null;
   pixelAt(src: string, x: number, y: number): AutoPixelColor | null;
   toBase64(path: string): string | null;
   findColorCount(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, maxCount?: number): number;
@@ -747,6 +860,12 @@ declare function md5(text: string): string;
 declare function sha1(text: string): string;
 declare function playMp3(path: string, volume?: number, queue?: boolean, stopWhenScriptEnd?: boolean): boolean;
 declare function stopMp3(): boolean;
+declare function audioPlay(path: string, volume?: number, stopWhenScriptEnd?: boolean): { id: number; playing: boolean };
+declare function audioStop(id?: number): boolean;
+declare function isScreenOn(): boolean;
+declare function isLocked(): boolean;
+declare function selector(init?: AutoSelector): AutoSelectorBuilder;
+declare const Selector: { (init?: AutoSelector): AutoSelectorBuilder; new (init?: AutoSelector): AutoSelectorBuilder };
 declare function findColorEx(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, limit?: number, direction?: number): AutoPoint[] | null;
 declare function findNotColor(colors: AutoColorExInput, threshold?: number, x?: number, y?: number, ex?: number, ey?: number, limit?: number, direction?: number): AutoPoint[] | null;
 declare function requestPhotoAuthorization(): AutoPhotoAuthorizationStatus;
@@ -779,7 +898,12 @@ declare function clickCenter(selector: AutoSelectorLike): boolean;
 declare function gesture(actions: AutoGestureAction[]): boolean;
 declare function multiGesture(fingers: AutoGestureAction[][]): boolean;
 declare function pinch(x: number, y: number, scale: number, durationMs?: number): boolean;
+declare function clickRandomPoint(x1: number, y1: number, x2: number, y2: number): boolean;
+declare function clickRandom(x1: number, y1: number, x2: number, y2: number): boolean;
 declare function clickRandom(selector: AutoSelectorLike): boolean;
+declare function slidePath(points: Array<[number, number]> | Array<{ x: number; y: number }>, durationMs?: number): boolean;
+declare function slide_path(points: Array<[number, number]> | Array<{ x: number; y: number }>, durationMs?: number): boolean;
+declare function touchAndSlide(x1: number, y1: number, x2: number, y2: number, durationMs?: number): boolean;
 declare function openURL(url: string): boolean;
 declare function getClipboard(): string | null;
 declare function setClipboard(text: string): boolean;
@@ -787,6 +911,9 @@ declare function getBrightness(): number;
 declare function setBrightness(value: number): boolean;
 declare function getVolume(): number;
 declare function vibrate(durationMs?: number): boolean;
+declare function notify(body: string, title?: string): boolean;
+declare function getIPAddress(): string | null;
+declare function getIP(): string | null;
 declare function logd(...values: unknown[]): void;
 declare function logi(...values: unknown[]): void;
 declare function logw(...values: unknown[]): void;
@@ -795,6 +922,11 @@ declare const screenDraw: AutoScreenDrawAPI;
 declare const floatBall: AutoFloatBallAPI;
 declare function setFloatBallPoint(x: number, y: number): boolean;
 declare const node: AutoNodeAPI;
+declare const floatLog: AutoFloatLogAPI;
+declare function findNode(selector: AutoSelectorLike): AutoNodeObject | null;
+declare function findNodes(selector: AutoSelectorLike): AutoNodeObject[];
+declare function nodeAt(x: number, y: number): AutoNodeObject | null;
+declare function nodeSnapshot(maxResults?: number): AutoNode[];
 declare function keepNode(node: unknown): unknown;
 declare function unkeepNode(node: unknown): unknown;
 declare function toPinYin(text: string): string;

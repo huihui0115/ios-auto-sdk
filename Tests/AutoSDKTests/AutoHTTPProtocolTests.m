@@ -60,6 +60,31 @@ static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
         body = body ?: [NSData data];
         NSString *contentType = self.request.allHTTPHeaderFields[@"Content-Type"];
         headers = @{ @"Content-Type": contentType ?: @"application/octet-stream" };
+    } else if ([path isEqualToString:@"/inspect"]) {
+        NSData *inspectBody = self.request.HTTPBody;
+        if (!inspectBody && self.request.HTTPBodyStream) {
+            NSInputStream *stream = self.request.HTTPBodyStream;
+            [stream open];
+            NSMutableData *streamedBody = [NSMutableData data];
+            uint8_t buffer[4096];
+            NSInteger read = 0;
+            while ((read = [stream read:buffer maxLength:sizeof(buffer)]) > 0) {
+                [streamedBody appendBytes:buffer length:(NSUInteger)read];
+            }
+            [stream close];
+            inspectBody = streamedBody;
+        }
+        NSString *inspectText = [[NSString alloc] initWithData:(inspectBody ?: [NSData data]) encoding:NSUTF8StringEncoding] ?: @"";
+        NSDictionary *inspect = @{
+            @"method": self.request.HTTPMethod ?: @"",
+            @"url": self.request.URL.absoluteString ?: @"",
+            @"cookie": self.request.allHTTPHeaderFields[@"Cookie"] ?: @"",
+            @"contentType": self.request.allHTTPHeaderFields[@"Content-Type"] ?: @"",
+            @"body": inspectText
+        };
+        NSError *inspectError = nil;
+        body = [NSJSONSerialization dataWithJSONObject:inspect options:0 error:&inspectError] ?: [NSData data];
+        headers = @{ @"Content-Type": @"application/json; charset=utf-8" };
     } else if ([path isEqualToString:@"/large"]) {
         body = [NSMutableData dataWithLength:64 * 1024];
     } else if ([path isEqualToString:@"/script.js"]) {
@@ -362,6 +387,46 @@ static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
         XCTAssertNil(error);
         XCTAssertEqualObjects(result[@"value"][@"json"][@"n"], @42);
         [second fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:5 handler:nil];
+}
+
+- (void)testHTTPMultipartUploadEchoesBoundaryAndFile {
+    XCTestExpectation *expectation = [self expectationWithDescription:@"multipart upload"];
+    NSString *script =
+        @"file.writeText('tests/up.txt', 'upload-payload-123');"
+         "const r = http.post('http://autosdk.test/inspect', { files: { file: 'tests/up.txt' }, formData: { note: 'hi' } });"
+         "file.deleteAllFile('tests/up.txt');"
+         "({ body: r.body, json: r.json });";
+    [self runScript:script
+         withConfig:@{@"allowNetwork": @YES, @"allowFileWrite": @YES, @"scriptTimeout": @5}
+         completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        NSDictionary *json = result[@"value"][@"json"];
+        NSString *contentType = json[@"contentType"] ?: @"";
+        NSString *body = json[@"body"] ?: @"";
+        XCTAssertTrue([contentType containsString:@"multipart/form-data; boundary="], @"Content-Type must be multipart with a boundary");
+        XCTAssertTrue([body containsString:@"name=\"note\""] && [body containsString:@"hi"], @"formData field must be included");
+        XCTAssertTrue([body containsString:@"name=\"file\"; filename=\"up.txt\""], @"file part must carry the field name and filename");
+        XCTAssertTrue([body containsString:@"upload-payload-123"], @"file content must be uploaded");
+        XCTAssertTrue([body hasSuffix:@"--\r\n"] || [body containsString:@"--AutoSDKBoundary"], @"multipart body must be terminated");
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:5 handler:nil];
+}
+
+- (void)testHTTPCookiesAndParamsForwarded {
+    XCTestExpectation *expectation = [self expectationWithDescription:@"cookies and params"];
+    NSString *script =
+        @"const r = http.get('http://autosdk.test/inspect?existing=1', { params: { b: 2 }, cookies: { sid: 'abc' } });"
+         "({ url: r.json.url, cookie: r.json.cookie });";
+    [self runScript:script
+         withConfig:@{@"allowNetwork": @YES, @"scriptTimeout": @5}
+         completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"value"][@"url"], @"http://autosdk.test/inspect?existing=1&b=2");
+        XCTAssertEqualObjects(result[@"value"][@"cookie"], @"sid=abc");
+        [expectation fulfill];
     }];
     [self waitForExpectationsWithTimeout:5 handler:nil];
 }

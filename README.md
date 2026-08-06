@@ -9,7 +9,9 @@
 - Objective-C 友好的 `AutoEngine` 单例入口
 - JavaScriptCore 执行本地脚本、Bundle 脚本和远程 URL
 - 全局 `auto` API：点击、滑动、输入、稳定节点查询、图色、截图、OCR、沙盒文件、命名存储、设备信息和受控 HTTP
-- 系统能力（`allowSystemControl` 可开关）：剪贴板读写、屏幕亮度、系统音量、振动、打开 URL；WDA Runner 额外支持主屏幕/锁屏/解锁、音量键、屏幕状态
+- HTTP 对标 Python requests：GET/POST/PUT/PATCH/DELETE、`headers/cookies/params`、`files` multipart 文件上传 + `formData`、JSON/Base64 响应、下载与 `requireSuccess`
+- 系统能力（`allowSystemControl` 可开关）：剪贴板读写、屏幕亮度、系统音量、振动、打开 URL、Wi-Fi IP（`device.getIPAddress`）、本地通知（`notify(body, title?)`）；WDA Runner 额外支持主屏幕/锁屏/解锁、音量键、屏幕状态
+- 图像处理：`image.clip/scale/gray/binaryzation/rotate/compress/pixelAt/toBase64/findColorCount`（JPEG 压缩对标 AScript image_compress）
 - 相册（`allowMediaLibrary` 可开关）：保存沙盒图片、视频、Base64 图片或截图到 iOS“照片”，并支持 `media.deleteAllPhotos/deleteAllVideos/deleteAllMedia` 清空相册（返回删除数量）
 - plist 读写：`file.readPlist/writePlist` 与全局 `plist.read/plist.write`（XML plist）
 - 悬浮 webView：`webView.init/show/hidden/eval/release`（WKWebView）
@@ -109,7 +111,7 @@ auto.toast("自定义方法由 Native 注册");
 ```
 
 `setTimeout`/`setInterval` 在脚本主代码返回后继续执行，`runScript` 的完成回调会等定时器队列排空后才触发；`setInterval` 会持续运行，需调用 `stopScript`（或等待 `scriptTimeout` 超时）才会停止。`scriptTimeout` 是包含定时器回调在内的总执行预算。
-新增 EasyClick 风格的坐标适配与常用工具：`setScreenMetrics(width, height)` 按设计稿设置分辨率基准，配合 `getScreenMetrics()`、`metrics.point(x, y)` 适配多机型；另有 `uuid()`、`base64.encode/decode`、`http.getJSON`、`auto.clickCenter/clickRandom`、`auto.getChild/getSiblings` 等封装。全部 160+ 函数见上方交互式速查（206 个函数、12 个分类，每卡带 EasyClick/AutoJS 对标与可复制示例）。
+新增 EasyClick 风格的坐标适配与常用工具：`setScreenMetrics(width, height)` 按设计稿设置分辨率基准，配合 `getScreenMetrics()`、`metrics.point(x, y)` 适配多机型；另有 `uuid()`、`base64.encode/decode`、`http.getJSON`、`auto.clickCenter/clickRandom`、`auto.getChild/getSiblings` 等封装。全部 160+ 函数见上方交互式速查（234 个函数、12 个分类，每卡带 EasyClick/AutoJS 对标与可复制示例）。
 
 `findImage` 使用适配器实现的模板相似度匹配，`findColor` 使用 RGBA 容差扫描；`AutoUIKitAdapter` 的 `ocr` 使用系统 Vision 框架离线执行。`AutoWDAHTTPAdapter` 会把 WDA 截图拉回 SDK 进程后执行图色和 Vision OCR，不需要 OpenCV，但仍然需要单独可用的 WDA Runner。
 

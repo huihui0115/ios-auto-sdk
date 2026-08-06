@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>8</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>34</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>23</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>18</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>24</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>9</span></a><a href="#media" style="--c:#db2777">相册媒体<span>10</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>2</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>25</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>18</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>26</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>10</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -82,7 +82,7 @@ main();</code></pre>
   <p class="empty">（暂无）</p>
 </section>
 <section id="logs" class="cat" style="--c:#0891b2">
-  <h2><span class="tag">日志与调试</span><i>8</i></h2>
+  <h2><span class="tag">日志与调试</span><i>9</i></h2>
   <article class="card" data-search="console.log / debug / info / warn / error 分级日志">
   <header class="card-head">
     <h4><code>console.log / debug / info / warn / error</code> <span class="cname">分级日志</span></h4>
@@ -168,6 +168,20 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="notify(body, title?) 本地通知">
+  <header class="card-head">
+    <h4><code>notify(body, title?)</code> <span class="cname">本地通知</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">发送一条 iOS 本地通知（通知中心可见）；首次调用会请求通知权限，title 默认 AutoSDK。对标 AScript system.notify(msg, title)。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">body</code><span class="ptype">string</span><span class="pdesc">通知正文</span></div><div class="param"><code class="pname">title</code><span class="ptype">string</span><span class="pdesc">通知标题，默认 AutoSDK</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+    notify('脚本执行完成', 'AutoSDK');
+    return true;
+}</code></pre>
+</article>
 <article class="card" data-search="toast(message) 悬浮提示">
   <header class="card-head">
     <h4><code>toast(message)</code> <span class="cname">悬浮提示</span></h4>
@@ -217,7 +231,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="touch" class="cat" style="--c:#7c3aed">
-  <h2><span class="tag">触摸与节点</span><i>34</i></h2>
+  <h2><span class="tag">触摸与节点</span><i>43</i></h2>
   <article class="card" data-search="node.keep(node) / node.unkeep(node) / keepNode(node) / unkeepNode(node) / node.keptCount() 节点保持 / 释放">
   <header class="card-head">
     <h4><code>node.keep(node) / node.unkeep(node) / keepNode(node) / unkeepNode(node) / node.keptCount()</code> <span class="cname">节点保持 / 释放</span></h4>
@@ -232,6 +246,39 @@ main();</code></pre>
   node.keep(node);
   sleep(5000);
   const kept = node.unkeep(node);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="click(x, y, jitter?) / click(selector) 点击（坐标拟人 / 控件）">
+  <header class="card-head">
+    <h4><code>click(x, y, jitter?) / click(selector)</code> <span class="cname">点击（坐标拟人 / 控件）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">两种用法：click(x, y, jitter?) 在坐标处点击，jitter 为 true 时在 ±6px 内随机偏移、为数字时按指定像素随机偏移（拟人防检测）；click(selector) 点击第一个匹配控件。对标 AScript click(x, y, jitter)。</p>
+  <div class="ref"><b>对标</b> AScript click(x, y, jitter) 拟人坐标点击</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">横坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">纵坐标</span></div><div class="param"><code class="pname">jitter</code><span class="ptype">boolean|number</span><span class="pdesc">可选，拟人随机偏移：true=±6px，数字=±N px</span></div><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">控件选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok1 = click(190, 400, 3);        // 坐标拟人点击
+  const ok2 = click({text: "确定"});      // 控件点击
+  logd("点击: " + ok1 + " " + ok2);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="Selector().text(v).type(t).findOne() / selector(init?) 链式选择器">
+  <header class="card-head">
+    <h4><code>Selector().text(v).type(t).findOne() / selector(init?)</code> <span class="cname">链式选择器</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">AScript 风格链式选择器：text/textContains/textStartsWith/textEndsWith/textMatches、desc/descContains/descMatches、label/labelContains/labelMatches、value/name/id/type、clickable/visible/enabled/selected、index/depth/bounds/xpath/predicate 逐层叠加条件；终端方法 findOne()/one()/find_one()/find_once() 取单个、find()/findAll()/all()/find_all() 取列表、exists() 判断存在、waitFor(timeoutMs)/wait_for() 等待出现、click()/tap()/longClick(d) 直接操作。</p>
+  <div class="ref"><b>对标</b> AScript Selector 链式选择器</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">v</code><span class="ptype">string</span><span class="pdesc">匹配文本</span></div><div class="param"><code class="pname">t</code><span class="ptype">string</span><span class="pdesc">控件类型，如 Button</span></div><div class="param"><code class="pname">timeoutMs</code><span class="ptype">number</span><span class="pdesc">waitFor 超时毫秒，默认 10000</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoNodeObject | AutoNodeObject[] | boolean</span></div>
+  <pre><code>function main(){
+  const node = Selector().textContains("确").type("Button").findOne();
+  if (node) node.click();
+  const list = selector({ text: "开始" }).findAll();
+  logd("匹配数: " + list.length);
 }
 main();</code></pre>
 </article>
@@ -344,6 +391,21 @@ main();</code></pre>
   <pre><code>function main(){
   const ok = auto.pinch(200, 400, 1.5, 400);
   logd("放大: " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="slidePath(points, durationMs?) / slide_path(points, durationMs?) / touchAndSlide(x1, y1, x2, y2, durationMs?) 连续轨迹滑动">
+  <header class="card-head">
+    <h4><code>slidePath(points, durationMs?) / slide_path(points, durationMs?) / touchAndSlide(x1, y1, x2, y2, durationMs?)</code> <span class="cname">连续轨迹滑动</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">slidePath 沿 points 多段轨迹连续滑动（每段耗时按距离分配），points 支持 [[x,y],...] 或 [{x,y},...]；touchAndSlide 为两点直线滑动（等价 swipe）。对标 AScript slide_path / touch_and_slide。</p>
+  <div class="ref"><b>对标</b> AScript slide_path 连续轨迹滑动</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">points</code><span class="ptype">Array&lt;[x,y]|{x,y}&gt;</span><span class="pdesc">轨迹点，至少 2 个</span></div><div class="param"><code class="pname">durationMs</code><span class="ptype">number</span><span class="pdesc">可选，总时长毫秒，默认 600</span></div><div class="param"><code class="pname">x1/y1/x2/y2</code><span class="ptype">number</span><span class="pdesc">touchAndSlide 起点与终点坐标</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = slidePath([[100, 300], [200, 200], [300, 300]], 800);
+  logd("轨迹滑动: " + ok);
 }
 main();</code></pre>
 </article>
@@ -708,6 +770,21 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="clickRandomPoint(x1, y1, x2, y2) / clickRandom(x1, y1, x2, y2) 区域随机点击">
+  <header class="card-head">
+    <h4><code>clickRandomPoint(x1, y1, x2, y2) / clickRandom(x1, y1, x2, y2)</code> <span class="cname">区域随机点击</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">在 (x1,y1) 到 (x2,y2) 矩形区域内随机取点点击，模拟真人、降低风控识别概率；clickRandom(selector) 仍支持节点范围随机点击。对标 AScript click_random。</p>
+  <div class="ref"><b>对标</b> AScript click_random 区域随机点击</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x1</code><span class="ptype">number</span><span class="pdesc">区域左上角横坐标</span></div><div class="param"><code class="pname">y1</code><span class="ptype">number</span><span class="pdesc">区域左上角纵坐标</span></div><div class="param"><code class="pname">x2</code><span class="ptype">number</span><span class="pdesc">区域右下角横坐标</span></div><div class="param"><code class="pname">y2</code><span class="ptype">number</span><span class="pdesc">区域右下角纵坐标</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  const ok = clickRandomPoint(100, 200, 300, 400);
+  logd("区域随机点击: " + ok);
+}
+main();</code></pre>
+</article>
 <article class="card" data-search="longClickPoint(x, y, durationMs?) 长按坐标">
   <header class="card-head">
     <h4><code>longClickPoint(x, y, durationMs?)</code> <span class="cname">长按坐标</span></h4>
@@ -753,9 +830,100 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="node.find(selector) / node.findOne(selector) / findNode(selector) 查找节点（Node 对象）">
+  <header class="card-head">
+    <h4><code>node.find(selector) / node.findOne(selector) / findNode(selector)</code> <span class="cname">查找节点（Node 对象）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">对标 AScript Selector().find()：按选择器查找第一个匹配节点，返回带方法的高级 Node 对象（.click()/.tap()/.rect/.text 等）；未找到返回 null。选择器支持 {id,label,text,type,visible} 或 XPath。node.click(dur)/tap_hold(dur)/longClick(dur) 的 dur 单位为秒（WDA 语义），如 node.tap_hold(1.5) 长按 1.5 秒。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">节点选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoNode|null</span></div>
+  <pre><code>function main(){
+  const node = node.find({ text: "确定" });
+  if (node) {
+    logd(node.rect.center.x, node.rect.center.y);
+    node.click();
+  }
+  const btn = findNode({ type: "XCUIElementTypeButton", label: "登录" });
+  if (btn) btn.tap();
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="node.findAll(selector) / findNodes(selector) 查找全部节点">
+  <header class="card-head">
+    <h4><code>node.findAll(selector) / findNodes(selector)</code> <span class="cname">查找全部节点</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">对标 AScript Selector().find_all()：按选择器查找所有匹配节点，返回 Node 对象数组；每个元素都带方法与属性。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">selector</code><span class="ptype">object|string</span><span class="pdesc">节点选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoNode[]</span></div>
+  <pre><code>function main(){
+  const cells = node.findAll({ type: "XCUIElementTypeCell" });
+  logd("列表项数量:", cells.length);
+  for (const cell of cells) cell.click();
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="node.at(x, y) / nodeAt(x, y) 坐标直查控件">
+  <header class="card-head">
+    <h4><code>node.at(x, y) / nodeAt(x, y)</code> <span class="cname">坐标直查控件</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">对标 AScript Node.at(x, y)：直接获取屏幕坐标处最深层的可点击控件（从节点快照中按包围盒命中筛选，取面积最小者），返回 Node 对象；该坐标无控件时返回 null。坐标单位与 clickPoint 一致（物理像素）。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">屏幕 x 坐标</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">屏幕 y 坐标</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoNode|null</span></div>
+  <pre><code>function main(){
+  const node = node.at(300, 600);
+  if (node) {
+    logd(node.label, node.rect);
+    node.click();
+  }
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="node.snapshot(maxResults?) / nodeSnapshot(maxResults?) 节点快照">
+  <header class="card-head">
+    <h4><code>node.snapshot(maxResults?) / nodeSnapshot(maxResults?)</code> <span class="cname">节点快照</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回当前控件树快照（带 handle/文本/类型/包围盒等完整属性，最多 2000 个），可用于批量分析页面结构；对标 WDA source dump。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">maxResults</code><span class="ptype">number</span><span class="pdesc">可选，最大节点数，默认 500</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoNode[]</span></div>
+  <pre><code>function main(){
+  const nodes = node.snapshot(500);
+  const labels = nodes.map(n =&gt; n.label).filter(Boolean);
+  logd(labels.slice(0, 20));
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="node 对象方法：click() / tap() / tap_hold(ms) / longClick(ms) / scroll(direction?, distance?) / setText(v) / clearText() / selected() / exists() / attr(name) / boundsInfo() Node 对象操作">
+  <header class="card-head">
+    <h4><code>node 对象方法：click() / tap() / tap_hold(ms) / longClick(ms) / scroll(direction?, distance?) / setText(v) / clearText() / selected() / exists() / attr(name) / boundsInfo()</code> <span class="cname">Node 对象操作</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">对标 AScript node 方法：click() 点击、tap() 原始点击、tap_hold/longClick 长按、scroll(up/down/left/right/visible, 屏数) 滚动或滚入视野、setText/clearText 设置/清空输入、selected() 选中态、exists() 是否仍存在、attr(name) 读属性、boundsInfo() 刷新坐标。属性：rect/bounds（含 x,y,left,top,right,bottom,width,height,center,origin）、text/label/type/enabled/visible/selected/index/info。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">method</code><span class="ptype">string</span><span class="pdesc">节点方法</span></div></div>
+  <div class="ret"><b>返回值</b> <span>any</span></div>
+  <pre><code>function main(){
+  const input = node.find({ type: "XCUIElementTypeTextField", enabled: true });
+  if (input) {
+    input.clearText();
+    input.setText("hello");
+    input.click();
+  }
+  const cell = node.at(200, 400);
+  if (cell) cell.scroll("down", 1);
+}
+main();</code></pre>
+</article>
 </section>
 <section id="vision" class="cat" style="--c:#ea580c">
-  <h2><span class="tag">图色与OCR</span><i>23</i></h2>
+  <h2><span class="tag">图色与OCR</span><i>25</i></h2>
   <article class="card" data-search="screenshot() 截屏">
   <header class="card-head">
     <h4><code>screenshot()</code> <span class="cname">截屏</span></h4>
@@ -867,6 +1035,21 @@ main();</code></pre>
   logd(JSON.stringify(points));
 }
 main();</code></pre>
+</article>
+<article class="card" data-search="image.compress(src, dest, quality?) 图片压缩">
+  <header class="card-head">
+    <h4><code>image.compress(src, dest, quality?)</code> <span class="cname">图片压缩</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">把图片按 JPEG 质量压缩写入 dest（建议 dest 用 .jpg 后缀）；quality 为 0.05-1，默认 0.8。兼容旧写法 compress(src, quality, dest)。对标 AScript screen.image_compress。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">src</code><span class="ptype">string</span><span class="pdesc">源图片路径</span></div><div class="param"><code class="pname">dest</code><span class="ptype">string</span><span class="pdesc">输出路径（.jpg）</span></div><div class="param"><code class="pname">quality</code><span class="ptype">number</span><span class="pdesc">JPEG 质量 0.05-1，默认 0.8</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string | null 输出文件路径</span></div>
+  <pre><code>function main(){
+    const out = image.compress('shot.png', 0.5, 'shot-compressed.jpg');
+    console.log('compressed to', out);
+    return out;
+}</code></pre>
 </article>
 <article class="card" data-search="image.clip(src, x, y, ex, ey, dest) / image.scale(src, width, height, dest) / image.gray(src, dest) / image.binaryzation(src, dest, threshold?) / image.rotate(src, degrees, dest) 图像处理管线">
   <header class="card-head">
@@ -1121,6 +1304,25 @@ main();</code></pre>
   <pre><code>function main(){
   const n = findColorCount("0xCDD7E9-0x101010", 0.9, 0, 0, 0, 0, 100000);
   logd("匹配颜色点数量: " + n);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="screen.cache(on) / screen.isCache() / screen.clearCache() 截图缓存">
+  <header class="card-head">
+    <h4><code>screen.cache(on) / screen.isCache() / screen.clearCache()</code> <span class="cname">截图缓存</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">对标 AScript screen.cache()：开启后首次截图会被缓存，后续 screen.screenshot()/findImage/findColor/findMultiColor/findColors/ocr 复用同一张截图（通过 screenshotPath 传给原生），图色操作速度大幅提升，适合多条件判断同一画面；关闭后恢复实时截图。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">on</code><span class="ptype">boolean</span><span class="pdesc">true 开启缓存，false 关闭</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  screen.cache(true);
+  const img = screen.findImage("logo.png");
+  const c1 = screen.findColor("#ff0000", { x: 10, y: 10 });
+  const text = screen.ocr({ x: 0, y: 0, width: 200, height: 100 });
+  screen.cache(false);
+  logd("isCache:", screen.isCache());
 }
 main();</code></pre>
 </article>
@@ -1401,8 +1603,23 @@ main();</code></pre>
 </article>
 </section>
 <section id="device" class="cat" style="--c:#dc2626">
-  <h2><span class="tag">设备与系统</span><i>24</i></h2>
-  <article class="card" data-search="device.getOSVersion() 系统版本">
+  <h2><span class="tag">设备与系统</span><i>26</i></h2>
+  <article class="card" data-search="device.getIPAddress() / device.getIP() / getIPAddress() / getIP() 获取局域网 IP">
+  <header class="card-head">
+    <h4><code>device.getIPAddress() / device.getIP() / getIPAddress() / getIP()</code> <span class="cname">获取局域网 IP</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回当前 Wi-Fi 的 IPv4 地址（en0/en1），未连接 Wi-Fi 时返回 null。对标 AScript system.get_ip_address。</p>
+  
+  
+  <div class="ret"><b>返回值</b> <span>string | null</span></div>
+  <pre><code>function main(){
+    const ip = device.getIPAddress();
+    console.log('IP:', ip);
+    return ip;
+}</code></pre>
+</article>
+<article class="card" data-search="device.getOSVersion() 系统版本">
   <header class="card-head">
     <h4><code>device.getOSVersion()</code> <span class="cname">系统版本</span></h4>
     <button class="copy" data-copy>复制</button>
@@ -1705,6 +1922,20 @@ main();</code></pre>
   <pre><code>function main(){
   const ok = device.volumeUp();
   logd("音量+ " + ok);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.isLocked() 是否锁屏">
+  <header class="card-head">
+    <h4><code>device.isLocked()</code> <span class="cname">是否锁屏</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">返回设备当前是否处于锁屏状态；isScreenOn() 为反向查询（点亮/未锁屏）。对标 AScript system.is_locked。</p>
+  <div class="ref"><b>对标</b> AScript system.is_locked</div>
+  
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  if (device.isLocked()) logd("设备已锁屏");
 }
 main();</code></pre>
 </article>
@@ -2608,7 +2839,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="http" class="cat" style="--c:#9333ea">
-  <h2><span class="tag">网络HTTP</span><i>9</i></h2>
+  <h2><span class="tag">网络HTTP</span><i>10</i></h2>
   <article class="card" data-search="httpGet(url, options?) / httpPost(url, body?, options?) HTTP 全局简写">
   <header class="card-head">
     <h4><code>httpGet(url, options?) / httpPost(url, body?, options?)</code> <span class="cname">HTTP 全局简写</span></h4>
@@ -2656,6 +2887,22 @@ main();</code></pre>
   toastLog("下载: " + ok);
 }
 main();</code></pre>
+</article>
+<article class="card" data-search="http.get(url, options?) / http.post(url, body?, options?) / http.request(url, options?) 请求选项：headers/cookies/params/文件上传">
+  <header class="card-head">
+    <h4><code>http.get(url, options?) / http.post(url, body?, options?) / http.request(url, options?)</code> <span class="cname">请求选项：headers/cookies/params/文件上传</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">options 支持 method（GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS）、headers、cookies（对象，自动转 Cookie 头）、params/query（对象，自动拼查询串）、body（字符串/对象，对象自动 JSON）、bodyBase64、files（对象 {字段:沙盒路径}，multipart 文件上传，可配 formData 表单字段）、followRedirects、timeout、parseJson、requireSuccess。响应含 status/statusCode/ok/url/headers/body/bodyBase64/json/cookies（Set-Cookie 解析）。对标 Python requests。</p>
+  <div class="ref"><b>对标</b> EasyClick httpGet() · AutoJS http.get()</div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">http(s) 地址</span></div><div class="param"><code class="pname">options</code><span class="ptype">object</span><span class="pdesc">method/headers/cookies/params/files 等</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoHTTPResponse</span></div>
+  <pre><code>function main(){
+    const r = http.get('https://httpbin.org/get', { params: { a: 1 }, cookies: { sid: 'x' } });
+    const up = http.post('https://httpbin.org/post', { files: { file: 'shot.png' }, formData: { note: 'hi' } });
+    console.log(r.status, up.status);
+    return up.cookies || {};
+}</code></pre>
 </article>
 <article class="card" data-search="http.get(url, options?) GET 请求">
   <header class="card-head">
@@ -2756,7 +3003,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="media" class="cat" style="--c:#db2777">
-  <h2><span class="tag">相册媒体</span><i>10</i></h2>
+  <h2><span class="tag">相册媒体</span><i>11</i></h2>
   <article class="card" data-search="saveImageToAlbum(path) / saveImageBase64ToAlbum(base64) / saveScreenshotToAlbum() / saveVideoToAlbum(path) 相册全局简写">
   <header class="card-head">
     <h4><code>saveImageToAlbum(path) / saveImageBase64ToAlbum(base64) / saveScreenshotToAlbum() / saveVideoToAlbum(path)</code> <span class="cname">相册全局简写</span></h4>
@@ -2806,6 +3053,22 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="media.audioPlay(path, volume?, stopWhenScriptEnd?) / media.audioStop(id?) 音频播放（按 ID 管理）">
+  <header class="card-head">
+    <h4><code>media.audioPlay(path, volume?, stopWhenScriptEnd?) / media.audioStop(id?)</code> <span class="cname">音频播放（按 ID 管理）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">audioPlay 并行播放音频并返回 {id, playing}，支持多个音频同时播放、按 id 单独停止；audioStop(id) 停止指定音频，不传 id 停止全部。全局简写 audioPlay/audioStop。对标 AScript audio_play / audio_stop。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内音频文件路径</span></div><div class="param"><code class="pname">volume</code><span class="ptype">number</span><span class="pdesc">音量 0-100，默认 100</span></div><div class="param"><code class="pname">stopWhenScriptEnd</code><span class="ptype">boolean</span><span class="pdesc">脚本结束时停止，默认 false</span></div><div class="param"><code class="pname">id</code><span class="ptype">number</span><span class="pdesc">audioPlay 返回的播放器 ID</span></div></div>
+  <div class="ret"><b>返回值</b> <span>{id: number, playing: boolean} | boolean</span></div>
+  <pre><code>function main(){
+  const info = media.audioPlay("sounds/bgm.mp3", 80);
+  logd("播放器 ID: " + info.id);
+  media.audioStop(info.id);   // 单独停止
+}
+main();</code></pre>
+</article>
 <article class="card" data-search="media.requestPhotoAuthorization() / media.getPhotoAuthorizationStatus() 相册权限">
   <header class="card-head">
     <h4><code>media.requestPhotoAuthorization() / media.getPhotoAuthorizationStatus()</code> <span class="cname">相册权限</span></h4>
@@ -2828,9 +3091,9 @@ main();</code></pre>
     <h4><code>media.saveImage(path)</code> <span class="cname">保存图片到相册</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">把沙盒内图片写入系统相册；首次调用会弹 iOS 授权。</p>
+  <p class="desc">把图片写入系统相册：path 支持沙盒路径或 http(s) 远程 URL（远程图片自动下载后保存，受 maxMediaBytes 限制）；首次调用会弹 iOS 授权。对标 AScript save_pic2photo(url)。</p>
   <div class="ref"><b>对标</b> EasyClick 保存图片到相册</div>
-  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内图片路径，png/jpg</span></div></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内图片路径或 http(s) URL，png/jpg</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
   const ok = media.saveImage("images/result.png");
@@ -3308,12 +3571,12 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.release(token) webView 悬浮网页">
+<article class="card" data-search="webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.takeMessage(token) / webView.injectBridge(token) / webView.release(token) webView 悬浮网页">
   <header class="card-head">
-    <h4><code>webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.release(token)</code> <span class="cname">webView 悬浮网页</span></h4>
+    <h4><code>webView.init(url?) / webView.show(token, x?, y?, width?, height?) / webView.hidden(token) / webView.eval(token, js) / webView.takeMessage(token) / webView.injectBridge(token) / webView.release(token)</code> <span class="cname">webView 悬浮网页</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">在 App 内创建并显示一个悬浮 WKWebView：init 创建（返回 token），show 指定位置尺寸显示，hidden 隐藏，eval 在页面执行 JS 并返回结果，release 释放。对标 TrollAutoScript webView.init/show/hidden/eval/release。</p>
+  <p class="desc">在 App 内创建并显示一个悬浮 WKWebView：init 创建（返回 token），show 指定位置尺寸显示，hidden 隐藏，eval 在页面执行 JS 并返回结果，takeMessage 拉取页面发来的消息（页面通过 window.webkit.messageHandlers.autosdk.postMessage(payload) 发送，injectBridge 注入 window.autosdkBridge.postMessage 便捷封装），release 释放。对标 TrollAutoScript/AScript WebWindow 双向通道。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">可选，首页网址，默认 about:blank</span></div><div class="param"><code class="pname">token</code><span class="ptype">string</span><span class="pdesc">webView.init 返回的标识</span></div><div class="param"><code class="pname">x/y/width/height</code><span class="ptype">number</span><span class="pdesc">可选，显示位置与尺寸</span></div><div class="param"><code class="pname">js</code><span class="ptype">string</span><span class="pdesc">要执行的 JavaScript</span></div></div>
   <div class="ret"><b>返回值</b> <span>string token | boolean | unknown</span></div>
@@ -3321,6 +3584,8 @@ main();</code></pre>
   const token = webView.init("https://example.com");
   webView.show(token, 0, 100, 390, 600);
   const title = webView.eval(token, "document.title");
+  webView.injectBridge(token);              // 注入 window.autosdkBridge.postMessage
+  const msg = webView.takeMessage(token);   // 拉取页面消息（轮询）
   logd("title: " + title);
   webView.hidden(token);
   webView.release(token);
@@ -3479,7 +3744,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="ui" class="cat" style="--c:#f59e0b">
-  <h2><span class="tag">悬浮窗口</span><i>2</i></h2>
+  <h2><span class="tag">悬浮窗口</span><i>3</i></h2>
   <article class="card" data-search="screenDraw.init() / setBorderWidth(token, width) / setBorderColor(token, color) / setTitle(token, title) / show(token, x, y, w, h) / move(token, x, y) / hide(token) / release(token) / clearAll() 屏幕悬浮绘制">
   <header class="card-head">
     <h4><code>screenDraw.init() / setBorderWidth(token, width) / setBorderColor(token, color) / setTitle(token, title) / show(token, x, y, w, h) / move(token, x, y) / hide(token) / release(token) / clearAll()</code> <span class="cname">屏幕悬浮绘制</span></h4>
@@ -3520,10 +3785,32 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="floatLog.show(x?, y?, w?, h?) / floatLog.log(text) / floatLog.clear() / floatLog.hide() / floatLog.isShow() / floatLog.destroy() 悬浮日志窗">
+  <header class="card-head">
+    <h4><code>floatLog.show(x?, y?, w?, h?) / floatLog.log(text) / floatLog.clear() / floatLog.hide() / floatLog.isShow() / floatLog.destroy()</code> <span class="cname">悬浮日志窗</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">对标 AScript FloatWindow：在屏幕上显示可拖动的悬浮日志窗口，log() 追加文本（自动保留最近 200 行并滚动到底部），适合实时查看脚本运行日志；destroy() 彻底销毁窗口。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">x</code><span class="ptype">number</span><span class="pdesc">可选，窗口 x</span></div><div class="param"><code class="pname">y</code><span class="ptype">number</span><span class="pdesc">可选，窗口 y</span></div><div class="param"><code class="pname">w</code><span class="ptype">number</span><span class="pdesc">可选，窗口宽，默认 260</span></div><div class="param"><code class="pname">h</code><span class="ptype">number</span><span class="pdesc">可选，窗口高，默认 180</span></div></div>
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  floatLog.show(20, 120, 280, 200);
+  floatLog.log("脚本开始");
+  for (let i = 1; i &lt;= 3; i++) {
+    sleep(500);
+    floatLog.log("步骤 " + i + " 完成");
+  }
+  sleep(2000);
+  floatLog.clear();
+  floatLog.hide();
+}
+main();</code></pre>
+</article>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 217 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 234 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

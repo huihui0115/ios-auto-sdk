@@ -13,8 +13,16 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AudioToolbox/AudioToolbox.h>
 #import <WebKit/WebKit.h>
+#import <UserNotifications/UserNotifications.h>
 #import <mach/mach.h>
 #include <math.h>
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+
+@interface AutoWebMessageHandler : NSObject <WKScriptMessageHandler>
+@property (nonatomic, copy) void (^onMessage)(WKScriptMessage * _Nonnull);
+@end
 
 @protocol AutoJSExport <JSExport>
 - (id)invokeClick:(JSValue *)selector;
@@ -39,6 +47,7 @@
 - (id)invokeExists:(JSValue *)selector;
 - (id)invokeFindElement:(JSValue *)selector;
 - (id)invokeFindElements:(JSValue *)selector;
+- (id)invokeNodeSnapshot:(JSValue *)payload;
 - (id)invokeWaitFor:(JSValue *)payload;
 - (id)invokeGetAttribute:(JSValue *)payload;
 - (id)invokeGetBounds:(JSValue *)selector;
@@ -121,9 +130,13 @@
 @property (nonatomic, strong) dispatch_queue_t debugAdapterQueue;
 @property (nonatomic, assign) BOOL stopRequested;
 @property (nonatomic, strong) NSMutableArray<AVAudioPlayer *> *audioPlayers;
+@property (nonatomic, strong) NSMutableDictionary<NSNumber *, AVAudioPlayer *> *audioPlayersById;
+@property (nonatomic, assign) NSUInteger audioPlayerIdCounter;
 @property (nonatomic, strong) NSMutableArray<AutoAsyncThread *> *asyncThreads;
 @property (nonatomic, assign) BOOL audioStopWhenScriptEnd;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, id> *webViews;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, NSMutableArray<id> *> *webViewMessages;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, id> *webViewMessageHandlers;
 @property (nonatomic, assign) NSUInteger webViewSequence;
 @property (atomic, copy) NSString *currentScriptSource;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, id> *screenDraws;
@@ -131,6 +144,9 @@
 @property (nonatomic, strong) UIWindow *overlayWindow;
 @property (nonatomic, strong) UIView *floatBallView;
 @property (nonatomic, strong) UILabel *floatBallTitleLabel;
+@property (nonatomic, strong) UIView *floatLogView;
+@property (nonatomic, strong) UITextView *floatLogTextView;
+@property (nonatomic, strong) NSMutableArray<NSString *> *floatLogLines;
 - (void)loadScript:(NSString *)value config:(NSDictionary *)config completion:(void (^)(NSString * _Nullable source, NSError * _Nullable error))completion;
 - (void)evaluateScript:(NSString *)source config:(NSDictionary *)config adapter:(id<AutoAutomationAdapter>)adapter completion:(AutoScriptCompletion)completion;
 - (void)finishWithResult:(NSDictionary * _Nullable)result error:(NSError * _Nullable)error completion:(AutoScriptCompletion)completion;
@@ -578,6 +594,21 @@ static NSURL *AutoMediaSourceURL(id pathValue, NSDictionary *config, NSError **e
                                           @"Media source path must not be empty.", nil);
         return nil;
     }
+    NSString *mediaPath = (NSString *)pathValue;
+    if ([mediaPath hasPrefix:@"http://"] || [mediaPath hasPrefix:@"https://"]) {
+        NSURL *remoteURL = [NSURL URLWithString:mediaPath];
+        if (!remoteURL) {
+            if (error) *error = AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Media source URL is invalid.", nil);
+            return nil;
+        }
+        NSError *downloadError = nil;
+        NSURL *downloaded = AutoMediaDownloadToTempURL(remoteURL, config ?: @{}, &downloadError);
+        if (!downloaded) {
+            if (error) *error = downloadError ?: AutoMakeError(AutoSDKErrorNetworkFailed, @"Unable to download the media source.", nil);
+            return nil;
+        }
+        return downloaded;
+    }
     NSError *resolveError = nil;
     id resolved = AutoScriptFileOperation(@{ @"operation": @"resolvePath", @"path": pathValue },
                                           config ?: @{}, &resolveError);
@@ -600,6 +631,69 @@ static NSURL *AutoMediaSourceURL(id pathValue, NSDictionary *config, NSError **e
         return nil;
     }
     return [NSURL fileURLWithPath:resolved];
+}
+
+static NSURL *AutoMediaDownloadToTempURL(NSURL *remoteURL, NSDictionary *config, NSError **error) {
+    NSUInteger maximum = AutoMediaFileByteLimit(config ?: @{});
+    __block NSURL *destination = nil;
+    __block NSError *blockError = nil;
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    NSURLSessionConfiguration *sessionConfiguration = [NSURLSessionConfiguration ephemeralSessionConfiguration];
+    sessionConfiguration.timeoutIntervalForRequest = 60.0;
+    sessionConfiguration.timeoutIntervalForResource = 90.0;
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfiguration];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:remoteURL
+                                                           cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
+                                                       timeoutInterval:60.0];
+    NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *taskError) {
+        if (taskError) {
+            blockError = taskError;
+            dispatch_semaphore_signal(semaphore);
+            return;
+        }
+        long long expectedLength = response.expectedContentLength;
+        if (expectedLength > 0 && (unsigned long long)expectedLength > maximum) {
+            blockError = AutoMakeError(AutoSDKErrorFileOperationFailed, @"Remote media exceeds maxMediaBytes.", nil);
+            dispatch_semaphore_signal(semaphore);
+            return;
+        }
+        if (data.length == 0 || data.length > maximum) {
+            blockError = AutoMakeError(AutoSDKErrorFileOperationFailed,
+                                       data.length == 0 ? @"Remote media is empty." : @"Remote media exceeds maxMediaBytes.", nil);
+            dispatch_semaphore_signal(semaphore);
+            return;
+        }
+        NSString *baseName = [NSString stringWithFormat:@"autosdk-media-%@", NSUUID.UUID.UUIDString];
+        NSString *extension = remoteURL.pathExtension.length > 0 ? remoteURL.pathExtension.lowercaseString : @"";
+        NSString *fileName = extension.length > 0 ? [baseName stringByAppendingPathExtension:extension] : baseName;
+        NSURL *target = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:fileName]];
+        if (![data writeToURL:target atomically:YES]) {
+            blockError = AutoMakeError(AutoSDKErrorFileOperationFailed, @"Unable to write downloaded media to temporary storage.", nil);
+            dispatch_semaphore_signal(semaphore);
+            return;
+        }
+        destination = target;
+        dispatch_semaphore_signal(semaphore);
+    }];
+    [task resume];
+    NSTimeInterval deadline = NSProcessInfo.processInfo.systemUptime + 90.0;
+    BOOL timedOut = NO;
+    while (dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC))) != 0) {
+        if (NSProcessInfo.processInfo.systemUptime >= deadline) {
+            timedOut = YES;
+            [task cancel];
+            break;
+        }
+    }
+    [session finishTasksAndInvalidate];
+    if (timedOut && !blockError) {
+        blockError = AutoMakeError(AutoSDKErrorWaitTimeout, @"Timed out downloading remote media.", nil);
+    }
+    if (blockError) {
+        if (error) *error = blockError;
+        return nil;
+    }
+    return destination;
 }
 
 static BOOL AutoMediaImageURLIsValid(NSURL *url) {
@@ -876,10 +970,47 @@ static NSArray *AutoEngineScanColorPoints(id<AutoAutomationAdapter> adapter,
     return matches;
 }
 
+static NSString *AutoSystemWiFiIPv4Address(void) {
+    NSString *result = nil;
+    struct ifaddrs *interfaces = NULL;
+    if (getifaddrs(&interfaces) == 0) {
+        for (struct ifaddrs *interface = interfaces; interface; interface = interface->ifa_next) {
+            if (!interface->ifa_addr || interface->ifa_addr->sa_family != AF_INET) continue;
+            if ((interface->ifa_flags & IFF_UP) == 0) continue;
+            NSString *name = [NSString stringWithUTF8String:interface->ifa_name ?: ""];
+            if ([name isEqualToString:@"en0"] || [name isEqualToString:@"en1"]) {
+                struct sockaddr_in *address = (struct sockaddr_in *)interface->ifa_addr;
+                char buffer[INET_ADDRSTRLEN] = {0};
+                if (inet_ntop(AF_INET, &address->sin_addr, buffer, sizeof(buffer))) {
+                    result = [NSString stringWithUTF8String:buffer];
+                    break;
+                }
+            }
+        }
+        freeifaddrs(interfaces);
+    }
+    return result;
+}
+
 static id AutoEngineHandleAudio(AutoEngine *engine, NSString *name, NSArray *arguments, NSDictionary *config) {
     if (!engine) return AutoMakeError(AutoSDKErrorAutomationFailed, @"Audio engine is unavailable.", nil);
     if ([name isEqualToString:@"stopMp3"]) {
         [engine stopAllAudioPlayback];
+        return @YES;
+    }
+    if ([name isEqualToString:@"audioStop"] || [name isEqualToString:@"stopAudio"]) {
+        double stopId = AutoFiniteDouble(arguments.count > 0 ? arguments[0] : nil, 0);
+        if (stopId > 0) {
+            NSNumber *key = @((long long)stopId);
+            AVAudioPlayer *target = nil;
+            @synchronized (engine) {
+                target = engine.audioPlayersById[key];
+                if (target) [engine.audioPlayersById removeObjectForKey:key];
+            }
+            if (target && target.isPlaying) [target stop];
+        } else {
+            [engine stopAllAudioPlayback];
+        }
         return @YES;
     }
     if (!AutoPermission(config, @"allowAudio", YES)) {
@@ -926,6 +1057,53 @@ static id AutoEngineHandleAudio(AutoEngine *engine, NSString *name, NSArray *arg
         started = [player play];
     }
     return @(started);
+}
+static id AutoEngineHandleAudioPlay(AutoEngine *engine, NSString *name, NSArray *arguments, NSDictionary *config) {
+    if (!engine) return AutoMakeError(AutoSDKErrorAutomationFailed, @"Audio engine is unavailable.", nil);
+    if (!AutoPermission(config, @"allowAudio", YES)) {
+        return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"Audio playback is disabled by configuration.", nil);
+    }
+    NSString *path = [arguments.firstObject isKindOfClass:NSString.class] ? arguments.firstObject : nil;
+    if (path.length == 0) {
+        return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"audioPlay requires a media file path.", nil);
+    }
+    NSError *error = nil;
+    NSURL *sourceURL = AutoMediaSourceURL(path, config ?: @{}, &error);
+    if (!sourceURL) return error ?: AutoMakeError(AutoSDKErrorFileOperationFailed, @"Unable to resolve the audio file.", nil);
+    double volume = AutoFiniteDouble([arguments count] > 1 ? arguments[1] : nil, 100);
+    volume = MIN(100.0, MAX(0.0, volume)) / 100.0;
+    BOOL stopWhenScriptEnd = AutoBoolean([arguments count] > 2 ? arguments[2] : nil, NO);
+    [AVAudioSession.sharedInstance setCategory:AVAudioSessionCategoryPlayback error:nil];
+    [AVAudioSession.sharedInstance setActive:YES error:nil];
+    NSError *playerError = nil;
+    AVAudioPlayer *player = [[AVAudioPlayer alloc] initWithContentsOfURL:sourceURL error:&playerError];
+    if (!player) {
+        return AutoMakeError(AutoSDKErrorAutomationFailed,
+                             playerError ? [NSString stringWithFormat:@"Unable to open audio file: %@", playerError.localizedDescription]
+                                         : @"Unable to open audio file.", nil);
+    }
+    player.volume = (float)volume;
+    player.delegate = engine;
+    if (![player prepareToPlay]) {
+        return AutoMakeError(AutoSDKErrorAutomationFailed, @"Unable to prepare the audio player.", nil);
+    }
+    NSNumber *playerId = nil;
+    BOOL started = NO;
+    @synchronized (engine) {
+        if (!engine.audioPlayersById) engine.audioPlayersById = [NSMutableDictionary dictionary];
+        engine.audioStopWhenScriptEnd = stopWhenScriptEnd;
+        engine.audioPlayerIdCounter += 1;
+        playerId = @((long long)engine.audioPlayerIdCounter);
+        engine.audioPlayersById[playerId] = player;
+        started = [player play];
+    }
+    if (!started) {
+        @synchronized (engine) {
+            [engine.audioPlayersById removeObjectForKey:playerId];
+        }
+        return @{ @"id": playerId, @"playing": @NO };
+    }
+    return @{ @"id": playerId, @"playing": @YES };
 }
 static BOOL AutoEnsurePhotoLibraryAccess(AutoEngine *engine,
                                          NSDictionary *config,
@@ -1102,6 +1280,27 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             [request setValue:value forHTTPHeaderField:rawKey];
         }
     }
+    if ([data[@"cookies"] isKindOfClass:NSDictionary.class]) {
+        NSDictionary *cookies = data[@"cookies"];
+        if (cookies.count > 64) {
+            if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP requests accept at most 64 cookies.", nil);
+            return nil;
+        }
+        NSMutableArray *cookiePairs = [NSMutableArray array];
+        for (id rawKey in cookies) {
+            id value = cookies[rawKey];
+            if (![rawKey isKindOfClass:NSString.class] || [(NSString *)rawKey length] == 0 ||
+                [(NSString *)rawKey lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 1024 ||
+                ![value isKindOfClass:NSString.class] || [(NSString *)value lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 4096) {
+                if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Cookie names or values are invalid or too long.", nil);
+                return nil;
+            }
+            [cookiePairs addObject:[NSString stringWithFormat:@"%@=%@", rawKey, value]];
+        }
+        if (cookiePairs.count > 0) {
+            [request setValue:[cookiePairs componentsJoinedByString:@"; "] forHTTPHeaderField:@"Cookie"];
+        }
+    }
     id body = data[@"body"];
     NSString *bodyBase64 = [data[@"bodyBase64"] isKindOfClass:NSString.class] ? data[@"bodyBase64"] : nil;
     if (bodyBase64) {
@@ -1143,6 +1342,75 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     if (request.HTTPBody.length > maximumRequestBytes) {
         if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body exceeds maxHTTPRequestBytes.", nil);
         return nil;
+    }
+    if ([data[@"files"] isKindOfClass:NSDictionary.class] && ((NSDictionary *)data[@"files"]).count > 0) {
+        NSDictionary *files = data[@"files"];
+        if (files.count > 16) {
+            if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP requests accept at most 16 upload files.", nil);
+            return nil;
+        }
+        NSDictionary *formData = [data[@"formData"] isKindOfClass:NSDictionary.class] ? data[@"formData"] : @{};
+        if (formData.count + files.count > 64) {
+            if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"HTTP multipart requests accept at most 64 fields.", nil);
+            return nil;
+        }
+        NSString *boundary = [NSString stringWithFormat:@"AutoSDKBoundary%@", [NSUUID UUID].UUIDString];
+        NSMutableData *bodyData = [NSMutableData data];
+        for (id rawKey in formData) {
+            id value = formData[rawKey];
+            if (![rawKey isKindOfClass:NSString.class] || [(NSString *)rawKey length] == 0 ||
+                [rawKey lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 256 ||
+                ![value isKindOfClass:NSString.class] || [(NSString *)value lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 8192) {
+                if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Multipart form field names or values are invalid or too long.", nil);
+                return nil;
+            }
+            [bodyData appendData:[[NSString stringWithFormat:@"--%@\r\nContent-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", boundary, rawKey, value] dataUsingEncoding:NSUTF8StringEncoding]];
+        }
+        for (id rawKey in files) {
+            id pathValue = files[rawKey];
+            if (![rawKey isKindOfClass:NSString.class] || [(NSString *)rawKey length] == 0 ||
+                [rawKey lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 256) {
+                if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Multipart file field names are invalid.", nil);
+                return nil;
+            }
+            NSError *fileResolveError = nil;
+            NSURL *fileURL = AutoMediaSourceURL(pathValue, config, &fileResolveError);
+            if (!fileURL) {
+                if (error) *error = fileResolveError ?: AutoMakeError(AutoSDKErrorFileOperationFailed, @"Unable to resolve the upload file.", nil);
+                return nil;
+            }
+            NSData *fileData = [NSData dataWithContentsOfURL:fileURL options:NSDataReadingMappedIfSafe error:nil];
+            if (!fileData) {
+                if (error) *error = AutoMakeError(AutoSDKErrorFileOperationFailed, @"Unable to read the upload file.", nil);
+                return nil;
+            }
+            if (bodyData.length + fileData.length > maximumRequestBytes) {
+                if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body exceeds maxHTTPRequestBytes.", nil);
+                return nil;
+            }
+            NSString *fileName = fileURL.lastPathComponent;
+            NSString *extension = fileName.pathExtension.lowercaseString;
+            NSString *mime = [extension isEqualToString:@"png"] ? @"image/png"
+                            : ([extension isEqualToString:@"jpg"] || [extension isEqualToString:@"jpeg"]) ? @"image/jpeg"
+                            : ([extension isEqualToString:@"gif"]) ? @"image/gif"
+                            : ([extension isEqualToString:@"txt"]) ? @"text/plain"
+                            : ([extension isEqualToString:@"json"]) ? @"application/json"
+                            : ([extension isEqualToString:@"mp4"]) ? @"video/mp4"
+                            : ([extension isEqualToString:@"mp3"]) ? @"audio/mpeg"
+                            : @"application/octet-stream";
+            [bodyData appendData:[[NSString stringWithFormat:@"--%@\r\nContent-Disposition: form-data; name=\"%@\"; filename=\"%@\"\r\nContent-Type: %@\r\n\r\n", boundary, rawKey, fileName, mime] dataUsingEncoding:NSUTF8StringEncoding]];
+            [bodyData appendData:fileData];
+            [bodyData appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
+        }
+        [bodyData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
+        if (bodyData.length > maximumRequestBytes) {
+            if (error) *error = AutoMakeError(AutoSDKErrorNetworkFailed, @"Request body exceeds maxHTTPRequestBytes.", nil);
+            return nil;
+        }
+        request.HTTPBody = bodyData;
+        if (![request valueForHTTPHeaderField:@"Content-Type"]) {
+            [request setValue:[NSString stringWithFormat:@"multipart/form-data; boundary=%@", boundary] forHTTPHeaderField:@"Content-Type"];
+        }
     }
     return request;
 }
@@ -1886,6 +2154,22 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         id json = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingFragmentsAllowed error:nil];
         if (json) result[@"json"] = json;
     }
+    NSMutableDictionary *responseCookies = [NSMutableDictionary dictionary];
+    for (id key in httpResponse.allHeaderFields) {
+        if ([[key description] caseInsensitiveCompare:@"Set-Cookie"] != NSOrderedSame) continue;
+        NSString *headerValue = [httpResponse.allHeaderFields[key] description] ?: @"";
+        NSRange separator = [headerValue rangeOfString:@";"];
+        NSString *pair = separator.location == NSNotFound ? headerValue : [headerValue substringToIndex:separator.location];
+        NSRange equals = [pair rangeOfString:@"="];
+        if (equals.location != NSNotFound && equals.location > 0) {
+            NSString *cookieName = [[pair substringToIndex:equals.location] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+            NSString *cookieValue = [[pair substringFromIndex:equals.location + 1] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+            if (cookieName.length > 0 && cookieName.length <= 1024 && cookieValue.length <= 4096) {
+                responseCookies[cookieName] = cookieValue;
+            }
+        }
+    }
+    if (responseCookies.count > 0) result[@"cookies"] = responseCookies;
     return result;
     }
 }
@@ -1924,6 +2208,18 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     NSError *error = nil;
     NSArray *elements = [self.adapter elementsInfoForSelector:AutoJSObject(selector) error:&error];
     return error ? [self failure:error] : (elements ?: @[]);
+}
+
+- (id)invokeNodeSnapshot:(JSValue *)payload {
+    if (![self ensureScriptRunning]) return @NO;
+    if (![self.adapter respondsToSelector:@selector(nodeSnapshotWithMaxResults:error:)]) {
+        return [self failure:AutoMakeError(AutoSDKErrorAutomationUnavailable, @"The automation adapter does not support node snapshots.", nil)];
+    }
+    NSDictionary *data = AutoPayload(payload);
+    NSUInteger maxResults = AutoBoundedPositiveInteger(data[@"maxResults"], 500, 2000);
+    NSError *error = nil;
+    NSArray *nodes = [self.adapter nodeSnapshotWithMaxResults:maxResults error:&error];
+    return error ? [self failure:error] : (nodes ?: @[]);
 }
 
 - (id)invokeWaitFor:(JSValue *)payload {
@@ -2100,6 +2396,10 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                                @"orientation": @"orientation", @"deviceId": @"deviceId",
                                @"appVersion": @"appVersion", @"packageName": @"bundleId",
                                @"bundleId": @"bundleId" };
+    if ([operation isEqualToString:@"ipAddress"]) {
+        NSString *address = AutoSystemWiFiIPv4Address();
+        return address ?: [NSNull null];
+    }
     if ([operation isEqualToString:@"serialNo"]) {
         // Third-party iOS apps cannot read the hardware serial number.
         return [NSNull null];
@@ -2245,7 +2545,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                 ? AutoScriptAES128EncryptBase64(text, key)
                 : AutoScriptAES128DecryptBase64(text, key);
         }
-        if ([name isEqualToString:@"playMp3"] || [name isEqualToString:@"stopMp3"]) {
+        if ([name isEqualToString:@"playMp3"] || [name isEqualToString:@"stopMp3"] || [name isEqualToString:@"audioPlay"] || [name isEqualToString:@"audioStop"] || [name isEqualToString:@"stopAudio"]) {
             id audioResult = AutoEngineHandleAudio(self.engine, name,
                                                    [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[],
                                                    self.config ?: @{});
@@ -2304,16 +2604,47 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         }
         if ([name isEqualToString:@"webViewInit"] || [name isEqualToString:@"webViewShow"] ||
             [name isEqualToString:@"webViewHidden"] || [name isEqualToString:@"webViewEval"] ||
-            [name isEqualToString:@"webViewRelease"]) {
+            [name isEqualToString:@"webViewTakeMessage"] || [name isEqualToString:@"webViewRelease"]) {
             NSArray *webArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
             return [self handleWebViewOperation:name arguments:webArgs];
+        }
+        if ([name isEqualToString:@"notify"]) {
+            NSArray *notifyArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            id bodyValue = notifyArgs.count > 0 ? notifyArgs[0] : nil;
+            id titleValue = notifyArgs.count > 1 ? notifyArgs[1] : nil;
+            NSString *body = [bodyValue isKindOfClass:NSString.class] ? bodyValue : [bodyValue description];
+            NSString *title = [titleValue isKindOfClass:NSString.class] ? titleValue : @"AutoSDK";
+            if (body.length == 0) body = @"";
+            dispatch_async(dispatch_get_main_queue(), ^{
+                UNUserNotificationCenter *center = UNUserNotificationCenter.currentNotificationCenter;
+                [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings *settings) {
+                    UNMutableNotificationContent *content = [UNMutableNotificationContent new];
+                    content.title = title;
+                    content.body = body;
+                    content.sound = UNNotificationSound.defaultSound;
+                    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:[NSUUID UUID].UUIDString
+                                                                                          content:content
+                                                                                          trigger:nil];
+                    if (settings.authorizationStatus == UNAuthorizationStatusAuthorized ||
+                        settings.authorizationStatus == UNAuthorizationStatusProvisional) {
+                        [center addNotificationRequest:request withCompletionHandler:nil];
+                    } else if (settings.authorizationStatus == UNAuthorizationStatusNotDetermined) {
+                        [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert | UNAuthorizationOptionSound)
+                                              completionHandler:^(BOOL granted, NSError *requestError) {
+                            (void)requestError;
+                            if (granted) [center addNotificationRequest:request withCompletionHandler:nil];
+                        }];
+                    }
+                }];
+            });
+            return @YES;
         }
         if ([name isEqualToString:@"toPinYin"]) {
             NSArray *pinyinArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
             NSString *pinyinText = pinyinArgs.count > 0 && [pinyinArgs[0] isKindOfClass:NSString.class] ? pinyinArgs[0] : @"";
             return AutoScriptToPinYin(pinyinText);
         }
-        if ([name hasPrefix:@"screenDraw"] || [name hasPrefix:@"floatBall"]) {
+        if ([name hasPrefix:@"screenDraw"] || [name hasPrefix:@"floatBall"] || [name hasPrefix:@"floatLog"]) {
             NSArray *overlayArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
             return [self handleOverlayOperation:name arguments:overlayArgs];
         }
@@ -2336,6 +2667,20 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     __block NSError *blockError = nil;
     dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
     dispatch_async(dispatch_get_main_queue(), ^{
+        if ([name isEqualToString:@"webViewTakeMessage"]) {
+            NSString *token = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"";
+            id message = nil;
+            @synchronized (self.engine) {
+                NSMutableArray *queue = self.engine.webViewMessages[token];
+                if (queue.count > 0) {
+                    message = queue.firstObject;
+                    [queue removeObjectAtIndex:0];
+                }
+            }
+            result = message ?: [NSNull null];
+            dispatch_semaphore_signal(semaphore);
+            return;
+        }
         if ([name isEqualToString:@"webViewEval"]) {
             NSString *token = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"";
             NSString *js = args.count > 1 && [args[1] isKindOfClass:NSString.class] ? args[1] : @"";
@@ -2376,20 +2721,46 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 - (id)performWebViewOperationOnMain:(NSString *)name arguments:(NSArray *)args {
     if ([name isEqualToString:@"webViewInit"]) {
         NSString *urlString = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"about:blank";
-        WKWebView *created = [[WKWebView alloc] initWithFrame:CGRectZero];
+        WKWebViewConfiguration *configuration = [WKWebViewConfiguration new];
+        WKUserContentController *controller = [WKUserContentController new];
+        configuration.userContentController = controller;
+        WKWebView *created = [[WKWebView alloc] initWithFrame:CGRectZero configuration:configuration];
         created.backgroundColor = UIColor.whiteColor;
         created.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        NSString *token = nil;
+        @synchronized (self.engine) {
+            if (!self.engine.webViews) self.engine.webViews = [NSMutableDictionary dictionary];
+            self.engine.webViewSequence += 1;
+            token = [NSString stringWithFormat:@"webview-%lu", (unsigned long)self.engine.webViewSequence];
+            self.engine.webViews[token] = created;
+        }
+        AutoWebMessageHandler *messageHandler = [[AutoWebMessageHandler alloc] init];
+        __weak typeof(self) weakSelf = self;
+        NSString *capturedToken = [token copy];
+        messageHandler.onMessage = ^(WKScriptMessage *message) {
+            AutoEngine *engine = weakSelf.engine;
+            if (!engine) return;
+            id body = message.body ?: [NSNull null];
+            @synchronized (engine) {
+                if (!engine.webViewMessages) engine.webViewMessages = [NSMutableDictionary dictionary];
+                NSMutableArray *queue = engine.webViewMessages[capturedToken];
+                if (!queue) {
+                    queue = [NSMutableArray array];
+                    engine.webViewMessages[capturedToken] = queue;
+                }
+                [queue addObject:body];
+            }
+        };
+        [controller addScriptMessageHandler:messageHandler name:@"autosdk"];
+        @synchronized (self.engine) {
+            if (!self.engine.webViewMessageHandlers) self.engine.webViewMessageHandlers = [NSMutableDictionary dictionary];
+            self.engine.webViewMessageHandlers[token] = messageHandler;
+        }
         NSURL *url = [NSURL URLWithString:urlString];
         if (url) {
             [created loadRequest:[NSURLRequest requestWithURL:url]];
         }
-        @synchronized (self.engine) {
-            if (!self.engine.webViews) self.engine.webViews = [NSMutableDictionary dictionary];
-            self.engine.webViewSequence += 1;
-            NSString *token = [NSString stringWithFormat:@"webview-%lu", (unsigned long)self.engine.webViewSequence];
-            self.engine.webViews[token] = created;
-            return token;
-        }
+        return token;
     }
     NSString *token = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"";
     WKWebView *webView = nil;
@@ -2421,7 +2792,12 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     }
     if ([name isEqualToString:@"webViewRelease"]) {
         [webView removeFromSuperview];
-        @synchronized (self.engine) { [self.engine.webViews removeObjectForKey:token]; }
+        [webView.configuration.userContentController removeScriptMessageHandlerForName:@"autosdk"];
+        @synchronized (self.engine) {
+            [self.engine.webViews removeObjectForKey:token];
+            [self.engine.webViewMessageHandlers removeObjectForKey:token];
+            [self.engine.webViewMessages removeObjectForKey:token];
+        }
         return @YES;
     }
     return AutoMakeError(AutoSDKErrorAutomationFailed, @"Unknown web view operation.", nil);
@@ -2455,6 +2831,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         if (draw.superview != nil) { anyVisible = YES; break; }
     }
     if (!anyVisible && self.engine.floatBallView.superview != nil) anyVisible = YES;
+    if (!anyVisible && self.engine.floatLogView != nil && self.engine.floatLogView.superview != nil) anyVisible = YES;
     self.engine.overlayWindow.hidden = !anyVisible;
 }
 
@@ -2618,6 +2995,77 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         UIView *ball = self.engine.floatBallView;
         return @(ball != nil && ball.superview != nil);
     }
+    if ([name hasPrefix:@"floatLog"]) {
+        UIView *panel = self.engine.floatLogView;
+        UITextView *textView = self.engine.floatLogTextView;
+        if (!panel) {
+            panel = [[UIView alloc] initWithFrame:CGRectMake(80, 120, 260, 180)];
+            panel.backgroundColor = [UIColor colorWithWhite:0 alpha:0.78];
+            panel.layer.cornerRadius = 10;
+            panel.layer.borderWidth = 1;
+            panel.layer.borderColor = [UIColor colorWithWhite:1 alpha:0.35].CGColor;
+            textView = [[UITextView alloc] initWithFrame:CGRectInset(panel.bounds, 4, 4)];
+            textView.editable = NO;
+            textView.selectable = YES;
+            textView.backgroundColor = UIColor.clearColor;
+            textView.textColor = UIColor.whiteColor;
+            textView.font = [UIFont systemFontOfSize:12];
+            textView.textContainerInset = UIEdgeInsetsMake(4, 4, 4, 4);
+            [panel addSubview:textView];
+            UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleFloatLogPan:)];
+            [panel addGestureRecognizer:pan];
+            self.engine.floatLogView = panel;
+            self.engine.floatLogTextView = textView;
+            self.engine.floatLogLines = [NSMutableArray array];
+        }
+        if ([name isEqualToString:@"floatLogShow"]) {
+            CGFloat x = args.count > 0 && [args[0] isKindOfClass:NSNumber.class] ? [args[0] doubleValue] : 80;
+            CGFloat y = args.count > 1 && [args[1] isKindOfClass:NSNumber.class] ? [args[1] doubleValue] : 120;
+            CGFloat width = args.count > 2 && [args[2] isKindOfClass:NSNumber.class] && [args[2] doubleValue] > 0 ? [args[2] doubleValue] : 260;
+            CGFloat height = args.count > 3 && [args[3] isKindOfClass:NSNumber.class] && [args[3] doubleValue] > 0 ? [args[3] doubleValue] : 180;
+            panel.frame = CGRectMake(x, y, width, height);
+            textView.frame = CGRectInset(panel.bounds, 4, 4);
+            UIWindow *window = [self ensureOverlayWindow];
+            UIView *container = window.rootViewController.view;
+            if (panel.superview != container) [container addSubview:panel];
+            [self refreshOverlayVisibility];
+            return @YES;
+        }
+        if ([name isEqualToString:@"floatLogLog"]) {
+            NSString *text = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"";
+            if (text.length == 0) return @YES;
+            NSArray<NSString *> *pieces = [text componentsSeparatedByString:@"\n"];
+            for (NSString *piece in pieces) {
+                if (piece.length > 0) [self.engine.floatLogLines addObject:piece];
+            }
+            while (self.engine.floatLogLines.count > 200) [self.engine.floatLogLines removeObjectAtIndex:0];
+            textView.text = [self.engine.floatLogLines componentsJoinedByString:@"\n"];
+            [textView scrollRangeToVisible:NSMakeRange(textView.text.length, 0)];
+            return @YES;
+        }
+        if ([name isEqualToString:@"floatLogClear"]) {
+            [self.engine.floatLogLines removeAllObjects];
+            textView.text = @"";
+            return @YES;
+        }
+        if ([name isEqualToString:@"floatLogHide"]) {
+            [panel removeFromSuperview];
+            [self refreshOverlayVisibility];
+            return @YES;
+        }
+        if ([name isEqualToString:@"floatLogIsShow"]) {
+            return @(panel != nil && panel.superview != nil);
+        }
+        if ([name isEqualToString:@"floatLogDestroy"]) {
+            [panel removeFromSuperview];
+            self.engine.floatLogView = nil;
+            self.engine.floatLogTextView = nil;
+            self.engine.floatLogLines = nil;
+            [self refreshOverlayVisibility];
+            return @YES;
+        }
+        return AutoMakeError(AutoSDKErrorAutomationFailed, @"Unknown floatLog operation.", nil);
+    }
     return AutoMakeError(AutoSDKErrorAutomationFailed, @"Unknown overlay operation.", nil);
 }
 
@@ -2636,6 +3084,17 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 - (void)handleFloatBallTap:(UITapGestureRecognizer *)gesture {
     NSString *title = self.engine.floatBallTitleLabel.text;
     if (title.length > 0) AutoShowToast(title);
+}
+
+- (void)handleFloatLogPan:(UIPanGestureRecognizer *)gesture {
+    UIView *panel = gesture.view;
+    if (!panel.superview) return;
+    CGPoint translation = [gesture translationInView:panel.superview];
+    CGRect frame = panel.frame;
+    frame.origin.x = MAX(0, MIN(panel.superview.bounds.size.width - frame.size.width, frame.origin.x + translation.x));
+    frame.origin.y = MAX(0, MIN(panel.superview.bounds.size.height - frame.size.height, frame.origin.y + translation.y));
+    panel.frame = frame;
+    [gesture setTranslation:CGPointZero inView:panel.superview];
 }
 
 - (id)invokeExecAsync:(JSValue *)payload {
@@ -3861,6 +4320,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     @synchronized (self) { draws = [self.screenDraws.allValues copy]; }
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.floatBallView removeFromSuperview];
+        [self.floatLogView removeFromSuperview];
         for (UIView *draw in draws) [draw removeFromSuperview];
         self.overlayWindow.hidden = YES;
     });
@@ -3868,11 +4328,17 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 
 - (void)stopAllAudioPlayback {
     NSArray *players = nil;
+    NSArray *playersById = nil;
     @synchronized (self) {
         players = [self.audioPlayers copy];
         [self.audioPlayers removeAllObjects];
+        playersById = [self.audioPlayersById.allValues copy];
+        [self.audioPlayersById removeAllObjects];
     }
     for (AVAudioPlayer *player in players) {
+        if (player.isPlaying) [player stop];
+    }
+    for (AVAudioPlayer *player in playersById) {
         if (player.isPlaying) [player stop];
     }
 }
@@ -3880,6 +4346,13 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 - (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag {
     (void)flag;
     @synchronized (self) {
+        if (self.audioPlayersById.count > 0) {
+            NSNumber *matchedKey = nil;
+            for (NSNumber *key in self.audioPlayersById) {
+                if (self.audioPlayersById[key] == player) { matchedKey = key; break; }
+            }
+            if (matchedKey) [self.audioPlayersById removeObjectForKey:matchedKey];
+        }
         if (self.audioPlayers.count == 0) return;
         AVAudioPlayer *current = self.audioPlayers.firstObject;
         if (current == player) {
@@ -3959,4 +4432,11 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
               @"appUsedBytes": @(appUsedBytes) };
 }
 
+@end
+
+@implementation AutoWebMessageHandler
+- (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
+    (void)userContentController;
+    if (self.onMessage) self.onMessage(message);
+}
 @end

@@ -371,12 +371,16 @@ check(bootstrapSource.includes('var screenDrawApi=') && bootstrapSource.includes
       bootstrapSource.includes('g.screenDraw=screenDrawApi') && bootstrapSource.includes('g.floatBall=floatBallApi') &&
       bootstrapSource.includes('g.setFloatBallPoint=') && bootstrapSource.includes('var nodeApi=') &&
       bootstrapSource.includes('keptNodes') && bootstrapSource.includes('toPinYin:function') &&
-      bootstrapSource.includes('stripUtf8Bom:function') && bootstrapSource.includes('fromUnicode:function'),
-      'Bootstrap must expose screenDraw, floatBall, node.keep/unkeep and pinyin/BOM/unicode string helpers');
+      bootstrapSource.includes('stripUtf8Bom:function') && bootstrapSource.includes('fromUnicode:function') &&
+      bootstrapSource.includes('nodeApi.at') && bootstrapSource.includes('invokeNodeSnapshot') &&
+      bootstrapSource.includes('var floatLogApi=') && bootstrapSource.includes('floatLogShow'),
+      'Bootstrap must expose screenDraw, floatBall, node.keep/unkeep, node.at, nodeSnapshot, floatLog and pinyin/BOM/unicode string helpers');
 check(engineSource.includes('screenDrawInit') && engineSource.includes('floatBallShow') &&
       engineSource.includes('ensureOverlayWindow') && engineSource.includes('AutoScriptToPinYin') &&
-      engineSource.includes('hasPrefix:@"screenDraw"') && engineSource.includes('hasPrefix:@"floatBall"'),
-      'Engine must dispatch overlay operations and toPinYin to native implementations');
+      engineSource.includes('hasPrefix:@"screenDraw"') && engineSource.includes('hasPrefix:@"floatBall"') &&
+      engineSource.includes('hasPrefix:@"floatLog"') && engineSource.includes('invokeNodeSnapshot') &&
+      engineSource.includes('floatLogTextView') && engineSource.includes('floatLogLines'),
+      'Engine must dispatch overlay operations, floatLog and node snapshots to native implementations');
 check(read('Sources/AutoSDK/AutoScriptSupport.m').includes('CFStringTransform') &&
       read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCFStringTransformToLatin') &&
       read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCFStringTransformStripCombiningMarks'),
@@ -623,6 +627,7 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
   const literals = [...bootstrapBlock.matchAll(/@?"((?:\\.|[^"\\])*)"/g)];
   try {
     const script = literals.map(match => JSON.parse(`"${match[1]}"`)).join('');
+    check(script.length <= 60 * 1024, 'AutoBootstrapScript must stay under the 64 KiB JavaScriptCore literal budget');
     const compiledBootstrap = new vm.Script(script, { filename: 'AutoBootstrapScript.js' });
     check(script.includes('g.auto='), 'AutoBootstrapScript does not install the auto global');
     let stopped = false;
@@ -657,12 +662,21 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
     check(context.auto?.storage === context.storages?.create,
           'Storage factory aliases must retain their function identity');
     check(context.http?.length === 2 && context.http?.get?.length === 2 &&
-          context.auto?.click?.length === 1 && context.file?.readFile?.length === 1,
+          context.auto?.click?.length === 3 && context.file?.readFile?.length === 1,
           'Guard wrappers must preserve public function arity');
     const options = { headers: { accept: 'application/json' } };
     context.http.get('https://example.invalid', options);
     check(options.method === undefined && lastHTTPOptions?.method === 'GET',
           'HTTP convenience methods must not mutate caller options');
+    context.http.get('https://example.invalid?existing=1', { params: { b: 2 }, cookies: { sid: 'x' }, files: { shot: 'a.png' }, formData: { note: 'hi' } });
+    check(lastHTTPOptions?.url === 'https://example.invalid?existing=1&b=2',
+          'HTTP params must merge into the query string without clobbering existing parameters');
+    check(lastHTTPOptions?.cookies?.sid === 'x' && lastHTTPOptions?.files?.shot === 'a.png' &&
+          lastHTTPOptions?.formData?.note === 'hi',
+          'HTTP cookies, files and formData must be forwarded through invokeHTTP');
+    context.http.get('https://example.invalid', { params: { a: 1 } });
+    check(lastHTTPOptions?.url === 'https://example.invalid?a=1',
+          'HTTP params must append a clean query string when the URL has none');
     const detachedReadAllLines = context.file.readAllLines;
     const detachedDeviceInfo = context.device.getDeviceInfo;
     check(detachedReadAllLines('test.txt').length === 2 && detachedDeviceInfo().model === 'test',

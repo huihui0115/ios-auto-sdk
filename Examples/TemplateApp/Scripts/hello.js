@@ -23,10 +23,26 @@ setTimeout(function () { fired = true; }, 10);
 auto.sleep(30);
 console.log("timer fired:", fired);
 
+// Local network + notification (benchmark AScript system.get_ip_address / notify)
+const ip = device.getIPAddress();
+console.log("Wi-Fi IP:", ip);
+notify("hello.js finished on " + (ip || "device"), "AutoSDK");
+
 // System control
 console.log("brightness:", device.getBrightness());
 device.setClipboard("AutoSDK demo");
 console.log("clipboard:", device.getClipboard());
+
+// Node objects + screen cache + floatLog (round 20, benchmark AScript)
+const nodeAt = node.at(10, 10);
+console.log("node.at ->", nodeAt ? nodeAt.type : "none");
+screen.cache(true);
+const cached = screen.isCache();
+screen.cache(false);
+console.log("screen.cache ->", cached);
+floatLog.show(20, 120, 260, 160);
+floatLog.log("hello.js");
+floatLog.hide();
 
 auto.toast("hello.js finished");
 "done";
