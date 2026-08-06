@@ -1251,6 +1251,19 @@ test('network type helpers route to bridge and ocrClick guards empty text', () =
   assert.equal(sandbox.ocrClick('确定', 5), true);
   assert.deepEqual(calls.clickPoint.at(-1), { x: 15, y: 25 });
 });
+test('flashlight/torch route to bridge and default to on', () => {
+  const { sandbox, calls } = boot();
+  sandbox.device.setFlashlight(true);
+  assert.deepEqual(calls.device.at(-1), { operation: 'flashlight', value: true });
+  sandbox.torch(false);
+  assert.deepEqual(calls.device.at(-1), { operation: 'flashlight', value: false });
+  sandbox.device.flashlight();
+  assert.deepEqual(calls.device.at(-1), { operation: 'flashlight', value: true });
+  sandbox.setFlashlight(false);
+  assert.deepEqual(calls.device.at(-1), { operation: 'flashlight', value: false });
+  sandbox.auto.setFlashlight(true); // auto proxy falls back to deviceApi
+  assert.deepEqual(calls.device.at(-1), { operation: 'flashlight', value: true });
+});
 
 test('device isScreenOn/isLocked expose lock state', () => {
   const { sandbox } = boot();

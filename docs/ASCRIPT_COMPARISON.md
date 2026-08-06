@@ -85,6 +85,7 @@
 | get_uuid / get_ios_version / get_ip_address | uuid() / getOSVersion() / device.getIPAddress() | ✅ 含局域网 IP |
 | get_language / get_country / get_timezone / get_uptime | device.getLanguage()/getCountry()/getLocale()/getTimezone()/getUptime() | ✅ NSLocale + NSTimeZone + systemUptime |
 | get_network_type / is_wifi | device.getNetworkType() / device.isWifi() | ✅ SCNetworkReachability：wifi/cellular/none |
+| set_flashlight | device.setFlashlight(on?) / torch() / flashlight() | ✅ AVCaptureDevice 手电筒，对标 EasyClick setFlashlight() |
 | get_device_id / name / model / battery | device.getDeviceId/Name/Model/Battery | ✅ |
 | notify（本地通知） | notify(body, title?) | ✅ UNUserNotificationCenter 本地通知 |
 | set_clipboard / get_clipboard | setClipboard / getClipboard | ✅ |

@@ -384,6 +384,9 @@ interface AutoDeviceAPI {
   getUptime(): number;
   getNetworkType(): "wifi" | "cellular" | "none";
   isWifi(): boolean;
+  setFlashlight(on?: boolean): boolean;
+  torch(on?: boolean): boolean;
+  flashlight(on?: boolean): boolean;
 }
 
 interface AutoMediaAPI {
@@ -918,6 +921,9 @@ declare function getTimezone(): string;
 declare function getUptime(): number;
 declare function getNetworkType(): "wifi" | "cellular" | "none";
 declare function isWifi(): boolean;
+declare function setFlashlight(on?: boolean): boolean;
+declare function torch(on?: boolean): boolean;
+declare function flashlight(on?: boolean): boolean;
 declare function launchAppByPrefix(bundleIdPrefix: string): boolean;
 declare function getScreenWidthHeightText(): string;
 declare function setScreenMetrics(width: number, height: number): boolean;

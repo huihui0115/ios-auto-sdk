@@ -388,6 +388,9 @@ check(bootstrapScript.includes("getNetworkType:function(){return _dv('networkTyp
       bootstrapScript.includes("isWifi:function(){return _dv('isWifi');}") &&
       bootstrapScript.includes('g.getNetworkType=deviceApi.getNetworkType') && bootstrapScript.includes('g.isWifi=deviceApi.isWifi'),
       'Bootstrap must expose network type helpers');
+check(bootstrapScript.includes("setFlashlight:function(on){return _dv('flashlight'") &&
+      bootstrapScript.includes("g.torch=deviceApi.setFlashlight") && bootstrapScript.includes("g.flashlight=deviceApi.setFlashlight"),
+      'Bootstrap must expose flashlight/torch and their global aliases');
 check(bootstrapScript.includes("openSettings:function(){return _av('openSettings');}") &&
       bootstrapScript.includes("openAppStore:function(appId){return _av('openAppStore'") && bootstrapScript.includes('g.openAppSetting=appApi.openSettings'),
       'Bootstrap must expose openSettings/openAppSetting/openAppStore');

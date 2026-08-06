@@ -42,6 +42,7 @@ const REFS = {
   'audioStop(id?)': 'AScript audio_stop',
   'device.isLocked()': 'AScript system.is_locked',
   'device.keepScreenOn()': 'EasyClick keepScreenOn() · AutoJS device.keepScreenOn()',
+  'device.setFlashlight() / torch() / flashlight()': 'EasyClick setFlashlight()',
   'device.getLanguage() / getCountry() / getTimezone()': 'AScript get_language/get_country/get_timezone · EasyClick getLanguage()/getCountry()',
   'device.getNetworkType() / isWifi()': 'EasyClick getNetworkType() · AutoJS getNetworkType()',
   'speak(text, options?) / speechStop()': 'AScript speak · EasyClick speak()',
@@ -1116,6 +1117,13 @@ main();` });APIS.push({ cat:'device', sig:'device.keepScreenOn(on?) / keepScreen
   device.keepScreenOn(true);   // 常亮
   sleep(30000);
   keepScreenOn(false);         // 恢复自动锁屏
+}
+main();` });APIS.push({ cat:'device', sig:'device.setFlashlight(on?) / device.torch(on?) / device.flashlight(on?)', title:'手电筒开关', desc:'打开/关闭设备手电筒（闪光灯），默认开启；on=false 时关闭。需要 allowSystemControl 权限。全局简写 setFlashlight/torch/flashlight 同样可用。对标 EasyClick setFlashlight()。', params:[['on','boolean','可选，默认 true：true 开灯，false 关灯']], returns:'boolean', example:`function main(){
+  device.setFlashlight(true);   // 打开手电筒
+  sleep(2000);
+  device.torch(false);          // 关闭手电筒
+  setFlashlight(true);          // 全局简写
+  flashlight(false);            // 关闭
 }
 main();` });APIS.push({ cat:'device', sig:'device.isLocked()', title:'是否锁屏', desc:'返回设备当前是否处于锁屏状态；isScreenOn() 为反向查询（点亮/未锁屏）。对标 AScript system.is_locked。', params:[], returns:'boolean', example:`function main(){
   if (device.isLocked()) logd("设备已锁屏");

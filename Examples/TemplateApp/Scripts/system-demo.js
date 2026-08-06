@@ -23,10 +23,16 @@ device.keepScreenOn(true);
 sleep(1000);
 device.keepScreenOn(false);
 
-// 5. Open this app's settings page (system UI)
+// 5. Flashlight toggle (system torch; requires allowSystemControl)
+device.setFlashlight(true);
+sleep(500);
+device.torch(false);
+systemReport.flashlight = "setFlashlight/torch ok";
+
+// 6. Open this app's settings page (system UI)
 systemReport.openSettings = app.openSettings();
 
-// 6. Stop speech if still speaking
+// 7. Stop speech if still speaking
 speechStop();
 
 systemReport;

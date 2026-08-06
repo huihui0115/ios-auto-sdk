@@ -2373,7 +2373,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     if ([operation isEqualToString:@"clipboardGet"] || [operation isEqualToString:@"clipboardSet"] ||
         [operation isEqualToString:@"brightnessGet"] || [operation isEqualToString:@"brightnessSet"] ||
         [operation isEqualToString:@"volumeGet"] || [operation isEqualToString:@"vibrate"] ||
-        [operation isEqualToString:@"keepScreenOn"]) {
+        [operation isEqualToString:@"keepScreenOn"] || [operation isEqualToString:@"flashlight"] ||
+        [operation isEqualToString:@"torch"]) {
         if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
             return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
         }
@@ -2440,6 +2441,16 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         }
         // The system sound API fires once; the duration is advisory and capped.
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+        return @YES;
+    }
+    if ([operation isEqualToString:@"flashlight"] || [operation isEqualToString:@"torch"]) {
+        BOOL torchOn = AutoBoolean(data[@"value"], YES);
+        AVCaptureDevice *captureDevice = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+        if (!captureDevice || ![captureDevice hasTorch]) return @NO;
+        NSError *torchError = nil;
+        if (![captureDevice lockForConfiguration:&torchError]) return @NO;
+        captureDevice.torchMode = torchOn ? AVCaptureTorchModeOn : AVCaptureTorchModeOff;
+        [captureDevice unlockForConfiguration];
         return @YES;
     }
     if ([operation isEqualToString:@"volumeUp"] || [operation isEqualToString:@"volumeDown"]) {
