@@ -367,7 +367,7 @@ const bootstrapScript = (() => {
 check(bootstrapScript.includes("_dv('clipboardGet')") && bootstrapScript.includes("_dv('clipboardSet'") &&
       bootstrapScript.includes("_dv('brightnessGet')") && bootstrapScript.includes("_dv('brightnessSet'") &&
       bootstrapScript.includes("_dv('volumeGet')") && bootstrapScript.includes("_dv('vibrate'") &&
-      bootstrapScript.includes("operation:'openURL'") && bootstrapScript.includes("operation:'homescreen'") &&
+      bootstrapScript.includes("_av('openURL'") && bootstrapScript.includes("_av('homescreen')") &&
       bootstrapScript.includes('g.openURL=') && bootstrapScript.includes('homeScreen:function()'),
       'Bootstrap must expose clipboard, brightness, volume, vibration, openURL and home-screen operations with globals');
 check(bootstrapScript.includes("keepScreenOn:function(value)") && bootstrapScript.includes("_dv('keepScreenOn'") &&
@@ -384,8 +384,12 @@ check(bootstrapScript.includes('getLanguage:function(){return _dv(\'language\');
       bootstrapScript.includes('getUptime:function(){return _dv(\'uptime\');}') &&
       bootstrapScript.includes('g.getLanguage=deviceApi.getLanguage') && bootstrapScript.includes('g.getUptime=deviceApi.getUptime'),
       'Bootstrap must expose locale/timezone/uptime device getters');
-check(bootstrapScript.includes('openSettings:function(){return bridge.invokeApp({operation:\'openSettings\'});}') &&
-      bootstrapScript.includes('openAppStore:function(appId)') && bootstrapScript.includes('g.openAppSetting=appApi.openSettings'),
+check(bootstrapScript.includes("getNetworkType:function(){return _dv('networkType');}") &&
+      bootstrapScript.includes("isWifi:function(){return _dv('isWifi');}") &&
+      bootstrapScript.includes('g.getNetworkType=deviceApi.getNetworkType') && bootstrapScript.includes('g.isWifi=deviceApi.isWifi'),
+      'Bootstrap must expose network type helpers');
+check(bootstrapScript.includes("openSettings:function(){return _av('openSettings');}") &&
+      bootstrapScript.includes("openAppStore:function(appId){return _av('openAppStore'") && bootstrapScript.includes('g.openAppSetting=appApi.openSettings'),
       'Bootstrap must expose openSettings/openAppSetting/openAppStore');
 check(bootstrapScript.includes('var speechApi=') && bootstrapScript.includes("_nn('speak',[") &&
       bootstrapScript.includes("_nn('speechStop',[])") && bootstrapScript.includes('g.speak=speechApi.speak'),
@@ -868,7 +872,7 @@ check(bootstrapScript.includes('base.swipeUp=function(percent,duration)') &&
       bootstrapScript.includes('g.swipeUp=base.swipeUp') &&
       bootstrapScript.includes('g.swipeRight=base.swipeRight'),
       'Bootstrap must expose direction swipe helpers on auto and as globals');
-check(bootstrapScript.includes("operation:'appList'") &&
+check(bootstrapScript.includes("_av('appList')") &&
       typeDefinitions.includes('appList(): Array<{ bundleId: string; name: string }>') &&
       typeDefinitions.includes('installedApps(): Array<{ bundleId: string; name: string }>') &&
       typeDefinitions.includes('declare function swipeUp(percent?: number, durationMs?: number): boolean') &&

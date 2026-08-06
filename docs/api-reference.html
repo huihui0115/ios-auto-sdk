@@ -1971,12 +1971,12 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="device.getLanguage() / device.getCountry() / device.getLocale() / device.getTimezone() / device.getUptime() 语言/国家/时区/运行时长">
+<article class="card" data-search="device.getLanguage() / device.getCountry() / device.getLocale() / device.getTimezone() / device.getUptime() / device.getNetworkType() / device.isWifi() 语言/国家/时区/运行时长">
   <header class="card-head">
-    <h4><code>device.getLanguage() / device.getCountry() / device.getLocale() / device.getTimezone() / device.getUptime()</code> <span class="cname">语言/国家/时区/运行时长</span></h4>
+    <h4><code>device.getLanguage() / device.getCountry() / device.getLocale() / device.getTimezone() / device.getUptime() / device.getNetworkType() / device.isWifi()</code> <span class="cname">语言/国家/时区/运行时长</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">getLanguage 返回系统首选语言（如 zh-Hans-CN），getCountry 返回国家码，getLocale 返回区域标识，getTimezone 返回当前时区名（如 Asia/Shanghai），getUptime 返回开机至今的秒数。全局简写 getLanguage/getCountry/getLocale/getTimezone/getUptime 同样可用。对标 AScript get_language/get_country/get_timezone。</p>
+  <p class="desc">getLanguage 返回系统首选语言（如 zh-Hans-CN），getCountry 返回国家码，getLocale 返回区域标识，getTimezone 返回当前时区名（如 Asia/Shanghai），getUptime 返回开机至今的秒数，getNetworkType 返回 wifi/cellular/none，isWifi 判断是否 Wi-Fi。全局简写 getLanguage/getCountry/getLocale/getTimezone/getUptime/getNetworkType/isWifi 同样可用。对标 AScript get_language/get_country/get_timezone 与 EasyClick getNetworkType()。</p>
   
   
   <div class="ret"><b>返回值</b> <span>string | number</span></div>

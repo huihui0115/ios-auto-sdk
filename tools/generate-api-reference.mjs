@@ -43,6 +43,7 @@ const REFS = {
   'device.isLocked()': 'AScript system.is_locked',
   'device.keepScreenOn()': 'EasyClick keepScreenOn() · AutoJS device.keepScreenOn()',
   'device.getLanguage() / getCountry() / getTimezone()': 'AScript get_language/get_country/get_timezone · EasyClick getLanguage()/getCountry()',
+  'device.getNetworkType() / isWifi()': 'EasyClick getNetworkType() · AutoJS getNetworkType()',
   'speak(text, options?) / speechStop()': 'AScript speak · EasyClick speak()',
   'app.openSettings() / openAppSetting() / openAppStore(appId)': 'AScript app_open_setting / app_store · EasyClick openAppSetting()/openAppStore()',
   'Selector().text(v).type(t).findOne()': 'AScript Selector 链式选择器',
@@ -1105,7 +1106,7 @@ APIS.push({ cat:'device', sig:'device.volumeUp() / device.volumeDown()', title:'
   logd("音量+ " + ok);
 }
 main();` });
-APIS.push({ cat:'device', sig:'device.getLanguage() / device.getCountry() / device.getLocale() / device.getTimezone() / device.getUptime()', title:'语言/国家/时区/运行时长', desc:'getLanguage 返回系统首选语言（如 zh-Hans-CN），getCountry 返回国家码，getLocale 返回区域标识，getTimezone 返回当前时区名（如 Asia/Shanghai），getUptime 返回开机至今的秒数。全局简写 getLanguage/getCountry/getLocale/getTimezone/getUptime 同样可用。对标 AScript get_language/get_country/get_timezone。', params:[], returns:'string | number', example:`function main(){
+APIS.push({ cat:'device', sig:'device.getLanguage() / device.getCountry() / device.getLocale() / device.getTimezone() / device.getUptime() / device.getNetworkType() / device.isWifi()', title:'语言/国家/时区/运行时长', desc:'getLanguage 返回系统首选语言（如 zh-Hans-CN），getCountry 返回国家码，getLocale 返回区域标识，getTimezone 返回当前时区名（如 Asia/Shanghai），getUptime 返回开机至今的秒数，getNetworkType 返回 wifi/cellular/none，isWifi 判断是否 Wi-Fi。全局简写 getLanguage/getCountry/getLocale/getTimezone/getUptime/getNetworkType/isWifi 同样可用。对标 AScript get_language/get_country/get_timezone 与 EasyClick getNetworkType()。', params:[], returns:'string | number', example:`function main(){
   logd("语言: " + device.getLanguage());
   logd("国家: " + device.getCountry());
   logd("时区: " + device.getTimezone());

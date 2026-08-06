@@ -1235,6 +1235,23 @@ test('speak/speechStop, openSettings/openAppStore and locale device getters rout
   assert.equal(typeof sandbox.auto.speak, 'function');
 });
 
+test('network type helpers route to bridge and ocrClick guards empty text', () => {
+  const { sandbox, calls, bridge } = boot();
+  sandbox.device.getNetworkType();
+  assert.deepEqual(calls.device.at(-1), { operation: 'networkType' });
+  sandbox.isWifi();
+  assert.deepEqual(calls.device.at(-1), { operation: 'isWifi' });
+  sandbox.auto.getNetworkType();
+  assert.deepEqual(calls.device.at(-1), { operation: 'networkType' });
+  const clickBefore = calls.clickPoint.length;
+  assert.equal(sandbox.ocrClick('', 5), false);
+  assert.equal(calls.clickPoint.length, clickBefore, 'empty text must not trigger clicks');
+  assert.equal(sandbox.ocrText('', 5), null);
+  bridge.invokeOCR = () => [{ text: '确定', bounds: { x: 10, y: 20, width: 10, height: 10 } }];
+  assert.equal(sandbox.ocrClick('确定', 5), true);
+  assert.deepEqual(calls.clickPoint.at(-1), { x: 15, y: 25 });
+});
+
 test('device isScreenOn/isLocked expose lock state', () => {
   const { sandbox } = boot();
   assert.equal(sandbox.isScreenOn(), true);

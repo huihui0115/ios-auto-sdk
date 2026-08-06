@@ -13,6 +13,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AudioToolbox/AudioToolbox.h>
 #import <WebKit/WebKit.h>
+#import <SystemConfiguration/SystemConfiguration.h>
 #import <UserNotifications/UserNotifications.h>
 #import <mach/mach.h>
 #include <math.h>
@@ -570,6 +571,17 @@ static NSUInteger AutoConfiguredByteLimit(NSDictionary *config,
     double number = AutoFiniteNumber(rawValue) ? [rawValue doubleValue] : 0;
     if (number <= 0 || number > (double)NSUIntegerMax) return defaultValue;
     return MIN((NSUInteger)number, hardMaximum);
+}
+
+static NSString *AutoCurrentNetworkType(void) {
+    SCNetworkReachabilityRef reachability = SCNetworkReachabilityCreateWithName(kCFAllocatorDefault, "apple.com");
+    if (!reachability) return @"none";
+    SCNetworkReachabilityFlags flags = 0;
+    BOOL reachable = SCNetworkReachabilityGetFlags(reachability, &flags);
+    CFRelease(reachability);
+    if (!reachable || (flags & kSCNetworkReachabilityFlagsReachable) == 0) return @"none";
+    if ((flags & kSCNetworkReachabilityFlagsIsWWAN) != 0) return @"cellular";
+    return @"wifi";
 }
 
 static id AutoValueOnMainThread(id (^block)(void)) {
@@ -2371,13 +2383,16 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     }
     if ([operation isEqualToString:@"language"] || [operation isEqualToString:@"country"] ||
         [operation isEqualToString:@"locale"] || [operation isEqualToString:@"timezone"] ||
-        [operation isEqualToString:@"uptime"]) {
+        [operation isEqualToString:@"uptime"] || [operation isEqualToString:@"networkType"] ||
+        [operation isEqualToString:@"isWifi"]) {
         NSDictionary *deviceInfo = AutoValueOnMainThread(^id{ return [self.engine getDeviceInfo]; }) ?: @{};
         if ([operation isEqualToString:@"language"]) return deviceInfo[@"language"] ?: @"";
         if ([operation isEqualToString:@"country"]) return deviceInfo[@"country"] ?: @"";
         if ([operation isEqualToString:@"locale"]) return deviceInfo[@"locale"] ?: @"";
         if ([operation isEqualToString:@"timezone"]) return deviceInfo[@"timezone"] ?: @"";
-        return deviceInfo[@"uptimeSeconds"] ?: @0;
+        if ([operation isEqualToString:@"uptime"]) return deviceInfo[@"uptimeSeconds"] ?: @0;
+        if ([operation isEqualToString:@"networkType"]) return AutoCurrentNetworkType();
+        return @([AutoCurrentNetworkType() isEqualToString:@"wifi"]);
     }
     if ([operation isEqualToString:@"clipboardGet"]) {
         return AutoValueOnMainThread(^id{
@@ -4495,7 +4510,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                                     @"country": [activeLocale objectForKey:NSLocaleCountryCode] ?: @"",
                                     @"locale": activeLocale.localeIdentifier ?: @"",
                                     @"timezone": NSTimeZone.localTimeZone.name ?: @"",
-                                    @"uptimeSeconds": @(NSProcessInfo.processInfo.systemUptime) } mutableCopy];
+                                    @"uptimeSeconds": @(NSProcessInfo.processInfo.systemUptime),
+                                    @"networkType": AutoCurrentNetworkType() } mutableCopy];
     NSDictionary *adapterInfo = [adapter deviceInfo];
     if (adapterInfo) [info addEntriesFromDictionary:adapterInfo];
     return info;

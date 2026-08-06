@@ -382,6 +382,8 @@ interface AutoDeviceAPI {
   getLocale(): string;
   getTimezone(): string;
   getUptime(): number;
+  getNetworkType(): "wifi" | "cellular" | "none";
+  isWifi(): boolean;
 }
 
 interface AutoMediaAPI {
@@ -914,6 +916,8 @@ declare function getCountry(): string;
 declare function getLocale(): string;
 declare function getTimezone(): string;
 declare function getUptime(): number;
+declare function getNetworkType(): "wifi" | "cellular" | "none";
+declare function isWifi(): boolean;
 declare function launchAppByPrefix(bundleIdPrefix: string): boolean;
 declare function getScreenWidthHeightText(): string;
 declare function setScreenMetrics(width: number, height: number): boolean;
