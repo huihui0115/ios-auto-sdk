@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>28</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>29</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>10</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>29</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>29</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>10</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -923,7 +923,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="vision" class="cat" style="--c:#ea580c">
-  <h2><span class="tag">图色与OCR</span><i>28</i></h2>
+  <h2><span class="tag">图色与OCR</span><i>29</i></h2>
   <article class="card" data-search="screenshot() / capture() 截屏">
   <header class="card-head">
     <h4><code>screenshot() / capture()</code> <span class="cname">截屏</span></h4>
@@ -1197,6 +1197,24 @@ main();</code></pre>
   <pre><code>function main(){
   const item = ocrText("开始");
   if (item) logd("坐标: " + item.bounds.x + "," + item.bounds.y);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="scanCode(imagePath) 二维码/条形码识别">
+  <header class="card-head">
+    <h4><code>scanCode(imagePath)</code> <span class="cname">二维码/条形码识别</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">用设备端 Vision 检测图片中的二维码/条形码，返回 [{ text, symbology, bounds }]；imagePath 为沙盒内图片路径（可先用 screenshot() 得到当前屏幕截图路径）；bounds 为归一化坐标（左上原点，与截图一致）。对标 AScript CodeScanner。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">imagePath</code><span class="ptype">string</span><span class="pdesc">沙盒内图片路径，空串时返回空数组</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoBarcodeItem[]</span></div>
+  <pre><code>function main(){
+  const path = screenshot();
+  const codes = scanCode(path);
+  for (const c of codes) {
+    logd(c.text + " [" + c.symbology + "] @ " + JSON.stringify(c.bounds));
+  }
 }
 main();</code></pre>
 </article>
@@ -3958,7 +3976,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 244 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 245 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

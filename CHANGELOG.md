@@ -10,6 +10,27 @@ All notable changes to AutoSDK are documented here. The format follows
 
 - Next.
 
+## [1.4.0] - 2026-08-06
+
+### Added
+
+- **二维码 / 条形码识别（scanCode）。** 新增 `scanCode(imagePath)` / `screen.scanCode(path)`：设备端 Vision 检测二维码与条码，
+  返回 `[{text, symbology, bounds:{x,y,width,height}}]`（归一化坐标、左上原点），对标 AScript CodeScanner；
+  原生 AutoEngine 新增 `AutoScanBarcodes`（64MB 图片上限、路径经 resolvePath 沙盒解析）；d.ts/文档/verify/测试同步，测试 66 项。
+- **App URL Scheme 启动库扩充（40+ → 200+ App）。** `app.getAppScheme/launchByScheme` 原生映射从 254 键扩充到 682 键：
+  新增苹果系统 App（设置/照片/相机/日历/备忘录/提醒/邮件/短信/电话/钱包/健康/家庭/快捷指令/TestFlight 等）、
+  Microsoft/Google 套件、Zoom/Teams/Slack/Notion/Dropbox、Steam/Discord/Line/KakaoTalk/LinkedIn/Reddit/Snapchat/Pinterest、
+  Prime Video/Disney+/HBO Max、国内 App（贴吧/闲鱼/唯品会/苏宁/猫眼/大麦/芒果TV/酷我/喜马拉雅/斗鱼/虎牙/陌陌/探探/百度网盘/腾讯地图/云闪付/去哪儿/Keep 等）。
+
+### Changed
+
+- **bootstrap httpApi 包装压缩。** get/post/downloadFile/getJSON 改用 `Object.assign({},options,默认值)` 内联形式，
+  压缩 75 字符（bootstrap 解码 61227→61209）；行为等价（Object.assign 自动跳过 null/undefined 源）。
+### Fixed
+
+- **类型声明补齐（CI tsc 全绿）。** `types/autosdk.d.ts` 新增全局 `click(x, y, jitter)` 重载（运行时已支持、类型缺失）、`AutoSelectorBuilder._q` 内部字段声明；修复 `Examples/hello.js` 与全局 `nodeAt` 声明的变量冲突。
+
+
 ## [1.3.1] - 2026-08-06
 
 ### Fixed

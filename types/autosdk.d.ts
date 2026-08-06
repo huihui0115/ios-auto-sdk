@@ -199,6 +199,14 @@ interface AutoOCRItem {
   bounds: AutoRect;
   normalizedBounds: AutoRect;
 }
+interface AutoBarcodeItem {
+  /** Decoded payload text (QR code / barcode content). */
+  text: string;
+  /** Vision symbology, e.g. QR, Aztec, EAN13, Code128, PDF417. */
+  symbology: string;
+  /** Normalized bounds with origin at top-left, matching screenshot coordinates. */
+  bounds: { x: number; y: number; width: number; height: number };
+}
 
 interface AutoHTTPOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
@@ -466,6 +474,7 @@ interface AutoScreenAPI {
   isColors(points: AutoColorPoint[], options?: { tolerance?: number }): boolean;
   cmpColor(points: AutoColorPoint[], options?: { tolerance?: number }): boolean;
   ocr(options?: AutoOCROptions): AutoOCRItem[];
+  scanCode(imagePath: string): AutoBarcodeItem[];
   screenshot(): string;
   capture(): string;
   cache(on: boolean): boolean;
@@ -689,6 +698,9 @@ interface AutoFloatLogAPI {
 }
 
 interface AutoSelectorBuilder {
+  /** Internal query object; do not rely on it (public API may change). */
+  _q?: Record<string, unknown>;
+
   text(value: string): AutoSelectorBuilder;
   textContains(value: string): AutoSelectorBuilder;
   textStartsWith(value: string): AutoSelectorBuilder;
@@ -833,6 +845,8 @@ declare function setInterval(callback: (...args: any[]) => void, milliseconds?: 
 declare function clearInterval(timerId: number): void;
 declare function cancelInterval(timerId: number): void;
 
+declare function click(x: number, y: number, jitter?: number): boolean;
+declare function click(selector: AutoSelectorLike): boolean;
 declare function clickPoint(x: number, y: number): boolean;
 declare function doubleClickPoint(x: number, y: number, intervalSeconds?: number): boolean;
 declare function swipeToPoint(x1: number, y1: number, x2: number, y2: number, durationSeconds?: number): boolean;
@@ -851,6 +865,8 @@ interface AutoOCRBaiduOptions {
 }
 declare function ocrBaidu(imageBase64: string, apiKey: string, secretKey: string, options?: AutoOCRBaiduOptions): { text: string; lines: string[] } | null;
 declare function ocrBaiduText(imageBase64: string, apiKey: string, secretKey: string, options?: AutoOCRBaiduOptions): string | null;
+declare function scanCode(imagePath: string): AutoBarcodeItem[];
+
 declare function saveImageBase64ToAlbum(base64: string): boolean;
 declare function saveVideoToAlbum(path: string): boolean;
 declare function deleteAllPhotos(): number;

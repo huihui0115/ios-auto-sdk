@@ -386,6 +386,10 @@ check(bootstrapScript.includes('function ocrFind(') && bootstrapScript.includes(
 check(bootstrapScript.includes('function ocrBaidu(') && bootstrapScript.includes('g.ocrBaidu=ocrBaidu') &&
       bootstrapScript.includes('g.ocrBaiduText=ocrBaiduText'),
       'Bootstrap must expose the Baidu OCR convenience wrapper');
+check(bootstrapScript.includes("scanCode:function(p){return _nn('scanCode',[String(p||'')]);}") &&
+      bootstrapScript.includes('g.scanCode=screenApi.scanCode'),
+      'Bootstrap must expose scanCode barcode/QR detection and its global alias');
+
 check(bootstrapScript.includes('function _dv(') && bootstrapScript.includes('function _md(') && bootstrapScript.includes('function _nn('),
       'Bootstrap must define the compact bridge helpers');
 check(bootstrapScript.includes('getLanguage:function(){return _dv(\'language\');}') &&

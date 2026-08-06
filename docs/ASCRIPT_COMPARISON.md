@@ -93,7 +93,7 @@
 | KeyValue 存储 | storages.create(name) | ✅ |
 | R.name/root/home/res/img/ui/assets/rel | file.getSandBoxDir / file.* | ✅ 沙盒路径助手等价 |
 | reboot / deactivate | 无 | ❌ 需私有 API / 系统级 |
-| get_app_scheme | app.getAppScheme(name) / launchByScheme(name) | ✅ 内置 40+ 常用 App URL Scheme 库（中文名/英文名/bundleId），对标 AScript 内置 scheme 库 |
+| get_app_scheme | app.getAppScheme(name) / launchByScheme(name) | ✅ 内置 200+ 常用 App URL Scheme 映射（中文名/英文名/bundleId/系统 App），对标 AScript 内置 scheme 库 |
 | get_frontmost_app | app.getFrontmostApp() / getFrontmostApp() | ✅ 前台 bundleId |
 
 ### media / http / thread / ui
@@ -122,9 +122,11 @@
 | ~~P2~~ ✅ | floatLog 悬浮日志窗 | 中 | 已实现：UITextView 悬浮窗（floatLog.show/log/clear） |
 | ~~P3~~ ✅ | 截图缓存 cache/is_cache | 中 | 已实现：screen.cache/isCache + screenshotPath 源图 |
 | ~~P1~~ ✅ | device.setFlashlight / torch（手电筒） | 低 | 已实现：AVCaptureDevice 闪光灯，R27 |
-| ~~P1~~ ✅ | app.getAppScheme / launchByScheme（URL Scheme 库） | 低 | 已实现：内置 40+ 常用 App 映射，R28 |
+| ~~P1~~ ✅ | app.getAppScheme / launchByScheme（URL Scheme 库） | 低 | 已实现：内置 200+ 常用 App 映射（R28 + R34 扩充） |
 | ~~P1~~ ✅ | app.getFrontmostApp（前台应用） | 低 | 已实现：前台 bundleId，R29 |
 | ~~P1~~ ✅ | ocrBaidu / ocrBaiduText（第三方 OCR） | 中 | 已实现：百度通用文字识别，R30 |
+| ~~P2~~ ✅ | 二维码 / 条形码识别（CodeScanner） | 低 | 已实现：Vision VNDetectBarcodesRequest，返回 text/symbology/bounds，R34 |
+
 | P2 | YOLO / OpenCV / tomato 本地模型 | 高 | 需 CoreML 模型文件，可后续插拔 |
 | P2 | reboot / deactivate | 高 | 系统级私有 API，免越狱不可行 |
 | P3 | ESP32 HID 硬件模式 | 高 | 固件 + Broadcast Extension |

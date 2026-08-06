@@ -15,6 +15,7 @@
 #import <WebKit/WebKit.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 #import <UserNotifications/UserNotifications.h>
+#import <Vision/Vision.h>
 #import <mach/mach.h>
 #include <math.h>
 #include <ifaddrs.h>
@@ -478,12 +479,135 @@ static NSString *AutoAppSchemeForName(NSString *name) {
             @"gmail": @"googlegmail://", @"com.google.Gmail": @"googlegmail://",
             @"spotify": @"spotify:", @"com.spotify.client": @"spotify:",
             @"netflix": @"nflx://", @"com.netflix.Netflix": @"nflx://",
+            // Apple system apps
+            @"applemusic": @"music://", @"music": @"music://", @"苹果音乐": @"music://", @"com.apple.Music": @"music://",
+            @"appletv": @"tv://", @"tv": @"tv://", @"com.apple.tv": @"tv://",
+            @"podcasts": @"podcasts://", @"播客": @"podcasts://", @"com.apple.podcasts": @"podcasts://",
+            @"books": @"ibooks://", @"ibooks": @"ibooks://", @"图书": @"ibooks://", @"com.apple.iBooks": @"ibooks://",
+            @"applemaps": @"maps://", @"applemap": @"maps://", @"苹果地图": @"maps://", @"com.apple.Maps": @"maps://",
+            @"weather": @"weather://", @"天气": @"weather://", @"com.apple.weather": @"weather://",
+            @"clock": @"clock-app://", @"时钟": @"clock-app://", @"com.apple.mobiletimer": @"clock-app://",
+            @"photosapp": @"photos-redirect://", @"照片": @"photos-redirect://", @"com.apple.mobileslideshow": @"photos-redirect://",
+            @"camera": @"camera://", @"相机": @"camera://", @"com.apple.camera": @"camera://",
+            @"settingsapp": @"app-settings:", @"设置": @"app-settings:", @"com.apple.Preferences": @"app-settings:",
+            @"contacts": @"contacts://", @"通讯录": @"contacts://", @"com.apple.MobileAddressBook": @"contacts://",
+            @"calendarapp": @"calshow://", @"日历": @"calshow://", @"com.apple.mobilecal": @"calshow://",
+            @"notes": @"mobilenotes://", @"备忘录": @"mobilenotes://", @"com.apple.mobilenotes": @"mobilenotes://",
+            @"reminders": @"x-apple-reminderkit://", @"提醒事项": @"x-apple-reminderkit://", @"com.apple.reminders": @"x-apple-reminderkit://",
+            @"mail": @"message://", @"邮件": @"message://", @"com.apple.mobilemail": @"message://",
+            @"messages": @"sms://", @"短信": @"sms://", @"com.apple.MobileSMS": @"sms://",
+            @"phone": @"tel://", @"电话": @"tel://", @"com.apple.mobilephone": @"tel://",
+            @"facetime": @"facetime://", @"com.apple.facetime": @"facetime://",
+            @"appstore": @"itms-apps://", @"app store": @"itms-apps://", @"应用商店": @"itms-apps://", @"com.apple.AppStore": @"itms-apps://",
+            @"wallet": @"wallet://", @"钱包": @"wallet://", @"com.apple.Passbook": @"wallet://",
+            @"health": @"x-apple-health://", @"健康": @"x-apple-health://", @"com.apple.Health": @"x-apple-health://",
+            @"homeapp": @"home://", @"家庭": @"home://", @"com.apple.Home": @"home://",
+            @"shortcuts": @"shortcuts://", @"快捷指令": @"shortcuts://", @"com.apple.shortcuts": @"shortcuts://",
+            @"testflight": @"itms-beta://", @"com.apple.TestFlight": @"itms-beta://",
+            // Productivity: Microsoft / Google / misc
+            @"outlook": @"ms-outlook://", @"com.microsoft.Office.Outlook": @"ms-outlook://",
+            @"onedrive": @"onedrive://", @"com.microsoft.skydrive": @"onedrive://",
+            @"word": @"ms-word://", @"com.microsoft.Word": @"ms-word://",
+            @"excel": @"ms-excel://", @"com.microsoft.Excel": @"ms-excel://",
+            @"powerpoint": @"ms-powerpoint://", @"com.microsoft.PowerPoint": @"ms-powerpoint://",
+            @"teams": @"msteams://", @"microsoft teams": @"msteams://", @"com.microsoft.skype.teams.ni": @"msteams://",
+            @"wemeet": @"wemeet://", @"腾讯会议": @"wemeet://", @"com.tencent.wemeet": @"wemeet://",
+            @"zoom": @"zoommtg://", @"com.us.zoom.videomeetings": @"zoommtg://",
+            @"skype": @"skype://", @"com.skype.skype": @"skype://",
+            @"slack": @"slack://", @"com.tinyspeck.chatlyio": @"slack://",
+            @"notion": @"notion://", @"notion.id": @"notion://",
+            @"evernote": @"evernote://", @"印象笔记": @"evernote://", @"com.evernote.Evernote": @"evernote://",
+            @"dropbox": @"dbapi-1://", @"com.getdropbox.Dropbox": @"dbapi-1://",
+            @"googlemaps": @"comgooglemaps://", @"谷歌地图": @"comgooglemaps://", @"com.google.Maps": @"comgooglemaps://",
+            @"googledrive": @"googledrive://", @"谷歌网盘": @"googledrive://", @"com.google.Drive": @"googledrive://",
+            @"googlephotos": @"googlephotos://", @"谷歌相册": @"googlephotos://", @"com.google.GooglePhotos": @"googlephotos://",
+            @"googletranslate": @"googletranslate://", @"谷歌翻译": @"googletranslate://", @"com.google.Translate": @"googletranslate://",
+            @"googlecalendar": @"googlecalendar://", @"谷歌日历": @"googlecalendar://", @"com.google.calendar": @"googlecalendar://",
+            @"googlemeet": @"comgooglemeet://", @"com.google.ios.meet": @"comgooglemeet://",
+            @"github": @"github://", @"com.github.GitHubClient": @"github://",
+            @"wps": @"wps://", @"cn.wps.moffice": @"wps://",
+            @"youdao": @"yddict://", @"有道词典": @"yddict://", @"com.youdao.dict": @"yddict://",
+            @"duolingo": @"duo://", @"多邻国": @"duo://", @"com.duolingo.DuolingoMobile": @"duo://",
+            // Social / streaming / shopping (international + China)
+            @"discord": @"discord://", @"com.hammerandchisel.discord": @"discord://",
+            @"line": @"line://", @"jp.naver.line": @"line://",
+            @"kakaotalk": @"kakotalk://", @"kakao": @"kakotalk://", @"com.iwilab.KakaoTalk": @"kakotalk://",
+            @"linkedin": @"linkedin://", @"com.linkedin.LinkedIn": @"linkedin://",
+            @"reddit": @"reddit://", @"com.reddit.Reddit": @"reddit://",
+            @"snapchat": @"snapchat://", @"com.toyopagroup.picaboo": @"snapchat://",
+            @"pinterest": @"pinit://", @"com.pinterest.Pinterest": @"pinit://",
+            @"steam": @"steam://", @"com.valvesoftware.steam.mobile": @"steam://",
+            @"twitch": @"twitch://", @"com.twitch.twitchapp": @"twitch://",
+            @"amazon": @"amzn://", @"com.amazon.Amazon": @"amzn://",
+            @"ebay": @"ebay://", @"com.ebay.iphone": @"ebay://",
+            @"primevideo": @"primevideo://", @"com.amazon.avod.iphone": @"primevideo://",
+            @"disneyplus": @"disneyplus://", @"disney+": @"disneyplus://", @"com.disney.disneyplus": @"disneyplus://",
+            @"hbomax": @"hbomax://", @"com.hbo.hbomax": @"hbomax://",
+            @"tieba": @"tieba://", @"贴吧": @"tieba://", @"com.baidu.tieba": @"tieba://",
+            @"idlefish": @"idlefish://", @"闲鱼": @"idlefish://", @"com.taobao.idlefish": @"idlefish://",
+            @"vipshop": @"vipshop://", @"唯品会": @"vipshop://", @"com.vipshop": @"vipshop://",
+            @"suning": @"suning://", @"苏宁易购": @"suning://", @"com.suning.mobile.ebuy": @"suning://",
+            @"maoyan": @"maoyan://", @"猫眼": @"maoyan://", @"com.sankuai.movie": @"maoyan://",
+            @"damai": @"damai://", @"大麦": @"damai://", @"cn.damai": @"damai://",
+            @"mangotv": @"imgtv://", @"芒果tv": @"imgtv://", @"芒果TV": @"imgtv://", @"com.hunantv.imgo": @"imgtv://",
+            @"kwmusic": @"kwmusic://", @"酷我音乐": @"kwmusic://", @"com.kuwo.kwmusic": @"kwmusic://",
+            @"ximalaya": @"ximalaya://", @"喜马拉雅": @"ximalaya://", @"com.gemd.iting": @"ximalaya://",
+            @"douyutv": @"douyutv://", @"斗鱼": @"douyutv://", @"com.air.douyutv": @"douyutv://",
+            @"huya": @"huya://", @"虎牙": @"huya://", @"com.duowan.huya": @"huya://",
+            @"momo": @"momo://", @"陌陌": @"momo://", @"com.immomo.momo": @"momo://",
+            @"tantan": @"tantan://", @"探探": @"tantan://", @"com.p1er.tantan": @"tantan://",
+            @"baidunetdisk": @"baiduyun://", @"百度网盘": @"baiduyun://", @"com.baidu.netdisk": @"baiduyun://",
+            @"qqmap": @"qqmap://", @"腾讯地图": @"qqmap://", @"com.tencent.map": @"qqmap://",
+            @"unionpay": @"unionpay://", @"云闪付": @"unionpay://", @"com.unionpay.cloudpay": @"unionpay://",
+            @"qunar": @"qunariphone://", @"去哪儿": @"qunariphone://", @"com.Qunar.QunarApp": @"qunariphone://",
+            @"keep": @"keep://", @"com.gotokeep.keep": @"keep://",
         };
     });
     NSString *trimmed = [name stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
     NSString *scheme = autoAppSchemes[trimmed];
     if (!scheme) scheme = autoAppSchemes[trimmed.lowercaseString];
     return scheme;
+}
+
+// Detects QR codes / barcodes in an image file. Returns [{text, symbology, bounds:{x,y,width,height}}]
+// with normalized coordinates (origin top-left, matching screenshot bounds).
+static NSArray<NSDictionary<NSString *, id> *> *AutoScanBarcodes(NSData *imageData, NSError **error) {
+    if (!imageData || imageData.length == 0) {
+        if (error) *error = AutoMakeError(AutoSDKErrorAutomationFailed, @"scanCode received an empty image.", nil);
+        return nil;
+    }
+    if (imageData.length > 64 * 1024 * 1024) {
+        if (error) *error = AutoMakeError(AutoSDKErrorAutomationFailed, @"scanCode image exceeds the 64 MB limit.", nil);
+        return nil;
+    }
+    UIImage *image = [UIImage imageWithData:imageData];
+    CGImageRef sourceImage = image.CGImage;
+    if (!sourceImage) {
+        if (error) *error = AutoMakeError(AutoSDKErrorAutomationFailed, @"scanCode cannot decode the image file.", nil);
+        return nil;
+    }
+    NSError *visionError = nil;
+    VNDetectBarcodesRequest *request = [VNDetectBarcodesRequest new];
+    VNImageRequestHandler *handler = [[VNImageRequestHandler alloc] initWithCGImage:sourceImage options:@{}];
+    if (![handler performRequests:@[request] error:&visionError]) {
+        if (error) *error = visionError ?: AutoMakeError(AutoSDKErrorAutomationFailed, @"Barcode detection failed.", nil);
+        return nil;
+    }
+    NSMutableArray<NSDictionary<NSString *, id> *> *results = [NSMutableArray array];
+    for (VNBarcodeObservation *observation in request.results) {
+        NSMutableDictionary<NSString *, id> *item = [NSMutableDictionary dictionary];
+        if (observation.payloadStringValue.length > 0) item[@"text"] = observation.payloadStringValue;
+        if (observation.symbology.length > 0) item[@"symbology"] = observation.symbology;
+        CGRect box = observation.boundingBox; // normalized, origin bottom-left
+        item[@"bounds"] = @{
+            @"x": @(box.origin.x),
+            @"y": @(1.0 - box.origin.y - box.size.height),
+            @"width": @(box.size.width),
+            @"height": @(box.size.height),
+        };
+        [results addObject:item];
+    }
+    return results;
 }
 static UILabel *AutoActiveToastLabel;
 static void AutoShowToast(NSString *message) {
@@ -2799,6 +2923,24 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             [name isEqualToString:@"webViewRelease"]) {
             NSArray *webArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
             return [self handleWebViewOperation:name arguments:webArgs];
+        }
+        if ([name isEqualToString:@"scanCode"]) {
+            NSArray *scanArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            NSString *pathValue = scanArgs.count > 0 && [scanArgs[0] isKindOfClass:NSString.class] ? scanArgs[0] : @"";
+            if (pathValue.length == 0) {
+                return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"scanCode requires an image file path.", nil)];
+            }
+            NSError *resolveError = nil;
+            id resolved = AutoScriptFileOperation(@{ @"operation": @"resolvePath", @"path": pathValue }, self.config ?: @{}, &resolveError);
+            if (resolveError) return [self failure:resolveError];
+            NSString *resolvedPath = [resolved isKindOfClass:NSString.class] ? resolved : pathValue;
+            NSData *scanData = [NSData dataWithContentsOfFile:resolvedPath];
+            if (!scanData) {
+                return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"scanCode cannot read the image file.", nil)];
+            }
+            NSError *scanError = nil;
+            NSArray *scanResults = AutoScanBarcodes(scanData, &scanError);
+            return scanError ? [self failure:scanError] : (scanResults ?: @[]);
         }
         if ([name isEqualToString:@"notify"]) {
             NSArray *notifyArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];

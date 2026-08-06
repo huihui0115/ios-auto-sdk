@@ -34,8 +34,8 @@ device.setClipboard("AutoSDK demo");
 console.log("clipboard:", device.getClipboard());
 
 // Node objects + screen cache + floatLog (round 20, benchmark AScript)
-const nodeAt = node.at(10, 10);
-console.log("node.at ->", nodeAt ? nodeAt.type : "none");
+const nodeAtObj = node.at(10, 10);
+console.log("node.at ->", nodeAtObj ? nodeAtObj.type : "none");
 screen.cache(true);
 const cached = screen.isCache();
 screen.cache(false);

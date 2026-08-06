@@ -1307,6 +1307,17 @@ test('ocrBaidu fetches token, posts base64 image and joins words', () => {
   assert.equal(typeof sandbox.auto.ocrBaidu, 'function');
 });
 
+test('scanCode routes image path to native bridge and global alias works', () => {
+  const { sandbox, calls } = boot();
+  sandbox.screen.scanCode('/tmp/code.png');
+  assert.deepEqual(calls.native.at(-1), { name: 'scanCode', arguments: ['/tmp/code.png'] });
+  sandbox.scanCode('');
+  assert.deepEqual(calls.native.at(-1), { name: 'scanCode', arguments: [''] });
+  sandbox.auto.scanCode('a.png'); // auto proxy falls back to screenApi
+  assert.deepEqual(calls.native.at(-1), { name: 'scanCode', arguments: ['a.png'] });
+  assert.equal(typeof sandbox.screen.scanCode, 'function');
+});
+
 test('device isScreenOn/isLocked expose lock state', () => {
   const { sandbox } = boot();
   assert.equal(sandbox.isScreenOn(), true);

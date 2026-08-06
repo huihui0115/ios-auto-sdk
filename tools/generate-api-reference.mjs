@@ -1003,6 +1003,14 @@ main();` });APIS.push({ cat:'vision', sig:'ocrText(text, timeoutMs?)', title:'�
   if (item) logd("坐标: " + item.bounds.x + "," + item.bounds.y);
 }
 main();` });
+APIS.push({ cat:'vision', sig:'scanCode(imagePath)', title:'二维码/条形码识别', desc:'用设备端 Vision 检测图片中的二维码/条形码，返回 [{ text, symbology, bounds }]；imagePath 为沙盒内图片路径（可先用 screenshot() 得到当前屏幕截图路径）；bounds 为归一化坐标（左上原点，与截图一致）。对标 AScript CodeScanner。', params:[['imagePath','string','沙盒内图片路径，空串时返回空数组']], returns:'AutoBarcodeItem[]', example:`function main(){
+  const path = screenshot();
+  const codes = scanCode(path);
+  for (const c of codes) {
+    logd(c.text + " [" + c.symbology + "] @ " + JSON.stringify(c.bounds));
+  }
+}
+main();` });
 APIS.push({ cat:'vision', sig:'ocrBaidu(imageBase64, apiKey, secretKey, options?) / ocrBaiduText(...)', title:'百度 OCR 文字识别', desc:'调用百度 OCR 通用文字识别接口（general_basic），返回 { text, lines }；ocrBaiduText 只返回纯文本。imageBase64 为图片 base64（可用 file.readBase64(path) 或截图得到；自动剥离 data: 前缀）；apiKey/secretKey 在百度智能云控制台创建应用获取；需 allowNetwork 权限。对标 AScript 内置第三方 OCR 能力。', params:[['imageBase64','string','图片 base64，支持 data:image/...;base64, 前缀'],['apiKey','string','百度智能云 API Key'],['secretKey','string','百度智能云 Secret Key'],['options','AutoOCRBaiduOptions','可选：timeoutMs 默认 30000']], returns:'{ text, lines } | null', example:`function main(){
   const b64 = file.readBase64('/sdcard/shot.png');
   const res = ocrBaidu(b64, '你的APIKey', '你的SecretKey');

@@ -97,7 +97,7 @@
   <p class="hero-links">
     <a href="../index.html">📚 文档中心（在线/离线）</a>
     <a href="https://github.com/huihui0115/ios-auto-sdk/releases">⬇️ Releases 下载 IPA / 插件</a>
-    <a href="../api-reference.html">🧩 API 参考（244 函数）</a>
+    <a href="../api-reference.html">🧩 API 参考（245 函数）</a>
   </p>
 </header>
 <div class="wrap">
@@ -245,6 +245,8 @@ logd("前台: " + front);
 
 // 百度 OCR（需自备百度智能云 API Key/Secret，脚本需 allowNetwork 权限）
 const ocrText = ocrBaiduText(file.readBase64("/tmp/shot.png"), "你的APIKey", "你的SecretKey");</code></pre>
+const qr = scanCode(screenshot());            // 二维码/条形码识别（Vision）
+if (qr.length) console.log("扫码结果: " + qr[0].text);</code></pre>
 </section>
 
 <section id="debug">
