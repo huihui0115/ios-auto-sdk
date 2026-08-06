@@ -97,7 +97,7 @@
   <p class="hero-links">
     <a href="../index.html">📚 文档中心（在线/离线）</a>
     <a href="https://github.com/huihui0115/ios-auto-sdk/releases">⬇️ Releases 下载 IPA / 插件</a>
-    <a href="../api-reference.html">🧩 API 参考（234 函数）</a>
+    <a href="../api-reference.html">🧩 API 参考（244 函数）</a>
   </p>
 </header>
 <div class="wrap">
@@ -229,6 +229,22 @@ auto.click({ label: "AutoSDK Scripts", type: "Button" });
     <li><b>AutoSDK: Manage Device Scripts</b>：列出/运行/删除手机上的脚本。</li>
     <li>手机 App 的脚本列表里也会出现刚发送的脚本，点 ▶ 直接运行。</li>
   </ul>
+
+  <h3>5.4 常用新能力速查（复制即用）</h3>
+  <pre><code>// 手电筒开关（需 allowSystemControl 权限）
+device.setFlashlight(true);  // 开灯
+device.torch(false);         // 关灯
+
+// 内置 40+ 常用 App URL Scheme 库：按名称查询 / 直接启动
+const scheme = app.getAppScheme("微信");  // "weixin://"
+app.launchByScheme("taobao");             // 通过 scheme 启动淘宝
+
+// 当前前台应用（对标 AScript get_frontmost_app）
+const front = getFrontmostApp();          // bundleId 或 null
+logd("前台: " + front);
+
+// 百度 OCR（需自备百度智能云 API Key/Secret，脚本需 allowNetwork 权限）
+const ocrText = ocrBaiduText(file.readBase64("/tmp/shot.png"), "你的APIKey", "你的SecretKey");</code></pre>
 </section>
 
 <section id="debug">

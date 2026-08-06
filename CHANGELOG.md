@@ -7,6 +7,7 @@ All notable changes to AutoSDK are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Round 31: 教程网页更新。** `docs/guide/index.html` 函数计数刷新为 244，新增「5.4 常用新能力速查」小节（手电筒 / App Scheme 库 / getFrontmostApp / 百度 OCR 的复制即用示例）；本轮无代码逻辑变更，verify/测试/文档全绿。
 - **Round 30: 百度 OCR 封装。** 新增 `ocrBaidu(imageBase64, apiKey, secretKey, options?)` / `ocrBaiduText(...)`：自动获取 access_token 后直传图片 base64 调用百度通用文字识别，返回 `{text, lines}`；对标 AScript 第三方 OCR 能力（需自备百度智能云 Key 与 allowNetwork 权限）。bootstrap 解码体积 60057 → 61178（仍在 60KB 预算内），d.ts/文档/verify/测试同步。文档 244 条；测试 65 项全绿。
 - **Round 29: bootstrap 压缩 + 前台应用查询。** 压缩 stringsApi（正则化 isUpper/isLower/isNumber/isIntrger/isLetter/isChinese + SS 取值助手），bootstrap 解码体积 61221 → 60057（释放约 1.1KB 预算）；新增 `app.getFrontmostApp()` / 全局 `getFrontmostApp()`（前台 bundleId，对标 AScript get_frontmost_app / EasyClick getFrontmostApp()），d.ts/文档/verify/测试同步。文档 243 条；测试 64 项全绿。
 - **Round 28: App URL Scheme 库。** 新增 `app.getAppScheme(name)` / `app.launchByScheme(name)` 及全局简写（原生内置 40+ 常用 App 的 URL Scheme 映射，支持中文名/英文名/bundleId 查询，对标 AScript 内置 URL Scheme 启动库与 EasyClick getAppScheme()）；bootstrap 新增 `_av('getAppScheme'/`_av('launchByScheme')` 调用点与导出，d.ts/文档/verify/测试同步，`system-demo.js` 补充 scheme 演示。文档 242 条；测试 63 项全绿。
