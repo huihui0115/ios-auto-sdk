@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 44（v1.14.0，2026-08-06）。
+> 最后更新：Round 45（v1.15.0，2026-08-06）。
 
 ---
 
@@ -66,11 +66,11 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 44 / v1.14.0）
+## 4. 当前状态（Round 45 / v1.15.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
-- bootstrap 解码 **61300 / 61440**（预算 60×1024 UTF-16 码元）。
-- 文档 **257 个函数 / 257 个可运行示例 / 13 个分类**；测试 **78 项**。
+- bootstrap 解码 **60895 / 61440**（预算 60×1024 UTF-16 码元）。
+- 文档 **257 个函数 / 257 个可运行示例 / 13 个分类**；测试 **79 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`。
 
 已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
@@ -100,8 +100,7 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 ## 6. 已知缺口 / 待办（下轮优先）
 
 ### 可实现（JS 别名/封装，注意 60KB 预算）
-- `allChildren()`（EasyClick 语义为递归所有子孙节点，需 JS 层递归实现；
-  children/parent/siblings/nextSiblings/previousSiblings 已在 R44 完成）。
+
 - `touchDown/touchMove/touchUp` 手势原语别名（语义需谨慎，见
   `docs/EASYCLICK_COMPARISON.md` 触摸行）。
 - `image.readBitmap/bitmapToImage/base64Bitmap/bitmapBase64/saveBitmap`
@@ -180,6 +179,8 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   nameMatch/labelMatch/valueMatch）；ss/sx 工厂压缩 -264B（余 349B）。
 - R44（v1.14.0）：节点关系方法 children/parent/siblings/nextSiblings/
   previousSiblings（nr 工厂）；set_text/clear_text 引用化（余 140B）。
+- R45（v1.15.0）：node.allChildren() 递归子孙；dp helper 压缩 -405B +
+  修复 boundsInfo 不可重定义 TypeError（余 545B）。
 
 ## 10. 新 AI 接手第一步
 

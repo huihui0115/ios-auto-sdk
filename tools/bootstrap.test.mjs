@@ -180,7 +180,11 @@ function createSandbox() {
     invokeWaitFor: () => true,
     invokeGetAttribute: () => 'attribute-value',
     invokeGetBounds: () => ({ x: 10, y: 20, width: 100, height: 50, centerX: 60, centerY: 45 }),
-    invokeGetChildren: () => [{ handle: 'h2' }],
+    invokeGetChildren: (data) => {
+      if (data && data.handle === 'h2') return [{ handle: 'h3' }];
+      if (data && data.handle === 'h3') return [];
+      return [{ handle: 'h2' }];
+    },
     invokeGetParent: () => ({ handle: 'h0' }),
     invokeScrollIntoView: () => true,
     invokeCapabilities: () => ({ click: true }),
@@ -633,6 +637,20 @@ test('node relation methods wrap children/parent/siblings like EasyClick', () =>
   assert.deepEqual(node.previousSiblings(), []);
   assert.equal(node.set_text, node.setText);
   assert.equal(node.clear_text, node.clearText);
+  const descendants = node.allChildren();
+  assert.deepEqual(descendants.map((n) => n.handle), ['h2', 'h3']);
+  assert.equal(typeof descendants[0].click, 'function');
+});
+
+test('boundsInfo refreshes rect/center on bounds-less nodes without throwing', () => {
+  const { sandbox } = boot();
+  const node = sandbox.findNode({ id: 'x' });
+  assert.equal(node.rect, null);
+  const bounds = node.boundsInfo();
+  assert.equal(bounds.width, 100);
+  assert.equal(node.rect.width, 100);
+  assert.equal(node.center.x, 60);
+  assert.equal(node.center.y, 45);
 });
 
 test('direction swipes compute screen-relative coordinates and seconds duration', () => {

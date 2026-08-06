@@ -742,12 +742,12 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="node.children() / node.parent() / node.siblings() / node.nextSiblings() / node.previousSiblings() 节点关系遍历（EasyClick 风格）">
+<article class="card" data-search="node.children() / node.allChildren() / node.parent() / node.siblings() / node.nextSiblings() / node.previousSiblings() 节点关系遍历（EasyClick 风格）">
   <header class="card-head">
-    <h4><code>node.children() / node.parent() / node.siblings() / node.nextSiblings() / node.previousSiblings()</code> <span class="cname">节点关系遍历（EasyClick 风格）</span></h4>
+    <h4><code>node.children() / node.allChildren() / node.parent() / node.siblings() / node.nextSiblings() / node.previousSiblings()</code> <span class="cname">节点关系遍历（EasyClick 风格）</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">EasyClick node 关系方法：在节点对象上直接调用，children() 取子节点、parent() 取父节点、siblings()/nextSiblings()/previousSiblings() 取兄弟，返回值均为包装好的节点对象，可继续 .click()/.attr() 等操作。</p>
+  <p class="desc">EasyClick node 关系方法：在节点对象上直接调用，children() 取直接子节点、allChildren() 递归取所有子孙节点、parent() 取父节点、siblings()/nextSiblings()/previousSiblings() 取兄弟，返回值均为包装好的节点对象，可继续 .click()/.attr() 等操作。</p>
   
   
   <div class="ret"><b>返回值</b> <span>AutoNodeObject[] | AutoNodeObject | null</span></div>
@@ -755,6 +755,7 @@ main();</code></pre>
   const node = findElement({text: "当前项"});
   const kids = node.children();
   logd("子节点数: " + kids.length);
+  logd("子孙节点数: " + node.allChildren().length);
   const parent = node.parent();
   if (parent) parent.click();
   logd("后序兄弟: " + node.nextSiblings().length);

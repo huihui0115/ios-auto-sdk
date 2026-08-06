@@ -6,6 +6,26 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-08-06
+
+### Added
+
+- **node.allChildren()**：EasyClick 语义的递归子孙遍历——返回节点下所有层级
+  子孙（深度优先），全部为包装节点。
+- **测试**：新增 allChildren 递归用例与 boundsInfo 回归用例（共 79 项）；
+  测试 mock 的 invokeGetChildren 升级为按 handle 返回层级数据。
+
+### Fixed
+
+- **boundsInfo 潜在 TypeError**：rect/center 原先以不可重定义方式挂载，
+  无 bounds 节点首次 boundsInfo() 刷新时会抛 TypeError；dp helper 统一改为
+  configurable 定义，重定义安全。
+
+### Changed
+
+- **bootstrap 压缩 -405B（61300→60895，余 545B）**：wrapNode 内所有属性挂载
+  统一走 dp(n,v) helper（configurable:!0），nr 工厂同步简化。
+
 ## [1.14.0] - 2026-08-06
 
 ### Added

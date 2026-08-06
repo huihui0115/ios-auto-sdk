@@ -112,6 +112,7 @@ interface AutoNodeObject extends Omit<AutoNode, "selected"> {
   attr(name: string): unknown;
   boundsInfo(): AutoRect | null;
   children(): AutoNodeObject[];
+  allChildren(): AutoNodeObject[];
   parent(): AutoNodeObject | null;
   siblings(): AutoNodeObject[];
   nextSiblings(): AutoNodeObject[];

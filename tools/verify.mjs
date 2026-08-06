@@ -998,16 +998,19 @@ check(typeDefinitions.includes('idMatch(value: string): AutoSelectorBuilder') &&
       typeDefinitions.includes('labelMatch(pattern: string): AutoSelectorBuilder') &&
       typeDefinitions.includes('valueMatch(pattern: string): AutoSelectorBuilder'),
       'Type definitions must describe the EasyClick selector match aliases');
-check(bootstrapScript.includes("function nr(n,f,multi){Object.defineProperty(node,n,{value:function(){var r=f(raw);return multi?(r||[]).map(wrapNode):wrapNode(r);}});}") &&
+check(bootstrapScript.includes("function dp(n,v){Object.defineProperty(node,n,{value:v,configurable:!0});}") &&
+      bootstrapScript.includes("function nr(n,f,multi){dp(n,function(){var r=f(raw);return multi?(r||[]).map(wrapNode):wrapNode(r);});}") &&
       bootstrapScript.includes("nr('children',base.getChildren,1);") &&
       bootstrapScript.includes("nr('siblings',base.getSiblings,1);") &&
       bootstrapScript.includes("nr('nextSiblings',base.getNextSiblings,1);") &&
       bootstrapScript.includes("nr('previousSiblings',base.getPreviousSiblings,1);") &&
       bootstrapScript.includes("nr('parent',base.getParent);") &&
-      bootstrapScript.includes("Object.defineProperty(node,'set_text',{value:node.setText});") &&
-      bootstrapScript.includes("Object.defineProperty(node,'clear_text',{value:node.clearText});"),
-      'Bootstrap must expose EasyClick node relation methods via the nr factory');
+      bootstrapScript.includes("nr('allChildren',function(s){var out=[];function walk(list){for(var i=0;i<list.length;i++){out.push(list[i]);walk(base.getChildren(list[i])||[]);}}walk(base.getChildren(s)||[]);return out;},1);") &&
+      bootstrapScript.includes("dp('set_text',node.setText);") &&
+      bootstrapScript.includes("dp('clear_text',node.clearText);"),
+      'Bootstrap must expose EasyClick node relation methods (incl. allChildren) via the dp/nr factories');
 check(typeDefinitions.includes('children(): AutoNodeObject[]') &&
+      typeDefinitions.includes('allChildren(): AutoNodeObject[]') &&
       typeDefinitions.includes('nextSiblings(): AutoNodeObject[]') &&
       typeDefinitions.includes('previousSiblings(): AutoNodeObject[]'),
       'Type definitions must describe node relation methods');
