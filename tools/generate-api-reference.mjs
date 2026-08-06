@@ -994,12 +994,19 @@ APIS.push({ cat:'vision', sig:'ocr(options?)', title:'文字识别（OCR）', de
 }
 main();` });
 APIS.push({ cat:'vision', sig:'ocrClick(text, timeoutMs?)', title:'识别并点击文字', desc:'反复 OCR 直到屏幕出现包含指定文本的识别项，然后点击该文本中心点；timeoutMs 默认 10000 毫秒，超时返回 false。用于「看不到控件」时按文字坐标点击，对标 AScript ocr 文字点击。', params:[['text','string','要匹配的文本（包含即命中）'],['timeoutMs','number','可选，总超时毫秒，默认 10000']], returns:'boolean', example:`function main(){
+  'ocrBaidu(image, apiKey, secretKey)': 'AScript 第三方 OCR · 百度智能云通用文字识别',
   const ok = ocrClick("确定");
   logd("点到了吗: " + ok);
 }
 main();` });APIS.push({ cat:'vision', sig:'ocrText(text, timeoutMs?)', title:'识别并读取文字', desc:'反复 OCR 直到屏幕出现包含指定文本的识别项，返回该项（含 text/bounds/confidence），超时返回 null。可配合 ocrClick 先确认文本出现再操作。', params:[['text','string','要匹配的文本（包含即命中）'],['timeoutMs','number','可选，总超时毫秒，默认 10000']], returns:'AutoOCRItem | null', example:`function main(){
   const item = ocrText("开始");
   if (item) logd("坐标: " + item.bounds.x + "," + item.bounds.y);
+}
+main();` });
+APIS.push({ cat:'vision', sig:'ocrBaidu(imageBase64, apiKey, secretKey, options?) / ocrBaiduText(...)', title:'百度 OCR 文字识别', desc:'调用百度 OCR 通用文字识别接口（general_basic），返回 { text, lines }；ocrBaiduText 只返回纯文本。imageBase64 为图片 base64（可用 file.readBase64(path) 或截图得到；自动剥离 data: 前缀）；apiKey/secretKey 在百度智能云控制台创建应用获取；需 allowNetwork 权限。对标 AScript 内置第三方 OCR 能力。', params:[['imageBase64','string','图片 base64，支持 data:image/...;base64, 前缀'],['apiKey','string','百度智能云 API Key'],['secretKey','string','百度智能云 Secret Key'],['options','AutoOCRBaiduOptions','可选：timeoutMs 默认 30000']], returns:'{ text, lines } | null', example:`function main(){
+  const b64 = file.readBase64('/sdcard/shot.png');
+  const res = ocrBaidu(b64, '你的APIKey', '你的SecretKey');
+  if (res) logd('识别结果: ' + res.text);
 }
 main();` });APIS.push({ cat:'vision', sig:'image.findImage / findColor / pixel / screenshot', title:'图色模块别名', desc:'image 命名空间提供图色函数别名，便于移植。', params:[], returns:'同对应函数', example:`function main(){
   const png = image.screenshot();

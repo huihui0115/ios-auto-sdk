@@ -378,6 +378,9 @@ check(bootstrapScript.includes("loadHTML:function(token,html)") && bootstrapScri
 check(bootstrapScript.includes('function ocrFind(') && bootstrapScript.includes('g.ocr=base.ocr') &&
       bootstrapScript.includes('g.ocrClick=ocrClick') && bootstrapScript.includes('g.ocrText=ocrText'),
       'Bootstrap must expose ocrClick/ocrText convenience helpers and the ocr global');
+check(bootstrapScript.includes('function ocrBaidu(') && bootstrapScript.includes('g.ocrBaidu=ocrBaidu') &&
+      bootstrapScript.includes('g.ocrBaiduText=ocrBaiduText'),
+      'Bootstrap must expose the Baidu OCR convenience wrapper');
 check(bootstrapScript.includes('function _dv(') && bootstrapScript.includes('function _md(') && bootstrapScript.includes('function _nn('),
       'Bootstrap must define the compact bridge helpers');
 check(bootstrapScript.includes('getLanguage:function(){return _dv(\'language\');}') &&

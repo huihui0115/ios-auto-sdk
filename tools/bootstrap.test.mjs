@@ -1284,6 +1284,25 @@ test('getFrontmostApp returns the foreground app via app bridge', () => {
   sandbox.auto.getFrontmostApp(); // auto proxy falls back to appApi
   assert.deepEqual(calls.app.at(-1), { operation: 'current' });
 });
+test('ocrBaidu fetches token, posts base64 image and joins words', () => {
+  const { sandbox, calls, bridge } = boot();
+  let tokenCalls = 0;
+  bridge.invokeHTTP = (data) => {
+    calls.http.push(data);
+    if (data.url.indexOf('/oauth/2.0/token') >= 0) { tokenCalls++; return { ok: true, status: 200, json: { access_token: 'tok123' } }; }
+    return { ok: true, status: 200, json: { words_result: [{ words: '你好' }, { words: '世界' }] } };
+  };
+  const res = sandbox.ocrBaidu('aGVsbG8=', 'ak', 'sk', { timeoutMs: 5000 });
+  assert.deepEqual(res, { text: '你好\n世界', lines: ['你好', '世界'] });
+  assert.equal(tokenCalls, 1);
+  assert.equal(sandbox.ocrBaiduText('aGVsbG8=', 'ak', 'sk'), '你好\n世界');
+  assert.equal(sandbox.ocrBaidu('aGVsbG8=', '', 'sk'), null, 'empty api key must return null');
+  assert.equal(sandbox.ocrBaidu('', 'ak', 'sk'), null, 'empty image must return null');
+  sandbox.ocrBaidu('data:image/png;base64,aGVsbG8=', 'ak', 'sk');
+  assert.equal(calls.http.at(-1).bodyBase64, 'aGVsbG8=', 'data-url prefix must be stripped');
+  assert.equal(calls.http.at(-1).headers['Content-Type'], 'application/octet-stream');
+  assert.equal(typeof sandbox.auto.ocrBaidu, 'function');
+});
 
 test('device isScreenOn/isLocked expose lock state', () => {
   const { sandbox } = boot();

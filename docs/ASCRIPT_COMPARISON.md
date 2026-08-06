@@ -59,7 +59,8 @@
 | CompareColors.compare(...) | compareColors / screen.isColors / cmpColor | ✅ 多点比色 |
 | CountingColor.count(...) | findColorCount / screen.findColorCount | ✅ 颜色数量统计 |
 | ocr（内置） | ocr() / screen.ocr() + ocrClick(text)/ocrText(text) | ✅ 本地 Vision OCR；按文字点击/查找 |
-| ocr-baidu / ocr-tomato / opencv / yolo | 无 | ❌ 第三方 OCR/模型（需模型与网络） |
+| ocr-baidu | ocrBaidu(imageBase64, apiKey, secretKey) / ocrBaiduText | ✅ 百度通用文字识别（需自备 Key + allowNetwork） |
+| ocr-tomato / opencv / yolo | 无 | ❌ 需本地模型（后续可插 CoreML） |
 
 ### node（控件）
 

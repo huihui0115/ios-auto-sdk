@@ -846,6 +846,11 @@ declare function keepScreenOn(value?: boolean): boolean;
 declare function ocr(options?: AutoOCROptions): AutoOCRItem[];
 declare function ocrClick(text: string, timeoutMs?: number): boolean;
 declare function ocrText(text: string, timeoutMs?: number): AutoOCRItem | null;
+interface AutoOCRBaiduOptions {
+  timeoutMs?: number;
+}
+declare function ocrBaidu(imageBase64: string, apiKey: string, secretKey: string, options?: AutoOCRBaiduOptions): { text: string; lines: string[] } | null;
+declare function ocrBaiduText(imageBase64: string, apiKey: string, secretKey: string, options?: AutoOCRBaiduOptions): string | null;
 declare function saveImageBase64ToAlbum(base64: string): boolean;
 declare function saveVideoToAlbum(path: string): boolean;
 declare function deleteAllPhotos(): number;
