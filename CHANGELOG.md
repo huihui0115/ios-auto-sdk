@@ -6,6 +6,22 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-08-06
+
+### Added
+
+- **EasyClick thread/utils 命名空间。** 对标 EasyClick thread/utils 模块：thread.execAsync/execSync/cancelThread/stopAll/isCancelled；utils.dataMd5/fileMd5/randomInt/randomCharNumber/getRangeInt/getRatio/zip/unzip/readFileInZip/playMp3/stopMp3/deleteAllPhotos/deleteAllVideos/requestPhotoAuthorization。
+
+- **EasyClick 全局别名。** getPasteboard/setPasteboard 剪贴板、openUrl 打开链接、uploadToAlbum 保存图片到相册、childcount 子节点数；device.applist 应用列表、device.getOrientationNoAuto 方向、device.getDeviceMsg 设备信息；image.captureFullScreen 全屏截图。文档 254 函数，测试 75 项。
+
+### Changed
+
+- **bootstrap 再压缩 880B。** dvf/avf 收敛 deviceApi/appApi 44 处零参 getter，hsh/hsh2 收敛 md5/sha/hmac 系列，arr helper 微缩，布尔参数精简；新增功能后解码 61434/61440（仍低于 60KB 预算）。
+
+### Fixed
+
+- **verify/测试/类型/文档同步。** verify.mjs 断言更新为压缩后文本并新增 thread/utils/别名检查；d.ts 增加 AutoThreadAPI/AutoUtilsAPI 与全局别名；bootstrap 测试新增 round40 用例；EASYCLICK_COMPARISON 增加线程与工具模块行。
+
 ## [1.9.0] - 2026-08-06
 
 ### Added

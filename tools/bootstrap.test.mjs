@@ -1436,3 +1436,48 @@ test('EasyClick color tools: parseColor/int2Hex/hex2Int/rgb/argb and global alia
   assert.equal(sandbox.argb(255, 1, 2, 3), 0xff010203);
   assert.equal(sandbox.colors.argb(0, 255, 255, 255), 0x00ffffff);
 });
+
+test('round40: thread/utils namespaces, EasyClick global aliases and device/image extras', () => {
+  const { sandbox, calls } = boot();
+  // thread namespace (EasyClick thread module)
+  assert.equal(typeof sandbox.thread, 'object');
+  const t = sandbox.thread.execAsync(function () { return 1; }, 'a');
+  assert.equal(t.join().threadId, 1001);
+  assert.equal(typeof sandbox.thread.execSync, 'function');
+  assert.equal(sandbox.thread.execSync(function () { return 1; }, 'hi'), 'sync-result-hi');
+  sandbox.thread.stopAll();
+  assert.deepEqual(calls.execOp.at(-1), { operation: 'stopAll' });
+  sandbox.thread.cancelThread(t);
+  assert.deepEqual(calls.execOp.at(-1), { operation: 'cancel', threadId: 1001 });
+  assert.equal(sandbox.thread.isCancelled(), false);
+  // utils namespace (EasyClick utils module)
+  assert.equal(sandbox.utils.dataMd5('abc'), 'md5-of-abc');
+  assert.equal(typeof sandbox.utils.fileMd5, 'function');
+  assert.equal(typeof sandbox.utils.randomInt, 'function');
+  assert.equal(typeof sandbox.utils.randomCharNumber, 'function');
+  assert.equal(typeof sandbox.utils.getRangeInt, 'function');
+  assert.equal(typeof sandbox.utils.getRatio, 'function');
+  assert.equal(typeof sandbox.utils.zip, 'function');
+  assert.equal(typeof sandbox.utils.unzip, 'function');
+  assert.equal(typeof sandbox.utils.readFileInZip, 'function');
+  assert.equal(typeof sandbox.utils.playMp3, 'function');
+  assert.equal(typeof sandbox.utils.stopMp3, 'function');
+  assert.equal(typeof sandbox.utils.deleteAllPhotos, 'function');
+  assert.equal(typeof sandbox.utils.deleteAllVideos, 'function');
+  assert.equal(typeof sandbox.utils.requestPhotoAuthorization, 'function');
+  // EasyClick global aliases
+  assert.equal(sandbox.getPasteboard(), 'clipboard-value');
+  assert.equal(sandbox.setPasteboard('new'), true);
+  assert.deepEqual(calls.device.at(-1), { operation: 'clipboardSet', text: 'new' });
+  sandbox.openUrl('https://example.com');
+  assert.deepEqual(calls.app.at(-1), { operation: 'openURL', url: 'https://example.com' });
+  assert.equal(sandbox.uploadToAlbum('a.png'), true);
+  assert.deepEqual(calls.media.at(-1), { operation: 'saveImage', path: 'a.png' });
+  assert.equal(sandbox.childcount({ text: 'x' }), 1);
+  // device extras (EasyClick device module)
+  assert.deepEqual(sandbox.device.applist(), [{ bundleId: 'com.example.host', name: 'Host' }]);
+  assert.equal(sandbox.device.getOrientationNoAuto(), 'portrait');
+  assert.ok(String(sandbox.device.getDeviceMsg()).includes('iPhone'));
+  // image.captureFullScreen alias
+  assert.equal(sandbox.image.captureFullScreen(), 'png-data');
+});

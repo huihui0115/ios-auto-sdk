@@ -578,6 +578,25 @@ APIS.push({ cat:'strings', sig:'colors.parseColor(color) / parseColor(color) / c
   if (pt) logd("found at", pt.x, pt.y);
 }
 main();` });
+APIS.push({ cat:'timer', sig:'thread.execAsync(fn, ...args) / thread.execSync(fn, ...args) / thread.cancelThread(handle) / thread.stopAll() / thread.isCancelled()', title:'线程命名空间（EasyClick thread 模块）', desc:'对标 EasyClick thread 模块：execAsync 在后台线程执行函数并返回句柄（join/isFinished/getResult/cancel），execSync 同步执行并返回结果，cancelThread 取消线程，stopAll 停止全部线程，isCancelled 判断当前脚本是否被取消；与全局 execAsync/execSync/cancelThread/stopAllThreads/isCancelled 等价。', params:[['fn','function','要执行的函数'],['...args','any','透传给函数的参数'],['handle','object','execAsync 返回的线程句柄']], returns:'object | unknown | boolean', example:`function main(){
+  const t = thread.execAsync(function () { return 42; });
+  logd(t.join());
+  thread.stopAll();
+  logd(thread.isCancelled());
+}
+main();` });
+APIS.push({ cat:'timer', sig:'utils.dataMd5(text) / utils.fileMd5(path) / utils.randomInt(min, max?) / utils.randomCharNumber(len?) / utils.getRangeInt(min, max) / utils.getRatio(ratio) / utils.zip(src, dest?) / utils.unzip(zipPath, dest?) / utils.readFileInZip(zipPath, name) / utils.playMp3(path) / utils.stopMp3() / utils.deleteAllPhotos() / utils.deleteAllVideos() / utils.requestPhotoAuthorization() / getPasteboard() / setPasteboard(text) / openUrl(url) / uploadToAlbum(path) / childcount(selector) / device.applist() / device.getOrientationNoAuto() / device.getDeviceMsg() / image.captureFullScreen()', title:'工具命名空间与 EasyClick 全局别名', desc:'对标 EasyClick utils/device/image/全局函数：utils.dataMd5/fileMd5 摘要、randomInt/randomCharNumber/getRangeInt/getRatio、zip/unzip/readFileInZip、playMp3/stopMp3、deleteAllPhotos/deleteAllVideos/requestPhotoAuthorization；getPasteboard/setPasteboard 剪贴板别名、openUrl 打开链接、uploadToAlbum 保存图片到相册、childcount 子节点数、device.applist 应用列表、device.getOrientationNoAuto 方向（不随自动旋转）、device.getDeviceMsg 设备信息字符串、image.captureFullScreen 全屏截图。', params:[['text/path','string','输入文本或沙盒路径'],['min/max','number','数值范围'],['ratio','number','1-100 亮度比例'],['url','string','http(s) 或 scheme 链接'],['selector','object','节点选择器']], returns:'string | number | boolean | object | null', example:`function main(){
+  logd(utils.dataMd5("abc"));
+  logd(getPasteboard());
+  setPasteboard("hi");
+  openUrl("https://example.com");
+  uploadToAlbum("/sandbox/a.png");
+  logd(device.applist());
+  logd(device.getOrientationNoAuto());
+  logd(device.getDeviceMsg());
+  logd(image.captureFullScreen());
+}
+main();` });
 function render() {
   const sidebar = CATEGORIES.map(c => `<a href="#${c.id}" style="--c:${c.color}">${esc(c.name)}<span>${APIS.filter(a => a.cat === c.id).length}</span></a>`).join('');
   const sections = CATEGORIES.map(c => {

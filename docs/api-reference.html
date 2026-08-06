@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>30</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>31</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>11</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>16</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>30</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>31</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>11</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>23</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>16</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -3449,7 +3449,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="timer" class="cat" style="--c:#64748b">
-  <h2><span class="tag">定时器与工具</span><i>21</i></h2>
+  <h2><span class="tag">定时器与工具</span><i>23</i></h2>
   <article class="card" data-search="clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id) 取消定时器">
   <header class="card-head">
     <h4><code>clearTimeout(id) / cancelTimeout(id) / clearInterval(id) / cancelInterval(id)</code> <span class="cname">取消定时器</span></h4>
@@ -3652,6 +3652,45 @@ main();</code></pre>
   <pre><code>function main(){
   sleepRandom(300, 800);
   sleepRandom(1000); // 0~1000ms
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="thread.execAsync(fn, ...args) / thread.execSync(fn, ...args) / thread.cancelThread(handle) / thread.stopAll() / thread.isCancelled() 线程命名空间（EasyClick thread 模块）">
+  <header class="card-head">
+    <h4><code>thread.execAsync(fn, ...args) / thread.execSync(fn, ...args) / thread.cancelThread(handle) / thread.stopAll() / thread.isCancelled()</code> <span class="cname">线程命名空间（EasyClick thread 模块）</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">对标 EasyClick thread 模块：execAsync 在后台线程执行函数并返回句柄（join/isFinished/getResult/cancel），execSync 同步执行并返回结果，cancelThread 取消线程，stopAll 停止全部线程，isCancelled 判断当前脚本是否被取消；与全局 execAsync/execSync/cancelThread/stopAllThreads/isCancelled 等价。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">fn</code><span class="ptype">function</span><span class="pdesc">要执行的函数</span></div><div class="param"><code class="pname">...args</code><span class="ptype">any</span><span class="pdesc">透传给函数的参数</span></div><div class="param"><code class="pname">handle</code><span class="ptype">object</span><span class="pdesc">execAsync 返回的线程句柄</span></div></div>
+  <div class="ret"><b>返回值</b> <span>object | unknown | boolean</span></div>
+  <pre><code>function main(){
+  const t = thread.execAsync(function () { return 42; });
+  logd(t.join());
+  thread.stopAll();
+  logd(thread.isCancelled());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="utils.dataMd5(text) / utils.fileMd5(path) / utils.randomInt(min, max?) / utils.randomCharNumber(len?) / utils.getRangeInt(min, max) / utils.getRatio(ratio) / utils.zip(src, dest?) / utils.unzip(zipPath, dest?) / utils.readFileInZip(zipPath, name) / utils.playMp3(path) / utils.stopMp3() / utils.deleteAllPhotos() / utils.deleteAllVideos() / utils.requestPhotoAuthorization() / getPasteboard() / setPasteboard(text) / openUrl(url) / uploadToAlbum(path) / childcount(selector) / device.applist() / device.getOrientationNoAuto() / device.getDeviceMsg() / image.captureFullScreen() 工具命名空间与 EasyClick 全局别名">
+  <header class="card-head">
+    <h4><code>utils.dataMd5(text) / utils.fileMd5(path) / utils.randomInt(min, max?) / utils.randomCharNumber(len?) / utils.getRangeInt(min, max) / utils.getRatio(ratio) / utils.zip(src, dest?) / utils.unzip(zipPath, dest?) / utils.readFileInZip(zipPath, name) / utils.playMp3(path) / utils.stopMp3() / utils.deleteAllPhotos() / utils.deleteAllVideos() / utils.requestPhotoAuthorization() / getPasteboard() / setPasteboard(text) / openUrl(url) / uploadToAlbum(path) / childcount(selector) / device.applist() / device.getOrientationNoAuto() / device.getDeviceMsg() / image.captureFullScreen()</code> <span class="cname">工具命名空间与 EasyClick 全局别名</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">对标 EasyClick utils/device/image/全局函数：utils.dataMd5/fileMd5 摘要、randomInt/randomCharNumber/getRangeInt/getRatio、zip/unzip/readFileInZip、playMp3/stopMp3、deleteAllPhotos/deleteAllVideos/requestPhotoAuthorization；getPasteboard/setPasteboard 剪贴板别名、openUrl 打开链接、uploadToAlbum 保存图片到相册、childcount 子节点数、device.applist 应用列表、device.getOrientationNoAuto 方向（不随自动旋转）、device.getDeviceMsg 设备信息字符串、image.captureFullScreen 全屏截图。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text/path</code><span class="ptype">string</span><span class="pdesc">输入文本或沙盒路径</span></div><div class="param"><code class="pname">min/max</code><span class="ptype">number</span><span class="pdesc">数值范围</span></div><div class="param"><code class="pname">ratio</code><span class="ptype">number</span><span class="pdesc">1-100 亮度比例</span></div><div class="param"><code class="pname">url</code><span class="ptype">string</span><span class="pdesc">http(s) 或 scheme 链接</span></div><div class="param"><code class="pname">selector</code><span class="ptype">object</span><span class="pdesc">节点选择器</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string | number | boolean | object | null</span></div>
+  <pre><code>function main(){
+  logd(utils.dataMd5("abc"));
+  logd(getPasteboard());
+  setPasteboard("hi");
+  openUrl("https://example.com");
+  uploadToAlbum("/sandbox/a.png");
+  logd(device.applist());
+  logd(device.getOrientationNoAuto());
+  logd(device.getDeviceMsg());
+  logd(image.captureFullScreen());
 }
 main();</code></pre>
 </article>
@@ -4115,7 +4154,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 252 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 254 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

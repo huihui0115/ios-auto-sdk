@@ -418,6 +418,9 @@ interface AutoDeviceAPI {
   setFlashlight(on?: boolean): boolean;
   torch(on?: boolean): boolean;
   flashlight(on?: boolean): boolean;
+  applist(): { bundleId: string; name?: string }[];
+  getOrientationNoAuto(): string;
+  getDeviceMsg(): string;
 }
 
 interface AutoMediaAPI {
@@ -826,7 +829,50 @@ declare const image: {
   saveToAlbum: AutoAPI["saveImageToAlbum"];
   saveBase64ToAlbum: AutoAPI["saveImageBase64ToAlbum"];
   saveScreenshotToAlbum: AutoAPI["saveScreenshotToAlbum"];
+  captureFullScreen: AutoAPI["screenshot"];
 };
+
+interface AutoThreadAPI {
+  /** Run a function on a background thread; returns a handle with join/getResult/cancel. */
+  execAsync(fn: () => unknown, ...args: unknown[]): AutoThreadHandle | null;
+  /** Run a function synchronously and return its result. */
+  execSync(fn: () => unknown, ...args: unknown[]): unknown;
+  /** Cancel a running thread. */
+  cancelThread(handle: AutoThreadHandle | null): boolean;
+  /** Stop all running threads. */
+  stopAll(): boolean;
+  /** Whether the current script is cancelled. */
+  isCancelled(): boolean;
+}
+
+interface AutoThreadHandle {
+  join(): { threadId: number } | null;
+  isFinished(): boolean;
+  getResult(): unknown;
+  cancel(): boolean;
+}
+
+interface AutoUtilsAPI {
+  /** MD5 of a string (EasyClick utils.dataMd5). */
+  dataMd5(text: string): string;
+  /** MD5 of a sandbox file (EasyClick utils.fileMd5). */
+  fileMd5(path: string): string | null;
+  randomInt(min: number, max?: number): number;
+  randomCharNumber(length?: number): string;
+  getRangeInt(min: number, max: number): number;
+  getRatio(ratio: number): boolean;
+  zip(src: string, dest?: string): string | null;
+  unzip(zipPath: string, dest?: string): string | null;
+  readFileInZip(zipPath: string, name: string): string | null;
+  playMp3(path: string, volume?: number, loop?: boolean): boolean;
+  stopMp3(): boolean;
+  deleteAllPhotos(): number;
+  deleteAllVideos(): number;
+  requestPhotoAuthorization(): boolean;
+}
+
+declare const thread: AutoThreadAPI;
+declare const utils: AutoUtilsAPI;
 
 interface AutoMetrics {
   width: number;
@@ -954,6 +1000,11 @@ interface AutoLocationAPI {
 
 declare const location: AutoLocationAPI;
 declare function yoloDetect(imagePath: string): AutoYoloItem[];
+declare function getPasteboard(): string | null;
+declare function setPasteboard(text: string): boolean;
+declare function openUrl(url: string): boolean;
+declare function uploadToAlbum(path: string): boolean;
+declare function childcount(selector: unknown): number;
 
 interface AutoColorsAPI {
   /** Parse a color to a 32-bit int; accepts a number, #RGB, #RRGGBB or 0x-prefixed hex string. Returns null on invalid input. */

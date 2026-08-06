@@ -410,11 +410,11 @@ const bootstrapScript = (() => {
   const bsBlock = bootstrapSource.slice(bsStart, bsAt + bsTerm.length);
   return [...bsBlock.matchAll(/@?"((?:\\.|[^"\\])*)"/g)].map(m => JSON.parse('"' + m[1] + '"')).join('');
 })();
-check(bootstrapScript.includes("_dv('clipboardGet')") && bootstrapScript.includes("_dv('clipboardSet'") &&
-      bootstrapScript.includes("_dv('brightnessGet')") && bootstrapScript.includes("_dv('brightnessSet'") &&
-      bootstrapScript.includes("_dv('volumeGet')") && bootstrapScript.includes("_dv('vibrate'") &&
-      bootstrapScript.includes("_av('openURL'") && bootstrapScript.includes("_av('homescreen')") &&
-      bootstrapScript.includes('g.openURL=') && bootstrapScript.includes('homeScreen:function()'),
+check(bootstrapScript.includes("dvf('clipboardGet')") && bootstrapScript.includes("_dv('clipboardSet'") &&
+      bootstrapScript.includes("dvf('brightnessGet')") && bootstrapScript.includes("_dv('brightnessSet'") &&
+      bootstrapScript.includes("dvf('volumeGet')") && bootstrapScript.includes("_dv('vibrate'") &&
+      bootstrapScript.includes("_av('openURL'") && bootstrapScript.includes("avf('homescreen')") &&
+      bootstrapScript.includes('g.openURL=') && bootstrapScript.includes('homeScreen:avf'),
       'Bootstrap must expose clipboard, brightness, volume, vibration, openURL and home-screen operations with globals');
 check(bootstrapScript.includes("keepScreenOn:function(value)") && bootstrapScript.includes("_dv('keepScreenOn'") &&
       bootstrapScript.includes('g.keepScreenOn=deviceApi.keepScreenOn'),
@@ -449,8 +449,8 @@ check(bootstrapScript.includes("yoloApi={detect:function(p){return _nn('yoloD'")
 check(bootstrapScript.includes('function _ff(o,s,sub,d,a)') && bootstrapScript.includes('function _pc(x,y)') &&
       !bootstrapScript.includes("bridge.invokeFile({operation:'imageProcess'"),
       'Bootstrap must route image file/pixel calls through the compact _ff/_pc helpers');
-check(bootstrapScript.includes("hmacSHA1:function(s,k){return _nn('hmac1'") &&
-      bootstrapScript.includes("hmacSHA256:function(s,k){return _nn('hmac256'") &&
+check(bootstrapScript.includes("hmacSHA1:hsh2('hmac1')") &&
+      bootstrapScript.includes("hmacSHA256:hsh2('hmac256')") &&
       bootstrapScript.includes('g.hmacSHA1=stringsApi.hmacSHA1') && bootstrapScript.includes('g.hmacSHA256=stringsApi.hmacSHA256'),
       'Bootstrap must expose hmacSHA1/hmacSHA256 and their global aliases');
 check(bootstrapScript.includes("var locApi={getLocation:function(t){return _nn('locGet'") &&
@@ -464,20 +464,28 @@ check(bootstrapScript.includes('function pCol(c){if(typeof c===\'number\')return
       bootstrapScript.includes('g.int2Hex=int2Hex') && bootstrapScript.includes('g.hex2Int=pCol') &&
       bootstrapScript.includes('g.rgb=colorsApi.rgb') && bootstrapScript.includes('g.argb=colorsApi.argb'),
       'Bootstrap must expose the EasyClick-compatible color tools (parseColor/int2Hex/hex2Int/rgb/argb)');
+check(bootstrapScript.includes('function dvf(k){return function(){return _dv(k);};}') &&
+      bootstrapScript.includes('g.thread=threadApi') && bootstrapScript.includes('g.utils=utilsApi') &&
+      bootstrapScript.includes('g.getPasteboard=') && bootstrapScript.includes('g.setPasteboard=') &&
+      bootstrapScript.includes('g.openUrl=') && bootstrapScript.includes('g.uploadToAlbum=') &&
+      bootstrapScript.includes('g.childcount=') && bootstrapScript.includes('deviceApi.applist=') &&
+      bootstrapScript.includes('deviceApi.getOrientationNoAuto=') && bootstrapScript.includes('deviceApi.getDeviceMsg=') &&
+      bootstrapScript.includes('imageApi.captureFullScreen='),
+      'Bootstrap must expose EasyClick thread/utils namespaces and global aliases (getPasteboard/openUrl/uploadToAlbum/childcount)');
 check(bootstrapScript.includes("['getDeviceInfo','getScreenWidth','getScreenHeight','getScale','getModel','getOSVersion','getDeviceName','getBattery','isCharging','getOrientation','getDeviceId','getDeviceAlias','getSerialNo','volumeUp','volumeDown','getMemoryInfo'].forEach(function(n){g[n]=deviceApi[n];})"),
       'Bootstrap must export deviceApi shorthand globals');
 
 check(bootstrapScript.includes('function _dv(') && bootstrapScript.includes('function _md(') && bootstrapScript.includes('function _nn('),
       'Bootstrap must define the compact bridge helpers');
-check(bootstrapScript.includes('getLanguage:function(){return _dv(\'language\');}') &&
-      bootstrapScript.includes('getUptime:function(){return _dv(\'uptime\');}') &&
+check(bootstrapScript.includes('getLanguage:dvf(\'language\')') &&
+      bootstrapScript.includes('getUptime:dvf(\'uptime\')') &&
       bootstrapScript.includes("['getAppVersion','getPackageName','getLanguage','getCountry','getLocale','getTimezone','getUptime','getNetworkType','isWifi'].forEach(function(n){g[n]=deviceApi[n];})"),
       'Bootstrap must expose locale/timezone/uptime device getters');
-check(bootstrapScript.includes("getNetworkType:function(){return _dv('networkType');}") &&
-      bootstrapScript.includes("isWifi:function(){return _dv('isWifi');}") &&
+check(bootstrapScript.includes("getNetworkType:dvf('networkType')") &&
+      bootstrapScript.includes("isWifi:dvf('isWifi')") &&
       bootstrapScript.includes("['getAppVersion','getPackageName','getLanguage','getCountry','getLocale','getTimezone','getUptime','getNetworkType','isWifi'].forEach(function(n){g[n]=deviceApi[n];})"),
       'Bootstrap must expose network type helpers');
-check(bootstrapScript.includes("getFrontmostApp:function(){return _av('current')") &&
+check(bootstrapScript.includes("getFrontmostApp:avf('current')") &&
       bootstrapScript.includes("g.getFrontmostApp=appApi.getFrontmostApp"),
       'Bootstrap must expose app.getFrontmostApp and its global alias');
 check(bootstrapScript.includes("getAppScheme:function(name){return _av('getAppScheme'") &&
@@ -487,7 +495,7 @@ check(bootstrapScript.includes("getAppScheme:function(name){return _av('getAppSc
 check(bootstrapScript.includes("setFlashlight:function(on){return _dv('flashlight'") &&
       bootstrapScript.includes("g.torch=deviceApi.setFlashlight") && bootstrapScript.includes("g.flashlight=deviceApi.setFlashlight"),
       'Bootstrap must expose flashlight/torch and their global aliases');
-check(bootstrapScript.includes("openSettings:function(){return _av('openSettings');}") &&
+check(bootstrapScript.includes("openSettings:avf('openSettings')") &&
       bootstrapScript.includes("openAppStore:function(appId){return _av('openAppStore'") && bootstrapScript.includes('g.openAppSetting=appApi.openSettings'),
       'Bootstrap must expose openSettings/openAppSetting/openAppStore');
 check(bootstrapScript.includes('var speechApi=') && bootstrapScript.includes("_nn('speak',[") &&
@@ -529,7 +537,7 @@ check(engineSource.includes('isEqualToString:@"toast"') && engineSource.includes
       'Engine must provide a built-in toast fallback for unregistered hosts');
 check(engineSource.includes('[nativePayload[@"arguments"] isKindOfClass:NSArray.class]'),
       'The built-in toast must parse arguments with a bracketed message send');
-check(bootstrapScript.includes('getMemoryInfo:function') && bootstrapScript.includes("_dv('memory')") &&
+check(bootstrapScript.includes('getMemoryInfo:dvf(' + '\'' + 'memory') && bootstrapScript.includes("dvf('memory')") &&
       bootstrapScript.includes('writeLines:function') && bootstrapScript.includes("callFile('move'") &&
       bootstrapScript.includes('rename:function') && bootstrapScript.includes('base.toast=function') &&
       bootstrapScript.includes('base.toastLog=function') && bootstrapScript.includes('g.toast=base.toast'),
@@ -971,7 +979,7 @@ check(bootstrapScript.includes('base.swipeUp=function(percent,duration)') &&
       bootstrapScript.includes('g.swipeUp=base.swipeUp') &&
       bootstrapScript.includes('g.swipeRight=base.swipeRight'),
       'Bootstrap must expose direction swipe helpers on auto and as globals');
-check(bootstrapScript.includes("_av('appList')") &&
+check(bootstrapScript.includes("avf('appList')") &&
       typeDefinitions.includes('appList(): Array<{ bundleId: string; name: string }>') &&
       typeDefinitions.includes('installedApps(): Array<{ bundleId: string; name: string }>') &&
       typeDefinitions.includes('declare function swipeUp(percent?: number, durationMs?: number): boolean') &&
