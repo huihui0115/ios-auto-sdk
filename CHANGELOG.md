@@ -6,6 +6,20 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-08-06
+
+### Added
+
+- **AI 交接文档。** 新增根目录 AGENTS.md（新 AI 自动读取的开发守则：铁律/命令/文件地图）与 docs/AI_HANDOFF.md（架构、仓库地图、当前状态、对标基线、已知缺口、7 节工作流、坑与注意事项、历轮主线）。README 增加入口。
+
+- **bootstrap 单一权威源工具化。** 新增 tools/bootstrap-source.js（bootstrap JS 唯一权威源）与 tools/regenerate-bootstrap.mjs（重新编码进 AutoBootstrapScript.m，含 round-trip 与预算校验）；npm script regenerate:bootstrap；verify.mjs 增加“提交的 .m 必须与权威源完全一致”断言，杜绝手改漂移。
+
+- **历史脚本入库。** tools/bootstrap-history/ 收录历轮 rewrite/extract/bracket 脚本与说明（仅参考，勿对当前版本执行）。
+
+### Fixed
+
+- 文档与工具链一致性：verify 新增单一源校验，防止 bootstrap-source.js 与 .m 失同步。
+
 ## [1.10.0] - 2026-08-06
 
 ### Added

@@ -774,6 +774,8 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
   try {
     const script = literals.map(match => JSON.parse(`"${match[1]}"`)).join('');
     check(script.length <= 60 * 1024, 'AutoBootstrapScript must stay under the 64 KiB JavaScriptCore literal budget');
+    const canonicalSource = read('tools/bootstrap-source.js').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
+    check(script === canonicalSource, 'AutoBootstrapScript.m must match tools/bootstrap-source.js; run npm run regenerate:bootstrap');
     const compiledBootstrap = new vm.Script(script, { filename: 'AutoBootstrapScript.js' });
     check(script.includes('g.auto='), 'AutoBootstrapScript does not install the auto global');
     let stopped = false;

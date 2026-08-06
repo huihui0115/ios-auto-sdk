@@ -23,6 +23,7 @@
 - 基于公共 API 的 `AutoUIKitAdapter`，可直接自动化宿主 App 自己的 UIKit 视图
 
 > 📖 中文图文教程（离线网页版，双击即开）：[docs/guide/index.html](docs/guide/index.html)（安装 → 连接 → 第一行代码 → 调试）。
+> 🤖 AI 交接手册（换 AI 继续迭代前必读）：[`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md) + 根目录 [`AGENTS.md`](AGENTS.md)。
 > 🆚 对标文档：[`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)（EasyClick）、[`docs/TROLLAUTOSCRIPT_COMPARISON.md`](docs/TROLLAUTOSCRIPT_COMPARISON.md)（TrollAutoScript）、[`docs/ASCRIPT_COMPARISON.md`](docs/ASCRIPT_COMPARISON.md)（AScript）、[`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)（AutoScript）。
 > 🚀 免巨魔路线（对标 AScript/kuaijs）：[`docs/NO_TROLLSTORE.md`](docs/NO_TROLLSTORE.md)——免费签名安装 / XCTest 激活 WDA / HID 模式。
 > 🚀 想快速上手？先看 [`docs/QUICK_START.md`](docs/QUICK_START.md)（第三方 10 分钟跑通
