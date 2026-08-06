@@ -1417,3 +1417,22 @@ test('device isScreenOn/isLocked expose lock state', () => {
   assert.equal(sandbox.device.isScreenOn(), true);
   assert.equal(sandbox.device.isLocked(), false);
 });
+
+test('EasyClick color tools: parseColor/int2Hex/hex2Int/rgb/argb and global aliases', () => {
+  const { sandbox } = boot();
+  assert.equal(sandbox.colors.parseColor('#ffffff'), 0xffffff);
+  assert.equal(sandbox.parseColor('#fff'), 0xffffff);
+  assert.equal(sandbox.parseColor('0xff0000'), 0xff0000);
+  assert.equal(sandbox.parseColor(0x010203), 0x010203);
+  assert.equal(sandbox.colors.toInt('#abcdef'), 0xabcdef);
+  assert.equal(sandbox.hex2Int('#123456'), 0x123456);
+  assert.equal(sandbox.parseColor('not-a-color'), null);
+  assert.equal(sandbox.colors.int2Hex(0x010203), '#010203');
+  assert.equal(sandbox.int2Hex('#ff0000'), '#ff0000');
+  assert.equal(sandbox.colors.toHex(0xffffff), '#ffffff');
+  assert.equal(sandbox.colors.int2Hex('zzz'), null);
+  assert.equal(sandbox.rgb(255, 0, 0), 0xff0000);
+  assert.equal(sandbox.colors.rgb(0, 255, 0), 0x00ff00);
+  assert.equal(sandbox.argb(255, 1, 2, 3), 0xff010203);
+  assert.equal(sandbox.colors.argb(0, 255, 255, 255), 0x00ffffff);
+});

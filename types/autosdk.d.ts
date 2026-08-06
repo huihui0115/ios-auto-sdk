@@ -955,6 +955,30 @@ interface AutoLocationAPI {
 declare const location: AutoLocationAPI;
 declare function yoloDetect(imagePath: string): AutoYoloItem[];
 
+interface AutoColorsAPI {
+  /** Parse a color to a 32-bit int; accepts a number, #RGB, #RRGGBB or 0x-prefixed hex string. Returns null on invalid input. */
+  parseColor(color: number | string): number | null;
+  /** Alias of parseColor. */
+  toInt(color: number | string): number | null;
+  /** Convert a color to a #rrggbb string. Returns null on invalid input. */
+  int2Hex(color: number | string): string | null;
+  /** Alias of int2Hex. */
+  toHex(color: number | string): string | null;
+  /** Alias of parseColor. */
+  hex2Int(color: number | string): number | null;
+  /** Build a 0xRRGGBB int from RGB components. */
+  rgb(r: number, g: number, b: number): number;
+  /** Build a 0xAARRGGBB int from ARGB components. */
+  argb(a: number, r: number, g: number, b: number): number;
+}
+
+declare const colors: AutoColorsAPI;
+declare function parseColor(color: number | string): number | null;
+declare function int2Hex(color: number | string): string | null;
+declare function hex2Int(color: number | string): number | null;
+declare function rgb(r: number, g: number, b: number): number;
+declare function argb(a: number, r: number, g: number, b: number): number;
+
 declare function saveImageBase64ToAlbum(base64: string): boolean;
 declare function saveVideoToAlbum(path: string): boolean;
 declare function deleteAllPhotos(): number;

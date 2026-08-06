@@ -370,8 +370,10 @@ check(read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCCHmacAlgSHA1') &&
       'AutoScriptSupport must implement HMAC-SHA1/SHA256 with CommonCrypto');
 check(engineSource.includes('AutoGetLocationSnapshot') && engineSource.includes('CLLocationManager') &&
       engineSource.includes('requestLocation') && engineSource.includes('@"locGet"') &&
-      engineSource.includes('kCLAuthorizationStatusDenied'),
-      'Native engine must implement one-shot location queries with permission handling');
+      engineSource.includes('kCLAuthorizationStatusDenied') &&
+      engineSource.includes('objectForInfoDictionaryKey:@"NSLocationWhenInUseUsageDescription"') &&
+      engineSource.includes('kCLAuthorizationStatusNotDetermined'),
+      'Native engine must implement one-shot location queries with Info.plist usage-description guard and permission handling');
 check(engineSource.includes('base64EncodedStringWithOptions:0') &&
       engineSource.includes('case SQLITE_BLOB'),
       'SQLite BLOB values must round-trip as base64 strings');
@@ -454,6 +456,14 @@ check(bootstrapScript.includes("hmacSHA1:function(s,k){return _nn('hmac1'") &&
 check(bootstrapScript.includes("var locApi={getLocation:function(t){return _nn('locGet'") &&
       bootstrapScript.includes('g.location=locApi'),
       'Bootstrap must expose the location module');
+
+check(bootstrapScript.includes('function pCol(c){if(typeof c===\'number\')return c>>>0;') &&
+      bootstrapScript.includes('function int2Hex(c){var n=pCol(c);') &&
+      bootstrapScript.includes('var colorsApi={parseColor:pCol') &&
+      bootstrapScript.includes('g.colors=colorsApi') && bootstrapScript.includes('g.parseColor=pCol') &&
+      bootstrapScript.includes('g.int2Hex=int2Hex') && bootstrapScript.includes('g.hex2Int=pCol') &&
+      bootstrapScript.includes('g.rgb=colorsApi.rgb') && bootstrapScript.includes('g.argb=colorsApi.argb'),
+      'Bootstrap must expose the EasyClick-compatible color tools (parseColor/int2Hex/hex2Int/rgb/argb)');
 check(bootstrapScript.includes("['getDeviceInfo','getScreenWidth','getScreenHeight','getScale','getModel','getOSVersion','getDeviceName','getBattery','isCharging','getOrientation','getDeviceId','getDeviceAlias','getSerialNo','volumeUp','volumeDown','getMemoryInfo'].forEach(function(n){g[n]=deviceApi[n];})"),
       'Bootstrap must export deviceApi shorthand globals');
 

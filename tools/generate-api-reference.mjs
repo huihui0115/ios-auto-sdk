@@ -568,6 +568,16 @@ APIS.push({ cat:'strings', sig:'strings.padZero/padStart/padEnd', title:'字符�
   logd(strings.padEnd("7", 3, "x"));   // 7xx
 }
 main();` });
+APIS.push({ cat:'strings', sig:'colors.parseColor(color) / parseColor(color) / colors.int2Hex(color) / int2Hex(color) / colors.hex2Int(color) / hex2Int(color) / colors.toInt(color) / colors.toHex(color) / rgb(r, g, b) / argb(a, r, g, b)', title:'颜色工具（EasyClick 兼容）', desc:'对标 EasyClick 颜色 API：parseColor/toInt/hex2Int 把颜色转成 32 位整数，支持数字、#RGB、#RRGGBB、0x 前缀，无效返回 null；int2Hex/toHex 输出 #rrggbb 字符串；rgb 合成 0xRRGGBB，argb 合成 0xAARRGGBB。配合 screen.getColor/getColorHex、findColorEx 的 color 参数使用。', params:[['color','number|string','颜色：数字或 #RGB/#RRGGBB/0x 十六进制字符串'],['r/g/b/a','number','0-255 颜色分量']], returns:'number | string | null', example:`function main(){
+  logd(parseColor("#fff"));              // 16777215 (0xffffff)
+  logd(int2Hex(0x010203));               // #010203
+  logd(hex2Int("#ff0000"));              // 16711680 (0xff0000)
+  logd(colors.rgb(255, 0, 0));           // 0xff0000
+  logd(argb(255, 1, 2, 3));              // 0xff010203
+  const pt = screen.findColor("#ff0000", { x: 0, y: 0 });
+  if (pt) logd("found at", pt.x, pt.y);
+}
+main();` });
 function render() {
   const sidebar = CATEGORIES.map(c => `<a href="#${c.id}" style="--c:${c.color}">${esc(c.name)}<span>${APIS.filter(a => a.cat === c.id).length}</span></a>`).join('');
   const sections = CATEGORIES.map(c => {

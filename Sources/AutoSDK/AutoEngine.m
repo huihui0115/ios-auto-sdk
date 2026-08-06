@@ -992,7 +992,15 @@ static NSDictionary *AutoGetLocationSnapshot(double timeoutMs) {
             strongDelegate = nil;
             dispatch_semaphore_signal(semaphore);
         };
-        if ([strongManager respondsToSelector:@selector(requestWhenInUseAuthorization)]) {
+        if (![NSBundle.mainBundle objectForInfoDictionaryKey:@"NSLocationWhenInUseUsageDescription"]) {
+            resultError = AutoMakeError(AutoSDKErrorAutomationFailed, @"NSLocationWhenInUseUsageDescription is missing from the host app Info.plist.", nil);
+            strongManager.delegate = nil;
+            strongManager = nil;
+            strongDelegate = nil;
+            dispatch_semaphore_signal(semaphore);
+            return;
+        }
+        if (status == kCLAuthorizationStatusNotDetermined) {
             [strongManager requestWhenInUseAuthorization];
         }
         [strongManager requestLocation];

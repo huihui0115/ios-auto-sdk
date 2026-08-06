@@ -6,9 +6,19 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-06
+
 ### Added
 
-- Next.
+- **EasyClick 颜色工具（parseColor/int2Hex/hex2Int/rgb/argb）。** 对标 EasyClick 颜色 API：parseColor/toInt/hex2Int 支持数字、#RGB、#RRGGBB、0x 前缀（无效返回 null）；int2Hex/toHex 输出 #rrggbb；rgb/argb 合成 32 位颜色值；colors 命名空间 + 全局函数双入口。文档 252 函数，测试 74 项。
+
+- **bootstrap 导出再压缩。** 新增 arr() helper 收敛 6 处 slice 调用；stringsApi 三段单条导出改为 forEach 批量导出（trim/ltrim/rtrim/split/chars/toHex/fromHex/isUpper/isLower/isNumber/isIntrger/isLetter/isChinese/isEmail/isLink、startWith/endWith/contains/padZero、toPinYin/stripUtf8Bom/fromUnicode）。
+
+### Fixed
+
+- **修复 location 授权崩溃。** AutoGetLocationSnapshot 调用 requestWhenInUseAuthorization 前先检查宿主 Info.plist 是否声明 NSLocationWhenInUseUsageDescription（未声明直接返回错误，不再触发 NSInvalidArgumentException 崩溃）；权限未决定时先请求授权再定位，已授权直接 requestLocation。
+
+- **verify/测试/类型同步。** verify.mjs 增加颜色与 location 守卫断言；d.ts 增加 AutoColorsAPI；bootstrap 测试新增颜色用例。
 
 ## [1.8.0] - 2026-08-06
 
