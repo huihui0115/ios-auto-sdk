@@ -6,6 +6,34 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-08-06
+
+### Added
+
+- **EasyClick 振动别名**：新增 device.vibrateLong()/device.vibrateShort() 及全局函数
+  vibrateLong()/vibrateShort()（等价 vibrate(500)/vibrate(50)），对标 AutoJS
+  vibrateLong/vibrateShort。
+- **测试与校验扩展**：bootstrap.test mock list 改为基于真实 files 映射生成
+  （含子目录条目）；新增 deleteAllFile 递归删除与 vibrateLong/vibrateShort 用例
+  （共 76 项）。verify 运行时 invokeFile mock 支持 list 并记录最后一次文件操作，
+  新增 Round 42 bootstrap 形态锚点与行为断言。
+- **文档**：api-reference 重写 deleteAllFile 卡片（清空目录语义）、拆分
+  file.remove 卡片、新增长振动/短振动卡片，共 256 个函数 / 256 个可运行示例。
+
+### Fixed
+
+- **deleteAllFile 语义 bug**：原实现只是 remove(path) 的单路径别名；现对齐
+  EasyClick file.deleteAllFile(path) 语义——递归删除目录下所有文件与子目录
+  （目录本身保留），返回删除条目总数；路径不是目录时返回 0。
+
+### Changed
+
+- **bootstrap 压缩 -79B（61434→61355，余 85B）**：fileApi 的
+  readFile/writeFile/create/appendLine/md5File/sha1File/listDir/getSandBoxDir/
+  getSandBoxFilePath/mkdirs 改为委托已有方法的别名；insertLineText/resetLineText
+  的 join(String.fromCharCode(10)) 统一为 '\n'；console.log/debug/info 共享
+  clog 闭包；screen.findColors/isColors/cmpColor 共享 cmpC 闭包。
+
 ## [1.11.0] - 2026-08-06
 
 ### Added

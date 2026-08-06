@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 41（v1.11.0，2026-08-06）。
+> 最后更新：Round 42（v1.12.0，2026-08-06）。
 
 ---
 
@@ -66,11 +66,11 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 41 / v1.11.0）
+## 4. 当前状态（Round 42 / v1.12.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
-- bootstrap 解码 **61434 / 61440**（预算 60×1024 UTF-16 码元）。
-- 文档 **254 个函数 / 250 个可运行示例 / 13 个分类**；测试 **75 项**。
+- bootstrap 解码 **61355 / 61440**（预算 60×1024 UTF-16 码元）。
+- 文档 **256 个函数 / 256 个可运行示例 / 13 个分类**；测试 **76 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`。
 
 已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
@@ -108,8 +108,6 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   位图对象模型（返回语义与 EasyClick 不同，需设计或明确文档标注）。
 - `ocr.newOcr/ocrInstance.ocrBitmap/ocrImage` 实例化 OCR 引擎包装。
 - `http.requestEx/agentRequestEx` 增强请求（agent 类不可行，requestEx 可考虑）。
-- `vibrateLong/vibrateShort` 振动别名（之前因预算被砍，需先压缩）。
-- `file.deleteAllFile(dir)` 目录批量删除（JS 层用 list+remove 实现）。
 
 ### 不可实现（记录为缺口即可）
 - `imeApi.*`（需自建输入法）、`ecNetCard.*`/BLE/OTG/HID（硬件）、
@@ -176,6 +174,8 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 - R39（v1.9.0）：EasyClick 颜色工具 + location Info.plist 崩溃守卫。
 - R40（v1.10.0）：thread/utils 命名空间 + 全局别名；dvf/avf/hsh 压缩 880B。
 - R41（v1.11.0）：AI 交接文档 + bootstrap 单一权威源工具化（本手册）。
+- R42（v1.12.0）：deleteAllFile 语义修复（递归清空目录 + 返回条目数）、
+  vibrateLong/vibrateShort；别名委托/clog/cmpC 压缩 -79B（余 85B）。
 
 ## 10. 新 AI 接手第一步
 

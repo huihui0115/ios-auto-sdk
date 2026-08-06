@@ -25,9 +25,9 @@ unavailable.
 | Image matching | OpenCV template matching and image transformations | bounded two-stage CoreGraphics similarity match, phone-side template deployment, clip/scale/gray/binaryzation/rotate pixel pipeline, Inspector testing | Not OpenCV-grade; no scale/rotation invariant match or cvFindImage (OpenCV) |
 | OCR/AI vision | phone/controller OCR APIs, multiple OCR engines, YOLO, and AI-agent workflows | on-device Apple Vision OCR with confidence and screen-point bounds, plus on-device Vision object detection (`yolo.detect`, offline YOLO-style model, AScript YOLO parity) | No selectable/custom OCR model, AI agent, or batch image-object API |
 | Input/app control | input-method APIs, helper APIs, Home/app lifecycle and process operations | host text replacement plus WDA app launch/activate/terminate/state/current helpers, installed-app list, prefix launch, and home-screen/lock/unlock endpoints | No system input method or UIKit-adapter cross-app lifecycle control |
-| Device | screen/model/OS/battery, app list, serial, orientation, charging | public device/app/screen/battery/orientation information (incl. 宽x高 text), installed-app list, clipboard/brightness/volume/vibration, `getSerialNo()` (returns null: iOS hides hardware serial from third-party apps), and WDA home-screen/lock/unlock | No reboot, install/uninstall, or process control |
+| Device | screen/model/OS/battery, app list, serial, orientation, charging | public device/app/screen/battery/orientation information (incl. 宽x高 text), installed-app list, clipboard/brightness/volume/vibration (vibrate + vibrateLong/vibrateShort aliases), `getSerialNo()` (returns null: iOS hides hardware serial from third-party apps), and WDA home-screen/lock/unlock | No reboot, install/uninstall, or process control |
 | Media | save images/videos to the camera roll through the agent | add-only Photos writes for sandbox images, base64 images, videos and screenshots (`media.*`), region screenshot (`screenshotRegion`), gated by `allowMediaLibrary` and an iOS authorization prompt; requires `NSPhotoLibraryAddUsageDescription`. **Round 8:** `media.deleteAllPhotos/deleteAllVideos/deleteAllMedia` clear the camera roll (read-write Photos access, returns deleted count) | No album-object API, batch import, photo picker, or camera/QR capture |
-| Files | sandbox file CRUD, lines, copy, Excel | UTF-8/base64 reads, atomic write, append, list, mkdir, copy/move/rename/remove below a confined root, line operations (lineCount/getLineText/insertLineText/resetLineText), Excel (xlsx/csv), ZIP (zip/unzip/readFileInZip), plist read/write | No file upload picker, or access outside the configured sandbox root |
+| Files | sandbox file CRUD, lines, copy, Excel | UTF-8/base64 reads, atomic write, append, list, mkdir, copy/move/rename/remove below a confined root, EasyClick-style deleteAllFile (recursive directory clear returning removed-entry count), line operations (lineCount/getLineText/insertLineText/resetLineText), Excel (xlsx/csv), ZIP (zip/unzip/readFileInZip), plist read/write | No file upload picker, or access outside the configured sandbox root |
 | Storage | named typed key-value stores | named persistent JSON stores plus EasyClick-style typed wrappers, plus a local SQLite module (`sqlite.open/exec/query/close`, sandbox-confined, positional-param binding) | No JDBC layer; 1 MiB default namespace limit |
 | HTTP | generic requests, GET/POST/JSON, download, WebSocket | guarded HTTP methods, JSON/binary responses, multipart/form upload (`files`/`formData`), host allowlist, response limit, sandbox download, WebSocket client (`ws.*`) | Synchronous JS facade, no cookie jar API or proxy API |
 | Timers/threads | timeout/interval, async/sync thread APIs, workers | cooperative `sleep`, timeout/interval queues drained before completion, parallel `execAsync/execSync` threads (join/getResult/cancel, up to 8), native URLSession work | No retained event loop after script completion or worker runtime |
@@ -72,7 +72,7 @@ The following surfaces must not be described as production-complete yet:
 
 ## 函数级覆盖清单（2026-08-06）
 
-交互式速查 `docs/api-reference.html` 收录 250 个可运行示例（254 个函数），分 13 个分类，
+交互式速查 `docs/api-reference.html` 收录 256 个可运行示例（256 个函数），分 13 个分类，
 每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
 
 | 分类 | 函数数 | 亮点 |
@@ -81,7 +81,7 @@ The following surfaces must not be described as production-complete yet:
 | 触摸与节点 | 43 | 坐标/节点点击、滑动/手势/pinch、输入、节点查询（getChild/getSiblings/clickCenter/clickRandom）、node.keep/unkeep |
 | 图色与OCR | 30 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素（screen.getColor/getColorRGB/getColorHex）、多点比对（findColors/isColors）、OCR、二维码/条形码识别 scanCode |
 | App与应用控制 | 21 | launch/activate/terminate/state/openURL/homeScreen/current/appList/isInstalled/getAppName/isRunning/锁屏解锁 |
-| 设备与系统 | 31 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID、GPS 定位 |
+| 设备与系统 | 33 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID、GPS 定位 |
 | 坐标与屏幕 | 5 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
 | 文件 | 38 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
 | 存储 | 11 | 命名 typed store |
@@ -93,6 +93,7 @@ The following surfaces must not be described as production-complete yet:
 | 线程与工具模块 | 14 | thread.execAsync/execSync/cancelThread/stopAll/isCancelled、utils.dataMd5/fileMd5/randomInt/getRangeInt/getRatio/zip/unzip/readFileInZip/playMp3/stopMp3/deleteAllPhotos/deleteAllVideos/requestPhotoAuthorization、全局别名 getPasteboard/setPasteboard/openUrl/uploadToAlbum/childcount |
 | 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 
+本轮新增（Round 42）：`deleteAllFile(path)` 修复为 EasyClick 语义（递归清空目录、返回删除条目数）；`device.vibrateLong()/vibrateShort()` + 全局别名（对标 AutoJS）；bootstrap 压缩 -79B（别名委托 + clog/cmpC 闭包去重，61355/61440）；文档 256 函数、测试 76 项；
 本轮新增（Round 40）：`thread.*`/`utils.*` 命名空间（EasyClick 兼容）、全局别名 `getPasteboard/setPasteboard/openUrl/uploadToAlbum/childcount`、`device.applist/getOrientationNoAuto/getDeviceMsg`、`image.captureFullScreen`；bootstrap 再压缩 880B（dvf/avf/hsh helper），文档 254 函数、测试 75 项；
 本轮新增（Round 14）：`screen.*` EasyClick 兼容图色模块（getColor/getColorRGB/getColorHex + 找图找色/OCR/截图入口）、全局别名 `screen`/`string`、`app.getAppName`/`app.isRunning`；
 本轮新增（Round 12）：`formatDate/dateFormat`（yyyy/MM/dd/HH/mm/ss/SSS/E 星期）、`sleepRandom` 随机睡眠、

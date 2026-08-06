@@ -472,7 +472,7 @@ check(bootstrapScript.includes('function dvf(k){return function(){return _dv(k);
       bootstrapScript.includes('deviceApi.getOrientationNoAuto=') && bootstrapScript.includes('deviceApi.getDeviceMsg=') &&
       bootstrapScript.includes('imageApi.captureFullScreen='),
       'Bootstrap must expose EasyClick thread/utils namespaces and global aliases (getPasteboard/openUrl/uploadToAlbum/childcount)');
-check(bootstrapScript.includes("['getDeviceInfo','getScreenWidth','getScreenHeight','getScale','getModel','getOSVersion','getDeviceName','getBattery','isCharging','getOrientation','getDeviceId','getDeviceAlias','getSerialNo','volumeUp','volumeDown','getMemoryInfo'].forEach(function(n){g[n]=deviceApi[n];})"),
+check(bootstrapScript.includes("['getDeviceInfo','getScreenWidth','getScreenHeight','getScale','getModel','getOSVersion','getDeviceName','getBattery','isCharging','getOrientation','getDeviceId','getDeviceAlias','getSerialNo','volumeUp','volumeDown','getMemoryInfo','vibrateLong','vibrateShort'].forEach(function(n){g[n]=deviceApi[n];})"),
       'Bootstrap must export deviceApi shorthand globals');
 
 check(bootstrapScript.includes('function _dv(') && bootstrapScript.includes('function _md(') && bootstrapScript.includes('function _nn('),
@@ -783,11 +783,12 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
     let lastDeviceOperation;
     let lastAppOperation;
     let lastMediaOperation;
+    let lastFileOperation;
     const context = vm.createContext({
       __bridge: new Proxy({}, { get: (_, key) => {
         if (key === 'invokeIsStopped') return () => stopped;
         if (key === 'invokeHTTP') return value => { lastHTTPOptions = value; return {}; };
-        if (key === 'invokeFile') return value => value.operation === 'readLines' ? ['first', 'second'] : true;
+        if (key === 'invokeFile') return value => { lastFileOperation = value; if (value.operation === 'readLines') return ['first', 'second']; if (value.operation === 'list') return [{ name: 'a.txt', path: '/sandbox/a.txt', isDirectory: false }]; return true; };
         if (key === 'invokeDevice') return value => { lastDeviceOperation = value; return value.operation === 'info' ? { model: 'test' } : true; };
         if (key === 'invokeApp') return value => { lastAppOperation = value; return true; };
         if (key === 'invokeMedia') return value => { lastMediaOperation = value; return true; };
@@ -869,6 +870,18 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
           'System control aliases must be exposed on device and as globals');
     context.device.getMemoryInfo();
     check(lastDeviceOperation?.operation === 'memory', 'device.getMemoryInfo must forward the memory operation');
+    check(typeof context.device?.vibrateLong === 'function' && typeof context.device?.vibrateShort === 'function' &&
+          typeof context.vibrateLong === 'function' && typeof context.vibrateShort === 'function',
+          'Vibration aliases must be exposed on device and as globals');
+    context.vibrateLong();
+    check(lastDeviceOperation?.operation === 'vibrate' && lastDeviceOperation?.duration === 500,
+          'vibrateLong must forward a 500ms vibrate operation');
+    context.vibrateShort();
+    check(lastDeviceOperation?.operation === 'vibrate' && lastDeviceOperation?.duration === 50,
+          'vibrateShort must forward a 50ms vibrate operation');
+    const removedEntries = context.file.deleteAllFile('/sandbox');
+    check(removedEntries === 1 && lastFileOperation?.operation === 'remove' && lastFileOperation?.path === '/sandbox/a.txt',
+          'file.deleteAllFile must recursively remove every listed directory entry');
     context.file.writeLines('demo/lines.txt', ['one', 'two']);
     check(typeof context.file?.move === 'function' && typeof context.file?.rename === 'function' &&
           typeof context.file?.writeLines === 'function',
@@ -947,6 +960,22 @@ check(bootstrapScript.includes('base.md5=function(s)') &&
       bootstrapScript.includes('getSize:function(p){return fileApi.imageSize(p);}') &&
       bootstrapScript.includes('g.md5=base.md5'),
       'Bootstrap must expose string hashes, file image size and file hashes');
+check(bootstrapScript.includes('deleteAllFile:function(p){var items=fileApi.list(p);') &&
+      bootstrapScript.includes('if(e.isDirectory)n+=fileApi.deleteAllFile(e.path);') &&
+      bootstrapScript.includes("deviceApi.vibrateLong=function(){return deviceApi.vibrate(500);}") &&
+      bootstrapScript.includes("deviceApi.vibrateShort=function(){return deviceApi.vibrate(50);}") &&
+      bootstrapScript.includes("'vibrateLong','vibrateShort'].forEach") &&
+      bootstrapScript.includes('var clog=function(){consoleBridge.log(formatLog(arguments));};') &&
+      bootstrapScript.includes('findColors:cmpC,isColors:cmpC,cmpColor:cmpC,') &&
+      bootstrapScript.includes('readFile:function(p){return fileApi.readText(p);}') &&
+      bootstrapScript.includes('writeFile:function(p,t){return fileApi.writeText(p,t);}') &&
+      bootstrapScript.includes("lines.join('\\n')") &&
+      !bootstrapScript.includes('String.fromCharCode(10)'),
+      'Bootstrap must keep EasyClick deleteAllFile semantics, vibration aliases and compact file aliases');
+check(typeDefinitions.includes('deleteAllFile(path: string): number') &&
+      typeDefinitions.includes('vibrateLong(): boolean') &&
+      typeDefinitions.includes('vibrateShort(): boolean'),
+      'Type definitions must describe deleteAllFile count result and vibration aliases');
 check(typeDefinitions.includes('md5(text: string): string') &&
       typeDefinitions.includes('sha1(text: string): string') &&
       typeDefinitions.includes('imageSize(path: string): { width: number; height: number; pixelWidth: number; pixelHeight: number; scale: number } | null') &&

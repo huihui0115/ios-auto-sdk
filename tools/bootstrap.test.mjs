@@ -66,7 +66,23 @@ function createSandbox() {
         case 'writeText': files[data.path] = String(data.text ?? ''); return true;
         case 'writeBase64': files[data.path] = Buffer.from(String(data.text ?? ''), 'base64').toString('utf8'); return true;
         case 'appendText': files[data.path] = (files[data.path] ?? '') + String(data.text ?? ''); return true;
-        case 'list': return [{ name: 'a.txt', type: 'file', path: data.path + '/a.txt' }];
+        case 'list': {
+          const prefix = String(data.path || '').replace(/\/+$/, '') + '/';
+          const entries = [];
+          const seenDirs = new Set();
+          for (const key of Object.keys(files)) {
+            if (!key.startsWith(prefix)) continue;
+            const rest = key.slice(prefix.length);
+            const slash = rest.indexOf('/');
+            if (slash < 0) {
+              entries.push({ name: rest, path: key, isDirectory: false, isFile: true, size: String(files[key] ?? '').length, modifiedAtMs: 1700000000000 });
+            } else if (!seenDirs.has(rest.slice(0, slash))) {
+              seenDirs.add(rest.slice(0, slash));
+              entries.push({ name: rest.slice(0, slash), path: prefix + rest.slice(0, slash), isDirectory: true, isFile: false });
+            }
+          }
+          return entries;
+        }
         case 'imageSize': return { width: 390, height: 844, pixelWidth: 1170, pixelHeight: 2532, scale: 3 };
         case 'md5File': return 'd41d8cd98f00b204e9800998ecf8427e';
         case 'sha1File': return 'da39a3ee5e6b4b0d3255bfef95601890afd80709';
@@ -411,6 +427,7 @@ test('file read/write/exists/list/move/remove', () => {
   assert.equal(sandbox.file.exists(moved), true);
   assert.equal(sandbox.file.remove(moved), true);
   assert.equal(sandbox.file.exists(moved), false);
+  sandbox.file.writeText(sandbox.file.resolvePath('left.txt'), 'stay');
   assert.equal(sandbox.file.listDir(sandbox.file.sandboxDir()).length, 1);
 });
 
@@ -563,6 +580,32 @@ test('app helpers and clipboard/brightness/volume/vibrate route to bridge', () =
   assert.equal(sandbox.auto.getVolume(), 0.4);
   sandbox.auto.vibrate(300);
   assert.deepEqual(calls.device.at(-1), { operation: 'vibrate', duration: 300 });
+  sandbox.device.vibrateLong();
+  assert.deepEqual(calls.device.at(-1), { operation: 'vibrate', duration: 500 });
+  sandbox.vibrateShort();
+  assert.deepEqual(calls.device.at(-1), { operation: 'vibrate', duration: 50 });
+});
+
+test('deleteAllFile recursively removes directory contents and returns the count', () => {
+  const { sandbox, calls } = boot();
+  sandbox.file.mkdirs('/sandbox/dir/sub');
+  sandbox.file.writeText('/sandbox/dir/a.txt', 'alpha');
+  sandbox.file.writeText('/sandbox/dir/sub/b.txt', 'beta');
+  sandbox.file.writeText('/sandbox/dir/c.txt', 'gamma');
+  const listed = sandbox.file.list('/sandbox/dir');
+  assert.equal(listed.length, 3);
+  const dirEntry = listed.find((entry) => entry.isDirectory);
+  assert.equal(dirEntry?.name, 'sub');
+  assert.equal(dirEntry?.path, '/sandbox/dir/sub');
+  const removed = sandbox.file.deleteAllFile('/sandbox/dir');
+  assert.equal(removed, 4);
+  assert.equal(sandbox.file.exists('/sandbox/dir/a.txt'), false);
+  assert.equal(sandbox.file.exists('/sandbox/dir/sub/b.txt'), false);
+  assert.equal(sandbox.file.exists('/sandbox/dir/c.txt'), false);
+  const removeCalls = calls.file.filter((call) => call.operation === 'remove').map((call) => call.path);
+  assert.deepEqual(removeCalls.sort(), ['/sandbox/dir/a.txt', '/sandbox/dir/c.txt', '/sandbox/dir/sub', '/sandbox/dir/sub/b.txt']);
+  assert.equal(sandbox.file.deleteAllFile('/sandbox/dir/missing'), 0);
+  assert.equal(typeof sandbox.file.deleteAllFile, 'function');
 });
 
 test('direction swipes compute screen-relative coordinates and seconds duration', () => {

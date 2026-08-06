@@ -321,7 +321,7 @@ interface AutoFileAPI {
   mkdir(path: string): boolean;
   mkdirs(path: string): boolean;
   remove(path: string): boolean;
-  deleteAllFile(path: string): boolean;
+  deleteAllFile(path: string): number;
   copy(source: string, destination: string, overwrite?: boolean): boolean;
   writeLines(path: string, lines: string[]): boolean;
   move(source: string, destination: string, overwrite?: boolean): boolean;
@@ -403,6 +403,8 @@ interface AutoDeviceAPI {
   setBrightness(value: number): boolean;
   getVolume(): number;
   vibrate(durationMs?: number): boolean;
+  vibrateLong(): boolean;
+  vibrateShort(): boolean;
   volumeUp(): boolean;
   volumeDown(): boolean;
   isScreenOn(): boolean;
@@ -527,6 +529,8 @@ interface AutoAPI {
   setBrightness(value: number): boolean;
   getVolume(): number;
   vibrate(durationMs?: number): boolean;
+  vibrateLong(): boolean;
+  vibrateShort(): boolean;
   toast(message: string): boolean;
   toastLog(message: string): void;
   openURL(url: string): boolean;
@@ -1166,6 +1170,8 @@ declare function getBrightness(): number;
 declare function setBrightness(value: number): boolean;
 declare function getVolume(): number;
 declare function vibrate(durationMs?: number): boolean;
+declare function vibrateLong(): boolean;
+declare function vibrateShort(): boolean;
 declare function notify(body: string, title?: string): boolean;
 declare function getIPAddress(): string | null;
 declare function getIP(): string | null;

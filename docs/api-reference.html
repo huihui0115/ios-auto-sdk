@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>30</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>31</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>11</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>23</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>16</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>30</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>33</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>11</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>23</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>16</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -1738,7 +1738,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="device" class="cat" style="--c:#dc2626">
-  <h2><span class="tag">设备与系统</span><i>31</i></h2>
+  <h2><span class="tag">设备与系统</span><i>33</i></h2>
   <article class="card" data-search="device.getIPAddress() / device.getIP() / getIPAddress() / getIP() 获取局域网 IP">
   <header class="card-head">
     <h4><code>device.getIPAddress() / device.getIP() / getIPAddress() / getIP()</code> <span class="cname">获取局域网 IP</span></h4>
@@ -2083,6 +2083,36 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
+<article class="card" data-search="device.vibrateLong() 长振动">
+  <header class="card-head">
+    <h4><code>device.vibrateLong()</code> <span class="cname">长振动</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">触发一次长振动（约 500ms），等价于 device.vibrate(500)，全局函数 vibrateLong() 同义。</p>
+  <div class="ref"><b>对标</b> AutoJS vibrateLong()</div>
+  
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  vibrateLong();
+  logd("长振动完成");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="device.vibrateShort() 短振动">
+  <header class="card-head">
+    <h4><code>device.vibrateShort()</code> <span class="cname">短振动</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">触发一次短振动（约 50ms），等价于 device.vibrate(50)，全局函数 vibrateShort() 同义。</p>
+  <div class="ref"><b>对标</b> AutoJS vibrateShort()</div>
+  
+  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <pre><code>function main(){
+  device.vibrateShort();
+  logd("短振动完成");
+}
+main();</code></pre>
+</article>
 <article class="card" data-search="device.volumeUp() / device.volumeDown() 音量加/减键">
   <header class="card-head">
     <h4><code>device.volumeUp() / device.volumeDown()</code> <span class="cname">音量加/减键</span></h4>
@@ -2391,17 +2421,21 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="file.deleteAllFile(path) 删除文件/目录">
+<article class="card" data-search="file.deleteAllFile(path) 清空目录">
   <header class="card-head">
-    <h4><code>file.deleteAllFile(path)</code> <span class="cname">删除文件/目录</span></h4>
+    <h4><code>file.deleteAllFile(path)</code> <span class="cname">清空目录</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">删除文件或整个目录（含子内容）。</p>
+  <p class="desc">EasyClick file.deleteAllFile() 语义：递归删除目录下的所有文件与子目录（目录本身保留），返回删除的文件与子目录总数；路径不是目录时返回 0。</p>
   
-  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内路径</span></div></div>
-  <div class="ret"><b>返回值</b> <span>boolean</span></div>
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内目录路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number</span></div>
   <pre><code>function main(){
-  file.deleteAllFile("data/note.txt");
+  file.mkdirs("cache/sub");
+  file.writeFile("cache/a.txt", "1");
+  file.writeFile("cache/sub/b.txt", "2");
+  const n = file.deleteAllFile("cache");
+  logd("删除了 " + n + " 个条目"); // 4
 }
 main();</code></pre>
 </article>
@@ -2722,18 +2756,18 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="file.remove(path) / deleteAllFile(path) 删除">
+<article class="card" data-search="file.remove(path) 删除">
   <header class="card-head">
-    <h4><code>file.remove(path) / deleteAllFile(path)</code> <span class="cname">删除</span></h4>
+    <h4><code>file.remove(path)</code> <span class="cname">删除</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">删除文件或目录（含递归目录树，别名 deleteAllFile）。</p>
+  <p class="desc">删除单个文件或整个目录（含递归目录树）；清空目录内容并计数请用 file.deleteAllFile(path)。</p>
   <div class="ref"><b>对标</b> EasyClick remove() · AutoJS files.remove()</div>
   <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">路径</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
   file.writeFile("tmp.txt", "x");
-  const ok = file.deleteAllFile("tmp.txt");
+  const ok = file.remove("tmp.txt");
   logd("删除: " + ok);
 }
 main();</code></pre>
@@ -4154,7 +4188,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 254 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 256 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

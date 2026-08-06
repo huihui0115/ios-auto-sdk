@@ -86,6 +86,8 @@ const REFS = {
   'device.getBrightness()': 'EasyClick getScreenBrightness()/setScreenBrightness()',
   'device.getVolume()': 'EasyClick getVolume()',
   'device.vibrate(durationMs?)': 'EasyClick vibrate()',
+  'device.vibrateLong()': 'AutoJS vibrateLong()',
+  'device.vibrateShort()': 'AutoJS vibrateShort()',
   'file.sandboxDir()': 'EasyClick 沙盒根目录',
   'file.readFile(path)': 'EasyClick readFile() · AutoJS files.read()',
   'file.writeFile(path, text)': 'EasyClick writeFile() · AutoJS files.write()',
@@ -316,8 +318,12 @@ main();` });APIS.push({ cat:'file', sig:'file.mkdirs(path)', title:'递归建目
   logd("created");
 }
 main();` });
-APIS.push({ cat:'file', sig:'file.deleteAllFile(path)', title:'删除文件/目录', desc:'删除文件或整个目录（含子内容）。', params:[['path','string','沙盒内路径']], returns:'boolean', example:`function main(){
-  file.deleteAllFile("data/note.txt");
+APIS.push({ cat:'file', sig:'file.deleteAllFile(path)', title:'清空目录', desc:'EasyClick file.deleteAllFile() 语义：递归删除目录下的所有文件与子目录（目录本身保留），返回删除的文件与子目录总数；路径不是目录时返回 0。', params:[['path','string','沙盒内目录路径']], returns:'number', example:`function main(){
+  file.mkdirs("cache/sub");
+  file.writeFile("cache/a.txt", "1");
+  file.writeFile("cache/sub/b.txt", "2");
+  const n = file.deleteAllFile("cache");
+  logd("删除了 " + n + " 个条目"); // 4
 }
 main();` });
 APIS.push({ cat:'file', sig:'file.readAllLines(path)', title:'读取所有行', desc:'按行读取整个文件，返回字符串数组。', params:[['path','string','沙盒内路径']], returns:'string[]', example:`function main(){
@@ -1221,6 +1227,16 @@ APIS.push({ cat:'device', sig:'device.vibrate(durationMs?)', title:'振动', des
   logd("已振动");
 }
 main();` });
+APIS.push({ cat:'device', sig:'device.vibrateLong()', title:'长振动', desc:'触发一次长振动（约 500ms），等价于 device.vibrate(500)，全局函数 vibrateLong() 同义。', params:[], returns:'boolean', example:`function main(){
+  vibrateLong();
+  logd("长振动完成");
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.vibrateShort()', title:'短振动', desc:'触发一次短振动（约 50ms），等价于 device.vibrate(50)，全局函数 vibrateShort() 同义。', params:[], returns:'boolean', example:`function main(){
+  device.vibrateShort();
+  logd("短振动完成");
+}
+main();` });
 APIS.push({ cat:'device', sig:'device.volumeUp() / device.volumeDown()', title:'音量加/减键', desc:'模拟按下系统音量加/减键（WDA 真机按键注入）；宿主适配器不支持时返回错误，可用 capabilities() 判断。', params:[], returns:'boolean', example:`function main(){
   const ok = device.volumeUp();
   logd("音量+ " + ok);
@@ -1353,9 +1369,9 @@ APIS.push({ cat:'file', sig:'file.listDir(path)', title:'列出文件名', desc:
   logd(names.join(", "));
 }
 main();` });
-APIS.push({ cat:'file', sig:'file.remove(path) / deleteAllFile(path)', title:'删除', desc:'删除文件或目录（含递归目录树，别名 deleteAllFile）。', params:[['path','string','路径']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'file', sig:'file.remove(path)', title:'删除', desc:'删除单个文件或整个目录（含递归目录树）；清空目录内容并计数请用 file.deleteAllFile(path)。', params:[['path','string','路径']], returns:'boolean', example:`function main(){
   file.writeFile("tmp.txt", "x");
-  const ok = file.deleteAllFile("tmp.txt");
+  const ok = file.remove("tmp.txt");
   logd("删除: " + ok);
 }
 main();` });
