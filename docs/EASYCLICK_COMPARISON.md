@@ -23,13 +23,13 @@ unavailable.
 | Nodes | exact/regex selectors, XPath, chained filters, all/one, parent/child/siblings, fetch filters, locked XML trees, and phone-side execution | host-app stable handles plus WDA selectors, attributes, bounds, `/source`-derived parent/child/siblings, wait and scroll | No `lockNodeFromXml`, phone-side locked XML execution, or guaranteed cross-snapshot WDA handles |
 | Screenshot/color | stream capture, compare/find color, multi-color, non-color search | PNG/region screenshot, pixel read, single-color find, one-capture multi-point compare, multi-color pattern search, findNotColor | No stream capture, transparent-color template mode, or reusable image object |
 | Image matching | OpenCV template matching and image transformations | bounded two-stage CoreGraphics similarity match, phone-side template deployment, clip/scale/gray/binaryzation/rotate pixel pipeline, Inspector testing | Not OpenCV-grade; no scale/rotation invariant match or cvFindImage (OpenCV) |
-| OCR/AI vision | phone/controller OCR APIs, multiple OCR engines, YOLO, and AI-agent workflows | on-device Apple Vision OCR with confidence and screen-point bounds | No selectable OCR model, custom model, YOLO runtime, AI agent, or batch image-object API |
+| OCR/AI vision | phone/controller OCR APIs, multiple OCR engines, YOLO, and AI-agent workflows | on-device Apple Vision OCR with confidence and screen-point bounds, plus on-device Vision object detection (`yolo.detect`, offline YOLO-style model, AScript YOLO parity) | No selectable/custom OCR model, AI agent, or batch image-object API |
 | Input/app control | input-method APIs, helper APIs, Home/app lifecycle and process operations | host text replacement plus WDA app launch/activate/terminate/state/current helpers, installed-app list, prefix launch, and home-screen/lock/unlock endpoints | No system input method or UIKit-adapter cross-app lifecycle control |
-| Device | screen/model/OS/battery, app list, serial, orientation, charging | public device/app/screen/battery/orientation information (incl. 宽x高 text), installed-app list, clipboard/brightness/volume/vibration, and WDA home-screen/lock/unlock | No serial number, reboot, install/uninstall, or process control |
+| Device | screen/model/OS/battery, app list, serial, orientation, charging | public device/app/screen/battery/orientation information (incl. 宽x高 text), installed-app list, clipboard/brightness/volume/vibration, `getSerialNo()` (returns null: iOS hides hardware serial from third-party apps), and WDA home-screen/lock/unlock | No reboot, install/uninstall, or process control |
 | Media | save images/videos to the camera roll through the agent | add-only Photos writes for sandbox images, base64 images, videos and screenshots (`media.*`), region screenshot (`screenshotRegion`), gated by `allowMediaLibrary` and an iOS authorization prompt; requires `NSPhotoLibraryAddUsageDescription`. **Round 8:** `media.deleteAllPhotos/deleteAllVideos/deleteAllMedia` clear the camera roll (read-write Photos access, returns deleted count) | No album-object API, batch import, photo picker, or camera/QR capture |
 | Files | sandbox file CRUD, lines, copy, Excel | UTF-8/base64 reads, atomic write, append, list, mkdir, copy/move/rename/remove below a confined root, line operations (lineCount/getLineText/insertLineText/resetLineText), Excel (xlsx/csv), ZIP (zip/unzip/readFileInZip), plist read/write | No file upload picker, or access outside the configured sandbox root |
-| Storage | named typed key-value stores | named persistent JSON stores plus EasyClick-style typed wrappers | No database/JDBC layer; 1 MiB default namespace limit |
-| HTTP | generic requests, GET/POST/JSON, download, WebSocket | guarded HTTP methods, JSON/binary responses, host allowlist, response limit, sandbox download | Synchronous JS facade, no multipart/form upload, cookie jar API, proxy API, or script WebSocket client |
+| Storage | named typed key-value stores | named persistent JSON stores plus EasyClick-style typed wrappers, plus a local SQLite module (`sqlite.open/exec/query/close`, sandbox-confined, positional-param binding) | No JDBC layer; 1 MiB default namespace limit |
+| HTTP | generic requests, GET/POST/JSON, download, WebSocket | guarded HTTP methods, JSON/binary responses, multipart/form upload (`files`/`formData`), host allowlist, response limit, sandbox download, WebSocket client (`ws.*`) | Synchronous JS facade, no cookie jar API or proxy API |
 | Timers/threads | timeout/interval, async/sync thread APIs, workers | cooperative `sleep`, timeout/interval queues drained before completion, parallel `execAsync/execSync` threads (join/getResult/cancel, up to 8), native URLSession work | No retained event loop after script completion or worker runtime |
 | External transports/services | BLE events, OTG HID, Aux remote assistance, JDBC MySQL, and network-verification services | authenticated WebSocket debugging over loopback/USB or opt-in Wi-Fi, guarded HTTP, and an optional WDA HTTP adapter | No BLE/OTG/Aux controller, JDBC driver, or EasyClick service integration; the WDA adapter still needs a separately running Runner |
 | IDE/debug | IDE, live screen, node panel, logs, remote execution | VS Code completion/snippets, safe single-file TypeScript transpilation, persistent Wi-Fi/USB-forwarded connection, visual screenshot/node Inspector, node/image/color/OCR tests, code generation, deployed script/asset management, and Actions build/download | No continuous video stream, breakpoint debugger, TypeScript module bundler, package manager, or verified real-device tunnel session |
@@ -72,19 +72,19 @@ The following surfaces must not be described as production-complete yet:
 
 ## 函数级覆盖清单（2026-08-06）
 
-交互式速查 `docs/api-reference.html` 收录 243 个可运行示例（247 个函数），分 13 个分类，
+交互式速查 `docs/api-reference.html` 收录 245 个可运行示例（249 个函数），分 13 个分类，
 每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
 
 | 分类 | 函数数 | 亮点 |
 | --- | --- | --- |
 | 日志与调试 | 9 | console 分级、toast/toastLog、alert/exit/restartScript、sleep |
 | 触摸与节点 | 43 | 坐标/节点点击、滑动/手势/pinch、输入、节点查询（getChild/getSiblings/clickCenter/clickRandom）、node.keep/unkeep |
-| 图色与OCR | 29 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素（screen.getColor/getColorRGB/getColorHex）、多点比对（findColors/isColors）、OCR、二维码/条形码识别 scanCode |
+| 图色与OCR | 30 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素（screen.getColor/getColorRGB/getColorHex）、多点比对（findColors/isColors）、OCR、二维码/条形码识别 scanCode |
 | App与应用控制 | 21 | launch/activate/terminate/state/openURL/homeScreen/current/appList/isInstalled/getAppName/isRunning/锁屏解锁 |
 | 设备与系统 | 30 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID |
 | 坐标与屏幕 | 5 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
 | 文件 | 38 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
-| 存储 | 10 | 命名 typed store |
+| 存储 | 11 | 命名 typed store |
 | 网络HTTP | 11 | get/post/postJSON/getJSON/download/通用请求、WebSocket（ws.connect/poll/send/close） |
 | 相册媒体 | 11 | saveImage/saveImageBase64/saveVideo/saveScreenshot/deleteAllPhotos/deleteAllVideos/deleteAllMedia/playMp3/stopMp3/相册权限 |
 | 定时器与工具 | 21 | 定时器、execAsync/execSync 线程、uuid、base64、sha 系列、AES-128、random |

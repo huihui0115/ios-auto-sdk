@@ -891,6 +891,44 @@ declare function ocrBaiduText(imageBase64: string, apiKey: string, secretKey: st
 declare function scanCode(imagePath: string): AutoBarcodeItem[];
 declare const ws: AutoWebSocketAPI;
 
+interface AutoSQLiteResult {
+  /** Number of rows changed by a non-query statement. */
+  changes: number;
+  /** Row id of the last inserted row (0 when none). */
+  lastInsertRowId: number;
+}
+
+interface AutoSQLiteAPI {
+  /** Opens (or creates) a sandbox database file; returns an integer handle. */
+  open(path: string): number | null;
+  /** Runs a non-query statement (CREATE/INSERT/UPDATE/DELETE); returns {changes, lastInsertRowId}. */
+  exec(handle: number, sql: string, params?: unknown[]): AutoSQLiteResult | null;
+  /** Runs a SELECT and returns rows as objects keyed by column name. */
+  query(handle: number, sql: string, params?: unknown[]): Record<string, unknown>[];
+  /** Closes the database; returns false when the handle is unknown. */
+  close(handle: number): boolean;
+}
+
+interface AutoYoloItem {
+  /** Object label, e.g. "person", "dog", "car", "bottle". */
+  label: string;
+  /** Confidence 0..1. */
+  confidence: number;
+  /** Bounding box in image pixel coordinates, origin at top-left. */
+  rect: { x: number; y: number; width: number; height: number };
+}
+
+interface AutoYoloAPI {
+  /** Detects objects in an image file with the on-device Vision model (offline). */
+  detect(imagePath: string): AutoYoloItem[];
+  /** Alias of detect. */
+  detectByFilePath(imagePath: string): AutoYoloItem[];
+}
+
+declare const sqlite: AutoSQLiteAPI;
+declare const yolo: AutoYoloAPI;
+declare function yoloDetect(imagePath: string): AutoYoloItem[];
+
 declare function saveImageBase64ToAlbum(base64: string): boolean;
 declare function saveVideoToAlbum(path: string): boolean;
 declare function deleteAllPhotos(): number;

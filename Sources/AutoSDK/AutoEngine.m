@@ -16,6 +16,7 @@
 #import <SystemConfiguration/SystemConfiguration.h>
 #import <UserNotifications/UserNotifications.h>
 #import <Vision/Vision.h>
+#import <sqlite3.h>
 #import <mach/mach.h>
 #include <math.h>
 #include <ifaddrs.h>
@@ -756,6 +757,191 @@ static void AutoWebSocketCloseAll(void) {
     for (NSURLSessionWebSocketTask *task in tasks.allValues) {
         [task cancelWithCloseCode:NSURLSessionWebSocketCloseCodeNormalClosure reason:nil];
     }
+}
+
+static NSMutableDictionary<NSNumber *, sqlite3 *> *AutoSQLiteHandles;
+static NSLock *AutoSQLiteLock;
+static NSUInteger AutoSQLiteNextHandle = 1;
+
+static void AutoSQLiteInit(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        AutoSQLiteHandles = [NSMutableDictionary dictionary];
+        AutoSQLiteLock = [NSLock new];
+    });
+}
+
+static NSArray<NSDictionary<NSString *, id> *> *AutoSQLiteRowsForStatement(sqlite3_stmt *statement) {
+    int columns = sqlite3_column_count(statement);
+    NSMutableArray<NSDictionary<NSString *, id> *> *rows = [NSMutableArray array];
+    while (sqlite3_step(statement) == SQLITE_ROW) {
+        NSMutableDictionary<NSString *, id> *row = [NSMutableDictionary dictionary];
+        for (int i = 0; i < columns; i++) {
+            const char *name = sqlite3_column_name(statement, i);
+            NSString *key = name ? [NSString stringWithUTF8String:name] : [NSString stringWithFormat:@"col%d", i];
+            id value = nil;
+            switch (sqlite3_column_type(statement, i)) {
+                case SQLITE_INTEGER: value = @(sqlite3_column_int64(statement, i)); break;
+                case SQLITE_FLOAT: value = @(sqlite3_column_double(statement, i)); break;
+                case SQLITE_TEXT: {
+                    const unsigned char *text = sqlite3_column_text(statement, i);
+                    value = text ? [NSString stringWithUTF8String:(const char *)text] : @"";
+                    break;
+                }
+                case SQLITE_BLOB: {
+                    const void *bytes = sqlite3_column_blob(statement, i);
+                    int length = sqlite3_column_bytes(statement, i);
+                    value = bytes ? [[NSData alloc] initWithBytes:bytes length:(NSUInteger)length] : [NSData data];
+                    break;
+                }
+                default: value = NSNull.null; break;
+            }
+            row[key] = value ?: NSNull.null;
+        }
+        [rows addObject:row];
+    }
+    return rows;
+}
+
+static int AutoSQLiteBindParams(sqlite3_stmt *statement, NSArray *params) {
+    for (NSUInteger i = 0; i < params.count; i++) {
+        id param = params[i];
+        int index = (int)(i + 1);
+        int rc;
+        if (param == nil || [param isKindOfClass:NSNull.class]) {
+            rc = sqlite3_bind_null(statement, index);
+        } else if ([param isKindOfClass:NSNumber.class]) {
+            CFNumberType numberType = CFNumberGetType((__bridge CFNumberRef)param);
+            if (numberType == kCFNumberFloatType || numberType == kCFNumberFloat32Type ||
+                numberType == kCFNumberFloat64Type || numberType == kCFNumberDoubleType ||
+                numberType == kCFNumberCGFloatType) {
+                rc = sqlite3_bind_double(statement, index, [param doubleValue]);
+            } else {
+                rc = sqlite3_bind_int64(statement, index, (sqlite3_int64)[param longLongValue]);
+            }
+        } else if ([param isKindOfClass:NSData.class]) {
+            rc = sqlite3_bind_blob(statement, index, [param bytes], (int)[param length], SQLITE_TRANSIENT);
+        } else {
+            NSString *text = [param isKindOfClass:NSString.class] ? param : [param description];
+            rc = sqlite3_bind_text(statement, index, text.UTF8String, (int)[text lengthOfBytesUsingEncoding:NSUTF8StringEncoding], SQLITE_TRANSIENT);
+        }
+        if (rc != SQLITE_OK) return rc;
+    }
+    return SQLITE_OK;
+}
+
+static id AutoSQLiteOperation(NSString *name, NSArray *args, NSDictionary *config) {
+    AutoSQLiteInit();
+    if ([name isEqualToString:@"sqO"]) {
+        NSString *pathValue = args.count > 0 && [args[0] isKindOfClass:NSString.class] ? args[0] : @"";
+        if (pathValue.length == 0) {
+            return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"sqlite.open requires a database path.", nil);
+        }
+        NSError *resolveError = nil;
+        id resolved = AutoScriptFileOperation(@{ @"operation": @"resolvePath", @"path": pathValue }, config ?: @{}, &resolveError);
+        if (resolveError) return resolveError;
+        NSString *resolvedPath = [resolved isKindOfClass:NSString.class] ? resolved : pathValue;
+        sqlite3 *db = NULL;
+        int rc = sqlite3_open_v2(resolvedPath.UTF8String, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, NULL);
+        if (rc != SQLITE_OK) {
+            NSString *message = db ? [NSString stringWithUTF8String:sqlite3_errmsg(db)] : @"cannot open database";
+            if (db) sqlite3_close(db);
+            return AutoMakeError(AutoSDKErrorFileOperationFailed, message ?: @"sqlite open failed.", nil);
+        }
+        NSNumber *handle = @(AutoSQLiteNextHandle++);
+        [AutoSQLiteLock lock];
+        AutoSQLiteHandles[handle] = db;
+        [AutoSQLiteLock unlock];
+        return handle;
+    }
+    if (args.count == 0) {
+        return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"sqlite operation requires a handle.", nil);
+    }
+    NSNumber *handle = [args[0] isKindOfClass:NSNumber.class] ? args[0] : @([args[0] doubleValue]);
+    NSString *sql = args.count > 1 && [args[1] isKindOfClass:NSString.class] ? args[1] : @"";
+    if ([name isEqualToString:@"sqC"]) {
+        [AutoSQLiteLock lock];
+        sqlite3 *db = AutoSQLiteHandles[handle];
+        [AutoSQLiteHandles removeObjectForKey:handle];
+        [AutoSQLiteLock unlock];
+        if (db) { sqlite3_close(db); return @YES; }
+        return @NO;
+    }
+    [AutoSQLiteLock lock];
+    sqlite3 *db = AutoSQLiteHandles[handle];
+    [AutoSQLiteLock unlock];
+    if (!db) return AutoMakeError(AutoSDKErrorAutomationFailed, @"sqlite handle is not open.", nil);
+    if (sql.length == 0) return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"sqlite requires SQL text.", nil);
+    sqlite3_stmt *statement = NULL;
+    int rc = sqlite3_prepare_v2(db, sql.UTF8String, -1, &statement, NULL);
+    if (rc != SQLITE_OK) {
+        NSString *message = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
+        return AutoMakeError(AutoSDKErrorAutomationFailed, message ?: @"sqlite prepare failed.", nil);
+    }
+    NSArray *params = args.count > 2 && [args[2] isKindOfClass:NSArray.class] ? args[2] : @[];
+    rc = AutoSQLiteBindParams(statement, params);
+    if (rc != SQLITE_OK) {
+        NSString *message = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
+        sqlite3_finalize(statement);
+        return AutoMakeError(AutoSDKErrorAutomationFailed, message ?: @"sqlite bind failed.", nil);
+    }
+    if (sqlite3_column_count(statement) > 0) {
+        NSArray *rows = AutoSQLiteRowsForStatement(statement);
+        sqlite3_finalize(statement);
+        return rows;
+    }
+    rc = sqlite3_step(statement);
+    sqlite3_finalize(statement);
+    if (rc != SQLITE_DONE) {
+        NSString *message = [NSString stringWithUTF8String:sqlite3_errmsg(db)];
+        return AutoMakeError(AutoSDKErrorAutomationFailed, message ?: @"sqlite step failed.", nil);
+    }
+    return @{ @"changes": @(sqlite3_changes(db)), @"lastInsertRowId": @(sqlite3_last_insert_rowid(db)) };
+}
+
+static void AutoSQLiteCloseAll(void) {
+    AutoSQLiteInit();
+    [AutoSQLiteLock lock];
+    NSDictionary *handles = [AutoSQLiteHandles copy];
+    [AutoSQLiteHandles removeAllObjects];
+    [AutoSQLiteLock unlock];
+    for (sqlite3 *db in handles.allValues) sqlite3_close(db);
+}
+
+// Detects common objects (person, dog, car, bottle, ...) with the on-device Vision
+// object-recognition model (YOLO-style, offline, no model file). Returns
+// [{label, confidence, rect:{x,y,width,height}}] with image pixel coordinates.
+static NSArray<NSDictionary<NSString *, id> *> *AutoDetectObjects(UIImage *image, NSError **error) {
+    CGImageRef sourceImage = image.CGImage;
+    if (!sourceImage) {
+        if (error) *error = AutoMakeError(AutoSDKErrorAutomationFailed, @"yolo cannot decode the image file.", nil);
+        return nil;
+    }
+    NSError *visionError = nil;
+    VNRecognizeObjectsRequest *request = [VNRecognizeObjectsRequest new];
+    request.recognitionLevel = VNRequestRecognitionLevelFast;
+    VNImageRequestHandler *handler = [[VNImageRequestHandler alloc] initWithCGImage:sourceImage options:@{}];
+    if (![handler performRequests:@[request] error:&visionError]) {
+        if (error) *error = visionError ?: AutoMakeError(AutoSDKErrorAutomationFailed, @"Object detection failed.", nil);
+        return nil;
+    }
+    NSUInteger width = CGImageGetWidth(sourceImage);
+    NSUInteger height = CGImageGetHeight(sourceImage);
+    NSMutableArray<NSDictionary<NSString *, id> *> *results = [NSMutableArray array];
+    for (VNRecognizedObjectObservation *observation in request.results) {
+        VNClassificationObservation *top = observation.labels.firstObject;
+        if (!top || top.identifier.length == 0) continue;
+        CGRect box = observation.boundingBox; // normalized, origin bottom-left
+        [results addObject:@{
+            @"label": top.identifier,
+            @"confidence": @(top.confidence),
+            @"rect": @{ @"x": @(box.origin.x * width),
+                        @"y": @((1.0 - box.origin.y - box.size.height) * height),
+                        @"width": @(box.size.width * width),
+                        @"height": @(box.size.height * height) },
+        }];
+    }
+    return results;
 }
 
 static UILabel *AutoActiveToastLabel;
@@ -3133,6 +3319,35 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             NSString *pinyinText = pinyinArgs.count > 0 && [pinyinArgs[0] isKindOfClass:NSString.class] ? pinyinArgs[0] : @"";
             return AutoScriptToPinYin(pinyinText);
         }
+
+        if ([name isEqualToString:@"sqO"] || [name isEqualToString:@"sqE"] ||
+            [name isEqualToString:@"sqQ"] || [name isEqualToString:@"sqC"]) {
+            NSArray *sqliteArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            id sqliteResult = AutoSQLiteOperation(name, sqliteArgs, self.config ?: @{});
+            return [sqliteResult isKindOfClass:NSError.class] ? [self failure:sqliteResult] : sqliteResult;
+        }
+        if ([name isEqualToString:@"yoloD"]) {
+            NSArray *yoloArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            NSString *pathValue = yoloArgs.count > 0 && [yoloArgs[0] isKindOfClass:NSString.class] ? yoloArgs[0] : @"";
+            if (pathValue.length == 0) {
+                return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"yolo.detect requires an image file path.", nil)];
+            }
+            NSError *resolveError = nil;
+            id resolved = AutoScriptFileOperation(@{ @"operation": @"resolvePath", @"path": pathValue }, self.config ?: @{}, &resolveError);
+            if (resolveError) return [self failure:resolveError];
+            NSString *resolvedPath = [resolved isKindOfClass:NSString.class] ? resolved : pathValue;
+            NSData *imageData = [NSData dataWithContentsOfFile:resolvedPath];
+            if (!imageData) {
+                return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"yolo.detect cannot read the image file.", nil)];
+            }
+            UIImage *image = [UIImage imageWithData:imageData];
+            if (!image) {
+                return [self failure:AutoMakeError(AutoSDKErrorAutomationFailed, @"yolo.detect cannot decode the image file.", nil)];
+            }
+            NSError *detectError = nil;
+            NSArray *detected = AutoDetectObjects(image, &detectError);
+            return detectError ? [self failure:detectError] : (detected ?: @[]);
+        }
         if ([name hasPrefix:@"screenDraw"] || [name hasPrefix:@"floatBall"] || [name hasPrefix:@"floatLog"]) {
             NSArray *overlayArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
             return [self handleOverlayOperation:name arguments:overlayArgs];
@@ -4479,6 +4694,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     }
     if ([adapter respondsToSelector:@selector(cancelCurrentOperations)]) [adapter cancelCurrentOperations];
     AutoWebSocketCloseAll();
+    AutoSQLiteCloseAll();
     [task cancel];
 }
 

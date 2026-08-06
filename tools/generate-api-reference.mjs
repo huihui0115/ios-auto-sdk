@@ -1018,6 +1018,25 @@ APIS.push({ cat:'http', sig:'ws.connect(url) / ws.poll(handle) / ws.send(handle,
   ws.close(h);
 }
 main();` });
+APIS.push({ cat:'storage', sig:'sqlite.open(path) / sqlite.exec(handle, sql, params?) / sqlite.query(handle, sql, params?) / sqlite.close(handle)', title:'SQLite 本地数据库', desc:'轻量本地 SQLite 数据库（iOS 内置 libsqlite3），对标 EasyClick/AutoJS 的 sqlite 模块：open 打开或创建沙盒内 .db 文件并返回句柄；exec 执行建表/增删改语句，返回 {changes, lastInsertRowId}；query 执行 SELECT 并返回按列名取值的对象数组；SQL 参数用 ? 占位并传入 params 数组（自动绑定数字/文本/null，天然防注入）；close 关闭句柄。脚本停止时自动关闭全部连接。', params:[['path','string','沙盒内数据库路径'],['handle','number','open 返回的句柄'],['sql','string','SQL 语句'],['params','array','可选，? 占位符参数']], returns:'number | {changes, lastInsertRowId} | object[] | boolean', example:`function main(){
+  const db = sqlite.open("data/app.db");
+  sqlite.exec(db, "CREATE TABLE IF NOT EXISTS tasks(id INTEGER PRIMARY KEY, name TEXT, done INTEGER DEFAULT 0)");
+  sqlite.exec(db, "INSERT INTO tasks(name) VALUES (?)", ["写脚本"]);
+  const rows = sqlite.query(db, "SELECT id, name, done FROM tasks WHERE done = ?", [0]);
+  for (const r of rows) logd(r.id + " - " + r.name);
+  sqlite.close(db);
+}
+main();` });
+APIS.push({ cat:'vision', sig:'yolo.detect(imagePath) / yolo.detectByFilePath(imagePath) / yoloDetect(imagePath)', title:'YOLO 目标检测', desc:'用设备端 Vision 内置物体识别模型检测图片中的常见物体（person/dog/car/bottle 等），全离线、免 API Key、免模型文件，对标 AScript 的 YOLO 能力。返回 [{label, confidence, rect}]，rect 为图片像素坐标（左上原点）。imagePath 为沙盒内图片路径，可先用 screenshot() 获取当前屏幕截图。', params:[['imagePath','string','沙盒内图片路径']], returns:'AutoYoloItem[]', example:`function main(){
+  const path = screenshot();
+  const items = yolo.detect(path);
+  for (const it of items) {
+    if (it.confidence > 0.5) {
+      logd(it.label + " " + Math.round(it.confidence * 100) + "% @ " + JSON.stringify(it.rect));
+    }
+  }
+}
+main();` });
 APIS.push({ cat:'vision', sig:'scanCode(imagePath)', title:'二维码/条形码识别', desc:'用设备端 Vision 检测图片中的二维码/条形码，返回 [{ text, symbology, bounds }]；imagePath 为沙盒内图片路径（可先用 screenshot() 得到当前屏幕截图路径）；bounds 为归一化坐标（左上原点，与截图一致）。对标 AScript CodeScanner。', params:[['imagePath','string','沙盒内图片路径，空串时返回空数组']], returns:'AutoBarcodeItem[]', example:`function main(){
   const path = screenshot();
   const codes = scanCode(path);

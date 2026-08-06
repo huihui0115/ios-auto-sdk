@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>29</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>30</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>10</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>9</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>43</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>30</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>30</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>38</span></a><a href="#storage" style="--c:#0d9488">存储<span>11</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>21</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>14</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -923,7 +923,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="vision" class="cat" style="--c:#ea580c">
-  <h2><span class="tag">图色与OCR</span><i>29</i></h2>
+  <h2><span class="tag">图色与OCR</span><i>30</i></h2>
   <article class="card" data-search="screenshot() / capture() 截屏">
   <header class="card-head">
     <h4><code>screenshot() / capture()</code> <span class="cname">截屏</span></h4>
@@ -1197,6 +1197,26 @@ main();</code></pre>
   <pre><code>function main(){
   const item = ocrText("开始");
   if (item) logd("坐标: " + item.bounds.x + "," + item.bounds.y);
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="yolo.detect(imagePath) / yolo.detectByFilePath(imagePath) / yoloDetect(imagePath) YOLO 目标检测">
+  <header class="card-head">
+    <h4><code>yolo.detect(imagePath) / yolo.detectByFilePath(imagePath) / yoloDetect(imagePath)</code> <span class="cname">YOLO 目标检测</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">用设备端 Vision 内置物体识别模型检测图片中的常见物体（person/dog/car/bottle 等），全离线、免 API Key、免模型文件，对标 AScript 的 YOLO 能力。返回 [{label, confidence, rect}]，rect 为图片像素坐标（左上原点）。imagePath 为沙盒内图片路径，可先用 screenshot() 获取当前屏幕截图。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">imagePath</code><span class="ptype">string</span><span class="pdesc">沙盒内图片路径</span></div></div>
+  <div class="ret"><b>返回值</b> <span>AutoYoloItem[]</span></div>
+  <pre><code>function main(){
+  const path = screenshot();
+  const items = yolo.detect(path);
+  for (const it of items) {
+    if (it.confidence &gt; 0.5) {
+      logd(it.label + " " + Math.round(it.confidence * 100) + "% @ " + JSON.stringify(it.rect));
+    }
+  }
 }
 main();</code></pre>
 </article>
@@ -2851,7 +2871,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="storage" class="cat" style="--c:#0d9488">
-  <h2><span class="tag">存储</span><i>10</i></h2>
+  <h2><span class="tag">存储</span><i>11</i></h2>
   <article class="card" data-search="auto.storage(name) storage 别名">
   <header class="card-head">
     <h4><code>auto.storage(name)</code> <span class="cname">storage 别名</span></h4>
@@ -2932,6 +2952,25 @@ main();</code></pre>
   logd("all=" + JSON.stringify(store.all()));
   logd("has=" + store.contains("retry"));
   store.clear();
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="sqlite.open(path) / sqlite.exec(handle, sql, params?) / sqlite.query(handle, sql, params?) / sqlite.close(handle) SQLite 本地数据库">
+  <header class="card-head">
+    <h4><code>sqlite.open(path) / sqlite.exec(handle, sql, params?) / sqlite.query(handle, sql, params?) / sqlite.close(handle)</code> <span class="cname">SQLite 本地数据库</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">轻量本地 SQLite 数据库（iOS 内置 libsqlite3），对标 EasyClick/AutoJS 的 sqlite 模块：open 打开或创建沙盒内 .db 文件并返回句柄；exec 执行建表/增删改语句，返回 {changes, lastInsertRowId}；query 执行 SELECT 并返回按列名取值的对象数组；SQL 参数用 ? 占位并传入 params 数组（自动绑定数字/文本/null，天然防注入）；close 关闭句柄。脚本停止时自动关闭全部连接。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">path</code><span class="ptype">string</span><span class="pdesc">沙盒内数据库路径</span></div><div class="param"><code class="pname">handle</code><span class="ptype">number</span><span class="pdesc">open 返回的句柄</span></div><div class="param"><code class="pname">sql</code><span class="ptype">string</span><span class="pdesc">SQL 语句</span></div><div class="param"><code class="pname">params</code><span class="ptype">array</span><span class="pdesc">可选，? 占位符参数</span></div></div>
+  <div class="ret"><b>返回值</b> <span>number | {changes, lastInsertRowId} | object[] | boolean</span></div>
+  <pre><code>function main(){
+  const db = sqlite.open("data/app.db");
+  sqlite.exec(db, "CREATE TABLE IF NOT EXISTS tasks(id INTEGER PRIMARY KEY, name TEXT, done INTEGER DEFAULT 0)");
+  sqlite.exec(db, "INSERT INTO tasks(name) VALUES (?)", ["写脚本"]);
+  const rows = sqlite.query(db, "SELECT id, name, done FROM tasks WHERE done = ?", [0]);
+  for (const r of rows) logd(r.id + " - " + r.name);
+  sqlite.close(db);
 }
 main();</code></pre>
 </article>
@@ -4019,7 +4058,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 247 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 249 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-06 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

@@ -10,6 +10,15 @@ All notable changes to AutoSDK are documented here. The format follows
 
 - Next.
 
+## [1.7.0] - 2026-08-06
+
+### Added
+
+- **YOLO 目标检测（yolo.detect / yolo.detectByFilePath / yoloDetect）。** 设备端 Vision 内置物体识别模型（YOLO 风格、全离线、免 API Key、免模型文件），对标 AScript YOLO；返回 [{label, confidence, rect}]，rect 为图片像素坐标（左上原点）；d.ts/文档/verify/测试同步，文档 249 函数，测试 71 项。
+- **SQLite 本地数据库（sqlite.open/exec/query/close）。** iOS 内置 libsqlite3，对标 EasyClick/AutoJS sqlite 模块：open 打开或创建沙盒内 .db 并返回句柄；exec 执行增删改返回 {changes, lastInsertRowId}；query 执行 SELECT 返回按列名取值的对象数组；? 占位参数自动绑定（防注入）；脚本停止自动关闭全部连接；podspec 链接 sqlite3。
+- **bootstrap 体积压缩。** 新增 _ff/_pc 紧凑桥接 helper（invokeFile 7 处 + invokePixelColor 4 处收敛），新增功能后解码 61226 → 61348（仍低于 60KB 预算）。
+- **对标文档修正。** EasyClick 对比表：multipart/form 上传（files/formData）与 WebSocket 客户端已支持、YOLO/sqlite 能力补齐、getSerialNo 在 iOS 返回 null 的说明。
+
 ## [1.6.0] - 2026-08-06
 
 ### Added

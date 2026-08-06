@@ -1341,6 +1341,31 @@ test('device global shorthand exports mirror deviceApi members', () => {
   assert.deepEqual(calls.device.at(-1), { operation: 'osVersion' });
 });
 
+test('sqlite open/exec/query/close route to native bridge', () => {
+  const { sandbox, calls } = boot();
+  sandbox.sqlite.open('data/app.db');
+  assert.deepEqual(calls.native.at(-1), { name: 'sqO', arguments: ['data/app.db'] });
+  sandbox.sqlite.exec(7, 'CREATE TABLE IF NOT EXISTS t(id INTEGER PRIMARY KEY, name TEXT)', []);
+  assert.deepEqual(calls.native.at(-1), { name: 'sqE', arguments: [7, 'CREATE TABLE IF NOT EXISTS t(id INTEGER PRIMARY KEY, name TEXT)', []] });
+  sandbox.sqlite.exec(7, 'INSERT INTO t(name) VALUES (?)', ['a']);
+  assert.deepEqual(calls.native.at(-1), { name: 'sqE', arguments: [7, 'INSERT INTO t(name) VALUES (?)', ['a']] });
+  sandbox.sqlite.query(7, 'SELECT * FROM t WHERE name=?', ['a']);
+  assert.deepEqual(calls.native.at(-1), { name: 'sqQ', arguments: [7, 'SELECT * FROM t WHERE name=?', ['a']] });
+  sandbox.sqlite.close(7);
+  assert.deepEqual(calls.native.at(-1), { name: 'sqC', arguments: [7] });
+});
+
+test('yolo detect routes to native bridge and exposes aliases', () => {
+  const { sandbox, calls } = boot();
+  sandbox.yolo.detect('shot.png');
+  assert.deepEqual(calls.native.at(-1), { name: 'yoloD', arguments: ['shot.png'] });
+  sandbox.yolo.detectByFilePath('shot2.png');
+  assert.deepEqual(calls.native.at(-1), { name: 'yoloD', arguments: ['shot2.png'] });
+  sandbox.yoloDetect('shot3.png');
+  assert.deepEqual(calls.native.at(-1), { name: 'yoloD', arguments: ['shot3.png'] });
+  assert.equal(sandbox.yolo.detectByFilePath, sandbox.yolo.detect);
+});
+
 test('ws client routes connect/poll/send/close to native bridge', () => {
   const { sandbox, calls } = boot();
   sandbox.ws.connect('wss://example.com/sock');

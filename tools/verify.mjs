@@ -357,6 +357,24 @@ check(engineSource.includes('AutoPayloadHasFiniteNumbers') && engineSource.inclu
 check(engineSource.includes('maximumTotalBytes') && engineSource.includes('retainedMessageBytes') &&
       engineSource.includes('@"maxLogBytes"'),
       'Retained script logs must have a hard total byte budget');
+check(engineSource.includes('AutoSQLiteOperation') && engineSource.includes('AutoSQLiteCloseAll') &&
+      engineSource.includes('sqlite3_open_v2') && engineSource.includes('sqlite3_prepare_v2') &&
+      engineSource.includes('@"sqO"') && engineSource.includes('@"sqC"') && engineSource.includes('@"yoloD"'),
+      'Native engine must implement the sqlite database module and yolo object detection');
+check(engineSource.includes('VNRecognizeObjectsRequest') && engineSource.includes('AutoDetectObjects'),
+      'Native engine must detect objects through the on-device Vision model');
+check(engineSource.includes('AutoSQLiteCloseAll();') && engineSource.includes('AutoWebSocketCloseAll();'),
+      'Script stop must close sqlite handles alongside WebSocket connections');
+check(engineSource.includes('#import <sqlite3.h>'),
+      'Native engine must import the sqlite3 C library');
+check(podspec.includes("s.libraries        = 'z', 'sqlite3'"),
+      'AutoSDK.podspec must link the sqlite3 library');
+check(typeDefinitions.includes('interface AutoSQLiteAPI') && typeDefinitions.includes('interface AutoYoloAPI') &&
+      typeDefinitions.includes('declare const sqlite: AutoSQLiteAPI') &&
+      typeDefinitions.includes('declare const yolo: AutoYoloAPI') &&
+      typeDefinitions.includes('declare function yoloDetect(') &&
+      typeDefinitions.includes('detectByFilePath(imagePath: string)'),
+      'Type definitions must declare the sqlite and yolo modules');
 check(engineSource.includes('fileWriteEnabled = fileReadEnabled &&') &&
       engineSource.includes('@"fileWrite": @(fileWriteEnabled)'),
       'File-write capability must require both file access and file-write permission');
@@ -400,6 +418,19 @@ check(bootstrapScript.includes("wsApi={connect:function(u){return _nn('wsConnect
       bootstrapScript.includes("close:function(h){return _nn('wsClose'") &&
       bootstrapScript.includes('g.ws=wsApi'),
       'Bootstrap must expose the WebSocket client and its global alias');
+check(bootstrapScript.includes("sqliteApi={open:function(p){return _nn('sqO'") &&
+      bootstrapScript.includes("exec:function(h,s,a){return _nn('sqE'") &&
+      bootstrapScript.includes("query:function(h,s,a){return _nn('sqQ'") &&
+      bootstrapScript.includes("close:function(h){return _nn('sqC'") &&
+      bootstrapScript.includes('g.sqlite=sqliteApi'),
+      'Bootstrap must expose the sqlite database module');
+check(bootstrapScript.includes("yoloApi={detect:function(p){return _nn('yoloD'") &&
+      bootstrapScript.includes('yoloApi.detectByFilePath=yoloApi.detect') &&
+      bootstrapScript.includes('g.yolo=yoloApi') && bootstrapScript.includes('g.yoloDetect=yoloApi.detect'),
+      'Bootstrap must expose the yolo object-detection module and its global alias');
+check(bootstrapScript.includes('function _ff(o,s,sub,d,a)') && bootstrapScript.includes('function _pc(x,y)') &&
+      !bootstrapScript.includes("bridge.invokeFile({operation:'imageProcess'"),
+      'Bootstrap must route image file/pixel calls through the compact _ff/_pc helpers');
 check(['getDeviceInfo','getScreenWidth','getScreenHeight','getScale','getModel','getOSVersion','getDeviceName','getBattery','isCharging','getOrientation','getDeviceId','getDeviceAlias','getSerialNo','volumeUp','volumeDown','getMemoryInfo'].every(n => bootstrapScript.includes('g.' + n + '=deviceApi.' + n)),
       'Bootstrap must export deviceApi shorthand globals');
 
