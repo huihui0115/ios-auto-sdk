@@ -72,7 +72,7 @@ The following surfaces must not be described as production-complete yet:
 
 ## 函数级覆盖清单（2026-08-06）
 
-交互式速查 `docs/api-reference.html` 收录 245 个可运行示例（249 个函数），分 13 个分类，
+交互式速查 `docs/api-reference.html` 收录 247 个可运行示例（251 个函数），分 13 个分类，
 每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
 
 | 分类 | 函数数 | 亮点 |
@@ -81,14 +81,14 @@ The following surfaces must not be described as production-complete yet:
 | 触摸与节点 | 43 | 坐标/节点点击、滑动/手势/pinch、输入、节点查询（getChild/getSiblings/clickCenter/clickRandom）、node.keep/unkeep |
 | 图色与OCR | 30 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素（screen.getColor/getColorRGB/getColorHex）、多点比对（findColors/isColors）、OCR、二维码/条形码识别 scanCode |
 | App与应用控制 | 21 | launch/activate/terminate/state/openURL/homeScreen/current/appList/isInstalled/getAppName/isRunning/锁屏解锁 |
-| 设备与系统 | 30 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID |
+| 设备与系统 | 31 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID、GPS 定位 |
 | 坐标与屏幕 | 5 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
 | 文件 | 38 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
 | 存储 | 11 | 命名 typed store |
 | 网络HTTP | 11 | get/post/postJSON/getJSON/download/通用请求、WebSocket（ws.connect/poll/send/close） |
 | 相册媒体 | 11 | saveImage/saveImageBase64/saveVideo/saveScreenshot/deleteAllPhotos/deleteAllVideos/deleteAllMedia/playMp3/stopMp3/相册权限 |
 | 定时器与工具 | 21 | 定时器、execAsync/execSync 线程、uuid、base64、sha 系列、AES-128、random |
-| 字符串工具 | 14 | trim/split/chars/hex/类型判断/拼音 toPinYin/BOM 清洗/Unicode 还原 |
+| 字符串工具 | 15 | trim/split/chars/hex/类型判断/拼音 toPinYin/BOM 清洗/Unicode 还原/HMAC 签名 |
 | 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 
 本轮新增（Round 14）：`screen.*` EasyClick 兼容图色模块（getColor/getColorRGB/getColorHex + 找图找色/OCR/截图入口）、全局别名 `screen`/`string`、`app.getAppName`/`app.isRunning`；

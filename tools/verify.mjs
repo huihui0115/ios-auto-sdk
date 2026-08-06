@@ -361,6 +361,22 @@ check(engineSource.includes('AutoSQLiteOperation') && engineSource.includes('Aut
       engineSource.includes('sqlite3_open_v2') && engineSource.includes('sqlite3_prepare_v2') &&
       engineSource.includes('@"sqO"') && engineSource.includes('@"sqC"') && engineSource.includes('@"yoloD"'),
       'Native engine must implement the sqlite database module and yolo object detection');
+check(engineSource.includes('AutoScriptHMACSHA1Hex') && engineSource.includes('AutoScriptHMACSHA256Hex') &&
+      engineSource.includes('@"hmac1"') && engineSource.includes('@"hmac256"'),
+      'Native engine must dispatch hmacSHA1/hmacSHA256');
+check(read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCCHmacAlgSHA1') &&
+      read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCCHmacAlgSHA256') &&
+      read('Sources/AutoSDK/AutoScriptSupport.m').includes('CCHmac('),
+      'AutoScriptSupport must implement HMAC-SHA1/SHA256 with CommonCrypto');
+check(engineSource.includes('AutoGetLocationSnapshot') && engineSource.includes('CLLocationManager') &&
+      engineSource.includes('requestLocation') && engineSource.includes('@"locGet"') &&
+      engineSource.includes('kCLAuthorizationStatusDenied'),
+      'Native engine must implement one-shot location queries with permission handling');
+check(engineSource.includes('base64EncodedStringWithOptions:0') &&
+      engineSource.includes('case SQLITE_BLOB'),
+      'SQLite BLOB values must round-trip as base64 strings');
+check(engineSource.includes('AutoSQLiteNextHandle++') && engineSource.includes('[AutoSQLiteLock lock];'),
+      'SQLite handle allocation must be synchronized');
 check(engineSource.includes('VNRecognizeObjectsRequest') && engineSource.includes('AutoDetectObjects'),
       'Native engine must detect objects through the on-device Vision model');
 check(engineSource.includes('AutoSQLiteCloseAll();') && engineSource.includes('AutoWebSocketCloseAll();'),
@@ -431,18 +447,25 @@ check(bootstrapScript.includes("yoloApi={detect:function(p){return _nn('yoloD'")
 check(bootstrapScript.includes('function _ff(o,s,sub,d,a)') && bootstrapScript.includes('function _pc(x,y)') &&
       !bootstrapScript.includes("bridge.invokeFile({operation:'imageProcess'"),
       'Bootstrap must route image file/pixel calls through the compact _ff/_pc helpers');
-check(['getDeviceInfo','getScreenWidth','getScreenHeight','getScale','getModel','getOSVersion','getDeviceName','getBattery','isCharging','getOrientation','getDeviceId','getDeviceAlias','getSerialNo','volumeUp','volumeDown','getMemoryInfo'].every(n => bootstrapScript.includes('g.' + n + '=deviceApi.' + n)),
+check(bootstrapScript.includes("hmacSHA1:function(s,k){return _nn('hmac1'") &&
+      bootstrapScript.includes("hmacSHA256:function(s,k){return _nn('hmac256'") &&
+      bootstrapScript.includes('g.hmacSHA1=stringsApi.hmacSHA1') && bootstrapScript.includes('g.hmacSHA256=stringsApi.hmacSHA256'),
+      'Bootstrap must expose hmacSHA1/hmacSHA256 and their global aliases');
+check(bootstrapScript.includes("var locApi={getLocation:function(t){return _nn('locGet'") &&
+      bootstrapScript.includes('g.location=locApi'),
+      'Bootstrap must expose the location module');
+check(bootstrapScript.includes("['getDeviceInfo','getScreenWidth','getScreenHeight','getScale','getModel','getOSVersion','getDeviceName','getBattery','isCharging','getOrientation','getDeviceId','getDeviceAlias','getSerialNo','volumeUp','volumeDown','getMemoryInfo'].forEach(function(n){g[n]=deviceApi[n];})"),
       'Bootstrap must export deviceApi shorthand globals');
 
 check(bootstrapScript.includes('function _dv(') && bootstrapScript.includes('function _md(') && bootstrapScript.includes('function _nn('),
       'Bootstrap must define the compact bridge helpers');
 check(bootstrapScript.includes('getLanguage:function(){return _dv(\'language\');}') &&
       bootstrapScript.includes('getUptime:function(){return _dv(\'uptime\');}') &&
-      bootstrapScript.includes('g.getLanguage=deviceApi.getLanguage') && bootstrapScript.includes('g.getUptime=deviceApi.getUptime'),
+      bootstrapScript.includes("['getAppVersion','getPackageName','getLanguage','getCountry','getLocale','getTimezone','getUptime','getNetworkType','isWifi'].forEach(function(n){g[n]=deviceApi[n];})"),
       'Bootstrap must expose locale/timezone/uptime device getters');
 check(bootstrapScript.includes("getNetworkType:function(){return _dv('networkType');}") &&
       bootstrapScript.includes("isWifi:function(){return _dv('isWifi');}") &&
-      bootstrapScript.includes('g.getNetworkType=deviceApi.getNetworkType') && bootstrapScript.includes('g.isWifi=deviceApi.isWifi'),
+      bootstrapScript.includes("['getAppVersion','getPackageName','getLanguage','getCountry','getLocale','getTimezone','getUptime','getNetworkType','isWifi'].forEach(function(n){g[n]=deviceApi[n];})"),
       'Bootstrap must expose network type helpers');
 check(bootstrapScript.includes("getFrontmostApp:function(){return _av('current')") &&
       bootstrapScript.includes("g.getFrontmostApp=appApi.getFrontmostApp"),

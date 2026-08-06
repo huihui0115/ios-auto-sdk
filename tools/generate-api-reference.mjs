@@ -1037,6 +1037,23 @@ APIS.push({ cat:'vision', sig:'yolo.detect(imagePath) / yolo.detectByFilePath(im
   }
 }
 main();` });
+APIS.push({ cat:'device', sig:'location.getLocation(timeoutMs?)', title:'GPS 定位', desc:'一次性 GPS 定位（对标 kuaijs/AutoJS location 模块）：获取当前经纬度与精度信息，超时返回 null。timeoutMs 默认 5000（范围 500～30000）。返回 {latitude, longitude, altitude, horizontalAccuracy, verticalAccuracy, course, speed, timestamp}。宿主 App 需在 Info.plist 声明 NSLocationWhenInUseUsageDescription，首次调用会弹出定位授权；权限被拒或定位服务关闭时返回 null。', params:[['timeoutMs','number','可选，等待定位的毫秒数，默认 5000']], returns:'AutoLocationResult | null', example:`function main(){
+  const loc = location.getLocation(8000);
+  if (loc) {
+    logd("纬度: " + loc.latitude + " 经度: " + loc.longitude);
+    logd("精度: ±" + Math.round(loc.horizontalAccuracy) + "m 速度: " + loc.speed);
+  } else {
+    logd("定位失败或超时（需定位权限）");
+  }
+}
+main();` });
+APIS.push({ cat:'strings', sig:'hmacSHA1(text, key) / hmacSHA256(text, key)', title:'HMAC 签名', desc:'HMAC-SHA1/HMAC-SHA256 消息认证码（对标 AScript crypto / AutoJS crypto 能力）：以 key 为密钥对 text 计算 HMAC，返回十六进制小写字符串；常用于接口签名（如阿里云/腾讯云 API 认证）。全局函数与 strings.hmacSHA1/hmacSHA256 等价。', params:[['text','string','要签名的原文'],['key','string','密钥']], returns:'string', example:`function main(){
+  const sig = hmacSHA256("GET&%2F&timestamp%3D1700000000", "secret");
+  logd("签名: " + sig);
+  const sig1 = hmacSHA1("hello", "key");
+  logd("HMAC-SHA1: " + sig1);
+}
+main();` });
 APIS.push({ cat:'vision', sig:'scanCode(imagePath)', title:'二维码/条形码识别', desc:'用设备端 Vision 检测图片中的二维码/条形码，返回 [{ text, symbology, bounds }]；imagePath 为沙盒内图片路径（可先用 screenshot() 得到当前屏幕截图路径）；bounds 为归一化坐标（左上原点，与截图一致）。对标 AScript CodeScanner。', params:[['imagePath','string','沙盒内图片路径，空串时返回空数组']], returns:'AutoBarcodeItem[]', example:`function main(){
   const path = screenshot();
   const codes = scanCode(path);

@@ -3,6 +3,7 @@
 #import "include/AutoSDKError.h"
 #import <CommonCrypto/CommonDigest.h>
 #import <CommonCrypto/CommonCryptor.h>
+#import <CommonCrypto/CommonHMAC.h>
 #import <ImageIO/ImageIO.h>
 #include <math.h>
 #include <string.h>
@@ -43,6 +44,24 @@ NSString *AutoScriptSHA256Hex(NSData *data) {
     return AutoHexFromBytes(digest, CC_SHA256_DIGEST_LENGTH);
 }
 
+
+NSString *AutoScriptHMACSHA1Hex(NSString *text, NSString *key) {
+    NSData *textData = [text dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *keyData = [key dataUsingEncoding:NSUTF8StringEncoding];
+    if (textData.length == 0 || keyData.length == 0) return @"";
+    unsigned char digest[CC_SHA1_DIGEST_LENGTH] = {0};
+    CCHmac(kCCHmacAlgSHA1, keyData.bytes, keyData.length, textData.bytes, textData.length, digest);
+    return AutoHexFromBytes(digest, CC_SHA1_DIGEST_LENGTH);
+}
+
+NSString *AutoScriptHMACSHA256Hex(NSString *text, NSString *key) {
+    NSData *textData = [text dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *keyData = [key dataUsingEncoding:NSUTF8StringEncoding];
+    if (textData.length == 0 || keyData.length == 0) return @"";
+    unsigned char digest[CC_SHA256_DIGEST_LENGTH] = {0};
+    CCHmac(kCCHmacAlgSHA256, keyData.bytes, keyData.length, textData.bytes, textData.length, digest);
+    return AutoHexFromBytes(digest, CC_SHA256_DIGEST_LENGTH);
+}
 NSString *AutoScriptSHA512Hex(NSData *data) {
     if (data.length == 0) return @"";
     unsigned char digest[CC_SHA512_DIGEST_LENGTH] = {0};

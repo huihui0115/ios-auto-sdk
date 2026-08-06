@@ -17,6 +17,7 @@
 #import <UserNotifications/UserNotifications.h>
 #import <Vision/Vision.h>
 #import <sqlite3.h>
+#import <CoreLocation/CoreLocation.h>
 #import <mach/mach.h>
 #include <math.h>
 #include <ifaddrs.h>
@@ -791,7 +792,7 @@ static NSArray<NSDictionary<NSString *, id> *> *AutoSQLiteRowsForStatement(sqlit
                 case SQLITE_BLOB: {
                     const void *bytes = sqlite3_column_blob(statement, i);
                     int length = sqlite3_column_bytes(statement, i);
-                    value = bytes ? [[NSData alloc] initWithBytes:bytes length:(NSUInteger)length] : [NSData data];
+                    value = bytes && length > 0 ? [[NSData dataWithBytes:bytes length:(NSUInteger)length] base64EncodedStringWithOptions:0] : @"";
                     break;
                 }
                 default: value = NSNull.null; break;
@@ -848,8 +849,8 @@ static id AutoSQLiteOperation(NSString *name, NSArray *args, NSDictionary *confi
             if (db) sqlite3_close(db);
             return AutoMakeError(AutoSDKErrorFileOperationFailed, message ?: @"sqlite open failed.", nil);
         }
-        NSNumber *handle = @(AutoSQLiteNextHandle++);
         [AutoSQLiteLock lock];
+        NSNumber *handle = @(AutoSQLiteNextHandle++);
         AutoSQLiteHandles[handle] = db;
         [AutoSQLiteLock unlock];
         return handle;
@@ -944,6 +945,81 @@ static NSArray<NSDictionary<NSString *, id> *> *AutoDetectObjects(UIImage *image
     return results;
 }
 
+
+@interface AutoLocationDelegate : NSObject <CLLocationManagerDelegate>
+@property (nonatomic, copy) void (^onResult)(CLLocation * _Nullable location, NSError * _Nullable error);
+@end
+
+@implementation AutoLocationDelegate
+- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations {
+    if (self.onResult) self.onResult(locations.lastObject, nil);
+}
+- (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error {
+    if (self.onResult) self.onResult(nil, error);
+}
+@end
+
+// One-shot GPS fix (CLLocationManager requestLocation) with a bounded wait.
+// Returns nil (JS null) on timeout or missing permission; the host app must
+// declare NSLocationWhenInUseUsageDescription and the script needs allowSystemControl.
+static NSDictionary *AutoGetLocationSnapshot(double timeoutMs) {
+    __block CLLocation *result = nil;
+    __block NSError *resultError = nil;
+    __block AutoLocationDelegate *strongDelegate = nil;
+    __block CLLocationManager *strongManager = nil;
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        CLAuthorizationStatus status = CLLocationManager.authorizationStatus;
+        if (![CLLocationManager locationServicesEnabled]) {
+            resultError = AutoMakeError(AutoSDKErrorAutomationFailed, @"Location services are disabled.", nil);
+            dispatch_semaphore_signal(semaphore);
+            return;
+        }
+        if (status == kCLAuthorizationStatusDenied || status == kCLAuthorizationStatusRestricted) {
+            resultError = AutoMakeError(AutoSDKErrorAutomationFailed, @"Location permission denied.", nil);
+            dispatch_semaphore_signal(semaphore);
+            return;
+        }
+        strongDelegate = [AutoLocationDelegate new];
+        strongManager = [CLLocationManager new];
+        strongManager.desiredAccuracy = kCLLocationAccuracyBest;
+        strongManager.delegate = strongDelegate;
+        strongDelegate.onResult = ^(CLLocation *location, NSError *error) {
+            result = location;
+            resultError = error;
+            strongManager.delegate = nil;
+            strongManager = nil;
+            strongDelegate = nil;
+            dispatch_semaphore_signal(semaphore);
+        };
+        if ([strongManager respondsToSelector:@selector(requestWhenInUseAuthorization)]) {
+            [strongManager requestWhenInUseAuthorization];
+        }
+        [strongManager requestLocation];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeoutMs * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
+            if (strongManager) {
+                strongManager.delegate = nil;
+                strongManager = nil;
+                strongDelegate = nil;
+                dispatch_semaphore_signal(semaphore);
+            }
+        });
+    });
+    dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, (int64_t)((timeoutMs + 1500) * NSEC_PER_MSEC)));
+    if (result) {
+        return @{
+            @"latitude": @(result.coordinate.latitude),
+            @"longitude": @(result.coordinate.longitude),
+            @"altitude": @(result.altitude),
+            @"horizontalAccuracy": @(result.horizontalAccuracy),
+            @"verticalAccuracy": @(result.verticalAccuracy),
+            @"course": @(result.course),
+            @"speed": @(result.speed),
+            @"timestamp": @([result.timestamp timeIntervalSince1970] * 1000.0),
+        };
+    }
+    return nil;
+}
 static UILabel *AutoActiveToastLabel;
 static void AutoShowToast(NSString *message) {
     if (!NSThread.isMainThread) {
@@ -3187,6 +3263,12 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             if ([name isEqualToString:@"sha256"]) return AutoScriptSHA256Hex(inputData);
             return AutoScriptSHA512Hex(inputData);
         }
+        if ([name isEqualToString:@"hmac1"] || [name isEqualToString:@"hmac256"]) {
+            NSArray *hmacArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            NSString *text = hmacArgs.count > 0 && [hmacArgs[0] isKindOfClass:NSString.class] ? hmacArgs[0] : @"";
+            NSString *key = hmacArgs.count > 1 && [hmacArgs[1] isKindOfClass:NSString.class] ? hmacArgs[1] : @"";
+            return [name isEqualToString:@"hmac1"] ? AutoScriptHMACSHA1Hex(text, key) : AutoScriptHMACSHA256Hex(text, key);
+        }
         if ([name isEqualToString:@"aes128Encrypt"] || [name isEqualToString:@"aes128Decrypt"]) {
             NSArray *aesArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
             NSString *text = aesArgs.count > 0 && [aesArgs[0] isKindOfClass:NSString.class] ? aesArgs[0] : @"";
@@ -3320,6 +3402,13 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             return AutoScriptToPinYin(pinyinText);
         }
 
+        if ([name isEqualToString:@"locGet"]) {
+            NSArray *locArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
+            double timeoutMs = locArgs.count > 0 && [locArgs[0] isKindOfClass:NSNumber.class] ? [locArgs[0] doubleValue] : 5000.0;
+            if (timeoutMs < 500 || timeoutMs > 30000) timeoutMs = 5000.0;
+            NSDictionary *location = AutoGetLocationSnapshot(timeoutMs);
+            return location ?: [NSNull null];
+        }
         if ([name isEqualToString:@"sqO"] || [name isEqualToString:@"sqE"] ||
             [name isEqualToString:@"sqQ"] || [name isEqualToString:@"sqC"]) {
             NSArray *sqliteArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];

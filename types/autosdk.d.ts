@@ -927,6 +927,32 @@ interface AutoYoloAPI {
 
 declare const sqlite: AutoSQLiteAPI;
 declare const yolo: AutoYoloAPI;
+
+interface AutoLocationResult {
+  /** Latitude in degrees. */
+  latitude: number;
+  /** Longitude in degrees. */
+  longitude: number;
+  /** Altitude in meters. */
+  altitude: number;
+  /** Horizontal accuracy in meters. */
+  horizontalAccuracy: number;
+  /** Vertical accuracy in meters. */
+  verticalAccuracy: number;
+  /** Course in degrees from true north. */
+  course: number;
+  /** Speed in meters per second. */
+  speed: number;
+  /** Fix timestamp as epoch milliseconds. */
+  timestamp: number;
+}
+
+interface AutoLocationAPI {
+  /** One-shot GPS fix with a bounded wait; returns null on timeout or missing permission. */
+  getLocation(timeoutMs?: number): AutoLocationResult | null;
+}
+
+declare const location: AutoLocationAPI;
 declare function yoloDetect(imagePath: string): AutoYoloItem[];
 
 declare function saveImageBase64ToAlbum(base64: string): boolean;
@@ -936,6 +962,8 @@ declare function deleteAllVideos(): number;
 declare function deleteAllMedia(): number;
 declare function sha256(text: string): string;
 declare function sha512(text: string): string;
+declare function hmacSHA1(text: string, key: string): string;
+declare function hmacSHA256(text: string, key: string): string;
 declare function alert(message: string, title?: string): boolean;
 declare function exit(): boolean;
 declare function restartScript(): boolean;

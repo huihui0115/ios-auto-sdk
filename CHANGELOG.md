@@ -10,6 +10,17 @@ All notable changes to AutoSDK are documented here. The format follows
 
 - Next.
 
+## [1.8.0] - 2026-08-06
+
+### Added
+
+- **GPS 定位（location.getLocation(timeoutMs?)）。** 对标 kuaijs/AutoJS location 模块：一次性定位（CLLocationManager requestLocation + 有界等待），返回 {latitude, longitude, altitude, horizontalAccuracy, verticalAccuracy, course, speed, timestamp}；默认 5000ms（500～30000）；宿主 App 需 Info.plist 声明 NSLocationWhenInUseUsageDescription，权限被拒/定位关闭返回 null。
+- **HMAC 签名（hmacSHA1/hmacSHA256）。** 对标 AScript crypto / AutoJS crypto：CommonCrypto CCHmac 实现，返回十六进制小写字符串；strings.hmacSHA1/hmacSHA256 与全局函数等价。
+- **bootstrap 导出收敛压缩。** deviceApi 两段同名单条导出改为 forEach 批量导出 + 删除 3 处重复导出（swipeToPoint/md5/sha1），净减 240B（61348 → 61108）。
+- **SQLite 修复。** BLOB 值改为 base64 字符串返回（避免 NSData 桥接歧义）；句柄分配计数加锁（多线程安全）。
+
+## [1.7.0] - 2026-08-06
+
 ## [1.7.0] - 2026-08-06
 
 ### Added

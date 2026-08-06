@@ -1366,6 +1366,24 @@ test('yolo detect routes to native bridge and exposes aliases', () => {
   assert.equal(sandbox.yolo.detectByFilePath, sandbox.yolo.detect);
 });
 
+test('hmacSHA1 / hmacSHA256 route to native bridge', () => {
+  const { sandbox, calls } = boot();
+  sandbox.hmacSHA1('message', 'secret');
+  assert.deepEqual(calls.native.at(-1), { name: 'hmac1', arguments: ['message', 'secret'] });
+  sandbox.strings.hmacSHA256('message', 'secret');
+  assert.deepEqual(calls.native.at(-1), { name: 'hmac256', arguments: ['message', 'secret'] });
+  sandbox.hmacSHA256('a', 'b');
+  assert.deepEqual(calls.native.at(-1), { name: 'hmac256', arguments: ['a', 'b'] });
+});
+
+test('location.getLocation routes to native bridge with default timeout', () => {
+  const { sandbox, calls } = boot();
+  sandbox.location.getLocation();
+  assert.deepEqual(calls.native.at(-1), { name: 'locGet', arguments: [5000] });
+  sandbox.location.getLocation(10000);
+  assert.deepEqual(calls.native.at(-1), { name: 'locGet', arguments: [10000] });
+});
+
 test('ws client routes connect/poll/send/close to native bridge', () => {
   const { sandbox, calls } = boot();
   sandbox.ws.connect('wss://example.com/sock');
