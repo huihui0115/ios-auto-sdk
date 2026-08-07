@@ -173,6 +173,7 @@ function createSandbox() {
     invokeCompareColors: (data) => { calls.compareColors.push(data); return true; },
     invokeFindMultiColor: (data) => { calls.findMultiColor.push(data); return { match: true, x: 11, y: 22 }; },
     invokeOCR: (region) => { calls.ocr.push(region); return [{ text: 'hello', confidence: 0.9 }]; },
+    invokeLastError: () => ({ code: 42, message: 'mock native error', domain: 'AutoSDK' }),
     invokeExists: () => true,
     invokeFindElement: () => ({ handle: 'h1' }),
     invokeFindElements: () => [{ handle: 'h1' }],
@@ -1487,6 +1488,21 @@ test('isRunning / isDir / isFile global shorthands route correctly', () => {
   assert.deepEqual(calls.file.at(-1), { operation: 'stat', path: '/tmp' });
   sandbox.isFile('/tmp/a.txt');
   assert.deepEqual(calls.file.at(-1), { operation: 'stat', path: '/tmp/a.txt' });
+});
+
+test('round58: lastError surfaces the native error object', () => {
+  const { sandbox } = boot();
+  assert.deepEqual(sandbox.lastError(), { code: 42, message: 'mock native error', domain: 'AutoSDK' });
+});
+
+test('round58: gx bulk aliases keep globals identical to their sources', () => {
+  const { sandbox } = boot();
+  assert.equal(sandbox.click, sandbox.auto.click);
+  assert.equal(sandbox.vibrate, sandbox.device.vibrate);
+  assert.equal(sandbox.zip, sandbox.file.zip);
+  assert.equal(sandbox.audioPlay, sandbox.media.audioPlay);
+});
+
 test('round56: bitmap path-handle model round-trips through file ops', () => {
   const { sandbox, calls } = boot();
   const bmp = sandbox.image.readBitmap('/sandbox/a.png');
@@ -1517,8 +1533,6 @@ test('round56: bitmap path-handle model round-trips through file ops', () => {
   assert.equal(sandbox.file.readFile, sandbox.file.readText);
   assert.equal(sandbox.file.getLineText, sandbox.file.readLine);
   assert.equal(sandbox.device.getDeviceInfo, sandbox.device.info);
-});
-
 });
 
 test('device global shorthand exports mirror deviceApi members', () => {

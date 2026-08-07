@@ -1096,6 +1096,12 @@ check(bootstrapScript.includes("try{apply(timer.fn,g,timer.args);}catch(e){conso
       'Timer callback exceptions must be isolated so one bad timer cannot abort the drain loop');
 check(engineSource.includes('thread.finished = YES;') && engineSource.includes('thread.context = nil;'),
       'Finished exec threads must release their JSContext to avoid unbounded memory growth');
+check(bootstrapScript.includes('g.lastError=function(){return bridge.invokeLastError();};') &&
+      engineSource.includes('- (id)invokeLastError;') && engineSource.includes('NSUnderlyingErrorKey'),
+      'lastError() must expose the last native error for failure disambiguation');
+check(bootstrapScript.includes('function gx(o,n){n.forEach(function(k){g[k]=o[k];});}') &&
+      bootstrapScript.includes("gx(base,['") && bootstrapScript.includes("gx(deviceApi,['"),
+      'Bulk alias helper gx must keep the export section compact');
 check(read('Sources/AutoSDK/AutoEngine.m').includes('invokeTouch:(JSValue *)payload') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('performMultiTouch:fingers error:&error'),
       'Engine must bridge invokeTouch to the adapter performMultiTouch');

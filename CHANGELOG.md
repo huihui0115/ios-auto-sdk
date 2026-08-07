@@ -6,6 +6,25 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.28.0] - 2026-08-07
+
+### Added
+
+- **lastError() API（复盘建议落实）**：返回最近一次原生调用失败的错误对象
+  `{code, message, domain?, underlying?}`，无错误返回 null。用于区分「函数正常
+  返回 false」与「调用失败返回 false」（execSync/http/sqlite 等场景）。
+  原生侧新增 `invokeLastError` 桥接（含 NSUnderlyingError 透传）。
+- **gx 批量别名助手（三轮压缩）**：`function gx(o,n){n.forEach(...)}` 统一 81 个
+  同名全局导出（base 48 + deviceApi 12 + fileApi 11 + appApi 3 + mediaApi 7），
+  bootstrap 61391→60088/61440，预算余量从 49B 恢复到 1352B。
+- **真机验证清单更新**：确认 GitHub Actions（macos-14：verify + npm test +
+  Xcode 模拟器测试 + IPA 打包 + Release）每次 push 自动覆盖原生编译；
+  R53-R58 真机抽查项记入 AI_HANDOFF。
+
+### Fixed
+
+- 修复 bootstrap.test.mjs 历史嵌套问题：Round 56 的位图测试因插入点错误被嵌套进
+  isRunning 测试内部（TAP 计划 1..85 与 tests 86 不符），已还原为顶层测试。
 ## [1.27.0] - 2026-08-07
 
 ### Added

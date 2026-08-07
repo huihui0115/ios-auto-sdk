@@ -70,6 +70,7 @@
 - (id)invokeApp:(JSValue *)payload;
 - (id)invokeTouch:(JSValue *)payload;
 - (BOOL)invokeIsStopped;
+- (id)invokeLastError;
 - (id)invokeNative:(JSValue *)payload;
 - (id)invokeExecAsync:(JSValue *)payload;
 - (id)invokeExecOp:(JSValue *)payload;
@@ -3265,6 +3266,20 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 
 - (BOOL)invokeIsStopped {
     return [self.engine shouldStop] || self.threadCancelled;
+}
+
+- (id)invokeLastError {
+    NSError *error = self.lastError;
+    if (!error) return [NSNull null];
+    NSMutableDictionary *info = [NSMutableDictionary dictionary];
+    info[@"code"] = @(error.code);
+    info[@"message"] = error.localizedDescription ?: @"";
+    if (error.domain.length > 0) info[@"domain"] = error.domain;
+    NSError *underlying = error.userInfo[NSUnderlyingErrorKey];
+    if ([underlying isKindOfClass:NSError.class] && underlying.localizedDescription.length > 0) {
+        info[@"underlying"] = underlying.localizedDescription;
+    }
+    return info;
 }
 
 - (id)invokeTouch:(JSValue *)payload {

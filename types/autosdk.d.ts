@@ -1149,6 +1149,14 @@ declare function childCount(selector: AutoSelectorLike): number;
 declare function drag(x1: number, y1: number, x2: number, y2: number, durationMs?: number): boolean;
 declare function execAsync(fn: Function, ...args: unknown[]): AutoThread | null;
 declare function execSync<T = unknown>(fn: Function, ...args: unknown[]): T | null;
+/** Last native error (Round 58): disambiguates false results from real failures; null when none. */
+interface AutoLastError {
+  code: number;
+  message: string;
+  domain?: string;
+  underlying?: string;
+}
+declare function lastError(): AutoLastError | null;
 declare function cancelThread(thread: AutoThread | null): boolean;
 declare function stopAllThreads(): boolean;
 declare function isCancelled(): boolean;

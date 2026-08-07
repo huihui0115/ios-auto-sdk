@@ -290,6 +290,16 @@ APIS.push({ cat:'logs', sig:'logi(message) / logw(message) / loge(message)', tit
   loge("错误");
 }
 main();` });
+APIS.push({ cat:'logs', sig:'lastError()', title:'最近一次原生错误', desc:'返回最近一次原生调用失败的错误对象 {code, message, domain?, underlying?}；没有错误时返回 null。用于区分「函数正常返回 false」与「调用失败返回 false」——例如 execSync/http/sqlite 返回 false 时读取 lastError() 判断原因。每次新的原生调用成功时错误会被清空。', params:[], returns:'AutoLastError | null', example:`function main(){
+  const r = execSync(function () { return { ok: 1 }; });
+  if (r === false) {
+    const e = lastError();
+    loge("execSync 失败: " + (e ? e.message : "未知"));
+  } else {
+    logd("结果: " + JSON.stringify(r));
+  }
+}
+main();` });
 
 // ==== 补齐：文件常用操作 ====
 APIS.push({ cat:'file', sig:'file.lineCount(path) / getLineText(path, index) / insertLineText(path, index, text) / resetLineText(path, index, text)', title:'文件行操作', desc:'按行读取与编辑文本文件：lineCount 返回总行数，getLineText 读取指定行，insertLineText 在指定位置插入一行，resetLineText 替换指定行。全局简写 lineCount/getLineText/insertLineText/resetLineText 同样可用。', params:[['path','string','沙盒内文件路径'],['index','number','行号，从 0 开始'],['text','string','行文本']], returns:'number | string | boolean', example:`function main(){

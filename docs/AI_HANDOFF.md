@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 57（v1.27.0，2026-08-07）。
+> 最后更新：Round 58（v1.28.0，2026-08-07）。
 
 ---
 
@@ -137,6 +137,11 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 - `findImage` 已于 Round 49 实现（有界两阶段模板匹配）；
   xpath 子集已于 Round 53 实现（单步 //Type[@attr='v'] 等翻译为原生查询键）；predicate 仍返回清晰错误。
 - 验证模板 App `AutoSDKAdapter=BUILTIN` 配置接线与 capabilities 降级路径。
+- 注：每次 push main/tag 都会触发 GitHub Actions（macos-14：verify+npm test+
+  Xcode 模拟器测试+IPA 打包+Release），原生代码的编译与模拟器行为已被 CI 覆盖；
+  真机专属项仅剩私有 API 行为（IOHIDEvent/AX/SpringBoard）。
+- R53-R58 新增待真机抽查：xpath 子集实机控件命中、ocr.newOcr 对文件 OCR、
+  位图句柄过 image 操作链、execSync 对象返回值、lastError() 错误读取。
 
 ### 工程质量待办
 - 原生 `Tests/` 目前只有 AutoEngineTests / AutoHTTPProtocolTests，可在
@@ -211,6 +216,10 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R58（v1.28.0）：**落实复盘建议**——新增 lastError() API（原生 invokeLastError，
+  区分正常 false 与失败 false）；gx 批量别名助手压缩 81 个同名导出，bootstrap
+  61391→60088/61440（余 1352B）；修复测试文件历史嵌套 bug；CI 覆盖确认与
+  真机验证清单更新；测试 86 项，文档 261 函数。
 - R57（v1.27.0）：**全项目复盘审计轮**——修复三个真 bug：execSync 对象/数组返回值
   被旧包装吞掉（直返原生值）、定时器回调异常中断整个 drain 循环（try/catch 隔离）、
   execAsync 完成线程持有 JSContext 不释放（完成后置空）；系统审计确认文件沙盒/zip/
