@@ -1090,6 +1090,12 @@ check(bootstrapScript.includes('base.execAsync=function(fn)') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('invokeExecAsync:(JSValue *)payload') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('threadCancelled'),
       'Bootstrap and engine must expose real parallel exec threads with per-thread cancellation');
+check(bootstrapScript.includes('base.execSync=function(fn){var args=arr(arguments,1);return bridge.invokeExecAsync('),
+      'execSync must return the native sync result verbatim so object/array results survive');
+check(bootstrapScript.includes("try{apply(timer.fn,g,timer.args);}catch(e){consoleBridge.error('Timer error: '+(e&&e.message||e));}"),
+      'Timer callback exceptions must be isolated so one bad timer cannot abort the drain loop');
+check(engineSource.includes('thread.finished = YES;') && engineSource.includes('thread.context = nil;'),
+      'Finished exec threads must release their JSContext to avoid unbounded memory growth');
 check(read('Sources/AutoSDK/AutoEngine.m').includes('invokeTouch:(JSValue *)payload') &&
       read('Sources/AutoSDK/AutoEngine.m').includes('performMultiTouch:fingers error:&error'),
       'Engine must bridge invokeTouch to the adapter performMultiTouch');

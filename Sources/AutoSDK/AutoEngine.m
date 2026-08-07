@@ -4014,6 +4014,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                 thread.result = AutoBoundedJSResult(value);
             }
             thread.finished = YES;
+            thread.context = nil;
         }
     });
     if (sync) {

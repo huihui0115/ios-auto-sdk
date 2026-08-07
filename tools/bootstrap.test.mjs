@@ -202,7 +202,7 @@ function createSandbox() {
     invokeExecAsync: (data) => {
       calls.execAsync.push(data);
       const id = 1000 + calls.execAsync.length;
-      if (data.sync) return { result: 'sync-result-' + String(data.arguments[0]) };
+      if (data.sync) return data.arguments[0] === 'object' ? { a: 1, list: [1, 2] } : 'sync-result-' + String(data.arguments[0]);
       return { threadId: id };
     },
     invokeExecOp: (data) => {
@@ -475,6 +475,15 @@ test('timers fire via drainTimers and can be cancelled', () => {
   sandbox.clearTimeout(cancelled);
   drainTimers();
   assert.equal(sandbox.fired, false);
+});
+
+test('a throwing timer callback does not abort the drain loop', () => {
+  const { sandbox, drainTimers } = boot();
+  sandbox.order = [];
+  sandbox.setTimeout(() => { throw new Error('boom'); }, 1);
+  sandbox.setTimeout(() => { sandbox.order.push('second'); }, 2);
+  drainTimers();
+  assert.deepEqual(sandbox.order, ['second']);
 });
 
 test('setInterval repeats until cleared', () => {
@@ -926,6 +935,7 @@ test('execAsync / execSync / thread handle and utils helpers', () => {
 
   assert.equal(sandbox.execSync(function () { return 1; }, 'hello'), 'sync-result-hello');
   assert.deepEqual(calls.execAsync.at(-1), { source: 'function () { return 1; }', arguments: ['hello'], sync: true });
+  assert.deepEqual(sandbox.execSync(function () { return {}; }, 'object'), { a: 1, list: [1, 2] });
 
   sandbox.stopAllThreads();
   assert.deepEqual(calls.execOp.at(-1), { operation: 'stopAll' });

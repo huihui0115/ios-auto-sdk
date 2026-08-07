@@ -6,6 +6,24 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.27.0] - 2026-08-07
+
+### Added
+
+- 全项目复盘审计轮：系统审计文件沙盒、zip 解压、HTTP 重定向策略、调试服务帧解析、
+  SQLite 句柄管理、内置适配器 CoreFoundation 资源配对，均确认无问题。
+
+### Fixed
+
+- **execSync 返回值破坏（真机 bug）**：原生 sync 模式直接返回裸结果，旧 JS 包装
+  对 object/array 结果取 `.result` 属性导致静默返回 undefined；现在 execSync
+  直返原生值（失败时为 false），Node 测试 mock 同步改为真实契约并新增对象返回值回归断言。
+- **定时器回调异常中断 drain 循环**：任一定时器回调抛异常会终止整个 drainTimers，
+  连累同轮所有后续定时器；现在 try/catch 隔离单个回调异常并经 console.error 上报，
+  其余定时器照常执行（interval 也照常续订）。
+- **execAsync 内存增长**：完成的异步线程对象持有 JSContext 直到脚本停止；
+  长脚本大量短任务会持续累积。现在线程完成后立即释放 JSContext（结果/错误已提取，
+  join/getResult/cancel 语义不变）。
 ## [1.26.0] - 2026-08-07
 
 ### Added

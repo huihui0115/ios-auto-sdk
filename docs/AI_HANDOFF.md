@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 56（v1.26.0，2026-08-07）。
+> 最后更新：Round 57（v1.27.0，2026-08-07）。
 
 ---
 
@@ -211,6 +211,10 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R57（v1.27.0）：**全项目复盘审计轮**——修复三个真 bug：execSync 对象/数组返回值
+  被旧包装吞掉（直返原生值）、定时器回调异常中断整个 drain 循环（try/catch 隔离）、
+  execAsync 完成线程持有 JSContext 不释放（完成后置空）；系统审计确认文件沙盒/zip/
+  HTTP 重定向/调试帧解析/sqlite/CF 资源均无问题；bootstrap 61391/61440，测试 84 项。
 - R56（v1.26.0）：**位图模型（路径句柄）落地**——image.readBitmap 返回 {path,isBitmap}
   句柄，saveBitmap/bitmapBase64/base64Bitmap/bitmapToImage/getBitmapPixelColor 补齐
   EasyClick 位图 API；句柄在全部 image 操作中自动解包（bp/bh/fb helper + _ff 解包）；
