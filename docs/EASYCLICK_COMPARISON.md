@@ -1,6 +1,6 @@
 # EasyClick iOS capability comparison
 
-Audit date: 2026-08-05
+Audit date: 2026-08-07
 
 Official references:
 
@@ -74,7 +74,7 @@ The following surfaces must not be described as production-complete yet:
 
 ## 函数级覆盖清单（2026-08-06）
 
-交互式速查 `docs/api-reference.html` 收录 261 个可运行示例（261 个函数），分 13 个分类，
+交互式速查 `docs/api-reference.html` 收录 263 个可运行示例（263 个函数），分 13 个分类，
 每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
 
 | 分类 | 函数数 | 亮点 |
@@ -83,18 +83,19 @@ The following surfaces must not be described as production-complete yet:
 | 触摸与节点 | 43 | 坐标/节点点击、滑动/手势/pinch、输入、节点查询（getChild/getSiblings/clickCenter/clickRandom）、node.keep/unkeep |
 | 图色与OCR | 30 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素（screen.getColor/getColorRGB/getColorHex）、多点比对（findColors/isColors）、OCR、二维码/条形码识别 scanCode |
 | App与应用控制 | 21 | launch/activate/terminate/state/openURL/homeScreen/current/appList/isInstalled/getAppName/isRunning/锁屏解锁 |
-| 设备与系统 | 33 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID、GPS 定位 |
+| 设备与系统 | 34 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID、GPS 定位 |
 | 坐标与屏幕 | 5 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
 | 文件 | 38 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
 | 存储 | 11 | 命名 typed store |
 | 网络HTTP | 11 | get/post/postJSON/getJSON/download/通用请求、WebSocket（ws.connect/poll/send/close） |
 | 相册媒体 | 11 | saveImage/saveImageBase64/saveVideo/saveScreenshot/deleteAllPhotos/deleteAllVideos/deleteAllMedia/playMp3/stopMp3/相册权限 |
 | 定时器与工具 | 21 | 定时器、execAsync/execSync 线程、uuid、base64、sha 系列、AES-128、random |
-| 字符串工具 | 15 | trim/split/chars/hex/类型判断/拼音 toPinYin/BOM 清洗/Unicode 还原/HMAC 签名 |
+| 字符串工具 | 16 | trim/split/chars/hex/类型判断/拼音 toPinYin/BOM 清洗/Unicode 还原/HMAC 签名 |
 | 颜色工具 | 5 | parseColor/int2Hex/hex2Int/toInt/toHex/rgb/argb（EasyClick 兼容，支持 #RGB/#RRGGBB/0x/数字） |
 | 线程与工具模块 | 14 | thread.execAsync/execSync/cancelThread/stopAll/isCancelled、utils.dataMd5/fileMd5/randomInt/getRangeInt/getRatio/zip/unzip/readFileInZip/playMp3/stopMp3/deleteAllPhotos/deleteAllVideos/requestPhotoAuthorization、全局别名 getPasteboard/setPasteboard/openUrl/uploadToAlbum/childcount |
 | 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 
+本轮新增（Round 59）：**TrollAutoScript 文档对标 + 补齐最后高频缺口**——以 `docs.trollautoscript.com/sitemap.xml`（315 页 SSR 文档）做模块级功能盘点（设备 37/字符串 29/节点 21/图片 19/应用 17/屏幕 15 等）。新增：(1) `string.atrim`（去除全部空白含中间）+ `isInteger`（isIntrger 正确拼写别名，全局与 string 命名空间同步导出）+ `string.random(len, chars)`（等价全局 randomString），字符串谓词/工具补齐；(2) `pasteboard.read/write` 命名空间（对标 TrollAutoScript pasteboard 模块，兼容既有 getPasteboard/setPasteboard 全局函数）；(3) `json.encode/decode` 命名空间（decode 解析失败返回 null 不抛异常）；(4) `device.setBacklightLevel/backlightLevel` 背光别名（与 setBrightness/getBrightness 同源，auto.* 代理自动可达）。修复一个初始化顺序 bug：stringsApi 扩展赋值若放在尾部别名区会晚于全局导出 forEach，导致 g.atrim=undefined，已移至导出列表之前。bootstrap 60088→60526/61440（余量 914B），Node 测试 87 项，文档 263 函数；确认无法对标项（涉私有 API/系统权限，市面脚本框架同理）：vpn.*、飞行模式/移动数据开关、app.installIpa/uninstall、mobile.sendMessage/reboot/shutdown、硬件按键 key.*、coreML/paddle 本地模型托管、clear.keychain、AssistiveTouch；
 本轮新增（Round 58）：**落实复盘建议**——(1) 新增 `lastError()` API：返回最近一次原生调用失败的 {code, message, domain?, underlying?}（无错误返回 null），彻底解决 execSync/http/sqlite 等「正常返回 false 与失败返回 false 无法区分」的语义问题，原生侧新增 invokeLastError 桥接；(2) 三轮压缩：gx(o,names) 批量别名助手统一 81 个同名全局导出（base 48 + device 12 + file 11 + app 3 + media 7），bootstrap 61391→60088/61440，预算余量从 49B 恢复到 1352B；(3) 真机验证路径：确认 CI（macos-14 模拟器测试+IPA 打包）每次 push 自动覆盖原生编译，真机验证清单更新至 R53-R58；Node 测试 86 项，文档 261 函数；
 本轮新增（Round 57）：**全项目复盘审计 + 三个真 bug 修复**——(1) 修复 `execSync` 返回值破坏：原生 sync 模式返回裸结果，旧 JS 包装对 object/array 结果取 `.result` 导致返回 undefined（真机静默丢数据），现直返原生值（含失败 false 语义），Node mock 同步改为真实契约；(2) 修复定时器 drain 脆性：任一定时器回调抛异常会中断整个 drainTimers 循环、连累后续定时器，现 try/catch 隔离并走 consoleBridge.error 上报；(3) 修复 execAsync 内存增长：完成的线程对象持有 JSContext 直到脚本停止，现完成后立即置空释放（结果/错误已提取，join/getResult 不受影响）。审计确认无问题项：文件沙盒（NUL 拒绝+符号链接解析+root+/ 前缀防 /sandbox-evil+root 自身限制在 App 容器内）、zip（.. 组件/绝对路径/二次 resolve/条目与总量上限）、HTTP 重定向（禁 https→http 降级、禁非 http(s) scheme、allowlist、weak 表+锁）、调试服务帧解析（强制掩码、1MB 上限、控制帧 125B、RSV/分片拒绝）、sqlite（句柄表+锁+停止时统一 closeAll）、内置适配器 CF 资源配对；bootstrap 61391/61440（余 49B），测试 84 项；
 本轮新增（Round 56）：**位图模型（路径句柄）+ 二轮压缩**——(1) EasyClick 位图 API 对标落地：`image.readBitmap(path)` 返回 `{path,isBitmap}` 句柄，`saveBitmap/bitmapBase64/base64Bitmap/bitmapToImage/getBitmapPixelColor` 全齐；句柄可直接传给 image.compress/clip/scale/gray/rotate/pixelAt/toBase64/getWidth/getHeight（_ff 与尺寸查询自动解包），EasyClick 的 scaleBitmap/rotateBitmap/clipBitmap 语义由 image.scale(handle,w,h,dest) 等以文件落盘方式等价覆盖，releaseBitmap 因无内存驻留而不需要；(2) 压缩第二轮：fileApi/deviceApi 自转发包装改为 guard 后直接引用别名（省 208B）、getPixelColor/getColor/encode/decode/time 改直接引用（省 126B），合计 -334B，抵消位图功能后净增 93B（61283→61376/61440，余 64B）；(3) toBase64 与 ocr.newOcr 统一走 bp() 解包；Node 测试 83 项，文档 260 函数；

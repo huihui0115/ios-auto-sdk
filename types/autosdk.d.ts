@@ -417,6 +417,8 @@ interface AutoDeviceAPI {
   setClipboard(text: string): boolean;
   getBrightness(): number;
   setBrightness(value: number): boolean;
+  setBacklightLevel(value: number): boolean;
+  backlightLevel(): number;
   getVolume(): number;
   vibrate(durationMs?: number): boolean;
   vibrateLong(): boolean;
@@ -543,6 +545,8 @@ interface AutoAPI {
   setClipboard(text: string): boolean;
   getBrightness(): number;
   setBrightness(value: number): boolean;
+  setBacklightLevel(value: number): boolean;
+  backlightLevel(): number;
   getVolume(): number;
   vibrate(durationMs?: number): boolean;
   vibrateLong(): boolean;
@@ -665,6 +669,7 @@ interface AutoStringsAPI {
   isLower(text: string): boolean;
   isNumber(text: string): boolean;
   isIntrger(text: string): boolean;
+  isInteger(text: string): boolean;
   isLetter(text: string): boolean;
   isChinese(text: string): boolean;
   isEmail(text: string): boolean;
@@ -697,6 +702,18 @@ interface AutoStringsAPI {
   padEnd(text: string, length: number, pad?: string): string;
   format(pattern: string, ...args: unknown[]): string;
   formatDate(timestamp?: number, pattern?: string): string;
+  atrim(text: string): string;
+  random(len?: number, chars?: string): string;
+}
+
+interface AutoPasteboardAPI {
+  read(): string | null;
+  write(text: string): boolean;
+}
+
+interface AutoJSONAPI {
+  encode(value: unknown): string;
+  decode(text: string): any;
 }
 
 interface AutoPlistAPI {
@@ -1124,6 +1141,8 @@ declare function aes128Decrypt(base64: string, key: string): string;
 declare const plist: AutoPlistAPI;
 declare const webView: AutoWebViewAPI;
 declare const strings: AutoStringsAPI;
+declare const pasteboard: AutoPasteboardAPI;
+declare const json: AutoJSONAPI;
 declare function saveScreenshotToAlbum(): boolean;
 declare function time(): number;
 declare function random(min: number, max?: number): number;

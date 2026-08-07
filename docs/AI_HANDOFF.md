@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 58（v1.28.0，2026-08-07）。
+> 最后更新：Round 59（v1.29.0，2026-08-07）。
 
 ---
 
@@ -123,6 +123,7 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   已完成（Round 56，路径句柄模型；getBitmapPixelColor 一并补齐；文档已标注语义差异）。
 - ~~`ocr.newOcr/ocrInstance.ocrBitmap/ocrImage`~~ 已完成（Round 55，实例合并默认参数，ocrImage 对沙盒图片文件 OCR）。
 - ~~`http.requestEx`~~ 已完成（Round 55，等价 http() 别名）；`agentRequestEx` 属 agent 远程类，记录为不可实现。
+- ~~`string.atrim/isInteger/string.random`、`pasteboard.read/write`、`json.encode/decode`、`device.setBacklightLevel/backlightLevel`~~ 已完成（Round 59，TrollAutoScript 对标补齐；不可实现项：vpn.*、飞行模式/移动数据开关、installIpa/uninstall、硬件按键、coreML/paddle 托管）。
 
 ### 不可实现（记录为缺口即可）
 - `imeApi.*`（需自建输入法）、`ecNetCard.*`/BLE/OTG/HID（硬件）、
@@ -140,8 +141,9 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 - 注：每次 push main/tag 都会触发 GitHub Actions（macos-14：verify+npm test+
   Xcode 模拟器测试+IPA 打包+Release），原生代码的编译与模拟器行为已被 CI 覆盖；
   真机专属项仅剩私有 API 行为（IOHIDEvent/AX/SpringBoard）。
-- R53-R58 新增待真机抽查：xpath 子集实机控件命中、ocr.newOcr 对文件 OCR、
-  位图句柄过 image 操作链、execSync 对象返回值、lastError() 错误读取。
+- R53-R59 新增待真机抽查：xpath 子集实机控件命中、ocr.newOcr 对文件 OCR、
+  位图句柄过 image 操作链、execSync 对象返回值、lastError() 错误读取、
+  pasteboard 读写（含无权限时返回）、setBacklightLevel 真机亮度生效。
 
 ### 工程质量待办
 - 原生 `Tests/` 目前只有 AutoEngineTests / AutoHTTPProtocolTests，可在
@@ -216,6 +218,11 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R59（v1.29.0）：**TrollAutoScript 对标补齐**——sitemap（315 页）模块级盘点后补最后高频缺口：
+  string.atrim/isInteger（isIntrger 拼写别名）/string.random、pasteboard.read/write、
+  json.encode/decode（失败返回 null）、device.setBacklightLevel/backlightLevel；
+  修复初始化顺序 bug（stringsApi 扩展赋值须在全局导出 forEach 之前）；
+  bootstrap 60088→60526/61440（余 914B）；测试 87 项，文档 263 函数。
 - R58（v1.28.0）：**落实复盘建议**——新增 lastError() API（原生 invokeLastError，
   区分正常 false 与失败 false）；gx 批量别名助手压缩 81 个同名导出，bootstrap
   61391→60088/61440（余 1352B）；修复测试文件历史嵌套 bug；CI 覆盖确认与

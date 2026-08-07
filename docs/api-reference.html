@@ -56,7 +56,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
   <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
 </header>
 <div class="layout">
-<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>10</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>45</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>31</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>33</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>39</span></a><a href="#storage" style="--c:#0d9488">存储<span>11</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>24</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>16</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a><a href="#speech" style="--c:#059669">语音朗读<span>1</span></a></nav>
+<nav class="side"><a href="#start" style="--c:#2563eb">快速开始<span>0</span></a><a href="#logs" style="--c:#0891b2">日志与调试<span>10</span></a><a href="#touch" style="--c:#7c3aed">触摸与节点<span>45</span></a><a href="#vision" style="--c:#ea580c">图色与OCR<span>31</span></a><a href="#app" style="--c:#16a34a">App与应用控制<span>21</span></a><a href="#device" style="--c:#dc2626">设备与系统<span>34</span></a><a href="#metrics" style="--c:#0ea5e9">坐标与屏幕<span>5</span></a><a href="#file" style="--c:#4f46e5">文件<span>39</span></a><a href="#storage" style="--c:#0d9488">存储<span>11</span></a><a href="#http" style="--c:#9333ea">网络HTTP<span>11</span></a><a href="#media" style="--c:#db2777">相册媒体<span>11</span></a><a href="#timer" style="--c:#64748b">定时器与工具<span>24</span></a><a href="#strings" style="--c:#a21caf">字符串工具<span>17</span></a><a href="#ui" style="--c:#f59e0b">悬浮窗口<span>3</span></a><a href="#speech" style="--c:#059669">语音朗读<span>1</span></a></nav>
 <main>
 <section id="start" class="cat" style="--c:#2563eb">
 <h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
@@ -1820,7 +1820,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="device" class="cat" style="--c:#dc2626">
-  <h2><span class="tag">设备与系统</span><i>33</i></h2>
+  <h2><span class="tag">设备与系统</span><i>34</i></h2>
   <article class="card" data-search="device.getIPAddress() / device.getIP() / getIPAddress() / getIP() 获取局域网 IP">
   <header class="card-head">
     <h4><code>device.getIPAddress() / device.getIP() / getIPAddress() / getIP()</code> <span class="cname">获取局域网 IP</span></h4>
@@ -1847,6 +1847,25 @@ main();</code></pre>
   <div class="ret"><b>返回值</b> <span>string</span></div>
   <pre><code>function main(){
   logd("iOS: " + device.getOSVersion());
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="pasteboard.read() / pasteboard.write(text) / json.encode(value) / json.decode(text) 粘贴板与 JSON 命名空间">
+  <header class="card-head">
+    <h4><code>pasteboard.read() / pasteboard.write(text) / json.encode(value) / json.decode(text)</code> <span class="cname">粘贴板与 JSON 命名空间</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">pasteboard.read 读取剪贴板（无内容返回 null），pasteboard.write 写入剪贴板；json.encode 把任意值序列化为 JSON 字符串，json.decode 解析 JSON 文本（解析失败返回 null）。对标 TrollAutoScript pasteboard.read/write 与 json.encode/decode 模块，兼容既有 getPasteboard/setPasteboard 全局函数。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">写入剪贴板的文本 / 待解析 JSON 文本</span></div><div class="param"><code class="pname">value</code><span class="ptype">any</span><span class="pdesc">任意可 JSON 序列化的值</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string | null / boolean / string / any</span></div>
+  <pre><code>function main(){
+  pasteboard.write("AutoSDK");
+  logd("剪贴板: " + pasteboard.read());
+  var s = json.encode({ a: 1, b: "x" });
+  logd(s);
+  logd(JSON.stringify(json.decode(s)));
+  logd(String(json.decode("{bad json")));
 }
 main();</code></pre>
 </article>
@@ -1911,12 +1930,12 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="device.setBrightness(value) 设置屏幕亮度">
+<article class="card" data-search="device.setBrightness(value) / device.setBacklightLevel(value) / device.backlightLevel() 设置屏幕亮度">
   <header class="card-head">
-    <h4><code>device.setBrightness(value)</code> <span class="cname">设置屏幕亮度</span></h4>
+    <h4><code>device.setBrightness(value) / device.setBacklightLevel(value) / device.backlightLevel()</code> <span class="cname">设置屏幕亮度</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">设置屏幕亮度，value 范围 0～1。</p>
+  <p class="desc">设置屏幕亮度，value 范围 0～1。setBacklightLevel/backlightLevel 为 TrollAutoScript 兼容别名，与 setBrightness/getBrightness 同源。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">value</code><span class="ptype">number</span><span class="pdesc">0～1 的亮度值</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
@@ -3974,7 +3993,7 @@ main();</code></pre>
 </article>
 </section>
 <section id="strings" class="cat" style="--c:#a21caf">
-  <h2><span class="tag">字符串工具</span><i>16</i></h2>
+  <h2><span class="tag">字符串工具</span><i>17</i></h2>
   <article class="card" data-search="strings.startWith/endWith/contains/indexOf/lastIndexOf/substring/replaceAll 字符串查找与截取">
   <header class="card-head">
     <h4><code>strings.startWith/endWith/contains/indexOf/lastIndexOf/substring/replaceAll</code> <span class="cname">字符串查找与截取</span></h4>
@@ -4144,12 +4163,12 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="trim(text) / ltrim(text) / rtrim(text) 去除空白">
+<article class="card" data-search="trim(text) / ltrim(text) / rtrim(text) / atrim(text) 去除空白">
   <header class="card-head">
-    <h4><code>trim(text) / ltrim(text) / rtrim(text)</code> <span class="cname">去除空白</span></h4>
+    <h4><code>trim(text) / ltrim(text) / rtrim(text) / atrim(text)</code> <span class="cname">去除空白</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">trim 去掉首尾空白，ltrim 去掉开头空白，rtrim 去掉结尾空白。对标 TrollAutoScript string.trim/ltrim/rtrim。</p>
+  <p class="desc">trim 去掉首尾空白，ltrim 去掉开头空白，rtrim 去掉结尾空白，atrim 去掉全部空白（含字符串中间）。对标 TrollAutoScript string.trim/ltrim/rtrim/atrim。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">任意字符串</span></div></div>
   <div class="ret"><b>返回值</b> <span>string</span></div>
@@ -4157,6 +4176,23 @@ main();</code></pre>
   logd("[" + trim("  a b  ") + "]");
   logd("[" + ltrim("  a") + "]");
   logd("[" + rtrim("a  ") + "]");
+  logd("[" + atrim(" a b c ") + "]");
+}
+main();</code></pre>
+</article>
+<article class="card" data-search="string.random(len, chars) 随机字符串">
+  <header class="card-head">
+    <h4><code>string.random(len, chars)</code> <span class="cname">随机字符串</span></h4>
+    <button class="copy" data-copy>复制</button>
+  </header>
+  <p class="desc">生成指定长度的随机字符串，默认字符集为大小写字母加数字，可传自定义字符集；等价于全局 randomString(len, chars)。对标 TrollAutoScript string.random。</p>
+  
+  <div class="params"><b>参数</b><div class="param"><code class="pname">len</code><span class="ptype">number</span><span class="pdesc">长度，默认 8</span></div><div class="param"><code class="pname">chars</code><span class="ptype">string</span><span class="pdesc">可选，自定义字符集</span></div></div>
+  <div class="ret"><b>返回值</b> <span>string</span></div>
+  <pre><code>function main(){
+  logd(string.random(8));
+  logd(string.random(4, "01"));
+  logd(randomString(6));
 }
 main();</code></pre>
 </article>
@@ -4190,18 +4226,18 @@ main();</code></pre>
 }
 main();</code></pre>
 </article>
-<article class="card" data-search="isUpper(text) / isLower(text) / isLetter(text) / isNumber(text) / isIntrger(text) 字符类别判断">
+<article class="card" data-search="isUpper(text) / isLower(text) / isLetter(text) / isNumber(text) / isIntrger(text) / isInteger(text) 字符类别判断">
   <header class="card-head">
-    <h4><code>isUpper(text) / isLower(text) / isLetter(text) / isNumber(text) / isIntrger(text)</code> <span class="cname">字符类别判断</span></h4>
+    <h4><code>isUpper(text) / isLower(text) / isLetter(text) / isNumber(text) / isIntrger(text) / isInteger(text)</code> <span class="cname">字符类别判断</span></h4>
     <button class="copy" data-copy>复制</button>
   </header>
-  <p class="desc">判断字符串是否全为大写字母/小写字母/字母/纯数字/整数（可带负号）。对标 TrollAutoScript string.isUpper/isLower/isLetter/isNumber/isIntrger。</p>
+  <p class="desc">判断字符串是否全为大写字母/小写字母/字母/纯数字/整数（可带负号）。isInteger 是 isIntrger 的正确拼写别名，两者等价。对标 TrollAutoScript string.isUpper/isLower/isLetter/isNumber/isIntrger。</p>
   
   <div class="params"><b>参数</b><div class="param"><code class="pname">text</code><span class="ptype">string</span><span class="pdesc">任意字符串</span></div></div>
   <div class="ret"><b>返回值</b> <span>boolean</span></div>
   <pre><code>function main(){
   logd(isUpper("ABC") + "," + isLower("abc") + "," + isLetter("aB"));
-  logd(isNumber("007") + "," + isIntrger("-12"));
+  logd(isNumber("007") + "," + isIntrger("-12") + "," + isInteger("-12"));
 }
 main();</code></pre>
 </article>
@@ -4325,7 +4361,7 @@ main();</code></pre>
 </section>
 </main>
 </div>
-<footer>AutoSDK 离线函数参考 · 共 261 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-07 · 浏览器双击即开</footer>
+<footer>AutoSDK 离线函数参考 · 共 263 个函数 · 对标 EasyClick/AutoScript · 生成于 2026-08-07 · 浏览器双击即开</footer>
 <div id="toast-copy">已复制到剪贴板</div>
 <script>
 const q = document.getElementById('q');

@@ -1699,3 +1699,35 @@ test('round40: thread/utils namespaces, EasyClick global aliases and device/imag
   // image.captureFullScreen alias
   assert.equal(sandbox.image.captureFullScreen(), 'png-data');
 });
+
+test('round59: atrim/isInteger/string.random + pasteboard/json namespaces + device backlight aliases', () => {
+  const { sandbox, calls } = boot();
+  // string utils (TrollAutoScript string module parity)
+  assert.equal(sandbox.atrim(' a b\tc\n '), 'abc');
+  assert.equal(sandbox.string.atrim(' x y '), 'xy');
+  assert.equal(sandbox.isInteger('-12'), true);
+  assert.equal(sandbox.isInteger('1.5'), false);
+  assert.equal(sandbox.string.isInteger('42'), true);
+  assert.equal(sandbox.string.isIntrger('42'), true); // legacy spelling kept
+  assert.equal(sandbox.string.random().length, 8);
+  const r = sandbox.string.random(10);
+  assert.equal(r.length, 10);
+  assert.ok(/^[A-Za-z0-9]+$/.test(r));
+  assert.ok(/^[01]+$/.test(sandbox.string.random(6, '01')));
+  // pasteboard namespace (TrollAutoScript pasteboard.read/write)
+  assert.equal(sandbox.pasteboard.read(), 'clipboard-value');
+  assert.equal(sandbox.pasteboard.write('r59'), true);
+  assert.deepEqual(calls.device.at(-1), { operation: 'clipboardSet', text: 'r59' });
+  // json namespace (TrollAutoScript json.encode/decode)
+  assert.equal(sandbox.json.encode({ a: 1 }), '{"a":1}');
+  assert.deepEqual(sandbox.json.decode('{"a":1}'), { a: 1 });
+  assert.equal(sandbox.json.decode('{bad'), null);
+  assert.equal(sandbox.json.decode(null), null);
+  // device backlight aliases (TrollAutoScript device module)
+  assert.equal(sandbox.device.backlightLevel(), 0.6);
+  assert.equal(sandbox.device.setBacklightLevel(0.4), true);
+  assert.deepEqual(calls.device.at(-1), { operation: 'brightnessSet', value: 0.4 });
+  assert.equal(sandbox.auto.setBacklightLevel(0.3), true);
+  assert.equal(sandbox.auto.backlightLevel(), 0.6);
+});
+

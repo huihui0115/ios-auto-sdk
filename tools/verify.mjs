@@ -397,6 +397,15 @@ check(bootstrapScript.includes('function dvf(k){return function(){return _dv(k);
       bootstrapScript.includes('deviceApi.getOrientationNoAuto=') && bootstrapScript.includes('deviceApi.getDeviceMsg=') &&
       bootstrapScript.includes('imageApi.captureFullScreen='),
       'Bootstrap must expose EasyClick thread/utils namespaces and global aliases (getPasteboard/openUrl/uploadToAlbum/childcount)');
+check(bootstrapScript.includes("stringsApi.atrim=function(s){return SS(s).replace(/\\s+/g,'');};") &&
+      bootstrapScript.includes('stringsApi.isInteger=stringsApi.isIntrger;') &&
+      bootstrapScript.includes('stringsApi.random=base.randomString;') &&
+      bootstrapScript.includes('deviceApi.setBacklightLevel=deviceApi.setBrightness;') &&
+      bootstrapScript.includes('deviceApi.backlightLevel=deviceApi.getBrightness;') &&
+      bootstrapScript.includes('g.pasteboard={read:deviceApi.getClipboard,write:deviceApi.setClipboard};') &&
+      bootstrapScript.includes('g.json={encode:JSON.stringify,decode:function(s){try{return JSON.parse(SS(s));}catch(e){return null;}}};') &&
+      bootstrapScript.includes("'isEmail','isLink','atrim','isInteger'].forEach(function(n){g[n]=stringsApi[n];});"),
+      'Bootstrap must expose round 59 TrollAutoScript parity aliases (atrim/isInteger/string.random/pasteboard/json/backlight)');
 check(bootstrapScript.includes("['getDeviceInfo','getScreenWidth','getScreenHeight','getScale','getModel','getOSVersion','getDeviceName','getBattery','isCharging','getOrientation','getDeviceId','getDeviceAlias','getSerialNo','volumeUp','volumeDown','getMemoryInfo','vibrateLong','vibrateShort'].forEach(function(n){g[n]=deviceApi[n];})"),
       'Bootstrap must export deviceApi shorthand globals');
 

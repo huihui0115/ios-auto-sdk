@@ -6,6 +6,24 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.29.0] - 2026-08-07
+
+### Added
+
+- **TrollAutoScript 对标补齐（Round 59）**：以 `docs.trollautoscript.com` sitemap（315 页）做模块级盘点后补齐最后高频缺口：
+  - `string.atrim(text)`：去除全部空白（含字符串中间），全局 `atrim` 同步导出。
+  - `isInteger(text)`：`isIntrger` 的正确拼写别名（两者等价，保留旧名兼容）。
+  - `string.random(len, chars)`：随机字符串，等价全局 `randomString(len, chars)`。
+  - `pasteboard.read() / pasteboard.write(text)`：剪贴板命名空间，兼容既有 `getPasteboard/setPasteboard` 全局函数。
+  - `json.encode(value) / json.decode(text)`：JSON 命名空间，decode 解析失败返回 null 不抛异常。
+  - `device.setBacklightLevel(value) / device.backlightLevel()`：背光别名（与 setBrightness/getBrightness 同源），`auto.*` 代理自动可达。
+- 文档生成器新增对应函数卡与示例，文档 263 函数 / 28 页。
+
+### Fixed
+
+- 修复 bootstrap 初始化顺序 bug：`stringsApi` 扩展赋值原位于尾部别名区，晚于全局导出 `forEach` 执行，导致 `g.atrim`/`g.isInteger` 为 undefined；已移至导出列表之前。
+- bootstrap 60088→60526/61440（余量 914B）；Node 测试 87 项全部通过。
+
 ## [1.28.0] - 2026-08-07
 
 ### Added

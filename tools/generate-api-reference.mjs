@@ -197,6 +197,15 @@ APIS.push({ cat:'device', sig:'device.getOSVersion()', title:'系统版本', des
   logd("iOS: " + device.getOSVersion());
 }
 main();` });
+APIS.push({ cat:'device', sig:'pasteboard.read() / pasteboard.write(text) / json.encode(value) / json.decode(text)', title:'粘贴板与 JSON 命名空间', desc:'pasteboard.read 读取剪贴板（无内容返回 null），pasteboard.write 写入剪贴板；json.encode 把任意值序列化为 JSON 字符串，json.decode 解析 JSON 文本（解析失败返回 null）。对标 TrollAutoScript pasteboard.read/write 与 json.encode/decode 模块，兼容既有 getPasteboard/setPasteboard 全局函数。', params:[['text','string','写入剪贴板的文本 / 待解析 JSON 文本'],['value','any','任意可 JSON 序列化的值']], returns:'string | null / boolean / string / any', example:`function main(){
+  pasteboard.write("AutoSDK");
+  logd("剪贴板: " + pasteboard.read());
+  var s = json.encode({ a: 1, b: "x" });
+  logd(s);
+  logd(JSON.stringify(json.decode(s)));
+  logd(String(json.decode("{bad json")));
+}
+main();` });
 APIS.push({ cat:'device', sig:'device.getDeviceName()', title:'设备名称', desc:'返回设备显示名称（设置 → 通用 → 关于本机里的名称）。', params:[], returns:'string', example:`function main(){
   toast("设备: " + device.getDeviceName());
 }
@@ -217,7 +226,7 @@ APIS.push({ cat:'device', sig:'device.width() / device.height() / device.scale()
   logd("缩放=" + device.scale());
   logd(JSON.stringify(device.info()));
 }
-main();` });APIS.push({ cat:'device', sig:'device.setBrightness(value)', title:'设置屏幕亮度', desc:'设置屏幕亮度，value 范围 0～1。', params:[['value','number','0～1 的亮度值']], returns:'boolean', example:`function main(){
+main();` });APIS.push({ cat:'device', sig:'device.setBrightness(value) / device.setBacklightLevel(value) / device.backlightLevel()', title:'设置屏幕亮度', desc:'设置屏幕亮度，value 范围 0～1。setBacklightLevel/backlightLevel 为 TrollAutoScript 兼容别名，与 setBrightness/getBrightness 同源。', params:[['value','number','0～1 的亮度值']], returns:'boolean', example:`function main(){
   device.setBrightness(0.5);
   auto.sleep(500);
   device.setBrightness(device.getBrightness());
@@ -1599,10 +1608,17 @@ APIS.push({ cat:'timer', sig:'alert(message, title?) / exit() / restartScript()'
   exit();
 }
 main();` });
-APIS.push({ cat:'strings', sig:'trim(text) / ltrim(text) / rtrim(text)', title:'去除空白', desc:'trim 去掉首尾空白，ltrim 去掉开头空白，rtrim 去掉结尾空白。对标 TrollAutoScript string.trim/ltrim/rtrim。', params:[['text','string','任意字符串']], returns:'string', example:`function main(){
+APIS.push({ cat:'strings', sig:'trim(text) / ltrim(text) / rtrim(text) / atrim(text)', title:'去除空白', desc:'trim 去掉首尾空白，ltrim 去掉开头空白，rtrim 去掉结尾空白，atrim 去掉全部空白（含字符串中间）。对标 TrollAutoScript string.trim/ltrim/rtrim/atrim。', params:[['text','string','任意字符串']], returns:'string', example:`function main(){
   logd("[" + trim("  a b  ") + "]");
   logd("[" + ltrim("  a") + "]");
   logd("[" + rtrim("a  ") + "]");
+  logd("[" + atrim(" a b c ") + "]");
+}
+main();` });
+APIS.push({ cat:'strings', sig:'string.random(len, chars)', title:'随机字符串', desc:'生成指定长度的随机字符串，默认字符集为大小写字母加数字，可传自定义字符集；等价于全局 randomString(len, chars)。对标 TrollAutoScript string.random。', params:[['len','number','长度，默认 8'],['chars','string','可选，自定义字符集']], returns:'string', example:`function main(){
+  logd(string.random(8));
+  logd(string.random(4, "01"));
+  logd(randomString(6));
 }
 main();` });
 APIS.push({ cat:'strings', sig:'split(text, sep?) / chars(text)', title:'分割与逐字', desc:'split 按分隔符分割（默认逗号），chars 将字符串拆成单字数组。对标 TrollAutoScript string.split/chars。', params:[['text','string','任意字符串'],['sep','string','可选，分隔符，默认 ,']], returns:'string[]', example:`function main(){
@@ -1615,9 +1631,9 @@ APIS.push({ cat:'strings', sig:'toHex(text) / fromHex(hex)', title:'十六进制
   logd(fromHex("41"));
 }
 main();` });
-APIS.push({ cat:'strings', sig:'isUpper(text) / isLower(text) / isLetter(text) / isNumber(text) / isIntrger(text)', title:'字符类别判断', desc:'判断字符串是否全为大写字母/小写字母/字母/纯数字/整数（可带负号）。对标 TrollAutoScript string.isUpper/isLower/isLetter/isNumber/isIntrger。', params:[['text','string','任意字符串']], returns:'boolean', example:`function main(){
+APIS.push({ cat:'strings', sig:'isUpper(text) / isLower(text) / isLetter(text) / isNumber(text) / isIntrger(text) / isInteger(text)', title:'字符类别判断', desc:'判断字符串是否全为大写字母/小写字母/字母/纯数字/整数（可带负号）。isInteger 是 isIntrger 的正确拼写别名，两者等价。对标 TrollAutoScript string.isUpper/isLower/isLetter/isNumber/isIntrger。', params:[['text','string','任意字符串']], returns:'boolean', example:`function main(){
   logd(isUpper("ABC") + "," + isLower("abc") + "," + isLetter("aB"));
-  logd(isNumber("007") + "," + isIntrger("-12"));
+  logd(isNumber("007") + "," + isIntrger("-12") + "," + isInteger("-12"));
 }
 main();` });
 APIS.push({ cat:'strings', sig:'isChinese(text) / isEmail(text) / isLink(text)', title:'中文/邮箱/链接判断', desc:'isChinese 判断是否全为汉字，isEmail 判断是否为邮箱地址，isLink 判断是否以 http:// 或 https:// 开头。对标 TrollAutoScript string.isChinese/isEmail/isLink。', params:[['text','string','任意字符串']], returns:'boolean', example:`function main(){
