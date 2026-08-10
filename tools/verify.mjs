@@ -302,7 +302,7 @@ check(engineSource.includes('maximumTotalBytes') && engineSource.includes('retai
 check(engineSource.includes('AutoSQLiteOperation') && engineSource.includes('AutoSQLiteCloseAll') &&
       engineSource.includes('sqlite3_open_v2') && engineSource.includes('sqlite3_prepare_v2') &&
       engineSource.includes('@"sqO"') && engineSource.includes('@"sqC"') && engineSource.includes('@"yoloD"'),
-      'Native engine must implement the sqlite database module and yolo object detection');
+      'Native engine must implement the sqlite database module and yolo-compatible image classification');
 check(engineSource.includes('AutoScriptHMACSHA1Hex') && engineSource.includes('AutoScriptHMACSHA256Hex') &&
       engineSource.includes('@"hmac1"') && engineSource.includes('@"hmac256"'),
       'Native engine must dispatch hmacSHA1/hmacSHA256');
@@ -319,10 +319,13 @@ check(engineSource.includes('AutoGetLocationSnapshot') && engineSource.includes(
 check(engineSource.includes('base64EncodedStringWithOptions:0') &&
       engineSource.includes('case SQLITE_BLOB'),
       'SQLite BLOB values must round-trip as base64 strings');
-check(engineSource.includes('AutoSQLiteNextHandle++') && engineSource.includes('[AutoSQLiteLock lock];'),
-      'SQLite handle allocation must be synchronized');
-check(engineSource.includes('VNRecognizeObjectsRequest') && engineSource.includes('AutoDetectObjects'),
-      'Native engine must detect objects through the on-device Vision model');
+check(engineSource.includes('AutoSQLiteNextHandle++') && engineSource.includes('[AutoSQLiteLock lock];') &&
+      engineSource.includes('NSMutableDictionary<NSNumber *, NSValue *> *AutoSQLiteHandles') &&
+      !engineSource.includes('NSMutableDictionary<NSNumber *, sqlite3 *>'),
+      'SQLite handle allocation must be synchronized and C pointers must be boxed for ARC');
+check(engineSource.includes('VNClassifyImageRequest') && engineSource.includes('AutoDetectObjects') &&
+      !engineSource.includes('VNRecognizeObjectsRequest'),
+      'Native engine must classify images through a public on-device Vision request');
 check(engineSource.includes('AutoSQLiteCloseAll();') && engineSource.includes('AutoWebSocketCloseAll();'),
       'Script stop must close sqlite handles alongside WebSocket connections');
 check(engineSource.includes('#import <sqlite3.h>'),

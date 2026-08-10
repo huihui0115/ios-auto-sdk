@@ -761,7 +761,7 @@ static void AutoWebSocketCloseAll(void) {
     }
 }
 
-static NSMutableDictionary<NSNumber *, sqlite3 *> *AutoSQLiteHandles;
+static NSMutableDictionary<NSNumber *, NSValue *> *AutoSQLiteHandles;
 static NSLock *AutoSQLiteLock;
 static NSUInteger AutoSQLiteNextHandle = 1;
 
@@ -854,7 +854,7 @@ static id AutoSQLiteOperation(NSString *name, NSArray *args, NSDictionary *confi
         }
         [AutoSQLiteLock lock];
         NSNumber *handle = @(AutoSQLiteNextHandle++);
-        AutoSQLiteHandles[handle] = db;
+        AutoSQLiteHandles[handle] = [NSValue valueWithPointer:db];
         [AutoSQLiteLock unlock];
         return handle;
     }
@@ -865,14 +865,14 @@ static id AutoSQLiteOperation(NSString *name, NSArray *args, NSDictionary *confi
     NSString *sql = args.count > 1 && [args[1] isKindOfClass:NSString.class] ? args[1] : @"";
     if ([name isEqualToString:@"sqC"]) {
         [AutoSQLiteLock lock];
-        sqlite3 *db = AutoSQLiteHandles[handle];
+        sqlite3 *db = (sqlite3 *)AutoSQLiteHandles[handle].pointerValue;
         [AutoSQLiteHandles removeObjectForKey:handle];
         [AutoSQLiteLock unlock];
         if (db) { sqlite3_close(db); return @YES; }
         return @NO;
     }
     [AutoSQLiteLock lock];
-    sqlite3 *db = AutoSQLiteHandles[handle];
+    sqlite3 *db = (sqlite3 *)AutoSQLiteHandles[handle].pointerValue;
     [AutoSQLiteLock unlock];
     if (!db) return AutoMakeError(AutoSDKErrorAutomationFailed, @"sqlite handle is not open.", nil);
     if (sql.length == 0) return AutoMakeError(AutoSDKErrorInvalidConfiguration, @"sqlite requires SQL text.", nil);
@@ -916,43 +916,44 @@ static void AutoSQLiteCloseAll(void) {
     NSDictionary *handles = [AutoSQLiteHandles copy];
     [AutoSQLiteHandles removeAllObjects];
     [AutoSQLiteLock unlock];
-    for (sqlite3 *db in handles.allValues) sqlite3_close(db);
+    for (NSValue *boxedHandle in handles.allValues) {
+        sqlite3 *db = (sqlite3 *)boxedHandle.pointerValue;
+        if (db) sqlite3_close(db);
+    }
 }
 
-// Detects common objects (person, dog, car, bottle, ...) with the on-device Vision
-// object-recognition model (YOLO-style, offline, no model file). Returns
-// [{label, confidence, rect:{x,y,width,height}}] with image pixel coordinates.
+// Classifies the image with Vision's on-device model. Without a bundled Core ML
+// detector Vision reports whole-image labels, so each result uses the full image rect.
 static NSArray<NSDictionary<NSString *, id> *> *AutoDetectObjects(UIImage *image, NSError **error) {
     CGImageRef sourceImage = image.CGImage;
     if (!sourceImage) {
         if (error) *error = AutoMakeError(AutoSDKErrorAutomationFailed, @"yolo cannot decode the image file.", nil);
         return nil;
     }
-    NSError *visionError = nil;
-    VNRecognizeObjectsRequest *request = [VNRecognizeObjectsRequest new];
-    request.recognitionLevel = VNRequestRecognitionLevelFast;
-    VNImageRequestHandler *handler = [[VNImageRequestHandler alloc] initWithCGImage:sourceImage options:@{}];
-    if (![handler performRequests:@[request] error:&visionError]) {
-        if (error) *error = visionError ?: AutoMakeError(AutoSDKErrorAutomationFailed, @"Object detection failed.", nil);
-        return nil;
+    if (@available(iOS 15.0, *)) {
+        NSError *visionError = nil;
+        VNClassifyImageRequest *request = [VNClassifyImageRequest new];
+        VNImageRequestHandler *handler = [[VNImageRequestHandler alloc] initWithCGImage:sourceImage options:@{}];
+        if (![handler performRequests:@[request] error:&visionError]) {
+            if (error) *error = visionError ?: AutoMakeError(AutoSDKErrorAutomationFailed, @"Image classification failed.", nil);
+            return nil;
+        }
+        NSUInteger width = CGImageGetWidth(sourceImage);
+        NSUInteger height = CGImageGetHeight(sourceImage);
+        NSMutableArray<NSDictionary<NSString *, id> *> *results = [NSMutableArray array];
+        for (VNClassificationObservation *observation in request.results) {
+            if (observation.identifier.length == 0 || observation.confidence <= 0 || results.count >= 20) continue;
+            [results addObject:@{
+                @"label": observation.identifier,
+                @"confidence": @(observation.confidence),
+                @"rect": @{ @"x": @0, @"y": @0, @"width": @(width), @"height": @(height) },
+            }];
+        }
+        return results;
     }
-    NSUInteger width = CGImageGetWidth(sourceImage);
-    NSUInteger height = CGImageGetHeight(sourceImage);
-    NSMutableArray<NSDictionary<NSString *, id> *> *results = [NSMutableArray array];
-    for (VNRecognizedObjectObservation *observation in request.results) {
-        VNClassificationObservation *top = observation.labels.firstObject;
-        if (!top || top.identifier.length == 0) continue;
-        CGRect box = observation.boundingBox; // normalized, origin bottom-left
-        [results addObject:@{
-            @"label": top.identifier,
-            @"confidence": @(top.confidence),
-            @"rect": @{ @"x": @(box.origin.x * width),
-                        @"y": @((1.0 - box.origin.y - box.size.height) * height),
-                        @"width": @(box.size.width * width),
-                        @"height": @(box.size.height * height) },
-        }];
-    }
-    return results;
+    if (error) *error = AutoMakeError(AutoSDKErrorAutomationUnavailable,
+                                      @"Image classification requires iOS 15 or later.", nil);
+    return nil;
 }
 
 
@@ -1227,6 +1228,8 @@ static NSUInteger AutoMediaImageByteLimit(NSDictionary *config) {
     return AutoConfiguredByteLimit(config, @"maxMediaImageBytes",
                                    64 * 1024 * 1024, 256 * 1024 * 1024);
 }
+
+static NSURL *AutoMediaDownloadToTempURL(NSURL *remoteURL, NSDictionary *config, NSError **error);
 
 static NSURL *AutoMediaSourceURL(id pathValue, NSDictionary *config, NSError **error) {
     if (![pathValue isKindOfClass:NSString.class] || [pathValue length] == 0) {
@@ -1677,7 +1680,8 @@ static id AutoEngineHandleAudio(AutoEngine *engine, NSString *name, NSArray *arg
             engine.speechStopWhenScriptEnd = speechStopWhenScriptEnd;
             [engine.speechSynthesizer stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
             if (!engine.speechSynthesizer) engine.speechSynthesizer = [AVSpeechSynthesizer new];
-            return @([engine.speechSynthesizer speakUtterance:utterance]);
+            [engine.speechSynthesizer speakUtterance:utterance];
+            return @YES;
         }
     }
     if ([name isEqualToString:@"speechStop"] || [name isEqualToString:@"stopSpeak"]) {

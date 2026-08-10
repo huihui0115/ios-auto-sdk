@@ -42,7 +42,7 @@ SpringBoard/LSApplicationWorkspace 控制应用，全部私有符号运行时 dl
 <tr><td>跨 App 触摸</td><td>Agent no-WDA / ESP32 HID</td><td>需代理 IPA / WDA</td><td>内置 IOHIDEvent 注入（no-WDA）</td></tr>
 <tr><td>控件检索</td><td>毫秒级 Agent 通道</td><td>WDA dump</td><td>系统级 AX 遍历（毫秒级）</td></tr>
 <tr><td>OCR</td><td>PaddleOCR/Vision/MLKit</td><td>多引擎</td><td>Apple Vision 离线 + 百度 OCR 可选</td></tr>
-<tr><td>YOLO</td><td>NCNN 自训模型</td><td>—</td><td>Vision 离线检测（yolo.detect）</td></tr>
+<tr><td>YOLO</td><td>NCNN 自训模型</td><td>—</td><td>Vision 全图分类兼容入口（yolo.detect，iOS 15+，非检测器）</td></tr>
 <tr><td>开发体验</td><td>VS Code/Cursor + 云</td><td>PC 控制器</td><td>VS Code 扩展：Run/Send/Inspector/日志</td></tr>
 <tr><td>签名要求</td><td>特签分发</td><td>代理签</td><td>宿主内免费签可用；跨 App 需特签（TrollStore/企业签）</td></tr></table>
 <h2>怎么用这份文档</h2>
@@ -280,7 +280,7 @@ main();</code></pre>
   for (const w of words) if (w.text.includes("确认")) {
     const b = w.bounds; click(b.x + b.width / 2, b.y + b.height / 2); break;
   }
-  const objs = yolo.detect("res/screen.png");   // 离线物体检测
+  const labels = yolo.detect("res/screen.png"); // iOS 15+ 离线全图分类（非边界框检测）
   logd(JSON.stringify(objs));
 }
 main();</code></pre>

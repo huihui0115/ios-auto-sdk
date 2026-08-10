@@ -1029,16 +1029,16 @@ interface AutoSQLiteAPI {
 }
 
 interface AutoYoloItem {
-  /** Object label, e.g. "person", "dog", "car", "bottle". */
+  /** Whole-image classification label returned by Vision. */
   label: string;
   /** Confidence 0..1. */
   confidence: number;
-  /** Bounding box in image pixel coordinates, origin at top-left. */
+  /** Full-image rectangle in pixel coordinates; this compatibility API is not a detector. */
   rect: { x: number; y: number; width: number; height: number };
 }
 
 interface AutoYoloAPI {
-  /** Detects objects in an image file with the on-device Vision model (offline). */
+  /** Classifies an image with on-device Vision on iOS 15+ (offline, at most 20 labels). */
   detect(imagePath: string): AutoYoloItem[];
   /** Alias of detect. */
   detectByFilePath(imagePath: string): AutoYoloItem[];

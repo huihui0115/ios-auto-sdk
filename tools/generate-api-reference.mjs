@@ -1105,7 +1105,7 @@ APIS.push({ cat:'storage', sig:'sqlite.open(path) / sqlite.exec(handle, sql, par
   sqlite.close(db);
 }
 main();` });
-APIS.push({ cat:'vision', sig:'yolo.detect(imagePath) / yolo.detectByFilePath(imagePath) / yoloDetect(imagePath)', title:'YOLO 目标检测', desc:'用设备端 Vision 内置物体识别模型检测图片中的常见物体（person/dog/car/bottle 等），全离线、免 API Key、免模型文件，对标 AScript 的 YOLO 能力。返回 [{label, confidence, rect}]，rect 为图片像素坐标（左上原点）。imagePath 为沙盒内图片路径，可先用 screenshot() 获取当前屏幕截图。', params:[['imagePath','string','沙盒内图片路径']], returns:'AutoYoloItem[]', example:`function main(){
+APIS.push({ cat:'vision', sig:'yolo.detect(imagePath) / yolo.detectByFilePath(imagePath) / yoloDetect(imagePath)', title:'图像分类（YOLO 兼容入口）', desc:'在 iOS 15+ 使用设备端公共 VNClassifyImageRequest 对整张图片离线分类，最多返回 20 个 {label, confidence, rect}；rect 固定为整张图片范围，不是目标边界框。保留 yolo.detect 名称仅为脚本兼容；真正的 YOLO/目标检测仍需自行集成 Core ML 模型。imagePath 为沙盒内图片路径，可先用 screenshot() 获取当前屏幕截图。', params:[['imagePath','string','沙盒内图片路径']], returns:'AutoYoloItem[]', example:`function main(){
   const path = screenshot();
   const items = yolo.detect(path);
   for (const it of items) {

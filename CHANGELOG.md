@@ -14,6 +14,12 @@ All notable changes to AutoSDK are documented here. The format follows
   translation unit by importing `AutoBootstrapScript.h` from the generator.
 - Extended verification so regenerated bootstrap Objective-C always carries its
   Foundation-backed declaration while preserving the single-source JS contract.
+- Fixed the next Xcode compile blockers in `AutoEngine.m`: SQLite pointers are
+  boxed in `NSValue`, the media downloader is forward-declared, and speech no
+  longer boxes the `void` result of `speakUtterance:`.
+- Replaced the nonexistent `VNRecognizeObjectsRequest` with the public iOS 15+
+  `VNClassifyImageRequest`; the legacy `yolo.detect` entry now honestly returns
+  bounded full-image classifications rather than fabricated object boxes.
 
 ## [1.30.1] - 2026-08-11
 

@@ -100,13 +100,14 @@ bridge (__bridge 对象，JSValue block)
   `type` 选择器比较的逻辑非优先级错误，并由 verify 固化桥接约束。
 - **Round 62 bootstrap 编译热修**：生成器为 `AutoBootstrapScript.m` 自动导入声明头，
   解决 Swift Package/Xcode 将其作为独立翻译单元编译时无法识别 `NSString` 的问题；
-  bootstrap JavaScript 内容和 60526/61440 预算均未改变。
+  同时修复 `AutoEngine.m` 的 SQLite C 指针泛型、无效 Vision 类型、媒体函数声明顺序与
+  `void` 装箱错误；bootstrap JavaScript 内容和 60526/61440 预算均未改变。
 
 已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
 findNotColor/findImage/cmpColor/isColors）、像素（screen.getColor 系列）、
 颜色工具（parseColor/int2Hex/hex2Int/rgb/argb）、OCR（Apple Vision +
-Baidu）、YOLO（Vision 离线）、文件（沙盒 CRUD/行操作/Excel/ZIP/plist）、
+Baidu）、YOLO 兼容入口（iOS 15+ Vision 全图分类，非边界框检测器）、文件（沙盒 CRUD/行操作/Excel/ZIP/plist）、
 存储（typed store）、SQLite、HTTP（get/post/JSON/multipart/download +
 host allowlist）、WebSocket 客户端、线程（execAsync/execSync + thread
 命名空间）、定时器、定位（CLLocationManager 一次性）、相册（保存/清空 +
@@ -232,7 +233,9 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
 - R62（v1.30.2）：**bootstrap 独立翻译单元编译热修**——只修改权威生成器，令生成的
   `AutoBootstrapScript.m` 导入 `AutoBootstrapScript.h`，修复 Xcode/Swift Package 下
-  `NSString` 未声明的编译阻断；verify 固化导入约束，JS 内容与预算不变。
+  `NSString` 未声明的编译阻断；继续修复 Xcode 揭出的 SQLite 指针泛型/ARC、媒体函数
+  前置声明、TTS `void` 装箱和不存在的 Vision 请求类型；`yolo.detect` 明确为 iOS 15+
+  全图分类兼容入口（最多 20 标签，不伪装为真实目标检测）；verify 固化约束，JS 内容与预算不变。
 - R61（v1.30.1）：**Xcode 15.4 ARC 发布热修**——内置 AX 遍历改用显式 CF 桥接与
   Objective-C 合法数组类型，修复远端模拟器编译阻断；修正节点 `type` 大小写不敏感匹配
   的逻辑非优先级错误；verify 新增回归锚点，bootstrap 与 VS Code 插件版本不变。
