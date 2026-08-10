@@ -6,6 +6,17 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.30.1] - 2026-08-11
+
+### Fixed
+
+- Fixed Xcode 15.4 ARC compilation of the built-in Accessibility adapter by using
+  explicit Core Foundation bridges and Objective-C-compatible child collections.
+- Corrected the built-in node selector's case-insensitive `type` comparison,
+  whose previous logical-not precedence could invert the match result.
+- Added verification anchors so unsafe AX pointer generics/casts cannot silently
+  return in a later release.
+
 ## [1.30.0] - 2026-08-11
 
 ### Changed

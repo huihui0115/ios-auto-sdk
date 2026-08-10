@@ -720,6 +720,11 @@ check(builtinAdapterSource.includes('IOHIDEventSystemClientCreate') &&
       !builtinAdapterSource.includes('#import <Accessibility/') &&
       !builtinAdapterSource.includes('#import <IOKit/'),
       'Built-in no-WDA adapter must resolve IOHID/Accessibility/SpringBoard symbols at runtime without linking private frameworks');
+check(!builtinAdapterSource.includes('NSArray<AutoAXElementRef>') &&
+      builtinAdapterSource.includes('(__bridge NSArray *)frameValue') &&
+      builtinAdapterSource.includes('(__bridge CFTypeRef)children[childIndex]') &&
+      !builtinAdapterSource.includes('![descriptor[@"type"] caseInsensitiveCompare:type]'),
+      'Built-in Accessibility traversal must use ARC-safe CF bridges and an unambiguous type comparison');
 check(builtinAdapterSource.includes('AutoBuiltinMaxImageComparisons') &&
       builtinAdapterSource.includes('@"findImage": @YES'),
       'Built-in adapter must implement bounded template image matching and report the capability');

@@ -236,11 +236,11 @@ static CFStringRef const AutoAXActionScrollToVisible = CFSTR("AXScrollToVisible"
 }
 + (instancetype)sharedEngine;
 - (BOOL)isAvailable;
-- (nullable AutoAXElementRef)systemWideRoot CF_RETURNS_NOT_RETAINED;
+- (nullable AutoAXElementRef)systemWideRoot CF_RETURNS_RETAINED;
 - (nullable CFTypeRef)copyAttribute:(CFStringRef)attribute ofElement:(AutoAXElementRef)element CF_RETURNS_RETAINED;
 - (BOOL)setValue:(CFTypeRef)value forAttribute:(CFStringRef)attribute ofElement:(AutoAXElementRef)element;
 - (BOOL)performAction:(CFStringRef)action onElement:(AutoAXElementRef)element;
-- (nullable NSArray<AutoAXElementRef> *)copyChildrenOfElement:(AutoAXElementRef)element CF_RETURNS_RETAINED;
+- (nullable NSArray *)copyChildrenOfElement:(AutoAXElementRef)element CF_RETURNS_RETAINED;
 @end
 
 @implementation AutoBuiltinAccessibilityEngine
@@ -293,12 +293,12 @@ static CFStringRef const AutoAXActionScrollToVisible = CFSTR("AXScrollToVisible"
     return _performAction(element, action) == AutoAXErrorSuccess;
 }
 
-- (NSArray<AutoAXElementRef> *)copyChildrenOfElement:(AutoAXElementRef)element {
+- (NSArray *)copyChildrenOfElement:(AutoAXElementRef)element {
     CFTypeRef children = [self copyAttribute:AutoAXAttributeChildren ofElement:element];
     if (!children) return nil;
     NSArray *result = nil;
     if (CFGetTypeID(children) == CFArrayGetTypeID()) {
-        result = (NSArray *)CFBridgingRelease(children);
+        result = CFBridgingRelease(children);
     } else {
         CFRelease(children);
     }
@@ -513,7 +513,7 @@ static NSString *AutoBuiltinStringOrNil(id value) {
     if (!frameValue) return nil;
     CGRect frame = CGRectZero;
     if (CFGetTypeID(frameValue) == CFArrayGetTypeID()) {
-        NSArray *components = (NSArray *)frameValue;
+        NSArray *components = (__bridge NSArray *)frameValue;
         if (components.count >= 4) {
             frame = CGRectMake([components[0] doubleValue], [components[1] doubleValue],
                                [components[2] doubleValue], [components[3] doubleValue]);
@@ -542,11 +542,11 @@ static NSString *AutoBuiltinStringOrNil(id value) {
 - (NSString *)stringFromAXValue:(CFTypeRef)value {
     if (!value) return @"";
     if (CFGetTypeID(value) == CFStringGetTypeID()) {
-        NSString *text = (NSString *)value;
+        NSString *text = (__bridge NSString *)value;
         return text.length > AutoBuiltinMaxNodeStringLength ? [text substringToIndex:AutoBuiltinMaxNodeStringLength] : text;
     }
     if (CFGetTypeID(value) == CFNumberGetTypeID()) {
-        return [NSString stringWithFormat:@"%@", (NSNumber *)value];
+        return [NSString stringWithFormat:@"%@", (__bridge NSNumber *)value];
     }
     return @"";
 }
@@ -633,10 +633,11 @@ static NSString *AutoBuiltinStringOrNil(id value) {
                 }
             }
             if (depth >= maxDepth) return;
-            NSArray<AutoAXElementRef> *children = [ax copyChildrenOfElement:element];
+            NSArray *children = [ax copyChildrenOfElement:element];
             NSUInteger childIndex = 0;
-            for (AutoAXElementRef child in children) {
+            for (id childObject in children) {
                 if (budgetExceeded || [self operationCancelledSince:generation]) break;
+                AutoAXElementRef child = (__bridge const void *)childObject;
                 NSString *childPath = path.length > 0
                     ? [NSString stringWithFormat:@"%@.%lu", path, (unsigned long)childIndex]
                     : [NSString stringWithFormat:@"%lu", (unsigned long)childIndex];
@@ -670,8 +671,10 @@ static NSString *AutoBuiltinStringOrNil(id value) {
     if (path.length == 0) return current;
     for (NSString *component in [path componentsSeparatedByString:@"."]) {
         NSUInteger childIndex = component.integerValue;
-        NSArray<AutoAXElementRef> *children = [ax copyChildrenOfElement:current];
-        AutoAXElementRef next = childIndex < children.count ? (AutoAXElementRef)CFRetain(children[childIndex]) : NULL;
+        NSArray *children = [ax copyChildrenOfElement:current];
+        AutoAXElementRef next = childIndex < children.count
+            ? (AutoAXElementRef)CFRetain((__bridge CFTypeRef)children[childIndex])
+            : NULL;
         CFRelease(current);
         if (!next) {
             if (error) *error = AutoBuiltinError(AutoSDKErrorElementNotFound, @"Built-in adapter: accessibility handle is stale; re-query the element.");
@@ -928,8 +931,7 @@ static NSDictionary *AutoBuiltinXPathToQuery(NSString *xpath, NSInteger *positio
 
     NSString *type = AutoBuiltinStringOrNil(query[@"type"]);
     if (type.length > 0 &&
-        ![descriptor[@"type"] caseInsensitiveCompare:type] == NSOrderedSame &&
-        ![descriptor[@"type"] isEqualToString:type]) return NO;
+        [descriptor[@"type"] caseInsensitiveCompare:type] != NSOrderedSame) return NO;
 
     NSString *typeMatch = AutoBuiltinStringOrNil(query[@"typeMatch"]);
     if (typeMatch.length > 0 && ![self text:descriptor[@"type"] matchesPattern:typeMatch]) return NO;
@@ -1351,12 +1353,13 @@ static NSDictionary *AutoBuiltinXPathToQuery(NSString *xpath, NSInteger *positio
     AutoAXElementRef element = [self resolveHandle:handle error:error];
     if (!element) return nil;
     AutoBuiltinAccessibilityEngine *ax = [AutoBuiltinAccessibilityEngine sharedEngine];
-    NSArray<AutoAXElementRef> *children = [ax copyChildrenOfElement:element];
+    NSArray *children = [ax copyChildrenOfElement:element];
     CFRelease(element);
     NSMutableArray<NSDictionary *> *result = [NSMutableArray array];
     NSString *basePath = [handle hasPrefix:AutoBuiltinHandlePrefix] ? [handle substringFromIndex:AutoBuiltinHandlePrefix.length] : @"";
     NSUInteger index = 0;
-    for (AutoAXElementRef child in children) {
+    for (id childObject in children) {
+        AutoAXElementRef child = (__bridge const void *)childObject;
         NSString *childPath = basePath.length > 0 ? [NSString stringWithFormat:@"%@.%lu", basePath, (unsigned long)index]
                                                   : [NSString stringWithFormat:@"%lu", (unsigned long)index];
         [result addObject:[self descriptorForElement:child path:childPath parentHandle:handle depth:1 index:index engine:ax]];
