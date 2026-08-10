@@ -393,6 +393,9 @@ test('http params merge into query strings and cookies/files/formData forward', 
   assert.deepEqual(last.formData, { note: 'hi' });
   assert.deepEqual(last.cookies, { sid: 'abc' });
   assert.equal(last.method, 'POST');
+  sandbox.http.post('https://example.com/up2', { files: { file: 'b.png' }, formData: { note: 'post-options' } });
+  assert.deepEqual(calls.http.at(-1).files, { file: 'b.png' });
+  assert.deepEqual(calls.http.at(-1).formData, { note: 'post-options' });
 });
 
 test('ocr.newOcr builds instances merging defaults over invokeOCR', () => {
@@ -1135,6 +1138,8 @@ test('node module: at() hit-testing, rect helpers and method forwarding', () => 
   assert.equal(hit2.handle, 'btn');
   assert.equal(sandbox.node.at(999, 999), null);
   assert.equal(sandbox.auto.node.at(115, 215).handle, 'inner');
+  assert.equal(sandbox.auto.screen, sandbox.screen);
+  assert.equal(sandbox.auto.floatLog, sandbox.floatLog);
   assert.deepEqual(calls.nodeSnapshot.at(-1), { maxResults: 2000 });
   // rect helpers
   assert.equal(hit.rect.center.x, 130);

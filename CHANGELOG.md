@@ -24,6 +24,9 @@ All notable changes to AutoSDK are documented here. The format follows
   accepts files as well as directories, `auto.node` is wired, `auto.click`
   preserves its public arity, and notification setup contains unavailable-host
   Objective-C exceptions instead of terminating the process.
+- Completed the same XCTest pass by wiring `auto.screen`/`auto.floatLog`, treating
+  `{files, formData}` as POST options when passed as the second argument, and
+  bypassing notification-center setup when no `.app`/`.appex` host exists.
 
 ## [1.30.1] - 2026-08-11
 

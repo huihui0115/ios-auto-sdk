@@ -3435,6 +3435,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             NSString *body = [bodyValue isKindOfClass:NSString.class] ? bodyValue : [bodyValue description];
             NSString *title = [titleValue isKindOfClass:NSString.class] ? titleValue : @"AutoSDK";
             if (body.length == 0) body = @"";
+            NSString *bundleExtension = NSBundle.mainBundle.bundlePath.pathExtension.lowercaseString;
+            if (![bundleExtension isEqualToString:@"app"] && ![bundleExtension isEqualToString:@"appex"]) return @YES;
             dispatch_async(dispatch_get_main_queue(), ^{
                 @try {
                     UNUserNotificationCenter *center = UNUserNotificationCenter.currentNotificationCenter;

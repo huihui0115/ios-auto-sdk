@@ -327,6 +327,7 @@ check(engineSource.includes('VNClassifyImageRequest') && engineSource.includes('
       !engineSource.includes('VNRecognizeObjectsRequest'),
       'Native engine must classify images through a public on-device Vision request');
 check(engineSource.includes('UNUserNotificationCenter.currentNotificationCenter') &&
+      engineSource.includes('NSBundle.mainBundle.bundlePath.pathExtension.lowercaseString') &&
       engineSource.includes('@catch (NSException *exception)'),
       'Native notifications must not terminate extension or XCTest processes without an application host');
 check(engineSource.includes('AutoSQLiteCloseAll();') && engineSource.includes('AutoWebSocketCloseAll();'),
@@ -763,7 +764,8 @@ check(bootstrapScript.includes("httpApi.put=hv('PUT',1)") &&
       bootstrapScript.includes("httpApi.head=hv('HEAD')") &&
       bootstrapScript.includes("httpApi.patch=hv('PATCH',1)") &&
       bootstrapScript.includes('httpApi.requestEx=httpApi;') &&
-      bootstrapScript.includes('function hv(m,b){'),
+      bootstrapScript.includes('function hv(m,b){') &&
+      bootstrapScript.includes('body.files||body.formData'),
       'Bootstrap http module must expose put/delete/head/patch/requestEx via the shared verb helper');
 check(bootstrapScript.includes('base.ocr.newOcr=function(d){'),
       'Bootstrap ocr module must expose the newOcr engine-instance factory');
@@ -1033,6 +1035,7 @@ check(bootstrapScript.includes('base.md5=function(s)') &&
 check(bootstrapScript.includes('deleteAllFile:function(p){if(!fileApi.exists(p))return 0;if(fileApi.isFile(p))return fileApi.remove(p)?1:0;') &&
       bootstrapScript.includes('if(e.isDirectory)n+=fileApi.deleteAllFile(e.path);') &&
       bootstrapScript.includes('base.node=nodeApi;') &&
+      bootstrapScript.includes('base.screen=screenApi;base.floatLog=floatLogApi;') &&
       bootstrapScript.includes("deviceApi.vibrateLong=function(){return deviceApi.vibrate(500);}") &&
       bootstrapScript.includes("deviceApi.vibrateShort=function(){return deviceApi.vibrate(50);}") &&
       bootstrapScript.includes("'vibrateLong','vibrateShort'].forEach") &&

@@ -82,7 +82,7 @@ bridge (__bridge 对象，JSValue block)
 ## 4. 当前状态（Round 62 / v1.30.2）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
-- bootstrap 解码 **60654 / 61440**（预算 60×1024 UTF-16 码元，余 786）。
+- bootstrap 解码 **60782 / 61440**（预算 60×1024 UTF-16 码元，余 658）。
 - 文档 **263 个函数 / 263 个可运行示例 / 13 个分类**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **64 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
@@ -102,7 +102,8 @@ bridge (__bridge 对象，JSValue block)
   解决 Swift Package/Xcode 将其作为独立翻译单元编译时无法识别 `NSString` 的问题；
   同时修复 `AutoEngine.m` 的 SQLite C 指针泛型、无效 Vision 类型、媒体函数声明顺序与
   `void` 装箱错误，以及 XCTest 揭出的单文件删除、`auto.node` 接线、click arity 和通知
-  无宿主异常；bootstrap 为 **60654/61440**（余 786）。
+  无宿主异常；补齐 `auto.screen`/`auto.floatLog` 与 POST multipart 二参兼容；bootstrap
+  为 **60782/61440**（余 658）。
 
 已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -238,7 +239,8 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   前置声明、TTS `void` 装箱和不存在的 Vision 请求类型；`yolo.detect` 明确为 iOS 15+
   全图分类兼容入口（最多 20 标签，不伪装为真实目标检测）；XCTest 阶段继续修复
   `deleteAllFile(file)`、`auto.node.at`、click arity 和无宿主通知异常；verify 固化约束，
-  bootstrap 60654/61440（余 786）。
+  后续补齐 `auto.screen`/`auto.floatLog` 与 POST multipart 二参兼容；bootstrap
+  60782/61440（余 658）。
 - R61（v1.30.1）：**Xcode 15.4 ARC 发布热修**——内置 AX 遍历改用显式 CF 桥接与
   Objective-C 合法数组类型，修复远端模拟器编译阻断；修正节点 `type` 大小写不敏感匹配
   的逻辑非优先级错误；verify 新增回归锚点，bootstrap 与 VS Code 插件版本不变。
