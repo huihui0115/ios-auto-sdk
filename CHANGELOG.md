@@ -20,6 +20,10 @@ All notable changes to AutoSDK are documented here. The format follows
 - Replaced the nonexistent `VNRecognizeObjectsRequest` with the public iOS 15+
   `VNClassifyImageRequest`; the legacy `yolo.detect` entry now honestly returns
   bounded full-image classifications rather than fabricated object boxes.
+- Fixed runtime XCTest failures found after compilation: `deleteAllFile` now
+  accepts files as well as directories, `auto.node` is wired, `auto.click`
+  preserves its public arity, and notification setup contains unavailable-host
+  Objective-C exceptions instead of terminating the process.
 
 ## [1.30.1] - 2026-08-11
 

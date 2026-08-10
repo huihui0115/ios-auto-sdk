@@ -59,7 +59,10 @@ function createSandbox() {
       switch (data.operation) {
         case 'sandboxDir': return '/sandbox';
         case 'resolvePath': return '/sandbox/' + String(data.path || '').replace(/^\/+/, '');
-        case 'exists': return Object.prototype.hasOwnProperty.call(files, data.path);
+        case 'exists': {
+          const prefix = String(data.path || '').replace(/\/+$/, '') + '/';
+          return Object.prototype.hasOwnProperty.call(files, data.path) || Object.keys(files).some((key) => key.startsWith(prefix));
+        }
         case 'readText': return Object.prototype.hasOwnProperty.call(files, data.path) ? files[data.path] : null;
         case 'readBase64': return Buffer.from(files[data.path] ?? '', 'utf8').toString('base64');
         case 'readLines': return String(files[data.path] ?? '').split('\n').filter((line, i, all) => i < all.length - 1 || line !== '');
@@ -686,6 +689,9 @@ test('deleteAllFile recursively removes directory contents and returns the count
   const removeCalls = calls.file.filter((call) => call.operation === 'remove').map((call) => call.path);
   assert.deepEqual(removeCalls.sort(), ['/sandbox/dir/a.txt', '/sandbox/dir/c.txt', '/sandbox/dir/sub', '/sandbox/dir/sub/b.txt']);
   assert.equal(sandbox.file.deleteAllFile('/sandbox/dir/missing'), 0);
+  sandbox.file.writeText('/sandbox/single.txt', 'one');
+  assert.equal(sandbox.file.deleteAllFile('/sandbox/single.txt'), 1);
+  assert.equal(sandbox.file.exists('/sandbox/single.txt'), false);
   assert.equal(typeof sandbox.file.deleteAllFile, 'function');
 });
 
@@ -1128,6 +1134,7 @@ test('node module: at() hit-testing, rect helpers and method forwarding', () => 
   const hit2 = sandbox.node.at(160, 240);
   assert.equal(hit2.handle, 'btn');
   assert.equal(sandbox.node.at(999, 999), null);
+  assert.equal(sandbox.auto.node.at(115, 215).handle, 'inner');
   assert.deepEqual(calls.nodeSnapshot.at(-1), { maxResults: 2000 });
   // rect helpers
   assert.equal(hit.rect.center.x, 130);
@@ -1159,6 +1166,7 @@ test('node module: at() hit-testing, rect helpers and method forwarding', () => 
   assert.equal(snap.length, 3);
   assert.deepEqual(calls.nodeSnapshot.at(-1), { maxResults: 10 });
   assert.equal(typeof sandbox.nodeSnapshot, 'function');
+  assert.equal(sandbox.auto.click.length, 1);
 });
 
 test('screen.cache / isCache reuse screenshots and pass screenshotPath', () => {

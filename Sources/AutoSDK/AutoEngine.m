@@ -3436,26 +3436,30 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             NSString *title = [titleValue isKindOfClass:NSString.class] ? titleValue : @"AutoSDK";
             if (body.length == 0) body = @"";
             dispatch_async(dispatch_get_main_queue(), ^{
-                UNUserNotificationCenter *center = UNUserNotificationCenter.currentNotificationCenter;
-                [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings *settings) {
-                    UNMutableNotificationContent *content = [UNMutableNotificationContent new];
-                    content.title = title;
-                    content.body = body;
-                    content.sound = UNNotificationSound.defaultSound;
-                    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:[NSUUID UUID].UUIDString
-                                                                                          content:content
-                                                                                          trigger:nil];
-                    if (settings.authorizationStatus == UNAuthorizationStatusAuthorized ||
-                        settings.authorizationStatus == UNAuthorizationStatusProvisional) {
-                        [center addNotificationRequest:request withCompletionHandler:nil];
-                    } else if (settings.authorizationStatus == UNAuthorizationStatusNotDetermined) {
-                        [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert | UNAuthorizationOptionSound)
-                                              completionHandler:^(BOOL granted, NSError *requestError) {
-                            (void)requestError;
-                            if (granted) [center addNotificationRequest:request withCompletionHandler:nil];
-                        }];
-                    }
-                }];
+                @try {
+                    UNUserNotificationCenter *center = UNUserNotificationCenter.currentNotificationCenter;
+                    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings *settings) {
+                        UNMutableNotificationContent *content = [UNMutableNotificationContent new];
+                        content.title = title;
+                        content.body = body;
+                        content.sound = UNNotificationSound.defaultSound;
+                        UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:[NSUUID UUID].UUIDString
+                                                                                              content:content
+                                                                                              trigger:nil];
+                        if (settings.authorizationStatus == UNAuthorizationStatusAuthorized ||
+                            settings.authorizationStatus == UNAuthorizationStatusProvisional) {
+                            [center addNotificationRequest:request withCompletionHandler:nil];
+                        } else if (settings.authorizationStatus == UNAuthorizationStatusNotDetermined) {
+                            [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert | UNAuthorizationOptionSound)
+                                                  completionHandler:^(BOOL granted, NSError *requestError) {
+                                (void)requestError;
+                                if (granted) [center addNotificationRequest:request withCompletionHandler:nil];
+                            }];
+                        }
+                    }];
+                } @catch (NSException *exception) {
+                    (void)exception;
+                }
             });
             return @YES;
         }

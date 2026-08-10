@@ -326,6 +326,9 @@ check(engineSource.includes('AutoSQLiteNextHandle++') && engineSource.includes('
 check(engineSource.includes('VNClassifyImageRequest') && engineSource.includes('AutoDetectObjects') &&
       !engineSource.includes('VNRecognizeObjectsRequest'),
       'Native engine must classify images through a public on-device Vision request');
+check(engineSource.includes('UNUserNotificationCenter.currentNotificationCenter') &&
+      engineSource.includes('@catch (NSException *exception)'),
+      'Native notifications must not terminate extension or XCTest processes without an application host');
 check(engineSource.includes('AutoSQLiteCloseAll();') && engineSource.includes('AutoWebSocketCloseAll();'),
       'Script stop must close sqlite handles alongside WebSocket connections');
 check(engineSource.includes('#import <sqlite3.h>'),
@@ -869,7 +872,7 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
     check(context.auto?.storage === context.storages?.create,
           'Storage factory aliases must retain their function identity');
     check(context.http?.length === 2 && context.http?.get?.length === 2 &&
-          context.auto?.click?.length === 3 && context.file?.readFile?.length === 1,
+          context.auto?.click?.length === 1 && context.file?.readFile?.length === 1,
           'Guard wrappers must preserve public function arity');
     const options = { headers: { accept: 'application/json' } };
     context.http.get('https://example.invalid', options);
@@ -1027,8 +1030,9 @@ check(bootstrapScript.includes('base.md5=function(s)') &&
       bootstrapScript.includes('getSize:function(p){return fileApi.imageSize(bp(p));}') &&
       bootstrapScript.includes('g.md5=base.md5'),
       'Bootstrap must expose string hashes, file image size and file hashes');
-check(bootstrapScript.includes('deleteAllFile:function(p){var items=fileApi.list(p);') &&
+check(bootstrapScript.includes('deleteAllFile:function(p){if(!fileApi.exists(p))return 0;if(fileApi.isFile(p))return fileApi.remove(p)?1:0;') &&
       bootstrapScript.includes('if(e.isDirectory)n+=fileApi.deleteAllFile(e.path);') &&
+      bootstrapScript.includes('base.node=nodeApi;') &&
       bootstrapScript.includes("deviceApi.vibrateLong=function(){return deviceApi.vibrate(500);}") &&
       bootstrapScript.includes("deviceApi.vibrateShort=function(){return deviceApi.vibrate(50);}") &&
       bootstrapScript.includes("'vibrateLong','vibrateShort'].forEach") &&
