@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 61（v1.30.1，2026-08-11）。
+> 最后更新：Round 62（v1.30.2，2026-08-11）。
 
 ---
 
@@ -79,7 +79,7 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 61 / v1.30.1）
+## 4. 当前状态（Round 62 / v1.30.2）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **60526 / 61440**（预算 60×1024 UTF-16 码元，余 914）。
@@ -98,6 +98,9 @@ bridge (__bridge 对象，JSValue block)
 - **Round 61 Xcode 发布热修**：修复 `AutoBuiltinAdapter` 的 AX Core Foundation/Objective-C
   ARC 桥接与无效泛型声明，使 Xcode 15.4 能编译内置 no-WDA 适配器；同时修正节点
   `type` 选择器比较的逻辑非优先级错误，并由 verify 固化桥接约束。
+- **Round 62 bootstrap 编译热修**：生成器为 `AutoBootstrapScript.m` 自动导入声明头，
+  解决 Swift Package/Xcode 将其作为独立翻译单元编译时无法识别 `NSString` 的问题；
+  bootstrap JavaScript 内容和 60526/61440 预算均未改变。
 
 已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -227,6 +230,9 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R62（v1.30.2）：**bootstrap 独立翻译单元编译热修**——只修改权威生成器，令生成的
+  `AutoBootstrapScript.m` 导入 `AutoBootstrapScript.h`，修复 Xcode/Swift Package 下
+  `NSString` 未声明的编译阻断；verify 固化导入约束，JS 内容与预算不变。
 - R61（v1.30.1）：**Xcode 15.4 ARC 发布热修**——内置 AX 遍历改用显式 CF 桥接与
   Objective-C 合法数组类型，修复远端模拟器编译阻断；修正节点 `type` 大小写不敏感匹配
   的逻辑非优先级错误；verify 新增回归锚点，bootstrap 与 VS Code 插件版本不变。

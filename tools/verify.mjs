@@ -343,6 +343,8 @@ check(engineSource.includes('@"allowSystemControl"') && engineSource.includes('@
       engineSource.includes('isEqualToString:@"openurl"'),
       'System control must be configurable, capability-reported, bounded, and URL schemes validated');
 const bootstrapSource = read('Sources/AutoSDK/AutoBootstrapScript.m');
+check(bootstrapSource.startsWith('#import "AutoBootstrapScript.h"'),
+      'Generated AutoBootstrapScript.m must import its Foundation-backed declaration');
 // Decode concatenated ObjC string literals so content checks are immune to chunk splitting.
 const bootstrapScript = (() => {
   const bsStart = bootstrapSource.indexOf('return @"');

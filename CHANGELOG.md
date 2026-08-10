@@ -6,6 +6,15 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.30.2] - 2026-08-11
+
+### Fixed
+
+- Fixed standalone Xcode/Swift Package compilation of the generated bootstrap
+  translation unit by importing `AutoBootstrapScript.h` from the generator.
+- Extended verification so regenerated bootstrap Objective-C always carries its
+  Foundation-backed declaration while preserving the single-source JS contract.
+
 ## [1.30.1] - 2026-08-11
 
 ### Fixed

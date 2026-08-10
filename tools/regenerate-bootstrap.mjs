@@ -20,7 +20,7 @@ function escapeLiteral(text) {
 
 const bodyTerm = '})(this);';
 const bodyLen = js.length - bodyTerm.length;
-const lines = [START_MARK];
+const lines = ['#import "AutoBootstrapScript.h"', '', START_MARK];
 let pos = 0;
 let first = true;
 while (pos < bodyLen) {

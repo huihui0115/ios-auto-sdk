@@ -83,4 +83,4 @@ CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
 2. 跑一遍第 3 节的静态检查和 CI 构建。
 3. 人工过一遍第 4 节清单。
 4. 把未签名 IPA 上传商店/分发后台，附上第 5 节说明。
-5. 打 tag：`git tag v1.30.1 && git push origin v1.30.1`。
+5. 打 tag：`git tag v1.30.2 && git push origin v1.30.2`。
