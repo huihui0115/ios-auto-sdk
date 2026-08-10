@@ -126,7 +126,7 @@ function checkBalancedSource(path) {
   check(stack.length === 0, `${path}: unbalanced delimiter '${stack.at(-1)}'`);
 }
 
-for (const path of ['tools/auto-sdk.mjs', 'tools/debug-client.mjs', 'vscode-extension/extension.js', 'vscode-extension/device-client.js', 'vscode-extension/script-tools.js', 'vscode-extension/usb-tunnel.js', 'vscode-extension/inspector-view.js', 'vscode-extension/media/inspector.js', 'tools/init-project.mjs', 'tools/doctor.mjs']) {
+for (const path of ['tools/auto-sdk.mjs', 'tools/debug-client.mjs', 'vscode-extension/extension.js', 'vscode-extension/device-client.js', 'vscode-extension/script-tools.js', 'vscode-extension/usb-tunnel.js', 'vscode-extension/inspector-service.js', 'vscode-extension/inspector-session.js', 'vscode-extension/inspector-view.js', 'vscode-extension/media/inspector-model.js', 'vscode-extension/media/inspector.js', 'tools/init-project.mjs', 'tools/doctor.mjs']) {
   checkNodeSyntax(path);
 }
 const debugClientSource = read('tools/debug-client.mjs');
@@ -256,7 +256,9 @@ check(extensionPackage.contributes?.commands?.some(item => item.command === 'aut
       extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.stopUsbTunnel'),
       'VS Code extension must expose managed USB tunnel commands');
 check(extensionPackage.contributes?.configuration?.properties?.['autosdk.connectionTimeout']?.maximum === 3600000 &&
-      extensionPackage.contributes?.configuration?.properties?.['autosdk.buildTimeout']?.maximum === 21600,
+      extensionPackage.contributes?.configuration?.properties?.['autosdk.buildTimeout']?.maximum === 21600 &&
+      extensionPackage.contributes?.configuration?.properties?.['autosdk.inspectorMaxNodes']?.minimum === 1 &&
+      extensionPackage.contributes?.configuration?.properties?.['autosdk.inspectorMaxNodes']?.maximum === 2000,
       'VS Code extension timeouts must be bounded');
 
 const extensionSource = read('vscode-extension/extension.js');
@@ -268,6 +270,21 @@ for (const command of contributedCommandIds) {
 const inspectorSource = read('vscode-extension/media/inspector.js');
 check(/type === 'selectorResult'[\s\S]{0,800}state\.match = null[\s\S]{0,200}elements\.selection\.hidden = true/.test(inspectorSource),
       'Inspector selector results must clear stale match overlays and region selections');
+const inspectorServiceSource = read('vscode-extension/inspector-service.js');
+const inspectorSessionSource = read('vscode-extension/inspector-session.js');
+const inspectorModelSource = read('vscode-extension/media/inspector-model.js');
+check(extensionSource.includes('new InspectorService(sendRequest)') && extensionSource.includes('new InspectorSession({') &&
+      !extensionSource.includes("type: 'inspectSnapshot'"),
+      'Extension commands must delegate Inspector protocol and session state to focused modules');
+check(inspectorServiceSource.includes('this.visualTail.then(task, task)') &&
+      inspectorServiceSource.includes("type: 'inspectSnapshot'") && inspectorServiceSource.includes('MAX_PNG_BASE64_LENGTH'),
+      'Inspector service must serialize and validate device visual requests');
+check(inspectorSessionSource.includes('class LatestTaskQueue') && inspectorSessionSource.includes('this.queue.schedule') &&
+      inspectorSessionSource.includes('isCurrent()'),
+      'Inspector session must serialize visual work and suppress superseded results');
+check(inspectorSource.includes('state.latestRequests') && inspectorSource.includes('state.busyRequests') &&
+      inspectorModelSource.includes('selectionIndex') && inspectorModelSource.includes('selectorForNode'),
+      'Inspector webview must correlate responses and keep testable selection logic');
 
 const engineSource = read('Sources/AutoSDK/AutoEngine.m');
 check(engineSource.includes('AutoAppSchemeForName') && engineSource.includes('isEqualToString:@"getappscheme"') &&
@@ -948,7 +965,7 @@ for (const requiredText of ['workflow_dispatch:', 'requestId:', 'xcodebuild test
 }
 check(workflow.includes("github.event_name == 'workflow_dispatch' && (inputs.requestId || github.run_id) || github.ref"),
       'Concurrent remote build requests must not cancel each other');
-check(workflow.includes('@vscode/vsce package') && workflow.includes('autosdk-vscode-0.5.0.vsix') &&
+check(workflow.includes('@vscode/vsce package') && workflow.includes(`autosdk-vscode-${extensionPackage.version}.vsix`) &&
       workflow.includes('upload-pages-artifact@v3') && workflow.includes('deploy-pages@v4'),
       'CI must package the VS Code extension and deploy docs to GitHub Pages');
 const templateProject = read('Examples/TemplateApp/project.yml');

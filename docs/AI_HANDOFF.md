@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 59（v1.29.0，2026-08-07）。
+> 最后更新：Round 60（v1.30.0，2026-08-11）。
 
 ---
 
@@ -71,17 +71,20 @@ bridge (__bridge 对象，JSValue block)
 | `tools/generate-devdocs.mjs` | AScript 风格文档站 → `docs/devdocs/index.html`（侧栏树+散文页+函数页+搜索+复制+调试提示） |
 | `tools/bump-version.mjs` | 版本四件套同步 |
 | `tools/auto-sdk.mjs` | build / build-remote（IPA 产物） |
+| `vscode-extension/inspector-service.js` | VS Code 截图/节点/OCR/找图协议校验与全局重任务串行队列 |
+| `vscode-extension/inspector-session.js` | Inspector 面板生命周期、请求关联、同类待处理任务去重 |
+| `vscode-extension/media/inspector-model.js` | Webview 可单测的节点选择器、坐标与区域纯模型 |
 | `tools/bootstrap-history/` | 历史改写脚本（仅参考，勿对新版本执行） |
 | `Examples/TemplateApp/` | 宿主模板 App（含 Info.plist、脚本示例） |
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 47 / v1.17.0）
+## 4. 当前状态（Round 60 / v1.30.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
-- bootstrap 解码 **60895 / 61440**（预算 60×1024 UTF-16 码元）。
-- 文档 **257 个函数 / 257 个可运行示例 / 13 个分类**；测试 **79 项**。
-- 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`。
+- bootstrap 解码 **60526 / 61440**（预算 60×1024 UTF-16 码元，余 914）。
+- 文档 **263 个函数 / 263 个可运行示例 / 13 个分类**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **64 项**。
+- 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
   `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制）。
 - **Round 47 清场**：`AutoWDAHTTPAdapter` 及其全部测试/配置/verify 锚点/文档
@@ -89,6 +92,9 @@ bridge (__bridge 对象，JSValue block)
   设置页为“内置 no-WDA / UIKit”开关；内置 capabilities 新增
   `appList`/`appLifecycle`/`systemActions` 键（运行时探测）。架构与签名要求见
   `docs/NO_WDA_ARCHITECTURE.md`。
+- **Round 60 调试工具重构**：VS Code 插件 0.6.0 把可视化协议、会话调度和 Webview
+  几何模型拆成独立模块；截图/节点/点色/OCR/找图共用串行重任务通道，响应按 requestId
+  关联，同类排队请求仅保留最新结果；支持稳定节点选择恢复和相关快照 JSON 导出。
 
 已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -218,6 +224,12 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R60（v1.30.0）：**VS Code 插件与截图/节点 Inspector 重构**——插件升至 0.6.0；
+  `InspectorService` 统一校验并串行 screenshot/nodes/inspectSnapshot/pixel/OCR/findImage，
+  避免设备单重任务限制产生 busy 冲突；`InspectorSession` 统一面板生命周期、requestId
+  关联和同类任务去重；Webview 几何/选择器拆成纯模型，刷新后按稳定 nodeId 保留选择；
+  新增 `inspectorMaxNodes`（1...2000）与相关快照 JSON 导出；删除旧无调用方
+  CoalescingRunner；插件测试 64 项，bootstrap 零改动（60526/61440）。
 - R59（v1.29.0）：**TrollAutoScript 对标补齐**——sitemap（315 页）模块级盘点后补最后高频缺口：
   string.atrim/isInteger（isIntrger 拼写别名）/string.random、pasteboard.read/write、
   json.encode/decode（失败返回 null）、device.setBacklightLevel/backlightLevel；
@@ -276,6 +288,6 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 
 1. 读本文件 + `AGENTS.md`。
 2. `git log --oneline -3`、`git status` 确认基线。
-3. 跑一遍 `npm run verify`、`npm test`、`npm run docs` 确认环境正常。
+3. 跑一遍 `npm run verify`、`npm test`、`npm run docs`，以及插件目录的 `npm run check` / `npm test` 确认环境正常。
 4. 打开 `docs/EASYCLICK_COMPARISON.md` 挑一个“可实现”缺口开始。
 5. 按第 7.2 节闭环改，按第 7.4 节发布。

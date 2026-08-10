@@ -75,9 +75,10 @@ report('Docs and templates present', missingDocs.length === 0,
 
 const { readdirSync } = await import('node:fs');
 const extensionDir = resolve(root, 'vscode-extension');
+const extensionVersion = JSON.parse(readFileSync(resolve(extensionDir, 'package.json'), 'utf8')).version;
 const vsixFiles = existsSync(extensionDir) ? readdirSync(extensionDir).filter(name => name.endsWith('.vsix')) : [];
 report('VS Code extension packaged (*.vsix)', vsixFiles.length > 0,
-  vsixFiles.length ? vsixFiles.map(name => name.replace('autosdk-', '')).join(', ') : 'run: npx @vscode/vsce package --out vscode-extension/autosdk-vscode-0.5.0.vsix', true);
+  vsixFiles.length ? vsixFiles.map(name => name.replace('autosdk-', '')).join(', ') : `run: npx @vscode/vsce package --out vscode-extension/autosdk-vscode-${extensionVersion}.vsix`, true);
 
 const tags = sh('git', ['tag', '--list', 'v*']);
 report('Version tag exists (v*)', tags.ok && tags.stdout.length > 0, tags.stdout ? tags.stdout.split('\n')[0] : 'run: npm run bump', true);

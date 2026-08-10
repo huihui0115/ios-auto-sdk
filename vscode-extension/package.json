@@ -2,7 +2,7 @@
   "name": "autosdk-vscode",
   "displayName": "AutoSDK Script Tools",
   "description": "Edit, run, and build AutoSDK scripts for an iOS app installed via free Apple ID signing",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "publisher": "autosdk",
   "repository": {
@@ -109,6 +109,13 @@
           "maximum": 3600000,
           "description": "Milliseconds to wait for a debug command response."
         },
+        "autosdk.inspectorMaxNodes": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 1,
+          "maximum": 2000,
+          "description": "Maximum nodes collected with each correlated Inspector screenshot snapshot."
+        },
         "autosdk.iproxyPath": {
           "type": "string",
           "default": "iproxy",
@@ -179,7 +186,7 @@
     ]
   },
   "scripts": {
-    "check": "node --check extension.js && node --check coalescing-runner.js && node --check connection-settings.js && node --check device-client.js && node --check inspector-input.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector.js",
+    "check": "node --check extension.js && node --check connection-settings.js && node --check device-client.js && node --check inspector-input.js && node --check inspector-service.js && node --check inspector-session.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector-model.js && node --check media/inspector.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {

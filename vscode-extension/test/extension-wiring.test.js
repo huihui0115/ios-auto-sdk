@@ -10,8 +10,15 @@ test('the plain node inspection command uses the JSON document handler', () => {
 });
 
 test('the inspector rejects non-click coordinate actions before sending them', () => {
-  const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, '..', 'inspector-session.js'), 'utf8');
   assert.match(source, /Only coordinate clicks can omit a selector/);
+});
+
+test('the extension delegates visual capture and Inspector state to focused modules', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+  assert.match(source, /new InspectorService\(sendRequest\)/);
+  assert.match(source, /new InspectorSession\(/);
+  assert.doesNotMatch(source, /type: 'inspectSnapshot'/);
 });
 
 test('every contributed extension command is registered', () => {

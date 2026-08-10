@@ -2,10 +2,11 @@ const vscode = require('vscode');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
-const { CoalescingRunner } = require('./coalescing-runner');
 const { DeviceClient } = require('./device-client');
 const { connectionCredentials, tokenForConfiguration, updateConnectionConfiguration } = require('./connection-settings');
-const { generatedCode, inputText, nodeAction, ocrRegion, point, selectorObject } = require('./inspector-input');
+const { generatedCode, inputText } = require('./inspector-input');
+const { InspectorService, maxNodes, responseError } = require('./inspector-service');
+const { InspectorSession } = require('./inspector-session');
 const { inspectorHtml } = require('./inspector-view');
 const { terminateOwnedProcess } = require('./process-lifecycle');
 const { deployedAssetName, deployedScriptName, transpileScript } = require('./script-tools');
@@ -17,8 +18,8 @@ let deviceClient;
 let usbTunnel;
 let connectionStatus;
 let inspectorPanel;
-let inspectorAbortController;
-let inspectorRefreshRunner;
+let inspectorService;
+let inspectorSession;
 let lastScriptEditor;
 const activeBuildProcesses = new Set();
 
@@ -475,10 +476,6 @@ async function stopUsbTunnel() {
   }
 }
 
-function responseError(response) {
-  return typeof response?.error === 'string' ? response.error : JSON.stringify(response?.error || response);
-}
-
 async function testConnection() {
   const channel = outputChannel();
   channel.show(true);
@@ -510,8 +507,7 @@ async function stopScript() {
 
 async function captureScreenshot() {
   try {
-    const response = await sendRequest({ type: 'screenshot' });
-    if (!response.ok || !response.pngBase64) throw new Error(responseError(response));
+    const pngBase64 = await inspectorService.screenshot();
     const root = vscode.workspace.workspaceFolders?.[0]?.uri;
     const destination = await vscode.window.showSaveDialog({
       defaultUri: root ? vscode.Uri.joinPath(root, 'autosdk-screenshot.png') : undefined,
@@ -519,7 +515,7 @@ async function captureScreenshot() {
       saveLabel: 'Save AutoSDK Screenshot'
     });
     if (!destination) return;
-    await vscode.workspace.fs.writeFile(destination, Buffer.from(response.pngBase64, 'base64'));
+    await vscode.workspace.fs.writeFile(destination, Buffer.from(pngBase64, 'base64'));
     await vscode.commands.executeCommand('vscode.open', destination);
   } catch (error) {
     vscode.window.showErrorMessage(`AutoSDK screenshot failed: ${error.message}`);
@@ -528,11 +524,10 @@ async function captureScreenshot() {
 
 async function inspectNodes() {
   try {
-    const response = await sendRequest({ type: 'nodes' });
-    if (!response.ok || !Array.isArray(response.nodes)) throw new Error(responseError(response));
+    const nodes = await inspectorService.nodes();
     const document = await vscode.workspace.openTextDocument({
       language: 'json',
-      content: JSON.stringify(response.nodes, null, 2)
+      content: JSON.stringify(nodes, null, 2)
     });
     await vscode.window.showTextDocument(document, { preview: true });
   } catch (error) {
@@ -562,34 +557,9 @@ function postInspector(panel, message) {
   } catch (_) { /* panel was disposed between the identity check and post */ }
 }
 
-async function captureInspector(panel, signal) {
-  postInspector(panel, { type: 'loading', message: 'Capturing device snapshot...' });
-  try {
-    const snapshot = await sendRequest(
-      { type: 'inspectSnapshot', options: { maxNodes: 1000 } },
-      { signal }
-    );
-    if (!snapshot.ok || !snapshot.pngBase64) throw new Error(responseError(snapshot));
-    if (!Array.isArray(snapshot.nodes)) throw new Error('Device returned an invalid node snapshot.');
-    if (!snapshot.deviceInfo) throw new Error('Device returned no device information.');
-    postInspector(panel, {
-      type: 'snapshot',
-      pngBase64: snapshot.pngBase64,
-      nodes: snapshot.nodes,
-      deviceInfo: snapshot.deviceInfo,
-      snapshotId: snapshot.snapshotId,
-      durationMs: snapshot.durationMs,
-      truncated: Boolean(snapshot.truncated)
-    });
-  } catch (error) {
-    if (error.name === 'AbortError') return;
-    postInspector(panel, { type: 'error', message: error.message });
-  }
-}
-
 function refreshInspector(panel) {
-  if (panel !== inspectorPanel || !inspectorRefreshRunner) return Promise.resolve(false);
-  return inspectorRefreshRunner.request();
+  if (panel !== inspectorPanel || !inspectorSession) return Promise.resolve(false);
+  return inspectorSession.refresh();
 }
 
 async function insertGeneratedCode(code) {
@@ -608,7 +578,7 @@ async function insertGeneratedCode(code) {
   await vscode.window.showTextDocument(editor.document, editor.viewColumn, false);
 }
 
-async function testImageFromFile(panel, signal) {
+async function selectImageTemplate(signal) {
   const selected = await vscode.window.showOpenDialog({
     canSelectMany: false,
     filters: { 'Image templates': ['png', 'jpg', 'jpeg'] },
@@ -624,16 +594,26 @@ async function testImageFromFile(panel, signal) {
   if (data.byteLength > 512 * 1024) throw new Error('Image template exceeds the 512 KB debug limit. Crop or compress it first.');
   const name = deployedAssetName(path.basename(selected[0].fsPath), selected[0].toString());
   const dataBase64 = Buffer.from(data).toString('base64');
-  postInspector(panel, { type: 'loading', message: `Deploying and testing ${name}...` });
-  const deployed = await sendRequest({ type: 'putAsset', name, dataBase64 }, { signal });
-  if (!deployed.ok) throw new Error(responseError(deployed));
-  const response = await sendRequest({
-    type: 'findImage',
-    assetName: name,
-    options: { threshold: 0.9, maxCandidates: 100000, maxComparedPixels: 50000000 }
-  }, { signal });
-  if (!response.ok) throw new Error(responseError(response));
-  postInspector(panel, { type: 'imageResult', match: response.match || { found: false }, assetPath: deployed.path });
+  return { name, dataBase64 };
+}
+
+async function saveInspectorSnapshot(snapshot) {
+  const root = vscode.workspace.workspaceFolders?.[0]?.uri;
+  const safeId = String(snapshot.snapshotId || Date.now()).replace(/[^A-Za-z0-9_.-]/g, '-').slice(0, 80);
+  const destination = await vscode.window.showSaveDialog({
+    defaultUri: root ? vscode.Uri.joinPath(root, `autosdk-snapshot-${safeId}.json`) : undefined,
+    filters: { 'AutoSDK snapshots': ['json'] },
+    saveLabel: 'Export AutoSDK Snapshot'
+  });
+  if (!destination) return false;
+  const payload = Buffer.from(JSON.stringify({
+    format: 'autosdk-inspector-snapshot',
+    formatVersion: 1,
+    ...snapshot
+  }, null, 2), 'utf8');
+  await vscode.workspace.fs.writeFile(destination, payload);
+  await vscode.commands.executeCommand('vscode.open', destination);
+  return true;
 }
 
 async function openInspector() {
@@ -656,101 +636,54 @@ async function openInspector() {
     }
   );
   inspectorPanel = panel;
-  let abortController = new AbortController();
-  const refreshRunner = new CoalescingRunner(() => captureInspector(panel, abortController.signal));
-  inspectorAbortController = abortController;
-  inspectorRefreshRunner = refreshRunner;
-  let nodeActionInFlight = false;
-  panel.webview.html = inspectorHtml(panel.webview, extensionContext.extensionUri);
+  const session = new InspectorSession({
+    service: inspectorService,
+    postMessage: message => postInspector(panel, message),
+    maxNodes: maxNodes(configuration().get('inspectorMaxNodes')),
+    selectImage: selectImageTemplate,
+    requestInput: () => vscode.window.showInputBox({
+      prompt: 'Text to enter on the selected iPhone node',
+      validateInput(value) {
+        try { inputText(value); return undefined; }
+        catch (error) { return error.message; }
+      }
+    }),
+    copyCode: code => vscode.env.clipboard.writeText(code),
+    insertCode: insertGeneratedCode,
+    saveSnapshot: saveInspectorSnapshot
+  });
+  inspectorSession = session;
   panel.onDidChangeViewState(event => {
-    if (!event.webviewPanel.visible) {
-      abortController.abort();
-      refreshRunner.cancelPending();
-    } else if (abortController.signal.aborted) {
-      abortController = new AbortController();
-      if (inspectorPanel === panel) inspectorAbortController = abortController;
-    }
+    session.setVisible(event.webviewPanel.visible);
   });
   panel.onDidDispose(() => {
-    abortController.abort();
-    refreshRunner.dispose();
+    session.dispose();
     if (inspectorPanel === panel) {
       inspectorPanel = undefined;
-      inspectorAbortController = undefined;
-      inspectorRefreshRunner = undefined;
+      inspectorSession = undefined;
     }
   });
   panel.webview.onDidReceiveMessage(async message => {
     try {
-      if (!message || typeof message !== 'object') return;
-      const signal = abortController.signal;
-      if (message.type === 'ready' || message.type === 'refresh') await refreshInspector(panel);
-      else if (message.type === 'testSelector') {
-        const selector = selectorObject(message.selector);
-        const response = await sendRequest({ type: 'nodes', selector }, { signal });
-        if (!response.ok || !Array.isArray(response.nodes)) throw new Error(responseError(response));
-        postInspector(panel, { type: 'selectorResult', nodes: response.nodes });
-      } else if (message.type === 'testImage') await testImageFromFile(panel, signal);
-      else if (message.type === 'testOCR') {
-        const region = ocrRegion(message.region);
-        const response = await sendRequest(
-          { type: 'testOCR', region: { ...region, mode: 'fast', maxResults: 100 } },
-          { signal }
-        );
-        if (!response.ok || !Array.isArray(response.items)) throw new Error(responseError(response));
-        postInspector(panel, { type: 'ocrResult', items: response.items, region });
-      }
-      else if (message.type === 'pixelColor') {
-        const coordinates = point(message.x, message.y);
-        const response = await sendRequest({ type: 'pixelColor', ...coordinates }, { signal });
-        if (!response.ok) throw new Error(responseError(response));
-        postInspector(panel, { type: 'pixelColor', color: response.color });
-      } else if (message.type === 'nodeAction') {
-        if (nodeActionInFlight) throw new Error('A node action is already in progress.');
-        nodeActionInFlight = true;
-        try {
-          const payload = { type: 'nodeAction', action: nodeAction(message.action) };
-          if (message.selector !== undefined) payload.selector = selectorObject(message.selector);
-          if (message.x !== undefined || message.y !== undefined) {
-            Object.assign(payload, point(message.x, message.y));
-          }
-          if (!payload.selector && payload.x === undefined) throw new Error('Node action requires a selector or point.');
-          if (!payload.selector && payload.action !== 'click') {
-            throw new Error('Only coordinate clicks can omit a selector.');
-          }
-          if (payload.action === 'input' && !payload.selector) throw new Error('Node input requires a selector.');
-          if (payload.action === 'input') {
-            const text = await vscode.window.showInputBox({
-              prompt: 'Text to enter on the selected iPhone node',
-              validateInput(value) {
-                try { inputText(value); return undefined; }
-                catch (error) { return error.message; }
-              }
-            });
-            if (text === undefined) return;
-            payload.text = inputText(text);
-          }
-          const response = await sendRequest(payload, { signal });
-          if (!response.ok) throw new Error(responseError(response));
-          postInspector(panel, { type: 'notice', message: `${payload.action} completed` });
-          await new Promise(resolve => setTimeout(resolve, 250));
-          if (signal.aborted) return;
-          await refreshInspector(panel);
-        } finally {
-          nodeActionInFlight = false;
-        }
-      } else if (message.type === 'copyCode') {
-        await vscode.env.clipboard.writeText(generatedCode(message.code));
-        postInspector(panel, { type: 'notice', message: 'Code copied' });
-      } else if (message.type === 'insertCode') {
-        await insertGeneratedCode(message.code);
-        postInspector(panel, { type: 'notice', message: 'Code inserted' });
-      }
+      await session.handleMessage(message);
     } catch (error) {
       if (error.name === 'AbortError') return;
-      postInspector(panel, { type: 'error', message: error.message });
+      const operations = {
+        refresh: 'snapshot', ready: 'snapshot', testSelector: 'selector', testImage: 'image',
+        testOCR: 'ocr', pixelColor: 'pixel', nodeAction: 'action', saveSnapshot: 'export',
+        copyCode: 'code', insertCode: 'code'
+      };
+      postInspector(panel, {
+        type: 'error',
+        operation: operations[message?.type] || 'inspector',
+        requestId: typeof message?.requestId === 'string' && message.requestId.length <= 128
+          ? message.requestId
+          : undefined,
+        message: error.message
+      });
     }
   });
+  panel.webview.html = inspectorHtml(panel.webview, extensionContext.extensionUri);
 }
 
 function completionProvider() {
@@ -888,6 +821,7 @@ function activate(context) {
     onState: updateConnectionStatus,
     onEvent: event => outputChannel().appendLine(`[protocol] ${JSON.stringify(event)}`)
   });
+  inspectorService = new InspectorService(sendRequest);
   usbTunnel = new UsbTunnel({
     onOutput: value => outputChannel().append(value),
     onExit: event => {
@@ -937,14 +871,13 @@ function deactivate() {
   activeBuildProcesses.clear();
   usbTunnel?.dispose();
   deviceClient?.dispose();
-  inspectorAbortController?.abort();
-  inspectorRefreshRunner?.dispose();
+  inspectorSession?.dispose();
   inspectorPanel?.dispose();
   usbTunnel = undefined;
   deviceClient = undefined;
+  inspectorService = undefined;
   inspectorPanel = undefined;
-  inspectorAbortController = undefined;
-  inspectorRefreshRunner = undefined;
+  inspectorSession = undefined;
   connectionStatus = undefined;
   lastScriptEditor = undefined;
   extensionContext = undefined;

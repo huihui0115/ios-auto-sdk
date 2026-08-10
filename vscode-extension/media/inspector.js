@@ -1,15 +1,18 @@
 (function () {
   const vscode = acquireVsCodeApi();
+  const model = globalThis.AutoSDKInspectorModel;
   const elements = {
     refresh: document.getElementById('refresh'),
     testImage: document.getElementById('test-image'),
     testOCR: document.getElementById('test-ocr'),
+    saveSnapshot: document.getElementById('save-snapshot'),
     status: document.getElementById('status'),
     screen: document.getElementById('device-screen'),
     screenshot: document.getElementById('screenshot'),
     overlays: document.getElementById('node-overlays'),
     selection: document.getElementById('selection'),
     coordinates: document.getElementById('coordinates'),
+    snapshotSummary: document.getElementById('snapshot-summary'),
     deviceSummary: document.getElementById('device-summary'),
     nodeFilter: document.getElementById('node-filter'),
     nodeList: document.getElementById('node-list'),
@@ -25,11 +28,34 @@
     copyCode: document.getElementById('copy-code'),
     insertCode: document.getElementById('insert-code')
   };
-  const state = { nodes: [], device: {}, selectedIndex: -1, mode: 'node', regionStart: null, region: null, match: null };
+  const state = {
+    nodes: [], device: {}, selectedIndex: -1, mode: 'node', regionStart: null, region: null,
+    match: null, snapshotId: '', capturedAtMs: 0, hasSnapshot: false,
+    requestSequence: 0, latestRequests: {}, busyRequests: new Set()
+  };
+  const number = model.number;
 
-  function number(value, fallback) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
+  function send(operation, type, payload) {
+    state.requestSequence += 1;
+    const id = operation + '-' + state.requestSequence;
+    state.latestRequests[operation] = id;
+    vscode.postMessage(Object.assign({ type: type, operation: operation, requestId: id }, payload || {}));
+    return id;
+  }
+
+  function accepts(message) {
+    return !message.operation || !message.requestId || state.latestRequests[message.operation] === message.requestId;
+  }
+
+  function renderBusyState() {
+    const busy = state.busyRequests.size > 0;
+    [elements.refresh, elements.testImage, elements.testSelector].forEach(function (button) { button.disabled = busy; });
+    elements.testOCR.disabled = busy || !state.region || state.region.width <= 0 || state.region.height <= 0;
+    elements.clickNode.disabled = busy || state.selectedIndex < 0;
+    elements.inputNode.disabled = busy || state.selectedIndex < 0;
+    elements.scrollNode.disabled = busy || state.selectedIndex < 0;
+    elements.saveSnapshot.disabled = busy || !state.hasSnapshot;
+    elements.screen.classList.toggle('busy', busy);
   }
 
   function screenSize() {
@@ -42,37 +68,11 @@
   function pointForEvent(event) {
     const rect = elements.screen.getBoundingClientRect();
     const size = screenSize();
-    const renderedWidth = Math.max(1, rect.width);
-    const renderedHeight = Math.max(1, rect.height);
-    return {
-      x: Math.max(0, Math.min(size.width, (event.clientX - rect.left) * size.width / renderedWidth)),
-      y: Math.max(0, Math.min(size.height, (event.clientY - rect.top) * size.height / renderedHeight))
-    };
+    return model.pointFromClient(event.clientX, event.clientY, rect, size);
   }
 
   function nodeSelector(node) {
-    if (!node || typeof node !== 'object') return null;
-    const text = function (value) { return typeof value === 'string' && value.trim() ? value.trim() : null; };
-    const id = text(node.id);
-    const label = text(node.label);
-    const name = text(node.name);
-    const value = text(node.value);
-    const type = text(node.type);
-    const original = node.selector && typeof node.selector === 'object' ? node.selector : {};
-    const candidates = [];
-    if (id) candidates.push(type ? { id: id, type: type } : { id: id });
-    if (label) candidates.push(type ? { label: label, type: type } : { label: label });
-    if (name) candidates.push(type ? { name: name, type: type } : { name: name });
-    if (value && type) candidates.push({ value: value, type: type });
-    const unique = candidates.find(function (selector) {
-      const entries = Object.entries(selector);
-      return state.nodes.filter(function (candidate) {
-        return entries.every(function (entry) { return String(candidate[entry[0]] ?? '') === String(entry[1]); });
-      }).length === 1;
-    });
-    if (unique) return unique;
-    if (typeof original.xpath === 'string' && original.xpath) return { xpath: original.xpath };
-    return null;
+    return model.selectorForNode(node, state.nodes);
   }
 
   function nodeTitle(node) {
@@ -163,20 +163,12 @@
     }
     renderNodes();
     renderOverlays();
+    renderBusyState();
   }
 
   function selectAtPoint(point) {
-    const candidates = state.nodes.map(function (node, index) { return { node: node, index: index }; }).filter(function (entry) {
-      const b = entry.node && entry.node.bounds;
-      return b && point.x >= number(b.x, 0) && point.y >= number(b.y, 0) &&
-        point.x <= number(b.x, 0) + number(b.width, 0) && point.y <= number(b.y, 0) + number(b.height, 0);
-    });
-    candidates.sort(function (left, right) {
-      const a = left.node.bounds;
-      const b = right.node.bounds;
-      return number(a.width, 0) * number(a.height, 0) - number(b.width, 0) * number(b.height, 0);
-    });
-    if (candidates.length) selectNode(candidates[0].index);
+    const index = model.indexAtPoint(state.nodes, point);
+    if (index >= 0) selectNode(index);
   }
 
   function requestNodeAction(action) {
@@ -187,12 +179,12 @@
     }
     const transientSelector = node.selector && typeof node.selector === 'object' ? node.selector : nodeSelector(node);
     if (transientSelector) {
-      vscode.postMessage({ type: 'nodeAction', action: action, selector: transientSelector });
+      send('action', 'nodeAction', { action: action, selector: transientSelector });
       return;
     }
     if (action === 'click' && node.bounds) {
-      vscode.postMessage({
-        type: 'nodeAction', action: action,
+      send('action', 'nodeAction', {
+        action: action,
         x: number(node.bounds.centerX, number(node.bounds.x, 0) + number(node.bounds.width, 0) / 2),
         y: number(node.bounds.centerY, number(node.bounds.y, 0) + number(node.bounds.height, 0) / 2)
       });
@@ -203,16 +195,13 @@
 
   function showRegion(start, end) {
     const size = screenSize();
-    const x = Math.min(start.x, end.x);
-    const y = Math.min(start.y, end.y);
-    const width = Math.abs(start.x - end.x);
-    const height = Math.abs(start.y - end.y);
+    const region = model.regionBetween(start, end);
     elements.selection.hidden = false;
-    elements.selection.style.left = (x / size.width * 100) + '%';
-    elements.selection.style.top = (y / size.height * 100) + '%';
-    elements.selection.style.width = (width / size.width * 100) + '%';
-    elements.selection.style.height = (height / size.height * 100) + '%';
-    return { x: Math.round(x), y: Math.round(y), width: Math.round(width), height: Math.round(height) };
+    elements.selection.style.left = (region.x / size.width * 100) + '%';
+    elements.selection.style.top = (region.y / size.height * 100) + '%';
+    elements.selection.style.width = (region.width / size.width * 100) + '%';
+    elements.selection.style.height = (region.height / size.height * 100) + '%';
+    return region;
   }
 
   document.querySelectorAll('[data-mode]').forEach(function (button) {
@@ -221,6 +210,7 @@
       state.regionStart = null;
       elements.selection.hidden = true;
       document.querySelectorAll('[data-mode]').forEach(function (item) { item.classList.toggle('active', item === button); });
+      renderBusyState();
     });
   });
 
@@ -245,7 +235,8 @@
       setGenerated('auto.clickPoint(' + Math.round(point.x) + ', ' + Math.round(point.y) + ');');
       renderNodes();
       renderOverlays();
-      vscode.postMessage({ type: 'pixelColor', x: point.x, y: point.y });
+      renderBusyState();
+      send('pixel', 'pixelColor', { x: point.x, y: point.y });
     }
   });
 
@@ -256,6 +247,7 @@
     state.region = region;
     elements.details.textContent = JSON.stringify(region, null, 2);
     setGenerated('const region = ' + JSON.stringify(region) + ';\nconst words = auto.ocr(region);\nconsole.log(words);');
+    renderBusyState();
   });
 
   elements.screen.addEventListener('pointercancel', function () {
@@ -263,20 +255,21 @@
     elements.selection.hidden = true;
   });
 
-  elements.refresh.addEventListener('click', function () { vscode.postMessage({ type: 'refresh' }); });
-  elements.testImage.addEventListener('click', function () { vscode.postMessage({ type: 'testImage' }); });
+  elements.refresh.addEventListener('click', function () { send('snapshot', 'refresh'); });
+  elements.testImage.addEventListener('click', function () { send('image', 'testImage'); });
+  elements.saveSnapshot.addEventListener('click', function () { send('export', 'saveSnapshot'); });
   elements.testOCR.addEventListener('click', function () {
     if (!state.region || state.region.width <= 0 || state.region.height <= 0) {
       setStatus('Select a region first.', true);
       return;
     }
-    vscode.postMessage({ type: 'testOCR', region: state.region });
+    send('ocr', 'testOCR', { region: state.region });
   });
   elements.nodeFilter.addEventListener('input', renderNodes);
   elements.testSelector.addEventListener('click', function () {
     try {
       const selector = JSON.parse(elements.selector.value);
-      vscode.postMessage({ type: 'testSelector', selector: selector });
+      send('selector', 'testSelector', { selector: selector });
     } catch (error) {
       setStatus('Invalid selector JSON: ' + error.message, true);
     }
@@ -288,8 +281,8 @@
   elements.clickNode.addEventListener('click', function () { requestNodeAction('click'); });
   elements.inputNode.addEventListener('click', function () { requestNodeAction('input'); });
   elements.scrollNode.addEventListener('click', function () { requestNodeAction('scroll'); });
-  elements.copyCode.addEventListener('click', function () { vscode.postMessage({ type: 'copyCode', code: elements.generatedCode.value }); });
-  elements.insertCode.addEventListener('click', function () { vscode.postMessage({ type: 'insertCode', code: elements.generatedCode.value }); });
+  elements.copyCode.addEventListener('click', function () { send('code', 'copyCode', { code: elements.generatedCode.value }); });
+  elements.insertCode.addEventListener('click', function () { send('code', 'insertCode', { code: elements.generatedCode.value }); });
 
   elements.screenshot.addEventListener('load', function () {
     const size = screenSize();
@@ -299,23 +292,48 @@
 
   window.addEventListener('message', function (event) {
     const message = event.data || {};
-    if (message.type === 'loading') setStatus(message.message || 'Loading...');
+    if (message.type === 'operationStart') {
+      if (message.operation && message.requestId) state.latestRequests[message.operation] = message.requestId;
+      if (message.requestId) state.busyRequests.add(message.requestId);
+      setStatus(message.message || 'Loading...');
+      renderBusyState();
+      return;
+    }
+    if (message.type === 'operationEnd') {
+      if (message.requestId) state.busyRequests.delete(message.requestId);
+      renderBusyState();
+      return;
+    }
+    if (!accepts(message)) return;
     if (message.type === 'error') setStatus(message.message || 'Operation failed.', true);
     if (message.type === 'snapshot') {
+      const previousKey = model.nodeKey(state.selectedIndex >= 0 ? state.nodes[state.selectedIndex] : null);
       state.nodes = Array.isArray(message.nodes) ? message.nodes : [];
       state.device = message.deviceInfo || {};
-      state.selectedIndex = -1;
+      state.selectedIndex = model.selectionIndex(state.nodes, previousKey);
       state.regionStart = null;
       state.region = null;
       state.match = null;
+      state.snapshotId = typeof message.snapshotId === 'string' ? message.snapshotId : '';
+      state.capturedAtMs = number(message.capturedAtMs, 0);
+      state.hasSnapshot = true;
       elements.selection.hidden = true;
       elements.screenshot.src = 'data:image/png;base64,' + message.pngBase64;
       elements.deviceSummary.textContent = [state.device.model, state.device.systemVersion, state.device.adapter].filter(Boolean).join(' | ');
-      elements.details.textContent = 'Select a node or point.';
-      renderNodes();
+      const captured = state.capturedAtMs > 0 ? new Date(state.capturedAtMs).toLocaleTimeString() : '';
+      elements.snapshotSummary.textContent = [state.snapshotId ? 'snapshot ' + state.snapshotId.slice(0, 8) : '', captured]
+        .filter(Boolean).join(' @ ') + (state.snapshotId || captured ? ' | ' : '');
+      if (state.selectedIndex >= 0) selectNode(state.selectedIndex);
+      else {
+        elements.details.textContent = 'Select a node or point.';
+        renderNodes();
+        renderOverlays();
+      }
       const timing = number(message.durationMs, 0) > 0 ? ' in ' + Math.round(number(message.durationMs, 0)) + ' ms' : '';
       const suffix = message.truncated ? ' (limited)' : '';
-      setStatus(state.nodes.length + ' nodes loaded' + timing + suffix);
+      const notice = message.notice ? ' · ' + message.notice : '';
+      setStatus(state.nodes.length + ' nodes loaded' + timing + suffix + notice);
+      renderBusyState();
     }
     if (message.type === 'selectorResult') {
       const nodes = Array.isArray(message.nodes) ? message.nodes : [];
@@ -329,6 +347,7 @@
       renderNodes();
       renderOverlays();
       setStatus(nodes.length + ' selector match' + (nodes.length === 1 ? '' : 'es'));
+      renderBusyState();
     }
     if (message.type === 'imageResult') {
       state.match = message.match || null;
@@ -357,5 +376,6 @@
     if (message.type === 'notice') setStatus(message.message || 'Done');
   });
 
-  vscode.postMessage({ type: 'ready' });
+  renderBusyState();
+  send('snapshot', 'ready');
 }());

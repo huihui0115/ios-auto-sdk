@@ -21,8 +21,8 @@ From the repository root:
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.5.0.vsix
-code --install-extension .\autosdk-vscode-0.5.0.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.6.0.vsix
+code --install-extension .\autosdk-vscode-0.6.0.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An
@@ -92,6 +92,21 @@ click code. Selecting a local PNG/JPEG deploys a hashed copy into the phone's
 uses a real persistent path. Region mode can execute bounded fast OCR and show
 the recognized words immediately. UIKit mode inspects the host app. The
 built-in no-WDA mode can inspect and operate any app on the device.
+
+The Inspector uses one serialized visual-operation lane shared with the plain
+screenshot and node commands. Screenshot, node, pixel, OCR, and image-match
+requests therefore cannot collide with the phone's single heavy-debug-request
+limit; queued requests of the same kind keep only the newest result. Webview
+messages carry request IDs, so a late response cannot overwrite a newer
+selection. Stable node IDs preserve the selected row across refreshes. Set
+`autosdk.inspectorMaxNodes` to `1...2000` (default `1000`) to tune snapshot
+size. **Export snapshot** saves one portable JSON bundle containing the
+correlated PNG base64, node tree, device information, snapshot ID, and timing.
+
+The implementation is split by responsibility: `inspector-service.js`
+validates and serializes device protocol calls, `inspector-session.js` owns
+panel lifecycle and request correlation, and `media/inspector-model.js` holds
+the DOM-independent geometry/selector model used by the webview and tests.
 
 **AutoSDK: Run Current Script** executes the editor contents immediately.
 **AutoSDK: Send Current Script to Device** stores a transpiled `.js` copy in

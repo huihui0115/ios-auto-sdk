@@ -80,6 +80,6 @@ capabilities.stableNodeHandles=NO 已如实标注）。
 - `findImage` 模板匹配 Round 49 已实现：系统级截图 + 有界两阶段（粗采样→
   全像素验证）匹配，similarity 默认 0.9，比较次数封顶 60M，region/
   maxCandidates 可配。
-- xpath/predicate 选择器内置不支持（用 text/label/id/type + Match 正则）。
+- xpath 已支持有界单步子集（`//Type[@attr='value']`、contains/starts-with/ends-with、`and` 与位置下标）；predicate 和嵌套路径仍不支持，可改用 text/label/id/type + Match 正则。
 - 硬件按键注入（音量键等）暂不支持；home 通过 SpringBoard 跳转实现。
 - 节点句柄非稳定句柄，UI 变化后需重新查询。

@@ -6,6 +6,34 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.30.0] - 2026-08-11
+
+### Changed
+
+- **VS Code 插件 0.6.0 / Inspector 结构重构（Round 60）**：把设备可视化协议、
+  Inspector 会话状态和 Webview 节点/坐标模型从 `extension.js` 拆到
+  `inspector-service.js`、`inspector-session.js` 与 `media/inspector-model.js`，
+  普通截图、节点 JSON 与可视化面板共用严格的协议校验。
+- 截图、节点、点色、OCR、找图和节点动作统一经过串行可视化通道，适配手机端
+  单重任务限制；同类排队请求只保留最新结果，避免并发 `device busy` 和迟到响应
+  覆盖新状态。旧的无调用方 `CoalescingRunner` 已删除。
+
+### Added
+
+- Inspector Webview 请求/响应增加 requestId 关联与忙碌状态；刷新后按稳定
+  nodeId/handle 恢复节点选择。
+- 新增 `autosdk.inspectorMaxNodes`（1...2000，默认 1000）和 **Export** 操作，
+  可导出包含 PNG base64、节点树、设备信息、snapshotId 和耗时的单文件 JSON 快照。
+- 插件新增采集服务、会话队列和几何/选择器模型测试；插件测试 64 项。
+
+### Fixed
+
+- 修复 Inspector 与独立截图/节点命令可能同时发起重请求、触发手机端
+  `The device is busy processing earlier debug requests` 的竞态。
+- 修复旧响应可能晚于新刷新返回并覆盖节点列表、选中项或图像结果的问题。
+- 同步修正文档中的旧函数统计和 no-WDA XPath 支持说明；bootstrap 保持
+  60526/61440（余量 914），脚本 API 与原生运行时零改动。
+
 ## [1.29.0] - 2026-08-07
 
 ### Added

@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 
 function inspectorHtml(webview, extensionUri) {
+  const modelUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'inspector-model.js'));
   const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'inspector.js'));
   const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'inspector.css'));
   const csp = [
@@ -28,6 +29,7 @@ function inspectorHtml(webview, extensionUri) {
     </div>
     <button id="test-image" type="button" title="Choose a local template and test it on the device">Test image</button>
     <button id="test-ocr" type="button" title="Run OCR in the selected region">Test OCR</button>
+    <button id="save-snapshot" type="button" title="Export the correlated screenshot, node tree, and metadata">Export</button>
     <span id="status" role="status">Connecting...</span>
   </header>
   <main class="workspace">
@@ -39,7 +41,7 @@ function inspectorHtml(webview, extensionUri) {
       </div>
       <div class="readout">
         <span id="coordinates">x: -, y: -</span>
-        <span id="device-summary"></span>
+        <span><span id="snapshot-summary"></span><span id="device-summary"></span></span>
       </div>
     </section>
     <aside class="sidebar">
@@ -78,6 +80,7 @@ function inspectorHtml(webview, extensionUri) {
       </section>
     </aside>
   </main>
+  <script src="${modelUri}"></script>
   <script src="${scriptUri}"></script>
 </body>
 </html>`;

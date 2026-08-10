@@ -28,6 +28,8 @@ button {
 }
 
 button:hover { background: var(--vscode-toolbar-hoverBackground); }
+button:disabled { cursor: default; opacity: 0.55; }
+button:disabled:hover { background: var(--vscode-input-background); }
 button:focus-visible, input:focus-visible, textarea:focus-visible {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: 1px;
@@ -100,6 +102,8 @@ button.primary:hover { background: var(--vscode-button-hoverBackground); }
   border-radius: 4px;
   touch-action: none;
 }
+
+.device-screen.busy { cursor: progress; }
 
 #screenshot {
   position: absolute;
@@ -211,8 +215,9 @@ textarea { resize: vertical; font-family: var(--vscode-editor-font-family); font
 
 @media (max-width: 780px) {
   body { overflow: auto; }
+  .toolbar { height: auto; flex-wrap: wrap; }
   .workspace { height: auto; grid-template-columns: 1fr; }
   .preview { min-height: 520px; }
   .sidebar { border-left: 0; border-top: 1px solid var(--vscode-panel-border); }
-  #status { min-width: 0; }
+  #status { width: 100%; min-width: 0; margin-left: 0; text-align: left; }
 }
