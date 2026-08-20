@@ -10,7 +10,7 @@
 - JavaScriptCore 执行本地脚本、Bundle 脚本和远程 URL
 - 全局 `auto` API：点击、滑动、输入、稳定节点查询、图色、截图、OCR、沙盒文件、命名存储、设备信息和受控 HTTP
 - HTTP 对标 Python requests：GET/POST/PUT/PATCH/DELETE、`headers/cookies/params`、`files` multipart 文件上传 + `formData`、JSON/Base64 响应、下载与 `requireSuccess`
-- 系统能力（`allowSystemControl` 可开关）：剪贴板读写、屏幕亮度、系统音量、振动、打开 URL、Wi-Fi IP（`device.getIPAddress`）、本地通知（`notify(body, title?)`）；内置 no-WDA 适配器额外支持主屏幕/锁屏/解锁（音量键/屏幕状态以能力报告为准）
+- 系统能力：剪贴板、亮度、音量、振动、手电筒、打开 URL、Wi-Fi IP、低电量模式与定位状态、本地通知；受控操作由 `allowSystemControl` 开关。`vpn.status/connect/disconnect` 只管理宿主 App 自己通过 Personal VPN entitlement 预存的配置，`system.openSettings(panel)` 只 best-effort 打开常用设置页，不能静默切换 Wi-Fi/蓝牙/蜂窝/热点/飞行模式；内置 no-WDA 适配器额外支持主屏幕/锁屏/解锁（音量键/屏幕状态以能力报告为准）
 - 图像处理：`image.clip/scale/gray/binaryzation/rotate/compress/pixelAt/toBase64/findColorCount`（JPEG 压缩对标 AScript image_compress）
 - 相册（`allowMediaLibrary` 可开关）：保存沙盒图片、视频、Base64 图片或截图到 iOS“照片”，并支持 `media.deleteAllPhotos/deleteAllVideos/deleteAllMedia` 清空相册（返回删除数量）
 - plist 读写：`file.readPlist/writePlist` 与全局 `plist.read/plist.write`（XML plist）
@@ -37,7 +37,9 @@
 ### Swift Package Manager
 
 在 Xcode 中添加本仓库 URL，选择 `AutoSDK` 产品。SDK 需要 iOS 14+，并链接
-`JavaScriptCore`、`UIKit`、`Photos` 等系统框架。
+`JavaScriptCore`、`UIKit`、`Photos`、`CoreLocation`、`NetworkExtension` 等系统框架。
+链接 `NetworkExtension` 不会自动授予 VPN 权限；使用 `vpn.*` 的宿主仍需启用
+Personal VPN capability，并自行保存和启用属于本 App 的 `NEVPNManager` 配置。
 
 ### CocoaPods
 
@@ -61,7 +63,7 @@ AutoEngine *engine = AutoEngine.sharedEngine;
 }];
 ```
 
-常用配置项：`scriptTimeout`（秒，默认 300）、`maxScriptBytes`（默认 5 MB、硬上限 64 MB）、`maxLogEntries`、`maxLogMessageLength`、`maxLogBytes`、`allowRemoteScripts`（默认 `NO`）、`allowedRemoteScriptHosts`、`remoteScriptTimeout`、`allowNetwork`（默认 `NO`）、`allowedNetworkHosts`、`maxHTTPRequestBytes`、`maxHTTPResponseBytes`、`allowFileAccess`、`allowFileWrite`、`fileRoot`、`maxFileReadBytes`、`maxFileWriteBytes`、`maxFileCopyBytes`、`maxFileListItems`、`maxFileOperationItems`、`maxFileLineCount`、`allowStorage`、`maxStorageBytes`、`maxStorageEntries`、`allowMediaLibrary`、`maxMediaBytes`、`maxMediaImageBytes`、`debugLogging` 和 `interruptibleScripts`（为兼容保留，脚本中断为协作式：桥接调用、`auto.sleep` 和定时器回调处生效；纯 JS 无限循环可能持续占用 CPU）。文件与存储默认只能访问 App 沙盒中的 AutoSDK 专用范围。宿主 App 如需相册写入，必须在自身 `Info.plist` 声明 `NSPhotoLibraryAddUsageDescription`。
+常用配置项：`scriptTimeout`（秒，默认 300）、`maxScriptBytes`（默认 5 MB、硬上限 64 MB）、`maxLogEntries`、`maxLogMessageLength`、`maxLogBytes`、`allowRemoteScripts`（默认 `NO`）、`allowedRemoteScriptHosts`、`remoteScriptTimeout`、`allowNetwork`（默认 `NO`）、`allowedNetworkHosts`、`maxHTTPRequestBytes`、`maxHTTPResponseBytes`、`allowFileAccess`、`allowFileWrite`、`fileRoot`、`maxFileReadBytes`、`maxFileWriteBytes`、`maxFileCopyBytes`、`maxFileListItems`、`maxFileOperationItems`、`maxFileLineCount`、`allowStorage`、`maxStorageBytes`、`maxStorageEntries`、`allowMediaLibrary`、`allowSystemControl`、`maxMediaBytes`、`maxMediaImageBytes`、`debugLogging` 和 `interruptibleScripts`（为兼容保留，脚本中断为协作式：桥接调用、`auto.sleep` 和定时器回调处生效；纯 JS 无限循环可能持续占用 CPU）。文件与存储默认只能访问 App 沙盒中的 AutoSDK 专用范围。宿主 App 如需相册写入，必须在自身 `Info.plist` 声明 `NSPhotoLibraryAddUsageDescription`；如需 `location.getLocation()`，必须声明 `NSLocationWhenInUseUsageDescription`。
 
 ### 本地调试服务器
 
@@ -110,11 +112,13 @@ const settings = storages.create("settings");
 settings.putBoolean("enabled", true);
 setTimeout(() => console.log("timer fired"), 100);
 console.log(device.getDeviceInfo(), auto.capabilities());
+console.log(device.isLowPowerModeEnabled(), location.isEnabled(), location.getAuthorizationStatus());
+console.log(vpn.status()); // 仅宿主自有、已预存的 Personal VPN 配置
 auto.toast("自定义方法由 Native 注册");
 ```
 
 `setTimeout`/`setInterval` 在脚本主代码返回后继续执行，`runScript` 的完成回调会等定时器队列排空后才触发；`setInterval` 会持续运行，需调用 `stopScript`（或等待 `scriptTimeout` 超时）才会停止。`scriptTimeout` 是包含定时器回调在内的总执行预算。
-新增 EasyClick 风格的坐标适配与常用工具：`setScreenMetrics(width, height)` 按设计稿设置分辨率基准，配合 `getScreenMetrics()`、`metrics.point(x, y)` 适配多机型；另有 `uuid()`、`base64.encode/decode`、`http.getJSON`、`auto.clickCenter/clickRandom`、`auto.getChild/getSiblings` 等封装。全部函数见上方开发文档（263 个 API 条目、14 个模块，每项带参数、返回值与可复制示例）。
+新增 EasyClick 风格的坐标适配与常用工具：`setScreenMetrics(width, height)` 按设计稿设置分辨率基准，配合 `getScreenMetrics()`、`metrics.point(x, y)` 适配多机型；另有 `uuid()`、`base64.encode/decode`、`http.getJSON`、`auto.clickCenter/clickRandom`、`auto.getChild/getSiblings` 等封装。全部函数见上方开发文档（259 个 API 条目、14 个模块，每项带参数、返回值与可复制示例）。
 
 `findImage` 使用适配器实现的模板相似度匹配，`findColor` 使用 RGBA 容差扫描；`AutoUIKitAdapter` 的 `ocr` 使用系统 Vision 框架离线执行。内置 no-WDA 适配器在系统级截图后直接执行图色扫描与 Vision OCR，不需要 OpenCV。
 
@@ -136,6 +140,12 @@ auto.toast("自定义方法由 Native 注册");
 做真机验证。App Store 构建只允许 `AutoUIKitAdapter`：不要把私有符号调用、
 未授权的 USB 隧道或后台设备管理默认打进商店包。
 
+Personal VPN 能力与内置 no-WDA 是两套独立权限：`vpn.status/connect/disconnect`
+通过公开 `NEVPNManager` 访问宿主 App 自己预先保存的配置，仍需 Personal VPN
+entitlement；缺权限或配置时返回 `false`，用 `lastError()` 查看原因。它不能创建、
+选择或控制其他 VPN App/MDM 配置。`system.openSettings(panel)` 使用可能随 iOS
+变化的设置页深链并带安全回退，返回成功不代表开关已改变。
+
 Windows 环境无法编译 iOS Framework。请在 macOS + Xcode 14+ 上执行：
 
 ```bash
@@ -150,7 +160,7 @@ xcodebuild -scheme AutoSDK -destination 'generic/platform=iOS' build
 如果当前目录是已登录 GitHub CLI 可识别的 Git 仓库，可省略 `--repo`。提交前可运行
 `npm run verify` 执行仓库级静态检查。
 
-VS Code 插件源码位于 [`vscode-extension`](vscode-extension)。它支持局域网 Bonjour 扫描/添加 Wi-Fi 手机、编辑器右键与标题栏一键运行、JS/TS 脚本发送与停止、截图保存、原子截图+节点快照、请求串行化且可取消的可视化 Inspector、动作后刷新延迟、快照 JSON 导出、API 补全、代码片段，以及等待并下载 GitHub Actions 构建产物。安装及手机连接限制见 [`vscode-extension/README.md`](vscode-extension/README.md)。
+VS Code 插件源码位于 [`vscode-extension`](vscode-extension)。它支持局域网 Bonjour 扫描/添加 Wi-Fi 手机、编辑器右键与标题栏一键运行、JS/TS 脚本发送与停止、截图保存、原子截图+节点快照、请求串行化且可取消的可视化 Inspector、动作后刷新延迟、快照 JSON 导出、API 补全、代码片段，以及等待并下载 GitHub Actions 构建产物。`device.` 补全覆盖完整 `AutoDeviceAPI`，并通过类型声明一致性测试防止菜单漏项。安装及手机连接限制见 [`vscode-extension/README.md`](vscode-extension/README.md)。
 
 默认通过 Wi-Fi：电脑与手机进入同一可信局域网后，点击状态栏 **AutoSDK: scan Wi-Fi iPhone**，插件扫描 `_autosdk._tcp` 广播，选中手机后自动保存并测试；首次配对输入 TemplateApp 显示的 debug token，后续即使 DHCP 地址变化也可按稳定广播身份一键重连。广播不包含 token；mDNS 被禁用时可手动输入手机 IP。USB/libimobiledevice 隧道保留为高级备用。
 

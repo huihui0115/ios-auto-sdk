@@ -15,9 +15,9 @@
 | 清理模块 clear.* | allPhotos / allKeychain / keychain / pasteboard / APP数据 / idfav / safariCookies | ✅ clear.allPhotos → `media.deleteAllPhotos()/deleteAllVideos()/deleteAllMedia()`（返回删除数量）；✅ pasteboard → `setClipboard("")`；❌ keychain/APP 数据/idfav/safariCookies 需私有 API 与系统权限 |
 | 扩展 string 库 | trim/ltrim/rtrim/split/chars/toHex/fromHex/isUpper/isLower/isNumber/isIntrger/isLetter/isChinese/isEmail/isLink/md5/sha1/sha256/sha512/base64Encode/base64Decode/aes128Encrypt/aes128Decrypt/toPinYin/fromUnicode/stripUtf8Bom | ✅ `strings.*` 全部对齐（含 aes128Encrypt/aes128Decrypt、toPinYin 系统级拼音、fromUnicode、stripUtf8Bom）+ 全局简写 `trim()`/`isEmail()`/`sha256()`/`toPinYin()` 等；❌ fromGbk 暂无（GBK 表需私有/三方库） |
 | 文件模块 file.* | list/reads/writes/addText/existe/size/md5/getLines/getLineText/lineCount/insertLineText/resetLineText | ✅ `file.list/readText/writeText/appendText/exists/getSize/md5/readLines`；✅ 本轮补齐 `lineCount/getLineText/insertLineText/resetLineText` 与全局简写；另有 copy/move/rename/zip/unzip/readExcel 等增强 |
-| 系统模块 sys.* | toast/msleep/mtime/osVersion/palyAudio/usedMemory/availableMemory/processUsedMemory/version/alert/setFloatBallPoint | ✅ toast/sleep/time()/getOSVersion/playMp3/getMemoryInfo/capabilities/alert()；✅ `setFloatBallPoint(x,y)` → `floatBall.show("",x,y)`（悬浮球） |
+| 系统模块 sys.* | toast/msleep/mtime/osVersion/palyAudio/usedMemory/availableMemory/processUsedMemory/version/alert/setFloatBallPoint | ✅ toast/sleep/time()/getOSVersion/playMp3/getMemoryInfo/capabilities/alert()；✅ `setFloatBallPoint(x,y)` → `floatBall.show("",x,y)`（悬浮球）；✅ `system.openSettings(panel)` best-effort 打开常用设置页，但不静默切换系统开关 |
 | 线程模块 thread.* | create/timer/Cancel/state | ✅ `execAsync/execSync`（join/isFinished/cancel）、setTimeout/setInterval；❌ 线程状态查询 |
-| 设备模块 device.*（38 项） | 亮度/音量/振动/方向/电池/内存/机型 等 | ✅ getBrightness/setBrightness/getVolume/vibrate/getOrientation/getBattery/getMemoryInfo/getModel/getOSVersion 等；❌ 飞行模式/闪光灯/WiFi MAC/蓝牙 MAC/蜂窝开关 等需私有 API |
+| 设备模块 device.*（38 项） | 亮度/音量/振动/方向/电池/内存/机型 等 | ✅ getBrightness/setBrightness/getVolume/vibrate/getOrientation/getBattery/getMemoryInfo/getModel/getOSVersion、手电筒、低电量模式状态、定位服务总开关与本 App 定位授权状态；🟡 Wi-Fi/蓝牙/蜂窝/热点/飞行模式只能通过 `system.openSettings` 引导用户手动设置；❌ MAC 地址与静默切换系统网络开关 |
 | 屏幕模块 screen.* | getColor/getColorRGB/findImage/findColors/isColors/visionOcr/paddleOcr/TomatoOCR/loadImageFile/keep/unkeep | ✅ 新增 `screen.getColor/getColorRGB/getColorHex/findImage/findColor/findColorEx/findNotColor/findMultiColor/findColors/isColors/cmpColor/ocr/screenshot`（EasyClick 兼容入口，等价全局函数）；❌ paddleOcr/TomatoOCR（需模型）、loadImageFile/keep/unkeep |
 | 图片对象模块 | clip/scale/gray/binarization/rotate/findImage/findColors/isColors/pngData/show/turnLeft/turnRight | ✅ `image.clip/scale/gray/binaryzation/rotate/pixelAt/findImage/findColor`；🟡 turnLeft/turnRight 可用 `image.rotate(90/270)`；❌ show（悬浮预览图片）、cvFindImage（OpenCV）、paddleOcr |
 | 模拟触摸模块 | tap/down/move/up/msleep/press/radius/setpDelay | ✅ clickPoint/gesture（down/move/up/长按/滑动）/pinch/swipe；❌ 压力与半径定制（当前内置适配器能力限制） |
@@ -32,16 +32,18 @@
 | 屏幕绘制 screenDraw | init/setBorderWidth/setBorderColor/setTitle/show/move/hide | ✅ `screenDraw.*` 全部对齐（悬浮框绘制，边框/标题/移动/隐藏，触摸穿透） |
 | plist 模块 | read/write | ✅ `file.readPlist/writePlist` + 全局 `plist.read/plist.write`（XML plist，NSData→base64、NSDate→毫秒） |
 | coreML / paddleYOLO | 模型编译/预测/目标检测 | ❌ 暂无（需模型文件与推理引擎） |
-| VPN 模块 vpn.* | create/select/connect/deleteAll | ❌ 暂无（需系统 VPN 私有配置权限） |
+| VPN 模块 vpn.* | create/select/connect/deleteAll | 🟡 `vpn.status/connect/disconnect/openSettings` 可管理宿主 App 自己通过 Personal VPN entitlement 预存的已启用 `NEVPNManager` 配置；❌ create/select/deleteAll、其他 VPN App 或 MDM 配置管理。缺 entitlement/配置时返回 false，并通过 `lastError()` 说明原因 |
 | mobile 模块 | saveVideoFileToAlbum/zip 压缩解压/重启/关机/短信/通讯录增删 | ✅ saveVideoToAlbum/zip/unzip；❌ 重启/关机/短信/通讯录需私有 API |
 
 ## 结论
 
 - **已对齐的高频能力**：相册增删、字符串工具、文件行操作、哈希编码、
   弹窗/退出、线程、HTTP、剪贴板、图色与 OCR、节点查询、应用控制。
-- **私有 API 类缺口**（TrollStore/TrollAutoScript 依赖系统权限，SDK 公共 API
-  无法安全实现）：清 keychain、清 APP 数据、IDFA、飞行模式、闪光灯、
-  MAC 地址、VPN、短信、通讯录、安装/卸载 IPA、系统级按键与触摸压力。
+- **系统权限类缺口**（TrollStore/TrollAutoScript 依赖更高权限，普通宿主 App
+  无法安全实现）：清 keychain、清 APP 数据、IDFA、静默切换飞行模式/Wi-Fi/
+  蓝牙/蜂窝、MAC 地址、任意第三方或 MDM VPN 配置管理、短信、通讯录、
+  安装/卸载 IPA、系统级按键与触摸压力。手电筒已支持；Personal VPN 仅限宿主
+  自有配置，并要求 entitlement 与预存配置。
   若宿主 App 以 TrollStore 方式签名且宿主提供这些 native 能力，可通过
   `registerNativeMethod:` 暴露给脚本。
 - **可后续用公共 API 补齐**：fromGbk（GBK 码表）、paddleOcr/TomatoOCR（需模型）、coreML/paddleYOLO（需推理引擎）。

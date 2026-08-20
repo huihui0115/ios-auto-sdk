@@ -386,6 +386,46 @@ interface AutoStorage {
   clear(): boolean;
 }
 
+type AutoVPNConnectionStatus =
+  | "invalid"
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "reasserting"
+  | "disconnecting";
+
+type AutoSystemSettingsPanel =
+  | "app"
+  | "vpn"
+  | "wifi"
+  | "bluetooth"
+  | "cellular"
+  | "hotspot"
+  | "airplane"
+  | "location"
+  | "battery"
+  | "focus"
+  | "notifications"
+  | "display"
+  | "accessibility"
+  | "general";
+
+interface AutoVPNAPI {
+  /** Status of the Personal VPN configuration owned by the host app; false means lastError() has details. */
+  status(): AutoVPNConnectionStatus | false;
+  /** Submits a connection request for the host app's enabled Personal VPN configuration. */
+  connect(): boolean;
+  /** Disconnects the host app's Personal VPN configuration. */
+  disconnect(): boolean;
+  /** Opens the iOS VPN settings page, with a best-effort Settings fallback. */
+  openSettings(): boolean;
+}
+
+interface AutoSystemAPI {
+  /** Opens a named iOS Settings panel; private deep links may fall back to Settings or this app's page. */
+  openSettings(panel?: AutoSystemSettingsPanel): boolean;
+}
+
 interface AutoDeviceAPI {
   info(): Record<string, unknown>;
   getDeviceInfo(): Record<string, unknown>;
@@ -435,6 +475,7 @@ interface AutoDeviceAPI {
   getUptime(): number;
   getNetworkType(): "wifi" | "cellular" | "none";
   isWifi(): boolean;
+  isLowPowerModeEnabled(): boolean;
   setFlashlight(on?: boolean): boolean;
   torch(on?: boolean): boolean;
   flashlight(on?: boolean): boolean;
@@ -1068,11 +1109,17 @@ interface AutoLocationResult {
 }
 
 interface AutoLocationAPI {
-  /** One-shot GPS fix with a bounded wait; returns null on timeout or missing permission. */
-  getLocation(timeoutMs?: number): AutoLocationResult | null;
+  /** One-shot GPS fix with a bounded wait; null means timeout/no fix, false means lastError() has details. */
+  getLocation(timeoutMs?: number): AutoLocationResult | null | false;
+  /** Whether the device-wide Location Services switch is enabled. */
+  isEnabled(): boolean;
+  /** Current authorization granted to the host app. */
+  getAuthorizationStatus(): "notDetermined" | "restricted" | "denied" | "authorizedWhenInUse" | "authorizedAlways";
 }
 
 declare const location: AutoLocationAPI;
+declare const vpn: AutoVPNAPI;
+declare const system: AutoSystemAPI;
 declare function yoloDetect(imagePath: string): AutoYoloItem[];
 declare function getPasteboard(): string | null;
 declare function setPasteboard(text: string): boolean;

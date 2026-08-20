@@ -18,6 +18,7 @@
 #import <Vision/Vision.h>
 #import <sqlite3.h>
 #import <CoreLocation/CoreLocation.h>
+#import <NetworkExtension/NetworkExtension.h>
 #import <mach/mach.h>
 #include <math.h>
 #include <ifaddrs.h>
@@ -959,6 +960,7 @@ static NSArray<NSDictionary<NSString *, id> *> *AutoDetectObjects(UIImage *image
 
 @interface AutoLocationDelegate : NSObject <CLLocationManagerDelegate>
 @property (nonatomic, copy) void (^onResult)(CLLocation * _Nullable location, NSError * _Nullable error);
+@property (nonatomic, copy) void (^onAuthorization)(CLAuthorizationStatus status);
 @end
 
 @implementation AutoLocationDelegate
@@ -966,29 +968,62 @@ static NSArray<NSDictionary<NSString *, id> *> *AutoDetectObjects(UIImage *image
     if (self.onResult) self.onResult(locations.lastObject, nil);
 }
 - (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error {
-    if (self.onResult) self.onResult(nil, error);
+    // kCLErrorLocationUnknown is a transient "no fix" result, not a permission
+    // or configuration failure. Keep the public null/false distinction honest.
+    BOOL noFix = [error.domain isEqualToString:kCLErrorDomain] && error.code == kCLErrorLocationUnknown;
+    if (self.onResult) self.onResult(nil, noFix ? nil : error);
+}
+- (void)locationManagerDidChangeAuthorization:(CLLocationManager *)manager {
+    if (self.onAuthorization) self.onAuthorization(manager.authorizationStatus);
+}
+- (void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
+    if (self.onAuthorization) self.onAuthorization(status);
 }
 @end
 
 // One-shot GPS fix (CLLocationManager requestLocation) with a bounded wait.
-// Returns nil (JS null) on timeout or missing permission; the host app must
-// declare NSLocationWhenInUseUsageDescription and the script needs allowSystemControl.
-static NSDictionary *AutoGetLocationSnapshot(double timeoutMs) {
+// Returns nil (JS null) on timeout. Permission/configuration failures are
+// returned through error so scripts can distinguish them with lastError().
+static NSDictionary *AutoGetLocationSnapshot(double timeoutMs, NSError **error) {
     __block CLLocation *result = nil;
     __block NSError *resultError = nil;
     __block AutoLocationDelegate *strongDelegate = nil;
     __block CLLocationManager *strongManager = nil;
+    __block BOOL completed = NO;
+    __block BOOL requestedLocation = NO;
+    NSObject *stateLock = [NSObject new];
     dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    void (^cleanup)(void) = ^{
+        strongManager.delegate = nil;
+        strongDelegate.onResult = nil;
+        strongDelegate.onAuthorization = nil;
+        strongManager = nil;
+        strongDelegate = nil;
+    };
+    void (^finish)(CLLocation *, NSError *) = ^(CLLocation *location, NSError *failure) {
+        BOOL shouldSignal = NO;
+        @synchronized (stateLock) {
+            if (!completed) {
+                completed = YES;
+                result = location;
+                resultError = failure;
+                shouldSignal = YES;
+            }
+        }
+        cleanup();
+        if (shouldSignal) dispatch_semaphore_signal(semaphore);
+    };
     dispatch_async(dispatch_get_main_queue(), ^{
-        CLAuthorizationStatus status = CLLocationManager.authorizationStatus;
+        @synchronized (stateLock) {
+            if (completed) return;
+        }
         if (![CLLocationManager locationServicesEnabled]) {
-            resultError = AutoMakeError(AutoSDKErrorAutomationFailed, @"Location services are disabled.", nil);
-            dispatch_semaphore_signal(semaphore);
+            finish(nil, AutoMakeError(AutoSDKErrorAutomationFailed, @"Location services are disabled.", nil));
             return;
         }
-        if (status == kCLAuthorizationStatusDenied || status == kCLAuthorizationStatusRestricted) {
-            resultError = AutoMakeError(AutoSDKErrorAutomationFailed, @"Location permission denied.", nil);
-            dispatch_semaphore_signal(semaphore);
+        if (![NSBundle.mainBundle objectForInfoDictionaryKey:@"NSLocationWhenInUseUsageDescription"]) {
+            finish(nil, AutoMakeError(AutoSDKErrorAutomationFailed,
+                                      @"NSLocationWhenInUseUsageDescription is missing from the host app Info.plist.", nil));
             return;
         }
         strongDelegate = [AutoLocationDelegate new];
@@ -996,47 +1031,59 @@ static NSDictionary *AutoGetLocationSnapshot(double timeoutMs) {
         strongManager.desiredAccuracy = kCLLocationAccuracyBest;
         strongManager.delegate = strongDelegate;
         strongDelegate.onResult = ^(CLLocation *location, NSError *error) {
-            result = location;
-            resultError = error;
-            strongManager.delegate = nil;
-            strongManager = nil;
-            strongDelegate = nil;
-            dispatch_semaphore_signal(semaphore);
+            finish(location, error);
         };
-        if (![NSBundle.mainBundle objectForInfoDictionaryKey:@"NSLocationWhenInUseUsageDescription"]) {
-            resultError = AutoMakeError(AutoSDKErrorAutomationFailed, @"NSLocationWhenInUseUsageDescription is missing from the host app Info.plist.", nil);
-            strongManager.delegate = nil;
-            strongManager = nil;
-            strongDelegate = nil;
-            dispatch_semaphore_signal(semaphore);
-            return;
-        }
-        if (status == kCLAuthorizationStatusNotDetermined) {
-            [strongManager requestWhenInUseAuthorization];
-        }
-        [strongManager requestLocation];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeoutMs * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
-            if (strongManager) {
-                strongManager.delegate = nil;
-                strongManager = nil;
-                strongDelegate = nil;
-                dispatch_semaphore_signal(semaphore);
+        void (^startLocation)(CLAuthorizationStatus) = ^(CLAuthorizationStatus currentStatus) {
+            if (currentStatus == kCLAuthorizationStatusAuthorizedAlways ||
+                currentStatus == kCLAuthorizationStatusAuthorizedWhenInUse) {
+                if (!requestedLocation) {
+                    requestedLocation = YES;
+                    [strongManager requestLocation];
+                }
+            } else if (currentStatus == kCLAuthorizationStatusDenied ||
+                       currentStatus == kCLAuthorizationStatusRestricted) {
+                finish(nil, AutoMakeError(AutoSDKErrorAutomationFailed, @"Location permission denied.", nil));
             }
+        };
+        strongDelegate.onAuthorization = startLocation;
+        CLAuthorizationStatus currentStatus = strongManager.authorizationStatus;
+        if (currentStatus == kCLAuthorizationStatusNotDetermined) {
+            [strongManager requestWhenInUseAuthorization];
+        } else {
+            startLocation(currentStatus);
+        }
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeoutMs * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
+            finish(nil, nil);
         });
     });
-    dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, (int64_t)((timeoutMs + 1500) * NSEC_PER_MSEC)));
-    if (result) {
+    long waitResult = dispatch_semaphore_wait(semaphore,
+                                              dispatch_time(DISPATCH_TIME_NOW, (int64_t)((timeoutMs + 1500) * NSEC_PER_MSEC)));
+    __block CLLocation *finalResult = nil;
+    __block NSError *finalError = nil;
+    BOOL finishedBeforeDeadline = NO;
+    @synchronized (stateLock) {
+        finishedBeforeDeadline = completed;
+        if (!completed) completed = YES;
+        finalResult = result;
+        finalError = resultError;
+    }
+    if (waitResult != 0 && !finishedBeforeDeadline) {
+        dispatch_async(dispatch_get_main_queue(), cleanup);
+        return nil;
+    }
+    if (finalResult) {
         return @{
-            @"latitude": @(result.coordinate.latitude),
-            @"longitude": @(result.coordinate.longitude),
-            @"altitude": @(result.altitude),
-            @"horizontalAccuracy": @(result.horizontalAccuracy),
-            @"verticalAccuracy": @(result.verticalAccuracy),
-            @"course": @(result.course),
-            @"speed": @(result.speed),
-            @"timestamp": @([result.timestamp timeIntervalSince1970] * 1000.0),
+            @"latitude": @(finalResult.coordinate.latitude),
+            @"longitude": @(finalResult.coordinate.longitude),
+            @"altitude": @(finalResult.altitude),
+            @"horizontalAccuracy": @(finalResult.horizontalAccuracy),
+            @"verticalAccuracy": @(finalResult.verticalAccuracy),
+            @"course": @(finalResult.course),
+            @"speed": @(finalResult.speed),
+            @"timestamp": @([finalResult.timestamp timeIntervalSince1970] * 1000.0),
         };
     }
+    if (finalError && error) *error = finalError;
     return nil;
 }
 static UILabel *AutoActiveToastLabel;
@@ -1209,6 +1256,100 @@ static NSString *AutoCurrentNetworkType(void) {
     if (!reachable || (flags & kSCNetworkReachabilityFlagsReachable) == 0) return @"none";
     if ((flags & kSCNetworkReachabilityFlagsIsWWAN) != 0) return @"cellular";
     return @"wifi";
+}
+
+static NSString *AutoVPNStatusName(NEVPNStatus status) {
+    switch (status) {
+        case NEVPNStatusDisconnected: return @"disconnected";
+        case NEVPNStatusConnecting: return @"connecting";
+        case NEVPNStatusConnected: return @"connected";
+        case NEVPNStatusReasserting: return @"reasserting";
+        case NEVPNStatusDisconnecting: return @"disconnecting";
+        case NEVPNStatusInvalid:
+        default: return @"invalid";
+    }
+}
+
+static NSString *AutoLocationAuthorizationStatusName(void) {
+    switch (CLLocationManager.authorizationStatus) {
+        case kCLAuthorizationStatusRestricted: return @"restricted";
+        case kCLAuthorizationStatusDenied: return @"denied";
+        case kCLAuthorizationStatusAuthorizedAlways: return @"authorizedAlways";
+        case kCLAuthorizationStatusAuthorizedWhenInUse: return @"authorizedWhenInUse";
+        case kCLAuthorizationStatusNotDetermined:
+        default: return @"notDetermined";
+    }
+}
+
+static NEVPNManager *AutoLoadPersonalVPNManager(NSError **error) {
+    if (NSThread.isMainThread) {
+        if (error) *error = AutoMakeError(AutoSDKErrorAutomationUnavailable,
+                                          @"Personal VPN preferences cannot be loaded synchronously on the main thread.", nil);
+        return nil;
+    }
+    NEVPNManager *manager = NEVPNManager.sharedManager;
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    __block NSError *loadError = nil;
+    [manager loadFromPreferencesWithCompletionHandler:^(NSError * _Nullable callbackError) {
+        loadError = callbackError;
+        dispatch_semaphore_signal(semaphore);
+    }];
+    if (dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)) != 0) {
+        if (error) *error = AutoMakeError(AutoSDKErrorAutomationUnavailable,
+                                          @"Loading the Personal VPN configuration timed out after 5 seconds.", nil);
+        return nil;
+    }
+    if (loadError) {
+        NSString *message = @"Unable to load the host app's Personal VPN configuration.";
+        if ([loadError.domain isEqualToString:NEVPNErrorDomain]) {
+            switch (loadError.code) {
+                case NEVPNErrorConfigurationInvalid:
+                    message = @"The host app's Personal VPN configuration is invalid.";
+                    break;
+                case NEVPNErrorConfigurationDisabled:
+                    message = @"The host app's Personal VPN configuration is disabled.";
+                    break;
+                case NEVPNErrorConfigurationStale:
+                    message = @"The host app's Personal VPN configuration changed; retry after reloading it.";
+                    break;
+                case NEVPNErrorConfigurationReadWriteFailed:
+                    message = @"Unable to read the Personal VPN configuration; verify the host entitlement and saved profile.";
+                    break;
+                case NEVPNErrorConnectionFailed:
+                    message = @"The Personal VPN connection failed while loading its configuration.";
+                    break;
+                case NEVPNErrorConfigurationUnknown:
+                default:
+                    message = @"Unable to load the Personal VPN configuration; verify the host entitlement and saved profile.";
+                    break;
+            }
+        }
+        if (error) *error = AutoMakeError(AutoSDKErrorAutomationUnavailable, message, loadError);
+        return nil;
+    }
+    return manager;
+}
+
+static NSURL *AutoSystemSettingsURL(NSString *page) {
+    NSString *normalized = page.lowercaseString;
+    if ([normalized isEqualToString:@"app"]) return [NSURL URLWithString:UIApplicationOpenSettingsURLString];
+    NSDictionary<NSString *, NSString *> *pages = @{
+        @"vpn": @"App-prefs:root=General&path=VPN",
+        @"wifi": @"App-prefs:root=WIFI",
+        @"bluetooth": @"App-prefs:root=Bluetooth",
+        @"cellular": @"App-prefs:root=MOBILE_DATA_SETTINGS_ID",
+        @"hotspot": @"App-prefs:root=INTERNET_TETHERING",
+        @"location": @"App-prefs:root=Privacy&path=LOCATION",
+        @"battery": @"App-prefs:root=BATTERY_USAGE",
+        @"focus": @"App-prefs:root=DO_NOT_DISTURB",
+        @"notifications": @"App-prefs:root=NOTIFICATIONS_ID",
+        @"display": @"App-prefs:root=DISPLAY",
+        @"accessibility": @"App-prefs:root=ACCESSIBILITY",
+        @"general": @"App-prefs:root=General",
+        @"airplane": @"App-prefs:"
+    };
+    NSString *urlString = pages[normalized];
+    return urlString ? [NSURL URLWithString:urlString] : nil;
 }
 
 static id AutoValueOnMainThread(id (^block)(void)) {
@@ -3031,6 +3172,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         [operation isEqualToString:@"brightnessGet"] || [operation isEqualToString:@"brightnessSet"] ||
         [operation isEqualToString:@"volumeGet"] || [operation isEqualToString:@"vibrate"] ||
         [operation isEqualToString:@"keepScreenOn"] || [operation isEqualToString:@"flashlight"] ||
+        [operation isEqualToString:@"vpnSet"] || [operation isEqualToString:@"openSystemSettings"] ||
         [operation isEqualToString:@"torch"]) {
         if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
             return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"System control is disabled by configuration.", nil)];
@@ -3038,6 +3180,55 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     }
     if ([operation isEqualToString:@"memory"]) {
         return AutoValueOnMainThread(^id{ return [self.engine deviceMemoryInfo]; }) ?: @{};
+    }
+    if ([operation isEqualToString:@"lowPowerMode"]) {
+        return @(NSProcessInfo.processInfo.lowPowerModeEnabled);
+    }
+    if ([operation isEqualToString:@"locationServices"]) {
+        return @([CLLocationManager locationServicesEnabled]);
+    }
+    if ([operation isEqualToString:@"locationAuthorization"]) {
+        return AutoLocationAuthorizationStatusName();
+    }
+    if ([operation isEqualToString:@"vpnStatus"] || [operation isEqualToString:@"vpnSet"]) {
+        NEVPNManager *manager = AutoLoadPersonalVPNManager(&error);
+        if (!manager) return [self failure:error];
+        if ([operation isEqualToString:@"vpnStatus"]) return AutoVPNStatusName(manager.connection.status);
+        BOOL connect = AutoBoolean(data[@"value"], YES);
+        if (!connect) {
+            [manager.connection stopVPNTunnel];
+            return @YES;
+        }
+        if (!manager.protocolConfiguration || !manager.enabled) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                                @"No enabled Personal VPN configuration belongs to this host app.", nil)];
+        }
+        NSError *startError = nil;
+        BOOL started = [manager.connection startVPNTunnelAndReturnError:&startError];
+        return started ? @YES : [self failure:AutoMakeError(AutoSDKErrorAutomationFailed,
+                                                            @"Unable to start the Personal VPN connection.", startError)];
+    }
+    if ([operation isEqualToString:@"openSystemSettings"]) {
+        NSString *page = [data[@"page"] isKindOfClass:NSString.class] ? data[@"page"] : @"app";
+        if (page.length == 0 || page.length > 32) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                                @"System settings page must contain 1 to 32 characters.", nil)];
+        }
+        NSURL *settingsURL = AutoSystemSettingsURL(page);
+        if (!settingsURL) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                                @"Unknown system settings page.", nil)];
+        }
+        BOOL opened = [AutoValueOnMainThread(^id{ return @([UIApplication.sharedApplication openURL:settingsURL]); }) boolValue];
+        if (!opened && ![page.lowercaseString isEqualToString:@"app"]) {
+            NSURL *fallbackURL = [NSURL URLWithString:@"App-prefs:"];
+            opened = [AutoValueOnMainThread(^id{ return @([UIApplication.sharedApplication openURL:fallbackURL]); }) boolValue];
+        }
+        if (!opened) {
+            NSURL *appSettingsURL = [NSURL URLWithString:UIApplicationOpenSettingsURLString];
+            opened = [AutoValueOnMainThread(^id{ return @([UIApplication.sharedApplication openURL:appSettingsURL]); }) boolValue];
+        }
+        return @(opened);
     }
     if ([operation isEqualToString:@"language"] || [operation isEqualToString:@"country"] ||
         [operation isEqualToString:@"locale"] || [operation isEqualToString:@"timezone"] ||
@@ -3472,10 +3663,16 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         }
 
         if ([name isEqualToString:@"locGet"]) {
+            if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
+                return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration,
+                                                    @"Location access is disabled by configuration.", nil)];
+            }
             NSArray *locArgs = [nativePayload[@"arguments"] isKindOfClass:NSArray.class] ? nativePayload[@"arguments"] : @[];
             double timeoutMs = locArgs.count > 0 && [locArgs[0] isKindOfClass:NSNumber.class] ? [locArgs[0] doubleValue] : 5000.0;
             if (timeoutMs < 500 || timeoutMs > 30000) timeoutMs = 5000.0;
-            NSDictionary *location = AutoGetLocationSnapshot(timeoutMs);
+            NSError *locationError = nil;
+            NSDictionary *location = AutoGetLocationSnapshot(timeoutMs, &locationError);
+            if (locationError) return [self failure:locationError];
             return location ?: [NSNull null];
         }
         if ([name isEqualToString:@"sqO"] || [name isEqualToString:@"sqE"] ||

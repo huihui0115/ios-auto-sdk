@@ -13,14 +13,16 @@ AltStore / Sideloadly / 侧载 / 企业签名更现实。
 | 显示名 | `App/Info.plist` 的 `CFBundleDisplayName` | 改成市场名称，如 `Auto脚本` |
 | 图标 | 添加 `App/Assets.xcassets`（xcodegen 会自动包含） | 至少 1024×1024，透明背景不支持 |
 | 版本号 | `App/Info.plist` 的 `CFBundleShortVersionString` / `CFBundleVersion` | 每次发版递增 |
-| SDK 版本 | `Sources/AutoSDK/AutoSDKVersion.m`、`package.json`、`CHANGELOG.md` | 三者保持同步 |
+| SDK 版本 | `package.json`、`package-lock.json`、`AutoSDK.podspec`、`Sources/AutoSDK/AutoSDKVersion.m`、`CHANGELOG.md` | 版本四件套保持同步，并补完整 CHANGELOG |
+| Personal VPN（可选） | Apple Developer App ID、描述文件与宿主 App `.entitlements` | 仅使用 `vpn.status/connect/disconnect` 时启用 Personal VPN capability；宿主还必须自行预存并启用自己的 `NEVPNManager` 配置。SDK 不创建配置，也不能控制其他 VPN App/MDM 配置 |
 
 ## 2. 已内置、无需再配
 
 - `CFBundleDocumentTypes`：`.js` / `.txt` 可从 Files “打开方式”导入；
   `UTImportedTypeDeclarations` 覆盖 `.mjs`。
 - `LSSupportsOpeningDocumentsInPlace`。
-- `NSLocalNetworkUsageDescription` 和 `NSAllowsLocalNetworking`。
+- `NSLocalNetworkUsageDescription`、`NSAllowsLocalNetworking` 和
+  `NSLocationWhenInUseUsageDescription`。
 - `AutoSDKDebugAllowWiFi`（默认 `true`，可改成 `false` 强制 USB 回环模式）。
 - 设备端工作流：脚本列表、编辑器、保存/重命名/删除、导入/导出、
   设置页（Debug URL/Token/适配器切换）。
@@ -50,11 +52,15 @@ CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
   AltStore/侧载工具。
 - App Store：需要移除或深度改造调试服务器、脚本编辑器等能力，并接受
   审核不确定性；本文档不承诺 App Store 通过。
+- Personal VPN：必须使用包含对应 entitlement 的 App ID、签名证书与描述文件；
+  普通未配置的模板、仅链接 `NetworkExtension` 框架或补写 Info.plist 都不会自动
+  获得 VPN 权限，也不会自动生成 VPN 配置。
 
 ## 4. 真机验证清单（每次发版前人工执行）
 
 1. Xcode 真机编译：`xcodebuild -scheme AutoSDKTemplate -destination <device> build`。
-2. 安装后启动，确认脚本列表显示 `hello.js` / `demo-api.js` 两个内置脚本。
+2. 安装后启动，确认脚本列表显示 `hello.js`、`demo-api.js` 和
+   `system-demo.js` 三个内置脚本。
 3. 点 ▶ 运行 `hello.js`，日志出现设备信息，无异常退出。
 4. 编辑器：新建脚本 → 保存 → 出现在列表 → 可运行；重启 App 后仍在。
 5. 导入：Files 里用“打开方式”选一个 `.js`，或列表工具栏文件夹按钮导入，
@@ -64,9 +70,16 @@ CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
 8. 设置页：确认 Debug URL/Token 显示；Wi-Fi 开关切换后日志面板地址变化。
 9. 跨 App 模式：内置 no-WDA（AutoSDKAdapter=BUILTIN 为默认，需特签构建，见 docs/NO_WDA_ARCHITECTURE.md）：
    capabilities() 核对 realTouchInjection/nodes/crossApp 后运行跨 App 脚本。WDA 已于 v1.17.0 移除，无回退。
-10. 回环：关 Wi-Fi 开关后，`npm run debug -- --token <token>` 走 USB 隧道
+10. 运行 `system-demo.js`：确认低电量模式、定位服务总开关和本 App 定位授权
+    返回合理状态；`system.openSettings("vpn")` 只负责打开设置页，不应声称已切换
+    VPN/Wi-Fi/蓝牙/蜂窝/飞行模式。
+11. Personal VPN：默认无 entitlement/预存配置的构建调用 `vpn.status/connect`
+    应返回 false 且 `lastError()` 给出明确原因；如果发布包启用了 Personal VPN，
+    需先由宿主保存并启用自己的配置，再验证 status/connect/disconnect。不得用其他
+    VPN App 或 MDM 配置冒充成功。
+12. 回环：关 Wi-Fi 开关后，`npm run debug -- --token <token>` 走 USB 隧道
     能连上并运行脚本。
-11. 卸载重装，确认沙盒脚本清空、无残留。
+13. 卸载重装，确认沙盒脚本清空、无残留。
 
 ## 5. 已知边界（写进应用内说明，避免售后）
 
@@ -75,12 +88,17 @@ CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
 - `AutoUIKitAdapter` 只能自动化本 App 自己的 UIKit 视图。
 - 内置 no-WDA 适配器模板找图已支持（Round 49，有界两阶段）；xpath 支持 Round 53 的有界单步子集，predicate/嵌套路径和硬件按键注入仍受限。
 - Wi-Fi 调试未加密（仅 token 认证），只建议在可信网络使用。
+- `vpn.status/connect/disconnect` 只管理宿主 App 自己的 Personal VPN 配置，要求
+  entitlement 与预存配置；它不是系统所有 VPN 配置的管理器。
+- `system.openSettings(panel)` 是 best-effort 设置页深链。iOS 版本或策略可能拒绝
+  并触发回退；返回 true 只表示系统接受打开页面的请求，不代表任何开关已经改变。
+  AutoSDK 不提供 Wi-Fi、蓝牙、蜂窝、热点或飞行模式的静默切换。
 - 脚本引擎不是沙盒外的完整浏览器：无 DOM/网络不受控能力，HTTP 默认关闭。
 
 ## 6. 发版动作
 
-1. 更新版本号三件套（见上表）。
+1. 更新版本号四件套（`package.json`、`package-lock.json`、podspec、Version.m）并同步 CHANGELOG（见上表）。
 2. 跑一遍第 3 节的静态检查和 CI 构建。
 3. 人工过一遍第 4 节清单。
 4. 把未签名 IPA 上传商店/分发后台，附上第 5 节说明。
-5. 打 tag：`git tag v1.35.2 && git push origin v1.35.2`。
+5. 打 tag：`git tag v1.36.0 && git push origin v1.36.0`。

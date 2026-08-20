@@ -25,7 +25,7 @@ unavailable.
 | Image matching | OpenCV template matching and image transformations | bounded two-stage CoreGraphics similarity match, phone-side template deployment, clip/scale/gray/binaryzation/rotate pixel pipeline, Inspector testing; **Round 56:** EasyClick-parity bitmap model via sandbox path handles (readBitmap/saveBitmap/bitmapBase64/base64Bitmap/bitmapToImage/getBitmapPixelColor; handles auto-unwrap in all image ops); **Round 49:** built-in no-WDA adapter template matching on system-wide screenshots (bounded coarse-to-fine, similarity default 0.9) | Not OpenCV-grade; no scale/rotation invariant match or cvFindImage (OpenCV) |
 | OCR/AI vision | phone/controller OCR APIs, multiple OCR engines, YOLO, and AI-agent workflows | on-device Apple Vision OCR with confidence and screen-point bounds; legacy `yolo.detect` name provides bounded iOS 15+ whole-image Vision classification | No real bounding-box detector or bundled/custom Core ML model, selectable OCR model, AI agent, or batch image-object API |
 | Input/app control | input-method APIs, helper APIs, Home/app lifecycle and process operations | host text replacement plus WDA app launch/activate/terminate/state/current helpers, installed-app list, prefix launch, and home-screen/lock/unlock endpoints; **Round 46:** built-in adapter launches/terminates apps and reads the frontmost bundle id through LSApplicationWorkspace/SpringBoard/BackBoard private APIs, locks the device and opens Settings URLs without WDA | No system input method; built-in app control needs private-API-permitted signing and real-device validation |
-| Device | screen/model/OS/battery, app list, serial, orientation, charging | public device/app/screen/battery/orientation information (incl. 宽x高 text), installed-app list, clipboard/brightness/volume/vibration (vibrate + vibrateLong/vibrateShort aliases), `getSerialNo()` (returns null: iOS hides hardware serial from third-party apps), and WDA home-screen/lock/unlock | No reboot, install/uninstall, or process control |
+| Device | screen/model/OS/battery, app list, serial, orientation, charging and common system controls | public device/app/screen/battery/orientation information (incl. 宽x高 text), installed-app list, clipboard/brightness/volume/vibration/torch, Low Power Mode and Location Services state, per-app location authorization, `getSerialNo()` (returns null: iOS hides hardware serial), and built-in no-WDA home-screen/lock/unlock; **Round 70:** `vpn.status/connect/disconnect` manages only the host app's preconfigured Personal VPN and `system.openSettings(panel)` opens common Settings panels best-effort | No reboot, install/uninstall, arbitrary third-party/MDM VPN profile management, or silent Wi-Fi/Bluetooth/cellular/airplane-mode switching; Personal VPN requires the host entitlement and a previously saved enabled configuration |
 | Media | save images/videos to the camera roll through the agent | add-only Photos writes for sandbox images, base64 images, videos and screenshots (`media.*`), region screenshot (`screenshotRegion`), gated by `allowMediaLibrary` and an iOS authorization prompt; requires `NSPhotoLibraryAddUsageDescription`. **Round 8:** `media.deleteAllPhotos/deleteAllVideos/deleteAllMedia` clear the camera roll (read-write Photos access, returns deleted count) | No album-object API, batch import, photo picker, or camera/QR capture |
 | Files | sandbox file CRUD, lines, copy, Excel | UTF-8/base64 reads, atomic write, append, list, mkdir, copy/move/rename/remove below a confined root, EasyClick-style deleteAllFile (recursive directory clear returning removed-entry count), line operations (lineCount/getLineText/insertLineText/resetLineText), Excel (xlsx/csv), ZIP (zip/unzip/readFileInZip), plist read/write | No file upload picker, or access outside the configured sandbox root |
 | Storage | named typed key-value stores | named persistent JSON stores plus EasyClick-style typed wrappers, plus a local SQLite module (`sqlite.open/exec/query/close`, sandbox-confined, positional-param binding, **Round 52:** 查询结果封顶 10 万行、多语句 SQL 显式报错) | No JDBC layer; 1 MiB default namespace limit |
@@ -46,6 +46,7 @@ best candidates for real use after an Xcode build and device test:
 - Guarded HTTP requests with size and host restrictions.
 - Vision OCR and basic screen color operations.
 - Authenticated WebSocket debugging over loopback/USB or an explicitly enabled trusted Wi-Fi network.
+- Reliable Low Power Mode, Location Services and per-app location-authorization state queries.
 
 The following surfaces must not be described as production-complete yet:
 
@@ -62,6 +63,10 @@ The following surfaces must not be described as production-complete yet:
   cannot currently be preempted safely.
 - Debug transport and Objective-C changes pass the macOS/Xcode simulator CI;
   private-API behavior and the physical Wi-Fi/USB tunnel still need a real-device test.
+- `vpn.*` is limited to the Personal VPN configuration owned and pre-saved by
+  the host app; it requires the Personal VPN entitlement. `system.openSettings`
+  uses best-effort Settings deep links and never proves or silently changes a
+  Wi-Fi, Bluetooth, cellular, hotspot or airplane-mode switch.
 
 ## Prioritized remaining work
 
@@ -73,26 +78,27 @@ The following surfaces must not be described as production-complete yet:
 
 ## 函数级覆盖清单（2026-08-20）
 
-唯一开发文档 `docs/index.html` 收录 263 个可运行示例（263 个 API 条目），分 14 个模块，
+唯一开发文档 `docs/index.html` 收录 259 个可运行示例（259 个 API 条目），分 14 个模块，
 每项包含参数、返回值与一键复制示例：
 
 | 分类 | 函数数 | 亮点 |
 | --- | --- | --- |
-| 日志与调试 | 9 | console 分级、toast/toastLog、alert/exit/restartScript、sleep |
-| 触摸与节点 | 43 | 坐标/节点点击、滑动/手势/pinch、输入、节点查询（getChild/getSiblings/clickCenter/clickRandom）、node.keep/unkeep |
-| 图色与OCR | 30 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素（screen.getColor/getColorRGB/getColorHex）、多点比对（findColors/isColors）、OCR、二维码/条形码识别 scanCode |
+| 日志与调试 | 10 | console 分级、toast/toastLog、alert/exit/restartScript、sleep、lastError |
+| 触摸与节点 | 45 | 坐标/节点点击、滑动/手势/pinch、输入、节点查询（getChild/getSiblings/clickCenter/clickRandom）、node.keep/unkeep |
+| 图色与OCR | 31 | 截图/区域截图、找图、找色、多点找色、findNotColor、像素（screen.getColor/getColorRGB/getColorHex）、多点比对（findColors/isColors）、OCR、二维码/条形码识别 scanCode |
 | App与应用控制 | 21 | launch/activate/terminate/state/openURL/homeScreen/current/appList/isInstalled/getAppName/isRunning/锁屏解锁 |
-| 设备与系统 | 34 | 屏幕、电量、方向、剪贴板、亮度、音量、振动、内存、机型、系统版本、设备ID、GPS 定位 |
+| 设备与系统 | 30 | 屏幕/电量/方向/内存、剪贴板/亮度/音量/振动/手电、Personal VPN 有限控制、系统设置页、低电量与定位状态 |
 | 坐标与屏幕 | 5 | setScreenMetrics/getScreenMetrics/metrics.point/device 尺寸 |
-| 文件 | 38 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
+| 文件 | 39 | 沙盒 CRUD、行操作、复制/移动/重命名、stat、Excel、ZIP、plist |
 | 存储 | 11 | 命名 typed store |
 | 网络HTTP | 11 | get/post/postJSON/getJSON/download/通用请求、WebSocket（ws.connect/poll/send/close） |
 | 相册媒体 | 11 | saveImage/saveImageBase64/saveVideo/saveScreenshot/deleteAllPhotos/deleteAllVideos/deleteAllMedia/playMp3/stopMp3/相册权限 |
-| 定时器与工具 | 21 | 定时器、execAsync/execSync 线程、uuid、base64、sha 系列、AES-128、random |
-| 字符串工具 | 16 | trim/split/chars/hex/类型判断/拼音 toPinYin/BOM 清洗/Unicode 还原/HMAC 签名 |
-| 颜色工具 | 5 | parseColor/int2Hex/hex2Int/toInt/toHex/rgb/argb（EasyClick 兼容，支持 #RGB/#RRGGBB/0x/数字） |
-| 线程与工具模块 | 14 | thread.execAsync/execSync/cancelThread/stopAll/isCancelled、utils.dataMd5/fileMd5/randomInt/getRangeInt/getRatio/zip/unzip/readFileInZip/playMp3/stopMp3/deleteAllPhotos/deleteAllVideos/requestPhotoAuthorization、全局别名 getPasteboard/setPasteboard/openUrl/uploadToAlbum/childcount |
+| 定时器与工具 | 24 | 定时器、execAsync/execSync、thread/utils、uuid、base64、哈希/AES、随机数、颜色工具 |
+| 字符串工具 | 17 | trim/split/chars/hex/类型判断/拼音 toPinYin/BOM 清洗/Unicode 还原/HMAC 签名 |
 | 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
+| 语音朗读 | 1 | speak/tts/speechStop/stopSpeak 与 speech 命名空间 |
+
+本轮新增（Round 70）：**设备与系统常用入口 + VS Code 补全闭环**——新增 `vpn.status/connect/disconnect/openSettings`，只读取和控制宿主 App 自己通过 Personal VPN entitlement 预存的已启用配置，不创建、选择或删除其他 VPN App/MDM 配置；新增 `system.openSettings(panel)` best-effort 打开 VPN/Wi-Fi/蓝牙/蜂窝/热点/飞行模式/定位/电池等设置页，明确不静默切换全局开关；新增 `device.isLowPowerModeEnabled()`、`location.isEnabled()` 与 `location.getAuthorizationStatus()`；VS Code `device.` 候选补齐完整 `AutoDeviceAPI` 并加入声明一致性回归测试；整理重复设备卡后文档为 259 个可运行条目，bootstrap 61262/61440（余 178），Node 测试 88 项、插件测试 97 项；
 
 本轮新增（Round 69）：**Bonjour 原生编译热修**——按 Apple Network.framework 正式 C API 创建 `nw_advertise_descriptor_t` 并通过 `nw_listener_set_advertise_descriptor` 发布 `_autosdk._tcp`，替换不存在的 `nw_listener_set_service` 调用，恢复 Xcode 构建；局域网广播扫描、一键添加和身份配对语义不变；
 
@@ -109,7 +115,7 @@ The following surfaces must not be described as production-complete yet:
 本轮新增（Round 62）：**Xcode 编译与 XCTest 链热修**——`tools/regenerate-bootstrap.mjs` 现在固定为生成的 `AutoBootstrapScript.m` 导入 `AutoBootstrapScript.h`，解决 Swift Package/Xcode 将源文件作为独立翻译单元编译时 `NSString` 未声明的问题；继续修复 `AutoEngine.m` 的 SQLite C 指针 Objective-C 泛型/ARC、媒体下载函数声明顺序、TTS `void` 装箱和不存在的 `VNRecognizeObjectsRequest`；旧 `yolo.detect` 命名保留兼容，但语义诚实调整为 iOS 15+ 公共 `VNClassifyImageRequest` 全图分类（最多 20 标签、rect 为全图），真实边界框检测仍需用户提供 Core ML 模型；XCTest 运行后进一步修复 `deleteAllFile(file)`、`auto.node/auto.screen/auto.floatLog` 接线、`auto.click.length`、POST multipart 二参兼容和无宿主通知中心异常；verify 同步固化上述约束，bootstrap 60782/61440（余 658）；
 本轮新增（Round 61）：**Xcode 15.4 ARC 发布热修**——修复内置 no-WDA Accessibility 遍历中 CFTypeRef 到 Objective-C 对象缺少显式桥接、以不合法的 `NSArray<AutoAXElementRef>` 承载 C 指针等编译阻断；子节点遍历统一以 Objective-C 对象持有、使用时 `__bridge` 回 AX 引用，句柄重放时显式 `CFRetain`；同时修正 `type` 选择器逻辑非优先级导致的匹配反转，并加入 verify 回归锚点；bootstrap、脚本 API 与 VS Code 插件 0.6.0 均不变；
 本轮新增（Round 60）：**VS Code 插件与截图/节点采集调试工具重构**——插件 0.6.0 将设备可视化协议、Inspector 会话调度和 Webview 几何/选择器模型拆为独立模块；普通截图、节点 JSON 和可视化 Inspector 共用一个重任务串行通道，匹配设备端“一次只处理一个 screenshot/nodes/pixel/findImage/OCR 重请求”的约束，消除并发 `device busy`；同类待处理操作只保留最新结果，所有 Webview 消息以 requestId 关联，迟到响应不再覆盖新状态；刷新后按稳定 nodeId/handle 恢复选择；新增 `autosdk.inspectorMaxNodes`（1...2000）和包含 PNG base64、节点树、设备信息、snapshotId/耗时的可移植 JSON 快照导出；删除旧无调用方 CoalescingRunner，插件测试 64 项，bootstrap 与脚本 API 零改动（60526/61440）；
-本轮新增（Round 59）：**TrollAutoScript 文档对标 + 补齐最后高频缺口**——以 `docs.trollautoscript.com/sitemap.xml`（315 页 SSR 文档）做模块级功能盘点（设备 37/字符串 29/节点 21/图片 19/应用 17/屏幕 15 等）。新增：(1) `string.atrim`（去除全部空白含中间）+ `isInteger`（isIntrger 正确拼写别名，全局与 string 命名空间同步导出）+ `string.random(len, chars)`（等价全局 randomString），字符串谓词/工具补齐；(2) `pasteboard.read/write` 命名空间（对标 TrollAutoScript pasteboard 模块，兼容既有 getPasteboard/setPasteboard 全局函数）；(3) `json.encode/decode` 命名空间（decode 解析失败返回 null 不抛异常）；(4) `device.setBacklightLevel/backlightLevel` 背光别名（与 setBrightness/getBrightness 同源，auto.* 代理自动可达）。修复一个初始化顺序 bug：stringsApi 扩展赋值若放在尾部别名区会晚于全局导出 forEach，导致 g.atrim=undefined，已移至导出列表之前。bootstrap 60088→60526/61440（余量 914B），Node 测试 87 项，文档 263 函数；确认无法对标项（涉私有 API/系统权限，市面脚本框架同理）：vpn.*、飞行模式/移动数据开关、app.installIpa/uninstall、mobile.sendMessage/reboot/shutdown、硬件按键 key.*、coreML/paddle 本地模型托管、clear.keychain、AssistiveTouch；
+本轮新增（Round 59）：**TrollAutoScript 文档对标 + 补齐最后高频缺口**——以 `docs.trollautoscript.com/sitemap.xml`（315 页 SSR 文档）做模块级功能盘点（设备 37/字符串 29/节点 21/图片 19/应用 17/屏幕 15 等）。新增：(1) `string.atrim`（去除全部空白含中间）+ `isInteger`（isIntrger 正确拼写别名，全局与 string 命名空间同步导出）+ `string.random(len, chars)`（等价全局 randomString），字符串谓词/工具补齐；(2) `pasteboard.read/write` 命名空间（对标 TrollAutoScript pasteboard 模块，兼容既有 getPasteboard/setPasteboard 全局函数）；(3) `json.encode/decode` 命名空间（decode 解析失败返回 null 不抛异常）；(4) `device.setBacklightLevel/backlightLevel` 背光别名（与 setBrightness/getBrightness 同源，auto.* 代理自动可达）。修复一个初始化顺序 bug：stringsApi 扩展赋值若放在尾部别名区会晚于全局导出 forEach，导致 g.atrim=undefined，已移至导出列表之前。bootstrap 60088→60526/61440（余量 914B），Node 测试 87 项，文档 263 函数；当时记录为缺口的 `vpn.*` 已在 Round 70 补上宿主自有 Personal VPN 的有限状态/连接控制，但任意配置创建/选择/删除、飞行模式/移动数据静默开关、app.installIpa/uninstall、mobile.sendMessage/reboot/shutdown、硬件按键 key.*、coreML/paddle 本地模型托管、clear.keychain、AssistiveTouch 仍不承诺；
 本轮新增（Round 58）：**落实复盘建议**——(1) 新增 `lastError()` API：返回最近一次原生调用失败的 {code, message, domain?, underlying?}（无错误返回 null），彻底解决 execSync/http/sqlite 等「正常返回 false 与失败返回 false 无法区分」的语义问题，原生侧新增 invokeLastError 桥接；(2) 三轮压缩：gx(o,names) 批量别名助手统一 81 个同名全局导出（base 48 + device 12 + file 11 + app 3 + media 7），bootstrap 61391→60088/61440，预算余量从 49B 恢复到 1352B；(3) 真机验证路径：确认 CI（macos-14 模拟器测试+IPA 打包）每次 push 自动覆盖原生编译，真机验证清单更新至 R53-R58；Node 测试 86 项，文档 261 函数；
 本轮新增（Round 57）：**全项目复盘审计 + 三个真 bug 修复**——(1) 修复 `execSync` 返回值破坏：原生 sync 模式返回裸结果，旧 JS 包装对 object/array 结果取 `.result` 导致返回 undefined（真机静默丢数据），现直返原生值（含失败 false 语义），Node mock 同步改为真实契约；(2) 修复定时器 drain 脆性：任一定时器回调抛异常会中断整个 drainTimers 循环、连累后续定时器，现 try/catch 隔离并走 consoleBridge.error 上报；(3) 修复 execAsync 内存增长：完成的线程对象持有 JSContext 直到脚本停止，现完成后立即置空释放（结果/错误已提取，join/getResult 不受影响）。审计确认无问题项：文件沙盒（NUL 拒绝+符号链接解析+root+/ 前缀防 /sandbox-evil+root 自身限制在 App 容器内）、zip（.. 组件/绝对路径/二次 resolve/条目与总量上限）、HTTP 重定向（禁 https→http 降级、禁非 http(s) scheme、allowlist、weak 表+锁）、调试服务帧解析（强制掩码、1MB 上限、控制帧 125B、RSV/分片拒绝）、sqlite（句柄表+锁+停止时统一 closeAll）、内置适配器 CF 资源配对；bootstrap 61391/61440（余 49B），测试 84 项；
 本轮新增（Round 56）：**位图模型（路径句柄）+ 二轮压缩**——(1) EasyClick 位图 API 对标落地：`image.readBitmap(path)` 返回 `{path,isBitmap}` 句柄，`saveBitmap/bitmapBase64/base64Bitmap/bitmapToImage/getBitmapPixelColor` 全齐；句柄可直接传给 image.compress/clip/scale/gray/rotate/pixelAt/toBase64/getWidth/getHeight（_ff 与尺寸查询自动解包），EasyClick 的 scaleBitmap/rotateBitmap/clipBitmap 语义由 image.scale(handle,w,h,dest) 等以文件落盘方式等价覆盖，releaseBitmap 因无内存驻留而不需要；(2) 压缩第二轮：fileApi/deviceApi 自转发包装改为 guard 后直接引用别名（省 208B）、getPixelColor/getColor/encode/decode/time 改直接引用（省 126B），合计 -334B，抵消位图功能后净增 93B（61283→61376/61440，余 64B）；(3) toBase64 与 ocr.newOcr 统一走 bp() 解包；Node 测试 83 项，文档 260 函数；

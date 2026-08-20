@@ -6,6 +6,35 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.36.0] - 2026-08-20
+
+### Added
+
+- Added `vpn.status/connect/disconnect/openSettings` for the Personal VPN
+  configuration owned by the host app, with bounded preference loading,
+  truthful status values, and actionable errors for missing entitlement or
+  profile configuration.
+- Added `system.openSettings(panel)` for common iOS Settings destinations,
+  `device.isLowPowerModeEnabled()`, `location.isEnabled()`, and
+  `location.getAuthorizationStatus()`.
+
+### Changed
+
+- Reorganized the Device & System API documentation into one deduplicated
+  section and upgraded the VS Code extension to 0.11.0 with completion coverage
+  for every declared `AutoDeviceAPI` method plus the new VPN/system helpers.
+- Linked NetworkExtension and CoreLocation consistently for Swift Package
+  Manager and CocoaPods while keeping the Personal VPN entitlement an explicit
+  host-app signing requirement.
+
+### Fixed
+
+- Fixed one-shot location access to wait for the first authorization callback,
+  distinguish a temporary no-fix result from real permission/configuration
+  failures, and clean up safely across hard timeouts.
+- Added the missing location usage description to the template and stopped the
+  native bridge from silently discarding CoreLocation errors.
+
 ## [1.35.2] - 2026-08-20
 
 ### Fixed

@@ -36,6 +36,10 @@ the scripts in `Scripts`.
 - Debug: with `AutoSDKDebugAllowWiFi`, the app advertises `_autosdk._tcp`
   through Bonjour and the log panel shows the phone's `ws://` URL and
   installation token for the VS Code extension or `npm run debug`.
+- System demo: bundled `Scripts/system-demo.js` reports Low Power Mode,
+  Location Services and this app's location authorization, demonstrates
+  best-effort Settings navigation, and reports Personal VPN failures through
+  `lastError()` instead of pretending a system switch changed.
 
 ## Integration notes
 
@@ -62,6 +66,31 @@ SpringBoard app control, with every private symbol resolved at runtime
 `App/Info.plist` or `NSUserDefaults` to restrict automation to views owned
 by this application with the public-API `AutoUIKitAdapter`.
 
+## System settings and Personal VPN
+
+`system.openSettings(panel)` can request common iOS Settings panels such as
+VPN, Wi-Fi, Bluetooth, cellular, airplane mode, location and battery. Except
+for the public app-settings URL, these routes rely on best-effort Settings
+deep links. iOS may reject or redirect them; a `true` result means only that
+the open request was accepted, never that a Wi-Fi, Bluetooth, cellular,
+hotspot or airplane-mode switch changed.
+
+`vpn.status/connect/disconnect` uses `NEVPNManager.sharedManager` and manages
+only the Personal VPN configuration owned and previously saved by this host
+app. To enable it, add the Personal VPN capability to the App ID and target,
+sign with a matching provisioning profile, then have the host create, save
+and enable its configuration. The template does not create a VPN profile and
+cannot select, delete or control configurations owned by another VPN app or
+MDM. Without the entitlement, loading returns `false`; with the entitlement
+but no saved profile, `status()` normally reports `invalid` and `connect()`
+returns `false`. Inspect `lastError()` after a false result.
+
+`device.isLowPowerModeEnabled()` and `location.isEnabled()` are read-only
+system-state queries. `location.getAuthorizationStatus()` reports this app's
+authorization. `location.getLocation()` additionally requires
+`NSLocationWhenInUseUsageDescription`, which the template declares; changing
+the device-wide Location Services switch still requires the user in Settings.
+
 ## Files integration
 
 `App/Info.plist` declares:
@@ -70,6 +99,7 @@ by this application with the public-API `AutoUIKitAdapter`.
   (`.js`, `.txt`) so Files offers “Open With AutoSDK Template”.
 - `UTImportedTypeDeclarations` for `.mjs`.
 - `LSSupportsOpeningDocumentsInPlace`.
+- `NSLocationWhenInUseUsageDescription` for `location.getLocation()`.
 
 `AppDelegate.m` handles `application:openURL:options:` and imports the opened
 file into `debug-scripts/`.

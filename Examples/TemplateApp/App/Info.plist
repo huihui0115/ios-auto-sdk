@@ -37,6 +37,8 @@
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Connect Visual Studio Code to AutoSDK on this iPhone for local development.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Allow automation scripts to read the current location when location.getLocation is called.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_autosdk._tcp</string>

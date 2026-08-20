@@ -1019,6 +1019,39 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         [clipboard fulfill];
     }];
     [self waitForExpectationsWithTimeout:2 handler:nil];
+
+    XCTestExpectation *vpn = [self expectationWithDescription:@"VPN control disabled"];
+    [engine runScript:@"vpn.connect();" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
+        [vpn fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+
+    XCTestExpectation *settings = [self expectationWithDescription:@"system settings disabled"];
+    [engine runScript:@"system.openSettings('vpn');" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
+        [settings fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testReliableSystemSwitchStatesAreExposed {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"system switch states"];
+    NSString *script = @"({ lowPower: device.isLowPowerModeEnabled(), location: location.isEnabled(), authorization: location.getAuthorizationStatus() });";
+    [engine runScript:script completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertTrue([result[@"value"][@"lowPower"] isKindOfClass:NSNumber.class]);
+        XCTAssertTrue([result[@"value"][@"location"] isKindOfClass:NSNumber.class]);
+        NSSet *statuses = [NSSet setWithArray:@[@"notDetermined", @"restricted", @"denied", @"authorizedWhenInUse", @"authorizedAlways"]];
+        XCTAssertTrue([statuses containsObject:result[@"value"][@"authorization"]]);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
 }
 
 - (void)testMediaLibraryCapabilityReflectsConfiguration {

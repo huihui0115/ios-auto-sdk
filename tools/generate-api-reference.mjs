@@ -19,52 +19,6 @@ const CATEGORIES = [
   { id: 'speech',   name: '语音朗读', color: '#059669' }
 ];
 
-// ==== 补齐：设备与系统 ====
-APIS.push({ cat:'device', sig:'device.getIPAddress() / device.getIP() / getIPAddress() / getIP()', title:'获取局域网 IP', desc:'返回当前 Wi-Fi 的 IPv4 地址（en0/en1），未连接 Wi-Fi 时返回 null。对标 AScript system.get_ip_address。', params:[], returns:'string | null', example:`function main(){
-    const ip = device.getIPAddress();
-    console.log('IP:', ip);
-    return ip;
-}` });
-APIS.push({ cat:'device', sig:'device.getOSVersion()', title:'系统版本', desc:'返回 iOS 系统版本号，如 "17.5"。', params:[], returns:'string', example:`function main(){
-  logd("iOS: " + device.getOSVersion());
-}
-main();` });
-APIS.push({ cat:'device', sig:'pasteboard.read() / pasteboard.write(text) / json.encode(value) / json.decode(text)', title:'粘贴板与 JSON 命名空间', desc:'pasteboard.read 读取剪贴板（无内容返回 null），pasteboard.write 写入剪贴板；json.encode 把任意值序列化为 JSON 字符串，json.decode 解析 JSON 文本（解析失败返回 null）。对标 TrollAutoScript pasteboard.read/write 与 json.encode/decode 模块，兼容既有 getPasteboard/setPasteboard 全局函数。', params:[['text','string','写入剪贴板的文本 / 待解析 JSON 文本'],['value','any','任意可 JSON 序列化的值']], returns:'string | null / boolean / string / any', example:`function main(){
-  pasteboard.write("AutoSDK");
-  logd("剪贴板: " + pasteboard.read());
-  var s = json.encode({ a: 1, b: "x" });
-  logd(s);
-  logd(JSON.stringify(json.decode(s)));
-  logd(String(json.decode("{bad json")));
-}
-main();` });
-APIS.push({ cat:'device', sig:'device.getDeviceName()', title:'设备名称', desc:'返回设备显示名称（设置 → 通用 → 关于本机里的名称）。', params:[], returns:'string', example:`function main(){
-  toast("设备: " + device.getDeviceName());
-}
-main();` });
-APIS.push({ cat:'device', sig:'device.isCharging()', title:'是否充电中', desc:'返回当前是否正在充电。', params:[], returns:'boolean', example:`function main(){
-  if (device.isCharging()) toastLog("正在充电");
-  else toastLog("未充电");
-}
-main();` });
-APIS.push({ cat:'device', sig:'device.getScreenWidth() / device.getScreenHeight()', title:'屏幕宽高（点）', desc:'返回屏幕逻辑尺寸，单位是点（pt），不是像素。', params:[], returns:'number', example:`function main(){
-  const w = device.getScreenWidth();
-  const h = device.getScreenHeight();
-  toastLog("屏幕: " + w + " x " + h);
-}
-main();` });
-APIS.push({ cat:'device', sig:'device.width() / device.height() / device.scale() / device.getScale() / device.info()', title:'屏幕尺寸与信息简写', desc:'width/height 返回屏幕宽高（点），scale/getScale 返回缩放比，info 等价 getDeviceInfo。', params:[], returns:'number | object', example:`function main(){
-  logd("宽=" + device.width() + " 高=" + device.height());
-  logd("缩放=" + device.scale());
-  logd(JSON.stringify(device.info()));
-}
-main();` });APIS.push({ cat:'device', sig:'device.setBrightness(value) / device.setBacklightLevel(value) / device.backlightLevel()', title:'设置屏幕亮度', desc:'设置屏幕亮度，value 范围 0～1。setBacklightLevel/backlightLevel 为 TrollAutoScript 兼容别名，与 setBrightness/getBrightness 同源。', params:[['value','number','0～1 的亮度值']], returns:'boolean', example:`function main(){
-  device.setBrightness(0.5);
-  auto.sleep(500);
-  device.setBrightness(device.getBrightness());
-}
-main();` });
-
 // ==== 补齐：App 与应用控制 ====
 APIS.push({ cat:'app', sig:'app.launch(bundleId)', title:'启动应用', desc:'按 bundle id 或常用 App 中文名启动应用。内置 no-WDA 适配器内置 60+ 应用启动库（微信/支付宝/淘宝/京东/拼多多/抖音/快手/哔哩哔哩/美团/高德/钉钉/设置/相机/Safari 等），app.launch("微信") 等价 AScript system.app_start("微信")；terminate/appState 同样接受名字。', params:[['bundleId','string','bundle id 或应用名，如 com.tencent.xin / 微信']], returns:'boolean', example:`function main(){
   app.launch("com.apple.mobilesafari");
@@ -813,13 +767,13 @@ APIS.push({ cat:'vision', sig:'yolo.detect(imagePath) / yolo.detectByFilePath(im
   }
 }
 main();` });
-APIS.push({ cat:'device', sig:'location.getLocation(timeoutMs?)', title:'GPS 定位', desc:'一次性 GPS 定位（对标 kuaijs/AutoJS location 模块）：获取当前经纬度与精度信息，超时返回 null。timeoutMs 默认 5000（范围 500～30000）。返回 {latitude, longitude, altitude, horizontalAccuracy, verticalAccuracy, course, speed, timestamp}。宿主 App 需在 Info.plist 声明 NSLocationWhenInUseUsageDescription，首次调用会弹出定位授权；权限被拒或定位服务关闭时返回 null。', params:[['timeoutMs','number','可选，等待定位的毫秒数，默认 5000']], returns:'AutoLocationResult | null', example:`function main(){
+APIS.push({ cat:'device', sig:'location.getLocation(timeoutMs?)', title:'GPS 定位', desc:'一次性 GPS 定位（对标 kuaijs/AutoJS location 模块）：获取当前经纬度与精度信息，超时或 CoreLocation 暂时无法取得定位时返回 null。timeoutMs 默认 5000（范围 500～30000）。宿主 App 需在 Info.plist 声明 NSLocationWhenInUseUsageDescription，首次调用会先等待授权回调再开始定位；权限被拒、定位服务关闭或配置缺失时返回 false，并可用 lastError() 区分原因。', params:[['timeoutMs','number','可选，等待定位的毫秒数，默认 5000']], returns:'AutoLocationResult | null | false', example:`function main(){
   const loc = location.getLocation(8000);
   if (loc) {
     logd("纬度: " + loc.latitude + " 经度: " + loc.longitude);
     logd("精度: ±" + Math.round(loc.horizontalAccuracy) + "m 速度: " + loc.speed);
   } else {
-    logd("定位失败或超时（需定位权限）");
+    logd(loc === null ? "定位超时或暂无位置" : "定位失败: " + JSON.stringify(lastError()));
   }
 }
 main();` });
@@ -896,7 +850,7 @@ main();` });APIS.push({ cat:'app', sig:'launchAppByPrefix(bundleIdPrefix) / app.
   const ok = launchAppByPrefix("com.apple.mobile");
   logd("启动结果: " + ok);
 }
-main();` });APIS.push({ cat:'device', sig:'device.getDeviceInfo()', title:'设备信息', desc:'返回设备/屏幕/电池/系统等完整信息字典。', params:[], returns:'object {model, systemVersion, screenWidth, batteryLevel, ...}', example:`function main(){
+main();` });APIS.push({ cat:'device', sig:'device.getDeviceInfo() / device.info()', title:'设备信息', desc:'返回设备/屏幕/电池/系统等完整信息字典；info 是等价简写。', params:[], returns:'object {model, systemVersion, screenWidth, batteryLevel, ...}', example:`function main(){
   const info = device.getDeviceInfo();
   logd("型号: " + info.model);
   logd("系统: " + info.systemVersion);
@@ -904,10 +858,11 @@ main();` });APIS.push({ cat:'device', sig:'device.getDeviceInfo()', title:'设�
   logd("电量: " + info.batteryLevel + " 充电中=" + info.isCharging);
 }
 main();` });
-APIS.push({ cat:'device', sig:'device.getScreenWidth() / getScreenHeight()', title:'屏幕尺寸', desc:'读取屏幕逻辑宽高（点）。', params:[], returns:'number', example:`function main(){
+APIS.push({ cat:'device', sig:'device.getScreenWidth() / device.getScreenHeight() / device.width() / device.height() / device.getScale() / device.scale() / device.getScreenWidthHeightText()', title:'屏幕尺寸与缩放', desc:'读取屏幕逻辑宽高（点）与像素缩放比；width/height/scale 是简写，getScreenWidthHeightText 返回如 390x844 的文本。', params:[], returns:'number | string', example:`function main(){
   logd("宽: " + device.getScreenWidth());
   logd("高: " + device.getScreenHeight());
   logd("缩放: " + device.getScale());
+  logd("尺寸: " + device.getScreenWidthHeightText());
 }
 main();` });
 APIS.push({ cat:'device', sig:'getOrientation() / getBattery() / isCharging() / getModel() / getOSVersion() / getDeviceName() / getScale() / getDeviceId() / getSerialNo() / getMemoryInfo() / volumeUp() / volumeDown()', title:'设备信息全局简写', desc:'deviceApi 常用查询的全局简写（EasyClick 全局风格）：getOrientation 屏幕方向名称（portrait/landscapeLeft/landscapeRight/portraitUpsideDown）、getBattery 电量百分比、isCharging 充电中、getModel 机型、getOSVersion 系统版本、getDeviceName 设备名、getScale 屏幕缩放比、getDeviceId 设备标识、getSerialNo 序列号、getMemoryInfo 内存（total/available/used 字节）、volumeUp/volumeDown 音量键。', params:[], returns:'number | string | boolean | object', example:`function main(){
@@ -916,15 +871,6 @@ APIS.push({ cat:'device', sig:'getOrientation() / getBattery() / isCharging() / 
   if (!isCharging()) volumeUp();
   const m = getMemoryInfo();
   logd("可用内存: " + Math.round(m.available / 1024 / 1024) + " MB");
-}
-main();` });
-APIS.push({ cat:'device', sig:'device.getScreenWidthHeightText()', title:'屏幕宽高文本', desc:'EasyClick 兼容别名：返回 "宽x高" 字符串，如 "390x844"。', params:[], returns:'string', example:`function main(){
-  logd("屏幕: " + device.getScreenWidthHeightText());
-}
-main();` });
-APIS.push({ cat:'device', sig:'device.getScale()', title:'屏幕缩放', desc:'读取屏幕像素密度 scale。', params:[], returns:'number', example:`function main(){
-  const s = device.getScale();
-  logd("scale: " + s + " 物理宽: " + device.getScreenWidth() * s);
 }
 main();` });
 APIS.push({ cat:'device', sig:'device.getModel() / getOSVersion() / getDeviceName()', title:'型号 / 系统 / 设备名', desc:'读取公开的 iOS 设备信息。', params:[], returns:'string', example:`function main(){
@@ -953,7 +899,13 @@ APIS.push({ cat:'device', sig:'device.getClipboard() / setClipboard(text) / setC
   logd("现在: " + device.getClipboard());
 }
 main();` });
-APIS.push({ cat:'device', sig:'device.getBrightness() / setBrightness(v)', title:'屏幕亮度', desc:'读取或设置亮度（0~1）。', params:[['v','number','亮度 0~1（set 时）']], returns:'number / boolean', example:`function main(){
+APIS.push({ cat:'device', sig:'pasteboard.read() / pasteboard.write(text) / json.encode(value) / json.decode(text)', title:'粘贴板与 JSON', desc:'pasteboard.read/write 是剪贴板命名空间；json.encode/decode 序列化或解析 JSON，解析失败返回 null。', params:[['text','string','剪贴板或 JSON 文本'],['value','any','可 JSON 序列化的值']], returns:'string | null / boolean / any', example:`function main(){
+  pasteboard.write("AutoSDK");
+  const encoded = json.encode({ enabled: true });
+  logd(pasteboard.read() + " " + JSON.stringify(json.decode(encoded)));
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.getBrightness() / device.setBrightness(v) / device.setBacklightLevel(v) / device.backlightLevel()', title:'屏幕亮度', desc:'读取或设置亮度（0~1）；setBacklightLevel/backlightLevel 是 TrollAutoScript 兼容别名。', params:[['v','number','亮度 0~1（set 时）']], returns:'number / boolean', example:`function main(){
   logd("当前亮度: " + device.getBrightness());
   device.setBrightness(0.5);
   logd("设置后: " + device.getBrightness());
@@ -981,6 +933,32 @@ main();` });
 APIS.push({ cat:'device', sig:'device.volumeUp() / device.volumeDown()', title:'音量加/减键', desc:'模拟按下系统音量加/减键（真机按键注入）；适配器不支持时返回错误，可用 capabilities() 判断。', params:[], returns:'boolean', example:`function main(){
   const ok = device.volumeUp();
   logd("音量+ " + ok);
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.getIPAddress() / device.getIP() / getIPAddress() / getIP()', title:'局域网 IP', desc:'返回当前 Wi-Fi 的 IPv4 地址（en0/en1），未连接 Wi-Fi 时返回 null。', params:[], returns:'string | null', example:`function main(){
+  logd("Wi-Fi IP: " + device.getIPAddress());
+}
+main();` });
+APIS.push({ cat:'device', sig:'vpn.status() / vpn.connect() / vpn.disconnect() / vpn.openSettings()', title:'Personal VPN 状态与连接', desc:'读取、连接或断开宿主 App 自己拥有的 Personal VPN 配置；不能选择或控制其他 VPN App/MDM 配置。status 返回 invalid/disconnected/connecting/connected/reasserting/disconnecting，配置未建立时通常为 invalid；connect=true 只表示启动请求已提交。宿主必须自行启用 Personal VPN entitlement 并预先保存、启用配置；加载权限失败时 status 返回 false，缺失/禁用配置时 connect 返回 false，均可用 lastError() 查看原因。openSettings 尝试打开系统 VPN 设置。', params:[], returns:'AutoVPNConnectionStatus | boolean', example:`function main(){
+  logd("VPN: " + vpn.status());
+  if (!vpn.connect()) loge(JSON.stringify(lastError()));
+  sleep(1000);
+  logd("VPN after request: " + vpn.status());
+  // vpn.disconnect();
+}
+main();` });
+APIS.push({ cat:'device', sig:'system.openSettings(panel?)', title:'打开常用系统开关设置', desc:'一键请求打开 VPN、Wi-Fi、蓝牙、蜂窝、热点、飞行模式、定位、电池、专注模式、通知、显示、辅助功能、通用或本 App 设置。panel 可取 vpn/wifi/bluetooth/cellular/hotspot/airplane/location/battery/focus/notifications/display/accessibility/general/app，省略时默认 app。除 app 外均依赖 iOS 未公开的 App-Prefs 深链，系统拒绝或路径变化时自动回退设置首页/本 App 设置；返回 true 只表示系统接受了页面请求，不代表开关已经切换。', params:[['panel','AutoSystemSettingsPanel','可选；要打开的设置页，默认 app']], returns:'boolean', example:`function main(){
+  system.openSettings("vpn");
+  // system.openSettings("wifi");
+}
+main();` });
+APIS.push({ cat:'device', sig:'device.isLowPowerModeEnabled()', title:'低电量模式状态', desc:'可靠查询系统低电量模式是否已开启；iOS 不提供静默修改该全局开关的公共 API，需要修改时用 system.openSettings("battery")。', params:[], returns:'boolean', example:`function main(){
+  if (device.isLowPowerModeEnabled()) logw("低电量模式已开启");
+}
+main();` });
+APIS.push({ cat:'device', sig:'location.isEnabled() / location.getAuthorizationStatus()', title:'定位总开关与授权状态', desc:'isEnabled 查询设备级定位服务总开关；getAuthorizationStatus 返回本 App 的 notDetermined/restricted/denied/authorizedWhenInUse/authorizedAlways。修改定位开关需由用户在系统设置完成。', params:[], returns:'boolean | string', example:`function main(){
+  logd("定位服务: " + location.isEnabled());
+  logd("定位授权: " + location.getAuthorizationStatus());
 }
 main();` });
 APIS.push({ cat:'device', sig:'device.getLanguage() / device.getCountry() / device.getLocale() / device.getTimezone() / device.getUptime() / device.getNetworkType() / device.isWifi()', title:'语言/国家/时区/运行时长', desc:'getLanguage 返回系统首选语言（如 zh-Hans-CN），getCountry 返回国家码，getLocale 返回区域标识，getTimezone 返回当前时区名（如 Asia/Shanghai），getUptime 返回开机至今的秒数，getNetworkType 返回 wifi/cellular/none，isWifi 判断是否 Wi-Fi。全局简写 getLanguage/getCountry/getLocale/getTimezone/getUptime/getNetworkType/isWifi 同样可用。对标 AScript get_language/get_country/get_timezone 与 EasyClick getNetworkType()。', params:[], returns:'string | number', example:`function main(){

@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 69（v1.35.2，2026-08-20）。
+> 最后更新：Round 70（v1.36.0，2026-08-20）。
 
 ---
 
@@ -83,11 +83,11 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 69 / v1.35.2）
+## 4. 当前状态（Round 70 / v1.36.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
-- bootstrap 解码 **60782 / 61440**（预算 60×1024 UTF-16 码元，余 658）。
-- 文档 **263 个 API 条目 / 263 个可运行示例 / 14 个模块**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **97 项**。
+- bootstrap 解码 **61262 / 61440**（预算 60×1024 UTF-16 码元，余 178）。
+- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；VS Code 插件 **0.11.0**，测试 **97 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
   `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制）。
@@ -139,6 +139,12 @@ bridge (__bridge 对象，JSValue block)
   Apple Network.framework 的 `nw_advertise_descriptor_create_bonjour_service` 与
   `nw_listener_set_advertise_descriptor` 正式调用，解除 Xcode 编译阻断；插件行为与
   `_autosdk._tcp` 广播协议不变。
+- **Round 70 设备与系统常用入口**：新增 `vpn.status/connect/disconnect/openSettings`
+  管理宿主 App 自己通过 Personal VPN entitlement 预存的 `NEVPNManager` 配置；它不读取、
+  选择或控制其他 VPN App/MDM 配置。`system.openSettings(panel)` 以 best-effort 方式打开
+  VPN/Wi-Fi/蓝牙/蜂窝/飞行模式等设置页，但不静默修改系统开关；新增低电量模式、定位
+  总开关与本 App 定位授权状态查询。VS Code 的 `device.` 补全现覆盖完整
+  `AutoDeviceAPI`，并由类型声明一致性测试防止再次漏项；插件版本为 **0.11.0**。
 
 已实现能力（详见唯一 HTML 文档入口 `docs/index.html`）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -149,7 +155,8 @@ Baidu）、YOLO 兼容入口（iOS 15+ Vision 全图分类，非边界框检测�
 host allowlist）、WebSocket 客户端、线程（execAsync/execSync + thread
 命名空间）、定时器、定位（CLLocationManager 一次性）、相册（保存/清空 +
 权限）、媒体（mp3）、剪贴板/亮度/音量/振动/手电、悬浮窗（floatLog/
-floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
+floatBall/screenDraw）、Personal VPN 有限控制、系统设置页入口、低电量/定位状态、
+webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 屏幕尺寸适配（setScreenMetrics）、utils 工具命名空间、device 全局简写等。
 
 ## 5. 对标基线
@@ -173,12 +180,14 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   已完成（Round 56，路径句柄模型；getBitmapPixelColor 一并补齐；文档已标注语义差异）。
 - ~~`ocr.newOcr/ocrInstance.ocrBitmap/ocrImage`~~ 已完成（Round 55，实例合并默认参数，ocrImage 对沙盒图片文件 OCR）。
 - ~~`http.requestEx`~~ 已完成（Round 55，等价 http() 别名）；`agentRequestEx` 属 agent 远程类，记录为不可实现。
-- ~~`string.atrim/isInteger/string.random`、`pasteboard.read/write`、`json.encode/decode`、`device.setBacklightLevel/backlightLevel`~~ 已完成（Round 59，TrollAutoScript 对标补齐；不可实现项：vpn.*、飞行模式/移动数据开关、installIpa/uninstall、硬件按键、coreML/paddle 托管）。
+- ~~`string.atrim/isInteger/string.random`、`pasteboard.read/write`、`json.encode/decode`、`device.setBacklightLevel/backlightLevel`~~ 已完成（Round 59，TrollAutoScript 对标补齐）。Round 70 进一步补充宿主自有 Personal VPN 的状态/连接/断开和设置页入口；任意 VPN 配置创建/选择/删除、静默切换飞行模式/Wi-Fi/蓝牙/蜂窝、installIpa/uninstall、硬件按键、coreML/paddle 托管仍不承诺。
 
 ### 不可实现（记录为缺口即可）
 - `imeApi.*`（需自建输入法）、`ecNetCard.*`/BLE/OTG/HID（硬件）、
   agent 远程调用、OpenCV 级 `matchTemplate`（当前 CoreGraphics）、
-  无限纯 JS 循环抢占停止。（实时触摸注入已由 Round 46 内置适配器解决。）
+  任意第三方 VPN 配置管理、系统网络/飞行模式静默切换、无限纯 JS 循环抢占停止。
+  （实时触摸注入已由 Round 46 内置适配器解决；常用系统开关可通过
+  `system.openSettings` 引导用户手动修改。）
 
 ### Round 46 内置适配器真机验证待办（下轮优先）
 - 真机验证 IOHIDEvent 触摸注入（需允许私有 API 的签名：TrollStore/开发者证书；
@@ -249,6 +258,11 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 
 ## 9. 历轮主线（git log 可查）
 
+- R70（v1.36.0）：**设备与系统常用入口 + 补全闭环**——新增宿主自有 Personal VPN
+  状态/连接/断开与设置页入口（需 entitlement 和预存配置），新增 best-effort 常用设置页、
+  低电量模式、定位总开关和本 App 定位授权查询；不伪装成静默系统开关。VS Code
+  `device.` 补全覆盖完整 `AutoDeviceAPI` 并加入一致性测试；文档去重为 259 个卡片，
+  bootstrap 61262/61440（余 178），Node 测试 88 项，插件测试 97 项。
 - R69（v1.35.2）：**Bonjour 原生编译热修**——按 Apple Network.framework C API
   先创建 Bonjour advertise descriptor，再绑定 listener，恢复 iOS/Xcode 构建；
   局域网扫描、一键添加、SecretStorage token 配对与编辑器运行流程保持不变。

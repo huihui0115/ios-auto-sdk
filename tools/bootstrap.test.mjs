@@ -150,6 +150,12 @@ function createSandbox() {
         case 'serialNo': return null;
         case 'appVersion': return '1.2.3';
         case 'packageName': return 'com.example.host';
+        case 'vpnStatus': return 'connected';
+        case 'vpnSet': return true;
+        case 'openSystemSettings': return true;
+        case 'lowPowerMode': return true;
+        case 'locationServices': return true;
+        case 'locationAuthorization': return 'authorizedWhenInUse';
         default: return null;
       }
     },
@@ -1436,6 +1442,29 @@ test('network type helpers route to bridge and ocrClick guards empty text', () =
   bridge.invokeOCR = () => [{ text: '确定', bounds: { x: 10, y: 20, width: 10, height: 10 } }];
   assert.equal(sandbox.ocrClick('确定', 5), true);
   assert.deepEqual(calls.clickPoint.at(-1), { x: 15, y: 25 });
+});
+test('Personal VPN and common system switch helpers route bounded device operations', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.vpn.status(), 'connected');
+  assert.deepEqual(calls.device.at(-1), { operation: 'vpnStatus' });
+  assert.equal(sandbox.vpn.connect(), true);
+  assert.deepEqual(calls.device.at(-1), { operation: 'vpnSet', value: true });
+  assert.equal(sandbox.vpn.disconnect(), true);
+  assert.deepEqual(calls.device.at(-1), { operation: 'vpnSet', value: false });
+  assert.equal(sandbox.vpn.openSettings(), true);
+  assert.deepEqual(calls.device.at(-1), { operation: 'openSystemSettings', page: 'vpn' });
+  sandbox.system.openSettings('wifi');
+  assert.deepEqual(calls.device.at(-1), { operation: 'openSystemSettings', page: 'wifi' });
+  sandbox.system.openSettings();
+  assert.deepEqual(calls.device.at(-1), { operation: 'openSystemSettings', page: 'app' });
+  assert.equal(sandbox.device.isLowPowerModeEnabled(), true);
+  assert.deepEqual(calls.device.at(-1), { operation: 'lowPowerMode' });
+  assert.equal(sandbox.location.isEnabled(), true);
+  assert.deepEqual(calls.device.at(-1), { operation: 'locationServices' });
+  assert.equal(sandbox.location.getAuthorizationStatus(), 'authorizedWhenInUse');
+  assert.deepEqual(calls.device.at(-1), { operation: 'locationAuthorization' });
+  assert.equal(sandbox.auto.isLowPowerModeEnabled(), true);
+  assert.deepEqual(calls.device.at(-1), { operation: 'lowPowerMode' });
 });
 test('flashlight/torch route to bridge and default to on', () => {
   const { sandbox, calls } = boot();

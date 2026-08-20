@@ -22,6 +22,8 @@ let package = Package(
                 .linkedFramework("UIKit"),
                 .linkedFramework("QuartzCore"),
                 .linkedFramework("Network"),
+                .linkedFramework("NetworkExtension"),
+                .linkedFramework("CoreLocation"),
                 .linkedFramework("Vision"),
                 .linkedFramework("AVFoundation"),
                 .linkedFramework("AudioToolbox"),

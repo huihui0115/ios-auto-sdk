@@ -360,8 +360,36 @@ check(engineSource.includes('AutoGetLocationSnapshot') && engineSource.includes(
       engineSource.includes('requestLocation') && engineSource.includes('@"locGet"') &&
       engineSource.includes('kCLAuthorizationStatusDenied') &&
       engineSource.includes('objectForInfoDictionaryKey:@"NSLocationWhenInUseUsageDescription"') &&
-      engineSource.includes('kCLAuthorizationStatusNotDetermined'),
-      'Native engine must implement one-shot location queries with Info.plist usage-description guard and permission handling');
+      engineSource.includes('kCLAuthorizationStatusNotDetermined') &&
+      engineSource.includes('locationManagerDidChangeAuthorization') &&
+      engineSource.includes('kCLErrorLocationUnknown') &&
+      engineSource.includes('@synchronized (stateLock)') &&
+      engineSource.includes('long waitResult = dispatch_semaphore_wait') &&
+      engineSource.includes('if (finalError && error) *error = finalError') &&
+      engineSource.includes('NSError *locationError = nil') &&
+      read('Examples/TemplateApp/App/Info.plist').includes('<key>NSLocationWhenInUseUsageDescription</key>'),
+      'Native location queries must await authorization, preserve real errors, bound races and ship a template usage description');
+check(engineSource.includes('AutoLoadPersonalVPNManager') &&
+      engineSource.includes('loadFromPreferencesWithCompletionHandler') &&
+      engineSource.includes('startVPNTunnelAndReturnError') &&
+      engineSource.includes('stopVPNTunnel') &&
+      engineSource.includes('5 * NSEC_PER_SEC') &&
+      engineSource.includes('NSThread.isMainThread') &&
+      engineSource.includes('NEVPNErrorConfigurationReadWriteFailed') &&
+      engineSource.includes('verify the host entitlement and saved profile') &&
+      engineSource.includes('AutoVPNStatusName'),
+      'Personal VPN control must load a host-owned configuration with bounded, truthful error handling');
+check(engineSource.includes('AutoSystemSettingsURL') &&
+      engineSource.includes('page.length > 32') &&
+      engineSource.includes('@"App-prefs:root=General&path=VPN"') &&
+      engineSource.includes('UIApplicationOpenSettingsURLString') &&
+      engineSource.includes('isEqualToString:@"lowPowerMode"') &&
+      engineSource.includes('isEqualToString:@"locationAuthorization"'),
+      'System switch helpers must whitelist bounded settings panels and expose reliable public states');
+check(read('Package.swift').includes('.linkedFramework("NetworkExtension")') &&
+      read('Package.swift').includes('.linkedFramework("CoreLocation")') &&
+      podspec.includes("'NetworkExtension'") && podspec.includes("'CoreLocation'"),
+      'SPM and CocoaPods must link the VPN and location frameworks used by system helpers');
 check(engineSource.includes('base64EncodedStringWithOptions:0') &&
       engineSource.includes('case SQLITE_BLOB'),
       'SQLite BLOB values must round-trip as base64 strings');
@@ -451,8 +479,14 @@ check(bootstrapScript.includes("hmacSHA1:hsh2('hmac1')") &&
       bootstrapScript.includes('g.hmacSHA1=stringsApi.hmacSHA1') && bootstrapScript.includes('g.hmacSHA256=stringsApi.hmacSHA256'),
       'Bootstrap must expose hmacSHA1/hmacSHA256 and their global aliases');
 check(bootstrapScript.includes("var locApi={getLocation:function(t){return _nn('locGet'") &&
-      bootstrapScript.includes('g.location=locApi'),
-      'Bootstrap must expose the location module');
+      bootstrapScript.includes("isEnabled:dvf('locationServices')") &&
+      bootstrapScript.includes("getAuthorizationStatus:dvf('locationAuthorization')") &&
+      bootstrapScript.includes("var vpnApi={status:dvf('vpnStatus')") &&
+      bootstrapScript.includes("_dv('vpnSet',true,'value')") &&
+      bootstrapScript.includes("var systemApi={openSettings:function(p)") &&
+      bootstrapScript.includes('g.location=locApi;g.vpn=vpnApi;g.system=systemApi') &&
+      bootstrapScript.includes("isLowPowerModeEnabled:dvf('lowPowerMode')"),
+      'Bootstrap must expose location, Personal VPN and common system-switch helpers');
 
 check(bootstrapScript.includes('function pCol(c){if(typeof c===\'number\')return c>>>0;') &&
       bootstrapScript.includes('function int2Hex(c){var n=pCol(c);') &&

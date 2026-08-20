@@ -17,6 +17,21 @@ systemReport.country = device.getCountry();
 systemReport.locale = device.getLocale();
 systemReport.timezone = device.getTimezone();
 systemReport.uptimeSeconds = device.getUptime();
+systemReport.lowPowerMode = device.isLowPowerModeEnabled();
+systemReport.locationServices = location.isEnabled();
+systemReport.locationAuthorization = location.getAuthorizationStatus();
+
+// Personal VPN controls only a profile owned by this host app. The host must
+// add the Personal VPN entitlement and save a configuration first.
+systemReport.vpnStatus = vpn.status();
+if (systemReport.vpnStatus === false) {
+  systemReport.vpnError = lastError();
+}
+
+// Open a common system switch page when interaction is desired:
+// system.openSettings("vpn");
+// system.openSettings("wifi");
+// vpn.connect(); // submits an asynchronous connection request
 
 // 4. Screen keep-on toggle (prevents auto-lock while a long task runs)
 device.keepScreenOn(true);

@@ -12,7 +12,11 @@ runtime does not provide `require`, package resolution, or a module bundler.
 
 The SDK repository also includes `types/autosdk.d.ts` and `jsconfig.json` for
 full workspace type information in addition to the extension's completion
-provider.
+provider. The focused `device.` completion list covers every method declared
+by `AutoDeviceAPI`, including system state and switch-related helpers; a
+declaration-parity test prevents future methods from silently disappearing
+from the menu. Personal VPN and Settings entries keep the same iOS permission
+limits described by the generated SDK documentation.
 
 ## Install locally on Windows
 
@@ -21,8 +25,8 @@ From the repository root:
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.10.1.vsix
-code --install-extension .\autosdk-vscode-0.10.1.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.11.0.vsix
+code --install-extension .\autosdk-vscode-0.11.0.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An

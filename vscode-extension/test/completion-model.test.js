@@ -52,7 +52,7 @@ test('production completion data covers every supported module namespace', () =>
     'auto', 'action', 'file', 'storages', 'device', 'http', 'image', 'app', 'media',
     'strings', 'string', 'screen', 'webView', 'screenDraw', 'floatBall', 'floatLog',
     'plist', 'node', 'metrics', 'base64', 'thread', 'utils', 'ocr', 'ws', 'sqlite',
-    'yolo', 'location', 'colors', 'speech', 'pasteboard', 'json'
+    'yolo', 'location', 'vpn', 'system', 'colors', 'speech', 'pasteboard', 'json'
   ];
   for (const namespace of namespaces) {
     assert.ok(completionEntries(productionEntries, `${namespace}.`, aliases).length > 0,
@@ -61,4 +61,18 @@ test('production completion data covers every supported module namespace', () =>
   const all = completionEntries(productionEntries, '');
   assert.ok(all.length > productionEntries.length, 'grouped rows must expand into individual calls');
   assert.ok(all.every(item => !item.signature.includes(' / ')), 'no completion may contain a grouped signature');
+
+  const typeSource = fs.readFileSync(path.join(__dirname, '..', '..', 'types', 'autosdk.d.ts'), 'utf8');
+  const deviceBody = typeSource.match(/interface AutoDeviceAPI \{([\s\S]*?)\n\}/)?.[1] || '';
+  const declaredDeviceMethods = [...deviceBody.matchAll(/^\s+([A-Za-z_$][\w$]*)\([^\n]*\):/gm)].map(match => match[1]);
+  const completedDeviceMethods = new Set(completionEntries(productionEntries, 'device.')
+    .map(item => item.label.slice('device.'.length)));
+  const missingDeviceMethods = declaredDeviceMethods.filter(name => !completedDeviceMethods.has(name));
+  assert.deepEqual(missingDeviceMethods, [], 'every AutoDeviceAPI method must have a focused device. completion');
+
+  assert.deepEqual(
+    completionEntries(productionEntries, 'vpn.').map(item => item.signature),
+    ['vpn.status()', 'vpn.connect()', 'vpn.disconnect()', 'vpn.openSettings()']
+  );
+  assert.equal(completionEntries(productionEntries, 'system.')[0]?.insertText, 'openSettings(${1:panel})');
 });
