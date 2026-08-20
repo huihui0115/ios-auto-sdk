@@ -2,7 +2,7 @@
   "name": "autosdk-vscode",
   "displayName": "AutoSDK Script Tools",
   "description": "Edit, run, and build AutoSDK scripts for an iOS app installed via free Apple ID signing",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "publisher": "autosdk",
   "repository": {
@@ -226,7 +226,7 @@
     ]
   },
   "scripts": {
-    "check": "node --check extension.js && node --check completion-model.js && node --check connection-settings.js && node --check device-client.js && node --check device-discovery.js && node --check wifi-discovery.js && node --check inspector-input.js && node --check inspector-service.js && node --check inspector-session.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector-model.js && node --check media/inspector.js",
+    "check": "node --check extension.js && node --check completion-model.js && node --check connection-recovery.js && node --check connection-settings.js && node --check device-client.js && node --check device-discovery.js && node --check wifi-discovery.js && node --check inspector-input.js && node --check inspector-service.js && node --check inspector-session.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector-model.js && node --check media/inspector.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {

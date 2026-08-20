@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -41,12 +41,12 @@ jobs:
           plutil -lint Examples/TemplateApp/App/Info.plist
       - name: Package VS Code extension
         working-directory: vscode-extension
-        run: npx --yes @vscode/vsce package --out autosdk-vscode-0.11.0.vsix
+        run: npx --yes @vscode/vsce package --out autosdk-vscode-0.12.0.vsix
       - name: Upload VS Code extension artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: autosdk-vscode
-          path: vscode-extension/autosdk-vscode-0.11.0.vsix
+          path: vscode-extension/autosdk-vscode-0.12.0.vsix
           if-no-files-found: error
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -54,6 +54,7 @@ jobs:
         working-directory: Examples/TemplateApp
         run: xcodegen generate
       - name: Run iOS simulator tests
+        id: ios_tests
         timeout-minutes: 20
         run: |
           destination_id="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); print(next(device["udid"] for runtime in data["devices"].values() for device in runtime if device.get("isAvailable") and device.get("name", "").startswith("iPhone")))')"
@@ -68,33 +69,44 @@ jobs:
             -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO
       - name: Print test diagnostics
-        if: failure()
+        if: ${{ failure() && steps.ios_tests.outcome == 'failure' }}
         run: |
           result="$RUNNER_TEMP/AutoSDKTests.xcresult"
           summary="$RUNNER_TEMP/AutoSDKTests.json"
           diagnostics="$RUNNER_TEMP/AutoSDKTestDiagnostics"
-          test -d "$result"
-          xcrun xcresulttool get --path "$result" --format json > "$summary"
+          if [[ ! -d "$result" ]]; then
+            echo "::warning title=Xcode diagnostics unavailable::No xcresult bundle was produced."
+            exit 0
+          fi
+          xcode_major="$(xcodebuild -version | awk 'NR == 1 { split($2, version, "."); print version[1] }')"
+          legacy_object=()
+          if [[ "$xcode_major" =~ ^[0-9]+$ ]] && (( xcode_major >= 16 )); then
+            legacy_object=(object --legacy)
+          fi
+          if ! xcrun xcresulttool get "${legacy_object[@]}" --path "$result" --format json > "$summary"; then
+            echo "::warning title=Xcode diagnostics unavailable::xcresulttool could not read the result bundle."
+            exit 0
+          fi
           echo "Failure messages:"
-          jq -r '.. | objects | .message?._value? // empty' "$summary" | sort -u | head -200
+          jq -r '[.. | objects | (.message?._value? // empty) | strings | select(length > 0)] | unique | .[:200][]' "$summary"
           mkdir -p "$diagnostics"
-          jq -r '.. | objects | .diagnosticsRef?.id?._value? // empty' "$summary" | sort -u |
+          jq -r '[.. | objects | (.diagnosticsRef?.id?._value? // empty) | strings | select(length > 0)] | unique[]' "$summary" |
           while IFS= read -r reference; do
             test -n "$reference" || continue
             output="$diagnostics/$reference"
-            xcrun xcresulttool export --path "$result" --id "$reference" \
+            xcrun xcresulttool export "${legacy_object[@]}" --path "$result" --id "$reference" \
               --type directory --output-path "$output" || true
           done
           find "$diagnostics" -type f \( -name '*.crash' -o -name '*.ips' -o -name '*.txt' \) -print |
-          sort | head -20 |
+          sort | sed -n '1,20p' |
           while IFS= read -r report; do
             echo "::group::Crash diagnostic: $report"
             sed -n '1,260p' "$report"
             echo "::endgroup::"
           done
       - name: Upload test diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v5
+        if: ${{ failure() && steps.ios_tests.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
         with:
           name: AutoSDKTests-xcresult
           path: ${{ runner.temp }}/AutoSDKTests.xcresult
@@ -121,7 +133,7 @@ jobs:
           cp -R "$app" dist/Payload/AutoSDKTemplate.app
           (cd dist && zip -qry AutoSDKTemplate.ipa Payload)
       - name: Upload IPA artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: AutoSDKTemplate-ipa
           path: dist/AutoSDKTemplate.ipa
@@ -140,7 +152,7 @@ jobs:
             echo ""
             echo "## Downloads"
             echo "- AutoSDKTemplate.ipa — 未签名模板 App，用 AltStore / Sideloadly / SideStore / Feather 免费签名安装（无需巨魔）"
-            echo "- autosdk-vscode-0.11.0.vsix — VS Code 调试插件（本机写脚本 / 连手机调试 / 可视化检查 UI）"
+            echo "- autosdk-vscode-0.12.0.vsix — VS Code 调试插件（本机写脚本 / 连手机调试 / 可视化检查 UI）"
             echo ""
             echo "## Changelog"
             awk -v ver="${tag#v}" '$0 ~ "^## \\[" ver "\\]" { flag=1; next } flag && /^## / { exit } flag { print }' CHANGELOG.md
@@ -149,7 +161,7 @@ jobs:
             --title "AutoSDK ${tag}" \
             --notes-file "$notes" \
             dist/AutoSDKTemplate.ipa \
-            vscode-extension/autosdk-vscode-0.11.0.vsix \
+            vscode-extension/autosdk-vscode-0.12.0.vsix \
             || gh release edit "$tag" --notes-file "$notes" --title "AutoSDK ${tag}"
 
   docs:
@@ -164,7 +176,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Upload documentation site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: docs
       - name: Check GitHub Pages availability
@@ -180,9 +192,9 @@ jobs:
       - name: Deploy to GitHub Pages
         if: steps.pages-check.outputs.enabled == 'true'
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
       - name: Upload docs artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: autosdk-docs
           path: docs

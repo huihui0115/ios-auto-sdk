@@ -4244,6 +4244,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                                              [[context.exception toString] ?: @"Async thread exception." description], nil);
             } else if (thread.cancelled || [engine shouldStop]) {
                 thread.error = AutoMakeError(AutoSDKErrorScriptCancelled, @"Async thread cancelled.", nil);
+            } else if (threadBridge.lastError) {
+                thread.error = threadBridge.lastError;
             } else {
                 thread.result = AutoBoundedJSResult(value);
             }
@@ -4293,7 +4295,11 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         thread.bridge.threadCancelled = YES;
         return @YES;
     }
-    if ([operation isEqualToString:@"result"]) return thread.finished ? (thread.result ?: [NSNull null]) : [NSNull null];
+    if ([operation isEqualToString:@"result"]) {
+        if (!thread.finished) return [NSNull null];
+        if (thread.error) return [self failure:thread.error];
+        return thread.result ?: [NSNull null];
+    }
     if ([operation isEqualToString:@"join"]) {
         while (!thread.finished && ![self.engine shouldStop] && !self.threadCancelled) {
             AutoPumpRunLoopWithSleepFallback(0.02);

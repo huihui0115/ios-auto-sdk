@@ -1,8 +1,10 @@
 # AutoScript vs AutoSDK
 
-> ⚠️ 注意（v1.17.0）：`AutoWDAHTTPAdapter` 已移除，跨 App 自动化统一走内置 no-WDA 适配器（`AutoBuiltinAdapter`，见 `docs/NO_WDA_ARCHITECTURE.md`）。本文涉及 WDA 的内容为历史存档。
+> ⚠️ `AutoWDAHTTPAdapter` 已移除。跨 App 自动化统一走内置 no-WDA
+> 适配器（`AutoBuiltinAdapter`），并受签名环境、运行时 capability 和宿主进程
+> 保活限制；普通 UIKit 模式只自动化宿主 App。
 
-Audit date: 2026-08-05
+Audit date: 2026-08-20
 
 > AutoScript（用户常简称为 ascript）是一款面向 iOS 用户的 JavaScript
 > 自动化脚本工具，以独立 App 形态分发（免费签名/免越狱通道），自带脚本
@@ -16,11 +18,11 @@ Audit date: 2026-08-05
 | --- | --- | --- |
 | 产品形态 | 独立脚本 App，安装即用 | 嵌入宿主 App 的 SDK，需构建自己的 IPA |
 | 使用对象 | 最终用户 / 脚本作者 | 开发者 / 集成方 |
-| 脚本运行环境 | 工具自己的进程 + 系统级权限通道 | 宿主 App 进程；宿主内 UIKit 直接自动化，跨 App 需 WDA Runner |
+| 脚本运行环境 | 工具自己的进程 + 系统级权限通道 | 宿主 App 进程；UIKit 只操作宿主，跨 App 需特签内置 no-WDA 且 capability 可用 |
 | 脚本来源 | App 内脚本列表 / 文件导入 | Bundle 脚本、部署脚本、VS Code 插件发送 |
 | 开发与调试 | App 内编辑器 + 控制台日志 | VS Code 插件：补全/片段、截图与节点 Inspector、图像/颜色/OCR 测试、USB/Wi-Fi WebSocket 调试 |
 | 分发路径 | 用户直接安装工具 | 开发者通过 GitHub Actions 远程构建 IPA，再装到自己的设备 |
-| 上手速度 | 装 App 即可写脚本 | 需要构建（远程构建约 4 分钟）+ 免费签名安装 + 可选 WDA 配置 |
+| 上手速度 | 装 App 即可写脚本 | 需要构建 + 签名安装；Wi-Fi 插件开发无需 WDA，跨 App 另需特签环境 |
 
 ## API 覆盖对比（已确认面）
 
@@ -31,10 +33,10 @@ Audit date: 2026-08-05
 | 系统音量 | getVolume | ✅ device.getVolume（只读，0~1） |
 | 振动 | vibrate | ✅ device.vibrate（时长建议值，封顶） |
 | 打开 URL | openURL | ✅ auto/app.openURL（http(s)+安全自定义 scheme） |
-| 主屏幕/锁屏/解锁 | homeScreen / lock / unlock | ✅ app.homeScreen / lock / unlock（WDA 适配器实现） |
-| 当前前台应用 | currentPackage | ✅ app.current() / currentApp()（WDA activeAppInfo） |
-| 音量键/屏幕状态 | 音量加/减键、屏幕亮灭查询 | ✅ device.volumeUp / volumeDown / isScreenOn（WDA 按键注入） |
-| 触摸/节点 | 跨 App 点击、滑动、节点树 | 宿主内 AutoUIKitAdapter 直接；跨 App 走 WDA 适配器 |
+| 主屏幕/锁屏/解锁 | homeScreen / lock / unlock | ✅ app.homeScreen / lock / unlock（内置 no-WDA，运行时探测） |
+| 当前前台应用 | currentPackage | ✅ app.current() / currentApp()（内置 no-WDA） |
+| 音量键/屏幕状态 | 音量加/减键、屏幕亮灭查询 | ✅ device.volumeUp / volumeDown / isScreenOn（内置适配器能力可用时） |
+| 触摸/节点 | 跨 App 点击、滑动、节点树 | UIKit 仅宿主；内置 no-WDA 在特签且 capability 可用时支持跨 App |
 | 图色/OCR | 截图、找色、找图、OCR | ✅ 截图、像素、找色、多色、找图、Vision OCR |
 | 文件/存储 | 沙盒文件 CRUD、命名存储 | ✅ 受限根目录 CRUD、命名 JSON 存储 |
 | HTTP | 请求/JSON/下载 | ✅ 受控 HTTP + 主机白名单 + 大小上限 |
@@ -47,7 +49,7 @@ Audit date: 2026-08-05
 | 弹窗/退出 | 提示框、停止脚本 | ✅ alert(message,title?)、exit() |
 | 内存信息 | 内存占用/可用 | ✅ device.getMemoryInfo（total/free/appUsed 字节） |
 | 分辨率适配 | setScreenMetrics / getScreenMetrics | ✅ setScreenMetrics(width,height) + metrics.point(x,y) + device.width/height |
-| 多指手势 | 双指缩放/自定义复杂手势 | ✅ auto.gesture / multiGesture / pinch（WDA 适配器真实触摸注入，capabilities.multiTouch）|
+| 多指手势 | 双指缩放/自定义复杂手势 | ✅ auto.gesture / multiGesture / pinch（内置 no-WDA 真实触摸注入，capabilities.multiTouch）|
 | 随机/中心点击 | 无标准封装 | ✅ auto.clickCenter / auto.clickRandom（坐标取整，防检测） |
 | 工具函数 | uuid / base64 编码 | ✅ uuid()/uniqueId()、base64.encode/decode（UTF-8 安全） |
 | JSON 快捷请求 | httpGetJson | ✅ http.getJSON（parseJson:true） |
@@ -55,12 +57,12 @@ Audit date: 2026-08-05
 
 ## 缺失但仍需要通道的部分
 
-- 跨 App 的真实触摸：AutoUIKitAdapter 无法注入系统级触摸，必须依赖
-  WDA/XCTest 兼容 Runner（项目提供 AutoWDAHTTPAdapter 客户端）。
+- 跨 App 的真实触摸：AutoUIKitAdapter 无法注入系统级触摸；只能使用允许私有
+  API 的内置 no-WDA 构建，并在真机确认 touch/nodes/screenshot capability。
 - 连续屏幕流、断点调试器、模块加载器、纯 JS 死循环的硬中断：均未实现，
   与 EasyClick 对比文档中的缺口一致。
 - 系统权限通道：剪贴板/亮度/音量/振动是宿主进程内系统 API，主屏幕/锁屏/
-  解锁依赖适配器支持（WDA Runner 提供）。
+  解锁依赖内置适配器的运行时能力。
 
 ## 别人能否快速开发自己的自动化脚本？
 
@@ -70,8 +72,8 @@ Audit date: 2026-08-05
    - 在 `Examples/TemplateApp/Scripts/` 里放自己的 `.js`（或 VS Code 插件
      发送/部署脚本）；
    - 运行 `node tools/auto-sdk.mjs build-remote` 让 GitHub Actions 构建
-     IPA（约 4 分钟）；
-   - 免费签名安装，用 VS Code 插件连上调试、逐行跑、截图查节点。
+     IPA；
+   - 免费签名安装，用 VS Code 插件连上调试、运行脚本、看日志和检查截图节点。
    - 门槛：需要 GitHub 账号与一次构建配置，比 AutoScript「装 App 即用」多
      一步构建，但脚本写法与 AutoScript 风格高度一致。
 
@@ -79,12 +81,13 @@ Audit date: 2026-08-05
    注册一个 `AutoAutomationAdapter`，即可让脚本访问宿主 UI、文件、存储、
    HTTP 与系统能力，并把整套脚本能力作为自己产品的功能。
 
-3. **需要跨 App 自动化**：在设备上运行 WDA 兼容 Runner，把
-   `AutoWDAHTTPAdapter` 配置进宿主 App，即可获得跨 App 点击、节点、
-   主屏幕/锁屏/解锁等能力。
+3. **需要跨 App 自动化**：使用特签的 `AutoBuiltinAdapter` 构建，并保持宿主
+   进程可运行；只有 `auto.capabilities().automation` 中对应能力为真时，才使用
+   跨 App 点击、节点、截图或系统动作。普通免费签 App 退后台后可能被 iOS 挂起，
+   不承诺跨 App Inspector。
 
 **结论**：AutoSDK 面向的是「想要自己产品的脚本能力」的开发者；AutoScript
 面向的是「直接使用现成工具」的最终用户。若你的朋友只想写脚本而不想碰
 构建，AutoScript 更省事；若他们想把自己的自动化做成可分发 App 或嵌入
-现有 App，AutoSDK 是更合适的起点。快速上手的完整步骤见
-[`QUICK_START.md`](QUICK_START.md)。
+现有 App，AutoSDK 是更合适的起点。快速上手统一从
+[`index.html#/quickstart`](index.html#/quickstart) 进入。

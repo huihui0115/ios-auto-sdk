@@ -68,10 +68,34 @@ test('JavaScript and TypeScript editors expose one-click run actions', () => {
   assert.equal(titleRun.when, contextRun.when);
 });
 
+test('an unconfigured one-click run can launch normal Wi-Fi discovery', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+  assert.match(source, /showErrorMessage\(`AutoSDK: \$\{error\.message\}`, \.\.\.runErrorActions\(error\)\)/);
+  assert.match(source, /action === SCAN_WIFI_DEVICE\) await vscode\.commands\.executeCommand\('autosdk\.discoverDevice'\)/);
+});
+
+test('Wi-Fi connection tests share token and retry recovery for manual and discovered devices', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+  assert.equal((source.match(/testWifiConnectionWithRecovery\(\{/g) || []).length, 3);
+  assert.match(source, /REENTER_TOKEN,\s*RETRY_CONNECTION/);
+  assert.match(source, /testConnection\(\{ showFailure: false \}\)/);
+  assert.match(source, /cancellable: true/);
+  assert.doesNotMatch(source, /Choose how Windows connects/);
+});
+
+test('the Inspector labels pixel sampling as Color instead of a click point', () => {
+  const viewSource = fs.readFileSync(path.join(__dirname, '..', 'inspector-view.js'), 'utf8');
+  const webviewSource = fs.readFileSync(path.join(__dirname, '..', 'media', 'inspector.js'), 'utf8');
+  assert.match(viewSource, /data-mode="point"[^>]*>Color<\/button>/);
+  assert.doesNotMatch(viewSource, /data-mode="point"[^>]*>Point<\/button>/);
+  assert.match(webviewSource, /state\.selectedIndex = -1;[\s\S]{0,240}setGenerated\(''\);[\s\S]{0,240}send\('pixel', 'pixelColor'/);
+  assert.match(webviewSource, /message\.type === 'pixelColor'[\s\S]{0,180}setGenerated\(model\.codeForColor\(color\)\)/);
+});
+
 test('the disconnected status bar opens Wi-Fi discovery', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
   assert.match(source, /state === 'disconnected' \? 'autosdk\.discoverDevice' : 'autosdk\.testConnection'/);
-  assert.match(source, /discoverWifiDevices\(\)/);
+  assert.match(source, /discoverWifiDevices\(\{ signal: controller\.signal \}\)/);
   assert.match(source, /discoverUsbDevices\(/);
 });
 

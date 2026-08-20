@@ -31,10 +31,13 @@ AltStore / Sideloadly / 侧载 / 企业签名更现实。
 ## 3. 构建与签名
 
 ```bash
-# 1) 本地静态检查 + 单元测试（Windows 也行）
-node tools/verify.mjs
+# 1) 本地静态检查、文档生成与单元测试（Windows 也行）
+npm run verify
 npm test
-.\vscode-extension\node_modules\.bin\tsc -p jsconfig.json --noEmit
+npx -y -p typescript@5.6.3 tsc -p jsconfig.json --noEmit
+npm run docs
+npm --prefix vscode-extension run check
+npm --prefix vscode-extension test
 
 # 2) 在 macOS 上生成工程并打包
 cd Examples/TemplateApp
@@ -101,4 +104,4 @@ CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
 2. 跑一遍第 3 节的静态检查和 CI 构建。
 3. 人工过一遍第 4 节清单。
 4. 把未签名 IPA 上传商店/分发后台，附上第 5 节说明。
-5. 打 tag：`git tag v1.36.1; git push origin main v1.36.1`。
+5. 打 tag：`git tag v1.37.0; git push origin main v1.37.0`。

@@ -66,7 +66,7 @@ report('Node syntax check (tools/*.mjs)', syntaxFailures.length === 0,
   syntaxFailures.length ? 'failed: ' + syntaxFailures.join(', ') : undefined);
 
 const requiredDocs = [
-  'README.md', 'docs/index.html', 'docs/QUICK_START.md',
+  'README.md', 'docs/index.html',
   'types/autosdk.d.ts', 'Examples/TemplateApp/App/Info.plist', 'Examples/TemplateApp/project.yml',
 ];
 const missingDocs = requiredDocs.filter(path => !existsSync(resolve(root, path)));

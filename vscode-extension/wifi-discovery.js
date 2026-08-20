@@ -2,7 +2,10 @@ const net = require('node:net');
 const { Bonjour } = require('bonjour-service');
 
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 3500;
-const DISCOVERY_SETTLE_MS = 450;
+// Bonjour responses may arrive in separate multicast bursts. Keep listening long
+// enough after the latest valid phone to include slower responders, while the
+// overall discovery timeout below remains the hard upper bound.
+const DISCOVERY_SETTLE_MS = 1200;
 const MAX_DISCOVERY_TIMEOUT_MS = 15000;
 const MAX_DISCOVERED_DEVICES = 64;
 
@@ -44,16 +47,21 @@ function serviceDevice(service) {
 async function discoverWifiDevices(options = {}) {
   const timeoutMs = boundedTimeout(options.timeoutMs);
   const BonjourClass = options.BonjourClass || Bonjour;
+  const signal = options.signal;
+  const scheduleTimeout = options.scheduleTimeout || setTimeout;
+  const cancelTimeout = options.cancelTimeout || clearTimeout;
   const found = new Map();
   let browser;
   let bonjour;
   let settleTimer;
   let timer;
   let settled = false;
+  let abortListener;
 
   const cleanup = () => {
-    clearTimeout(timer);
-    clearTimeout(settleTimer);
+    cancelTimeout(timer);
+    cancelTimeout(settleTimer);
+    if (abortListener) signal?.removeEventListener('abort', abortListener);
     try { browser?.stop(); } catch (_) { /* browser already stopped */ }
     try { bonjour?.destroy(); } catch (_) { /* socket already closed */ }
   };
@@ -66,29 +74,45 @@ async function discoverWifiDevices(options = {}) {
       if (error) reject(error);
       else resolve([...found.values()].sort((left, right) => left.name.localeCompare(right.name)));
     };
+    abortListener = () => {
+      const error = new Error('Wi-Fi discovery cancelled.');
+      error.name = 'AbortError';
+      finish(error);
+    };
+    if (signal?.aborted) {
+      abortListener();
+      return;
+    }
+    signal?.addEventListener('abort', abortListener, { once: true });
     const onService = service => {
+      if (settled) return;
       if (found.size >= MAX_DISCOVERED_DEVICES) return;
       const device = serviceDevice(service);
       if (!device) return;
       found.set(device.deviceId || device.url, device);
-      clearTimeout(settleTimer);
-      settleTimer = setTimeout(() => finish(), DISCOVERY_SETTLE_MS);
+      cancelTimeout(settleTimer);
+      settleTimer = scheduleTimeout(() => finish(), DISCOVERY_SETTLE_MS);
     };
 
     try {
       bonjour = new BonjourClass({}, error => finish(new Error(`Wi-Fi discovery failed: ${error.message || error}`)));
+      if (settled) {
+        cleanup();
+        return;
+      }
       browser = bonjour.find({ type: 'autosdk', protocol: 'tcp' }, onService);
       browser?.update?.();
     } catch (error) {
       finish(new Error(`Wi-Fi discovery could not start: ${error.message}`));
       return;
     }
-    timer = setTimeout(() => finish(), timeoutMs);
+    timer = scheduleTimeout(() => finish(), timeoutMs);
   });
 }
 
 module.exports = {
   DEFAULT_DISCOVERY_TIMEOUT_MS,
+  DISCOVERY_SETTLE_MS,
   MAX_DISCOVERED_DEVICES,
   boundedTimeout,
   discoverWifiDevices,

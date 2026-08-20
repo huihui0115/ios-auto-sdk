@@ -230,7 +230,7 @@
     else {
       state.selectedIndex = -1;
       elements.details.textContent = JSON.stringify({ x: Math.round(point.x), y: Math.round(point.y) }, null, 2);
-      setGenerated(model.codeForPoint(point));
+      setGenerated('');
       renderNodes();
       renderOverlays();
       renderBusyState();

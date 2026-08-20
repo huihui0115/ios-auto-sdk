@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 71（v1.36.1，2026-08-20）。
+> 最后更新：Round 72（v1.37.0，2026-08-20）。
 
 ---
 
@@ -83,11 +83,11 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 71 / v1.36.1）
+## 4. 当前状态（Round 72 / v1.37.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **61262 / 61440**（预算 60×1024 UTF-16 码元，余 178）。
-- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **75 项**；VS Code 插件 **0.11.0**，测试 **97 项**。
+- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **78 项**；VS Code 插件 **0.12.0**，测试 **105 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
   `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制）。
@@ -149,6 +149,11 @@ bridge (__bridge 对象，JSValue block)
   回归测试改为注入原始系统状态，不再依赖冷启动模拟器的实时 `locationd`；生产默认
   provider 为 `nil`，仍调用真实 `NSProcessInfo` / `CLLocationManager` API。新增覆盖全部
   授权枚举及未知值回退的确定性测试，原生 XCTest 共 **75 项**，公开 API 与插件不变。
+- **Round 72 调试与发布可靠性迭代**：插件 0.12.0 的 Bonjour 扫描在首台响应后继续
+  收集多机并支持取消；首次/旧 token 失败可原地重输或重试，未配置就右键运行可直接
+  扫描添加。原生线程把子 JSContext 的桥失败传播到 `execSync/getResult/join`，不再返回
+  误导值并丢失 `lastError`；原生 XCTest **78 项**。CI 迁到 macOS 15 与 Node 24 Actions，
+  Xcode 15/16 诊断兼容；快速上手统一为唯一 HTML 入口。bootstrap/公开 API 数量不变。
 
 已实现能力（详见唯一 HTML 文档入口 `docs/index.html`）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -201,7 +206,7 @@ webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 - `findImage` 已于 Round 49 实现（有界两阶段模板匹配）；
   xpath 子集已于 Round 53 实现（单步 //Type[@attr='v'] 等翻译为原生查询键）；predicate 仍返回清晰错误。
 - 验证模板 App `AutoSDKAdapter=BUILTIN` 配置接线与 capabilities 降级路径。
-- 注：每次 push main/tag 都会触发 GitHub Actions（macos-14：verify+npm test+
+- 注：每次 push main/tag 都会触发 GitHub Actions（macos-15：verify+npm test+
   Xcode 模拟器测试+IPA 打包+Release），原生代码的编译与模拟器行为已被 CI 覆盖；
   真机专属项仅剩私有 API 行为（IOHIDEvent/AX/SpringBoard）。
 - R53-R59 新增待真机抽查：xpath 子集实机控件命中、ocr.newOcr 对文件 OCR、
@@ -213,6 +218,11 @@ webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   macOS/Xcode 环境扩充；Windows 环境以 `npm test`（Node 端）为主。
 - `docs/PERFORMANCE.md` 记录了图色/OCR 预算，新增原生能力时保持有界。
 - 每轮更新 `docs/EASYCLICK_COMPARISON.md` 的矩阵与计数，避免文档漂移。
+- 定位桥仍需继续拆除可能阻塞的实时 `locationServicesEnabled` 前置查询，并在硬超时后
+  严格禁止迟到的授权/定位副作用；CoreLocation delegate 错误还应统一包装成
+  `AutoSDKErrorDomain` 并保留 underlying error。
+- VPN preference load 与定位等待应改为可感知 `stopScript` 的短分片等待，避免取消时
+  仍被系统回调阻塞到固定超时；这些属于下一轮原生并发/取消专项。
 
 ## 7. 核心工作流
 
@@ -263,6 +273,12 @@ webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 
 ## 9. 历轮主线（git log 可查）
 
+- R72（v1.37.0）：**调试、错误传播与发布链可靠性**——插件 0.12.0 支持可取消的
+  多 iPhone 广播收集、token 原地重输/重试、未配置运行直达扫描，并把 Inspector
+  取色模式明确命名为 Color；子 JSContext 的桥失败通过 execSync/async result/join
+  正确外传，类型同步；CI 迁到 macOS 15、Xcode 15/16 兼容诊断及 Node 24 Actions；
+  快速上手统一到唯一 HTML。bootstrap 61262/61440，文档 259 项、Node 测试 88 项、
+  原生 XCTest 78 项、插件测试 105 项。
 - R71（v1.36.1）：**iOS 系统状态测试稳定性修复**——把低电量、定位服务与定位授权
   的原生测试改为私有 provider 注入原始值，覆盖五种授权状态和未知枚举回退，消除冷
   模拟器 `locationd` 对发布 CI 的非确定性依赖；生产默认路径与 Round 70 完全一致，

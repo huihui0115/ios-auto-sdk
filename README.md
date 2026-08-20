@@ -28,8 +28,8 @@
 > 🆚 对标文档：[`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)（EasyClick）、[`docs/TROLLAUTOSCRIPT_COMPARISON.md`](docs/TROLLAUTOSCRIPT_COMPARISON.md)（TrollAutoScript）、[`docs/ASCRIPT_COMPARISON.md`](docs/ASCRIPT_COMPARISON.md)（AScript）、[`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)（AutoScript）。
 > 🚀 免巨魔路线（对标 AScript/kuaijs）：[`docs/NO_TROLLSTORE.md`](docs/NO_TROLLSTORE.md)——免费签名安装 / XCTest 激活 WDA / HID 模式。
 > 🔥 内置 no-WDA 架构（Round 46 起的主路线）：[`docs/NO_WDA_ARCHITECTURE.md`](docs/NO_WDA_ARCHITECTURE.md)——放弃外挂 WDA，触摸/控件/应用控制全部内置。
-> 🚀 想快速上手？先看 [`docs/QUICK_START.md`](docs/QUICK_START.md)（第三方 10 分钟跑通
-> 「写脚本 → 构建 IPA → 安装 → 调试」）。与 AutoScript 的定位/能力对比见
+> 🚀 想快速上手？直接打开唯一开发文档的 [`5 分钟上手`](docs/index.html#/quickstart)
+> （安装插件 → Wi-Fi 扫描手机 → 右键运行）。与 AutoScript 的定位/能力对比见
 > [`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)。
 
 ## 集成
@@ -125,7 +125,7 @@ auto.toast("自定义方法由 Native 注册");
 节点对象是带稳定弱关联句柄的可序列化描述，不会强持有 UIKit 对象；可以把 `findElement` 返回值再次传给 `getText`、`getBounds`、`getParent` 等 API。视图销毁后句柄自动失效。HTTP 默认关闭，需显式配置 `allowNetwork: @YES`，请求仅允许 `http` 和 `https`。
 
 节点 API 的字段和返回结构见 [`docs/NODE_OPERATIONS.md`](docs/NODE_OPERATIONS.md)，HTTP 请求见 [`docs/HTTP_API.md`](docs/HTTP_API.md)。
-文件、存储和设备模块见 [`docs/FILE_STORAGE_DEVICE_API.md`](docs/FILE_STORAGE_DEVICE_API.md)。与 EasyClick iOS USB/脱机版官方文档的逐类差距见 [`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)，与 AutoScript 的定位与能力对比见 [`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)，第三方快速上手见 [`docs/QUICK_START.md`](docs/QUICK_START.md)。脚本执行的整体语义（输入分类、执行生命周期、超时与中断、定时器排空、错误码）见 [`docs/SCRIPT_EXECUTION.md`](docs/SCRIPT_EXECUTION.md)。
+文件、存储和设备模块见 [`docs/FILE_STORAGE_DEVICE_API.md`](docs/FILE_STORAGE_DEVICE_API.md)。与 EasyClick iOS USB/脱机版官方文档的逐类差距见 [`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)，与 AutoScript 的定位与能力对比见 [`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)，快速上手统一从 [`docs/index.html#/quickstart`](docs/index.html#/quickstart) 进入。脚本执行的整体语义（输入分类、执行生命周期、超时与中断、定时器排空、错误码）见 [`docs/SCRIPT_EXECUTION.md`](docs/SCRIPT_EXECUTION.md)。
 
 默认禁止远程脚本。只有显式配置 `@{"allowRemoteScripts": @YES}` 后，`http://` 或 `https://` URL 才会被加载；生产环境建议只允许 HTTPS，并在适配器或宿主层做签名校验。
 

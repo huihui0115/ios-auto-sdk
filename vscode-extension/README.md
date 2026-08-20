@@ -25,8 +25,8 @@ From the repository root:
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.11.0.vsix
-code --install-extension .\autosdk-vscode-0.11.0.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.12.0.vsix
+code --install-extension .\autosdk-vscode-0.12.0.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An
@@ -46,7 +46,11 @@ The normal setup is direct Wi-Fi:
    **AutoSDK: Run Current Script**. The editor title also has a play button.
 
 Discovery uses the `_autosdk._tcp` Bonjour service and does not broadcast the
-debug token. If multicast DNS is blocked, choose **Enter IP Address** and enter
+debug token. The scan keeps collecting after the first response so multiple
+phones can be selected, and its progress notification can be cancelled. If a
+connection test fails, choose **Re-enter Token** or **Retry Connection** without
+scanning again. Running from the editor before setup offers **Scan Wi-Fi and Add
+iPhone** directly. If multicast DNS is blocked, choose **Enter IP Address** and enter
 either `192.168.1.25` or the complete `ws://192.168.1.25:9001` address shown by
 the app. No `iproxy`, USB cable, or libimobiledevice install is needed for Wi-Fi.
 
@@ -116,7 +120,12 @@ click code. Selecting a local PNG/JPEG deploys a hashed copy into the phone's
 `debug-assets` directory before testing, so generated `auto.findImage` code
 uses a real persistent path. Region mode can execute bounded fast OCR and show
 the recognized words immediately. UIKit mode inspects the host app. The
-built-in no-WDA mode can inspect and operate any app on the device.
+built-in no-WDA mode can inspect another app only when a TrollStore or
+enterprise-signed host remains running and
+`auto.capabilities().automation.nodes`, `.screenshot`, and the required action
+capability (for example `.click`) report true. An ordinary free-signed Wi-Fi
+session must keep the TemplateApp foregrounded and therefore does not promise
+cross-app Inspector access after iOS suspends it in the background.
 
 The Inspector uses one serialized visual-operation lane shared with the plain
 screenshot and node commands. Screenshot, node, pixel, OCR, and image-match

@@ -39,10 +39,20 @@ function page(id, group, title, lead, body, eyebrow = group) {
 const firstScript = `function main() {
   toastLog("AutoSDK 已连接");
   logd(JSON.stringify(device.getDeviceInfo()));
-  logd(JSON.stringify(auto.capabilities()));
+  const caps = auto.capabilities();
+  logd(JSON.stringify(caps));
 
-  const image = screenshot();
-  logd("截图 Base64 长度: " + image.length);
+  if (caps.automation && caps.automation.screenshot === true) {
+    const image = screenshot();
+    if (typeof image === "string") {
+      logd("截图 Base64 长度: " + image.length);
+    } else {
+      const error = lastError();
+      logw("截图失败: " + (error ? error.message : "未知原因"));
+    }
+  } else {
+    logw("当前签名或适配器不支持截图");
+  }
 }
 main();`;
 
@@ -105,6 +115,7 @@ const guides = [
         <li>插件扫描 <code>_autosdk._tcp</code> Bonjour 广播；选择手机，首次输入至少 16 个字符的 token。</li>
         <li>插件自动保存稳定广播身份并测试连接；同一手机以后只需选择一次，DHCP 地址变化也会自动更新。</li>
       </ol>
+      <p>扫描会在第一台响应后继续收集其他手机，并可从进度通知取消。连接测试失败时可直接 <code>Re-enter Token</code> 或 <code>Retry Connection</code>，不必重新扫描；未配置设备就右键运行脚本时，也可直接启动 Wi-Fi 扫描添加。</p>
       <p>广播不包含 token。若路由器或防火墙屏蔽 mDNS（UDP 5353），选择 <code>Enter IP Address</code>，直接输入 App 显示的手机 IP 或完整 <code>ws://手机IP:9001</code>。</p>
       <h2>USB 高级备用</h2>
       <p>运行 <code>AutoSDK: Search USB iPhone (Advanced)</code> 可使用 <code>idevice_id</code> + <code>iproxy</code>。普通 Wi-Fi 开发无需安装 libimobiledevice。</p>
@@ -161,11 +172,12 @@ main();`)}
     body: `
       <h2>推荐流程</h2>
       <div class="steps">
-        <div class="step"><strong>打开目标页面</strong><p>让设备停在要调试的界面，执行 <code>AutoSDK: Open Visual Inspector</code>。</p></div>
+        <div class="step"><strong>打开目标页面</strong><p>UIKit 模式请让宿主 App 保持前台；特签内置适配器仅在运行时能力可用且宿主进程仍在运行时检查其他 App。然后执行 <code>AutoSDK: Open Visual Inspector</code>。</p></div>
         <div class="step"><strong>采集关联快照</strong><p>检查器会把截图和节点树作为同一轮采集结果处理，避免节点位置与画面错位；采集可取消。</p></div>
         <div class="step"><strong>点选并验证</strong><p>点击截图或节点，查看属性、范围和层级；使用选择器测试确认唯一匹配。</p></div>
         <div class="step"><strong>生成最小选择器</strong><p>优先保留稳定且能唯一定位的属性，再复制 JavaScript 到脚本。</p></div>
       </div>
+      <div class="callout warning"><strong>跨 App 不是普通签名默认能力</strong>免费签名的 TemplateApp 退到后台后可能被 iOS 挂起。只有启用内置 no-WDA、签名环境允许私有能力，并且 <code>auto.capabilities().automation</code> 中的 <code>nodes</code>、<code>screenshot</code>、<code>click</code> 对应能力为真时，才可使用跨 App Inspector；UIKit 适配器只检查宿主 App。</div>
       <h2>面板能做什么</h2>
       <div class="card-grid">
         <div class="info-card"><strong>节点模式</strong><p>树与截图联动、高亮匹配区域、节点动作后自动刷新。</p></div>

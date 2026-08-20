@@ -24,7 +24,7 @@ function inspectorHtml(webview, extensionUri) {
     <button id="refresh" type="button" title="Refresh screenshot and nodes">Refresh</button>
     <div class="segmented" role="group" aria-label="Inspection mode">
       <button type="button" class="active" data-mode="node">Node</button>
-      <button type="button" data-mode="point">Point</button>
+      <button type="button" data-mode="point" title="Read the pixel color and generate compareColors code">Color</button>
       <button type="button" data-mode="region">Region</button>
     </div>
     <button id="test-image" type="button" title="Choose a local template and test it on the device">Test image</button>

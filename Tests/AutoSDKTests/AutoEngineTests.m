@@ -1079,6 +1079,51 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [self waitForExpectationsWithTimeout:2 handler:nil];
 }
 
+- (void)testExecSyncPropagatesNestedBridgeFailure {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5, @"allowSystemControl": @NO }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"execSync bridge failure"];
+    NSString *script = @"execSync(function(){ return vpn.connect(); });";
+    [engine runScript:script completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqualObjects(error.domain, AutoSDKErrorDomain);
+        XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testAsyncGetResultPropagatesNestedBridgeFailure {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5, @"allowSystemControl": @NO }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"async getResult bridge failure"];
+    NSString *script = @"const t=execAsync(function(){ return vpn.connect(); });while(!t.isFinished())sleep(1);t.getResult();";
+    [engine runScript:script completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqualObjects(error.domain, AutoSDKErrorDomain);
+        XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
+- (void)testAsyncJoinPropagatesNestedBridgeFailure {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5, @"allowSystemControl": @NO }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"async join bridge failure"];
+    NSString *script = @"const t=execAsync(function(){ return vpn.connect(); });t.join();";
+    [engine runScript:script completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(result);
+        XCTAssertEqualObjects(error.domain, AutoSDKErrorDomain);
+        XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+}
+
 - (void)testReliableSystemSwitchStatesAreExposed {
     AutoEngine *engine = AutoEngine.sharedEngine;
     [engine initWithConfig:@{ @"scriptTimeout": @5, @"allowSystemControl": @NO }];

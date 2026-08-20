@@ -948,7 +948,7 @@ interface AutoThreadAPI {
 }
 
 interface AutoThreadHandle {
-  join(): { threadId: number } | null;
+  join(): unknown;
   isFinished(): boolean;
   getResult(): unknown;
   cancel(): boolean;

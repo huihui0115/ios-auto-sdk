@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
+const { REENTER_TOKEN, RETRY_CONNECTION, SCAN_WIFI_DEVICE, connectWithRecovery, runErrorActions } = require('./connection-recovery');
 const { DeviceClient } = require('./device-client');
 const { canonicalDebugUrl, connectionCredentials, normalizeWifiDebugUrl, tokenForConfiguration, updateConnectionConfiguration } = require('./connection-settings');
 const { completionEntries } = require('./completion-model');
@@ -299,7 +300,8 @@ async function runCurrentScript() {
     vscode.window.showInformationMessage(`AutoSDK finished ${script.name}.`);
   } catch (error) {
     channel.appendLine(error.stack || error.message);
-    vscode.window.showErrorMessage(`AutoSDK: ${error.message}`);
+    const action = await vscode.window.showErrorMessage(`AutoSDK: ${error.message}`, ...runErrorActions(error));
+    if (action === SCAN_WIFI_DEVICE) await vscode.commands.executeCommand('autosdk.discoverDevice');
   }
 }
 
@@ -425,6 +427,40 @@ async function promptDebugToken(mode, savedToken) {
   });
 }
 
+async function testWifiConnectionWithRecovery({ current, credentialScope, url, wifiDeviceId = '' }) {
+  return connectWithRecovery({
+    testConnection: () => testConnection({ showFailure: false }),
+    chooseAction: () => vscode.window.showWarningMessage(
+      'AutoSDK could not connect to this iPhone. Correct the token or retry without scanning again.',
+      REENTER_TOKEN,
+      RETRY_CONNECTION
+    ),
+    replaceToken: async () => {
+      const token = await promptDebugToken('wifi', '');
+      if (token === undefined) return false;
+      if (credentialScope !== workspaceCredentialScope()) {
+        vscode.window.showErrorMessage('AutoSDK: The workspace changed while updating the token. Run the add command again.');
+        return false;
+      }
+      try {
+        await saveDeviceConnection({
+          current,
+          credentialScope,
+          mode: 'wifi',
+          token,
+          url,
+          usbDeviceUdid: '',
+          wifiDeviceId
+        });
+        return true;
+      } catch (error) {
+        vscode.window.showErrorMessage(`AutoSDK could not update the debug token: ${error.message}`);
+        return false;
+      }
+    }
+  });
+}
+
 async function configureDevice(preferredMode) {
   const current = configuration();
   const credentialScope = workspaceCredentialScope();
@@ -442,7 +478,7 @@ async function configureDevice(preferredMode) {
       mode: 'usb'
     }
   ], {
-    placeHolder: 'Choose how Windows connects to the iPhone',
+    placeHolder: 'Choose how this computer connects to the iPhone',
     matchOnDescription: true
   });
   if (!connection) return;
@@ -504,7 +540,7 @@ async function configureDevice(preferredMode) {
   }
   if (connection.mode === 'wifi') {
     outputChannel().appendLine(`Saved Wi-Fi device ${canonicalDebugUrl(url)}; testing connection…`);
-    await testConnection();
+    await testWifiConnectionWithRecovery({ current, credentialScope, url });
     return;
   }
   const action = await vscode.window.showInformationMessage('AutoSDK device connection saved.', 'Start USB Tunnel');
@@ -527,8 +563,16 @@ async function discoverDevice() {
     const devices = await vscode.window.withProgress({
       location: vscode.ProgressLocation.Notification,
       title: 'AutoSDK: Scanning the local network for iPhones…',
-      cancellable: false
-    }, () => discoverWifiDevices());
+      cancellable: true
+    }, async (_progress, cancellation) => {
+      const controller = new AbortController();
+      const subscription = cancellation.onCancellationRequested(() => controller.abort());
+      try {
+        return await discoverWifiDevices({ signal: controller.signal });
+      } finally {
+        subscription.dispose();
+      }
+    });
     channel.appendLine(`Wi-Fi Bonjour scan: ${devices.length} AutoSDK iPhone(s) found.`);
     if (!devices.length) {
       const action = await vscode.window.showWarningMessage(
@@ -582,28 +626,17 @@ async function discoverDevice() {
       wifiDeviceId: selection.device.deviceId
     });
     channel.appendLine(`${savedToken ? 'Reconnected' : 'Added'} Wi-Fi device ${selection.device.name} at ${selection.device.url}.`);
-    const connected = await testConnection();
-    if (!connected && savedToken) {
-      const action = await vscode.window.showWarningMessage(
-        'The saved token may no longer match this iPhone.',
-        'Update Token'
-      );
-      if (action === 'Update Token') {
-        const replacement = await promptDebugToken('wifi', '');
-        if (replacement === undefined) return;
-        await saveDeviceConnection({
-          current,
-          credentialScope,
-          mode: 'wifi',
-          token: replacement,
-          url: selection.device.url,
-          usbDeviceUdid: '',
-          wifiDeviceId: selection.device.deviceId
-        });
-        await testConnection();
-      }
-    }
+    await testWifiConnectionWithRecovery({
+      current,
+      credentialScope,
+      url: selection.device.url,
+      wifiDeviceId: selection.device.deviceId
+    });
   } catch (error) {
+    if (error?.name === 'AbortError') {
+      channel.appendLine('Wi-Fi discovery cancelled.');
+      return;
+    }
     channel.appendLine(`Wi-Fi discovery failed: ${error.stack || error.message}`);
     const action = await vscode.window.showErrorMessage(
       `AutoSDK Wi-Fi scan failed: ${error.message}`,
@@ -737,7 +770,7 @@ async function stopUsbTunnel() {
   }
 }
 
-async function testConnection() {
+async function testConnection({ showFailure = true } = {}) {
   const channel = outputChannel();
   channel.show(true);
   try {
@@ -753,7 +786,7 @@ async function testConnection() {
     return true;
   } catch (error) {
     channel.appendLine(error.stack || error.message);
-    vscode.window.showErrorMessage(`AutoSDK connection failed: ${error.message}`);
+    if (showFailure) vscode.window.showErrorMessage(`AutoSDK connection failed: ${error.message}`);
     return false;
   }
 }

@@ -6,6 +6,32 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.37.0] - 2026-08-20
+
+### Added
+
+- Upgraded the VS Code extension to 0.12.0 with cancellable multi-iPhone Bonjour
+  discovery, in-place token re-entry/retry, and a direct Wi-Fi add action when
+  editor Run is used before a device is configured.
+
+### Changed
+
+- Migrated iOS CI to macOS 15, Xcode 15/16-compatible result diagnostics, and
+  the Node 24 artifact/Pages actions; diagnostics now run only when the XCTest
+  step itself fails.
+- Consolidated quick-start guidance into `docs/index.html`, capability-guarded
+  its first screenshot example, and clarified free-signing and cross-app
+  Inspector boundaries.
+
+### Fixed
+
+- Propagated nested bridge failures through `execSync`, async `getResult`, and
+  `join` instead of returning a misleading value with an empty outer
+  `lastError`; corrected the `AutoThreadHandle.join()` TypeScript result type.
+- Kept Bonjour discovery listening long enough to collect slower second phones,
+  avoided duplicate connection-error dialogs, and renamed the Inspector's
+  pixel-sampling mode from Point to Color.
+
 ## [1.36.1] - 2026-08-20
 
 ### Fixed

@@ -126,7 +126,7 @@ function checkBalancedSource(path) {
   check(stack.length === 0, `${path}: unbalanced delimiter '${stack.at(-1)}'`);
 }
 
-for (const path of ['tools/auto-sdk.mjs', 'tools/debug-client.mjs', 'vscode-extension/extension.js', 'vscode-extension/device-client.js', 'vscode-extension/script-tools.js', 'vscode-extension/usb-tunnel.js', 'vscode-extension/inspector-service.js', 'vscode-extension/inspector-session.js', 'vscode-extension/inspector-view.js', 'vscode-extension/media/inspector-model.js', 'vscode-extension/media/inspector.js', 'tools/init-project.mjs', 'tools/doctor.mjs']) {
+for (const path of ['tools/auto-sdk.mjs', 'tools/debug-client.mjs', 'vscode-extension/extension.js', 'vscode-extension/connection-recovery.js', 'vscode-extension/device-client.js', 'vscode-extension/script-tools.js', 'vscode-extension/usb-tunnel.js', 'vscode-extension/wifi-discovery.js', 'vscode-extension/inspector-service.js', 'vscode-extension/inspector-session.js', 'vscode-extension/inspector-view.js', 'vscode-extension/media/inspector-model.js', 'vscode-extension/media/inspector.js', 'tools/init-project.mjs', 'tools/doctor.mjs']) {
   checkNodeSyntax(path);
 }
 const debugClientSource = read('tools/debug-client.mjs');
@@ -235,6 +235,9 @@ check(rootLock.name === rootPackage.name && rootLock.version === rootPackage.ver
       'Root package-lock.json is missing or inconsistent with package.json');
 
 const developerDocs = read('docs/index.html');
+const developerDocsGenerator = read('tools/generate-devdocs.mjs');
+const rootReadme = read('README.md');
+const autoScriptComparison = read('docs/AUTOSCRIPT_COMPARISON.md');
 check((developerDocs.match(/class="api-entry"/g) || []).length === APIS.length,
       'canonical developer docs must render every API function (' + APIS.length + ')');
 check(developerDocs.includes('page-quickstart') && developerDocs.includes('page-api-touch') &&
@@ -245,6 +248,15 @@ check(developerDocs.includes('page-quickstart') && developerDocs.includes('page-
 check(!existsSync('docs/api-reference.html') && !existsSync('docs/devdocs/index.html') &&
       !existsSync('docs/guide/index.html'),
       'redundant legacy HTML documentation must stay removed');
+check(!existsSync('docs/QUICK_START.md') &&
+      !rootReadme.includes('docs/QUICK_START.md') &&
+      !autoScriptComparison.includes('QUICK_START.md') &&
+      rootReadme.includes('docs/index.html#/quickstart'),
+      'quick-start guidance must use the single canonical HTML documentation entry');
+check(developerDocsGenerator.includes('caps.automation.screenshot === true') &&
+      developerDocsGenerator.includes('typeof image === "string"') &&
+      developerDocsGenerator.includes('跨 App 不是普通签名默认能力'),
+      'canonical guides must capability-guard screenshots and describe truthful Inspector boundaries');
 for (const [index, api] of APIS.entries()) {
   try {
     new vm.Script(api.example);
@@ -266,10 +278,15 @@ check(extensionLock.version === extensionPackage.version, 'VS Code extension ver
 check(extensionLock.packages?.['']?.version === extensionPackage.version, 'VS Code extension root lock version is inconsistent');
 const extensionVsixName = `autosdk-vscode-${extensionPackage.version}.vsix`;
 const buildWorkflow = read('.github/workflows/ios-build.yml');
+const extensionReadme = read('vscode-extension/README.md');
 check(buildWorkflow.split(extensionVsixName).length - 1 === 4 &&
-      read('vscode-extension/README.md').includes(extensionVsixName) &&
+      extensionReadme.includes(extensionVsixName) &&
       developerDocs.includes(extensionVsixName),
       'VS Code extension version must match its READMEs/guides and all workflow artifact/release names');
+check(!extensionReadme.includes('inspect and operate any app') &&
+      extensionReadme.includes('auto.capabilities().automation.nodes') &&
+      extensionReadme.includes('ordinary free-signed Wi-Fi'),
+      'VS Code Inspector documentation must state signing, capability and background limits');
 check(extensionPackage.private === true && extensionPackage.license === 'UNLICENSED',
       'VS Code extension package must remain private and unlicensed for npm publication');
 check(extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.startUsbTunnel') &&
@@ -296,6 +313,7 @@ check(extensionPackage.contributes?.configuration?.properties?.['autosdk.connect
       'VS Code extension timeouts and Inspector collection settings must be bounded');
 
 const extensionSource = read('vscode-extension/extension.js');
+const connectionRecoverySource = read('vscode-extension/connection-recovery.js');
 const contributedCommandIds = extensionPackage.contributes?.commands?.map(item => item.command) || [];
 for (const command of contributedCommandIds) {
   check(extensionSource.includes("registerCommand('" + command + "'"),
@@ -316,10 +334,14 @@ check(extensionSource.includes('discoverUsbDevices({') && extensionSource.includ
       deviceDiscoverySource.includes('shell: false') && deviceDiscoverySource.includes("'idevice_id'") &&
       deviceDiscoverySource.includes('MAX_TOOL_OUTPUT_BYTES'),
       'USB discovery must remain bounded, shell-free and wired to its advanced command');
-check(extensionSource.includes('discoverWifiDevices()') && extensionSource.includes("registerCommand('autosdk.discoverDevice'") &&
+check(extensionSource.includes('discoverWifiDevices({ signal: controller.signal })') &&
+      extensionSource.includes('cancellable: true') &&
+      extensionSource.includes("registerCommand('autosdk.discoverDevice'") &&
       wifiDiscoverySource.includes("type: 'autosdk'") && wifiDiscoverySource.includes('MAX_DISCOVERED_DEVICES') &&
-      wifiDiscoverySource.includes('MAX_DISCOVERY_TIMEOUT_MS'),
-      'Wi-Fi discovery must remain bounded and scan only the AutoSDK Bonjour service');
+      wifiDiscoverySource.includes('MAX_DISCOVERY_TIMEOUT_MS') &&
+      wifiDiscoverySource.includes('DISCOVERY_SETTLE_MS = 1200') &&
+      wifiDiscoverySource.includes("error.name = 'AbortError'"),
+      'Wi-Fi discovery must remain bounded, cancellable and scan only the AutoSDK Bonjour service');
 check(inspectorServiceSource.includes('this.visualTail.then(task, task)') &&
       inspectorServiceSource.includes("type: 'inspectSnapshot'") && inspectorServiceSource.includes('MAX_PNG_BASE64_LENGTH'),
       'Inspector service must serialize and validate device visual requests');
@@ -1060,14 +1082,35 @@ if (bootstrapReturn >= 0 && bootstrapEnd >= 0) {
 }
 
 const workflow = read('.github/workflows/ios-build.yml');
-for (const requiredText of ['workflow_dispatch:', 'requestId:', 'xcodebuild test', 'CODE_SIGNING_ALLOWED=NO', 'actions/upload-artifact@v5']) {
+for (const requiredText of ['workflow_dispatch:', 'requestId:', 'runs-on: macos-15', 'xcodebuild test', 'CODE_SIGNING_ALLOWED=NO', 'actions/upload-artifact@v7']) {
   check(workflow.includes(requiredText), `.github/workflows/ios-build.yml is missing ${requiredText}`);
 }
+check(extensionSource.includes('testConnection({ showFailure: false })') &&
+      extensionSource.includes('runErrorActions(error)') &&
+      connectionRecoverySource.includes('REENTER_TOKEN') &&
+      connectionRecoverySource.includes('RETRY_CONNECTION') &&
+      connectionRecoverySource.includes('SCAN_WIFI_DEVICE'),
+      'Wi-Fi add and one-click run must expose in-place connection recovery');
 check(workflow.includes("github.event_name == 'workflow_dispatch' && (inputs.requestId || github.run_id) || github.ref"),
       'Concurrent remote build requests must not cancel each other');
 check(workflow.includes('@vscode/vsce package') && workflow.includes(`autosdk-vscode-${extensionPackage.version}.vsix`) &&
-      workflow.includes('upload-pages-artifact@v3') && workflow.includes('deploy-pages@v4'),
+      workflow.includes('upload-pages-artifact@v5') && workflow.includes('deploy-pages@v5'),
       'CI must package the VS Code extension and deploy docs to GitHub Pages');
+check(workflow.includes('id: ios_tests') &&
+      (workflow.match(/steps\.ios_tests\.outcome == 'failure'/g) || []).length === 2 &&
+      workflow.includes('No xcresult bundle was produced.') &&
+      workflow.includes('legacy_object=(object --legacy)') &&
+      workflow.includes('xcresulttool get "${legacy_object[@]}"') &&
+      workflow.includes('xcresulttool export "${legacy_object[@]}"') &&
+      workflow.includes('| unique | .[:200][]') &&
+      workflow.includes("sort | sed -n '1,20p'") &&
+      !workflow.includes('| head -'),
+      'iOS test diagnostics must be scoped, Xcode-compatible and safe under pipefail');
+check(!workflow.includes('actions/upload-artifact@v5') &&
+      !workflow.includes('actions/upload-pages-artifact@v3') &&
+      !workflow.includes('actions/deploy-pages@v4') &&
+      !workflow.includes('runs-on: macos-14'),
+      'CI must use Node 24 artifact actions and a supported macOS runner');
 const templateProject = read('Examples/TemplateApp/project.yml');
 check(templateProject.includes('AutoSDKTests:') && templateProject.includes('bundle.unit-test'), 'Template XcodeGen project must include the XCTest target');
 check(!/^\t/m.test(workflow), '.github/workflows/ios-build.yml contains tab indentation');

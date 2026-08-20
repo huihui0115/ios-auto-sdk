@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const test = require('node:test');
 const {
+  DISCOVERY_SETTLE_MS,
   MAX_DISCOVERED_DEVICES,
   boundedTimeout,
   discoverWifiDevices,
@@ -55,6 +56,75 @@ test('Wi-Fi discovery scans only the AutoSDK TCP service and closes sockets', as
   const devices = await discoverWifiDevices({ BonjourClass: FakeBonjour, timeoutMs: 100 });
   assert.deepEqual(findOptions, { type: 'autosdk', protocol: 'tcp' });
   assert.equal(devices[0].url, 'ws://192.168.50.8:9001');
+  assert.equal(stopped, true);
+  assert.equal(destroyed, true);
+});
+
+test('Wi-Fi discovery keeps collecting long enough for a delayed second phone', async () => {
+  let stopped = false;
+  let destroyed = false;
+  class FakeBrowser extends EventEmitter {
+    update() {}
+    stop() { stopped = true; }
+  }
+  class FakeBonjour {
+    find(_options, onup) {
+      const browser = new FakeBrowser();
+      setImmediate(() => onup({
+        name: 'First iPhone · 11111111',
+        port: 9001,
+        addresses: ['192.168.50.8']
+      }));
+      setTimeout(() => onup({
+        name: 'Second iPhone · 22222222',
+        port: 9001,
+        addresses: ['192.168.50.9']
+      }), 600);
+      return browser;
+    }
+    destroy() { destroyed = true; }
+  }
+
+  const devices = await discoverWifiDevices({ BonjourClass: FakeBonjour, timeoutMs: 2500 });
+  assert.deepEqual(devices.map(device => device.name), [
+    'First iPhone · 11111111',
+    'Second iPhone · 22222222'
+  ]);
+  assert.equal(DISCOVERY_SETTLE_MS, 1200);
+  assert.equal(stopped, true);
+  assert.equal(destroyed, true);
+});
+
+test('Wi-Fi discovery cancellation closes Bonjour resources immediately', async () => {
+  let stopped = false;
+  let destroyed = false;
+  let onService;
+  const scheduled = [];
+  class FakeBrowser extends EventEmitter {
+    update() {}
+    stop() { stopped = true; }
+  }
+  class FakeBonjour {
+    find(_options, callback) { onService = callback; return new FakeBrowser(); }
+    destroy() { destroyed = true; }
+  }
+  const controller = new AbortController();
+  const discovery = discoverWifiDevices({
+    BonjourClass: FakeBonjour,
+    timeoutMs: 15000,
+    signal: controller.signal,
+    scheduleTimeout(callback, delay) {
+      const timer = { callback, delay };
+      scheduled.push(timer);
+      return timer;
+    },
+    cancelTimeout() {}
+  });
+  controller.abort();
+  await assert.rejects(discovery, error => error.name === 'AbortError');
+  const scheduledAtCancellation = scheduled.length;
+  onService({ name: 'Late iPhone · 33333333', port: 9001, addresses: ['192.168.50.10'] });
+  assert.equal(scheduled.length, scheduledAtCancellation);
   assert.equal(stopped, true);
   assert.equal(destroyed, true);
 });

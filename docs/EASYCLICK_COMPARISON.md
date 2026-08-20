@@ -98,6 +98,8 @@ The following surfaces must not be described as production-complete yet:
 | 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 | 语音朗读 | 1 | speak/tts/speechStop/stopSpeak 与 speech 命名空间 |
 
+本轮新增（Round 72）：**调试接入、线程错误与发布链可靠性**——VS Code 插件 0.12.0 在第一台 Bonjour 响应后继续收集多机且扫描可取消；首次或已有 token 失败均可原地重输/重试，未配置设备就右键运行可直接进入 Wi-Fi 扫描；Inspector 的 Point 取色模式更名为 Color。子 JSContext 的原生桥失败现在通过 `execSync`、async `getResult` 和 `join` 正确传播，`AutoThreadHandle.join()` 类型同步修正；CI 迁到 macOS 15、Xcode 15/16 兼容诊断和 Node 24 Actions；快速上手统一到唯一 `docs/index.html`，首段截图示例带 capability 守卫。bootstrap 61262/61440（余 178），文档 259 项、Node 测试 88 项、原生 XCTest 78 项、插件测试 105 项；
+
 本轮新增（Round 71）：**iOS 系统状态测试稳定性修复**——不新增或改变公开 API；原生 XCTest 通过私有 provider 注入低电量、定位服务和原始定位授权枚举，覆盖全部五种授权状态及未知值回退，不再依赖冷启动模拟器的实时 TCC/CoreLocation daemon；生产 provider 默认为空，仍读取真实 `NSProcessInfo` / `CLLocationManager` 状态；bootstrap 61262/61440（余 178），文档 259 项、Node 测试 88 项、原生 XCTest 75 项、插件测试 97 项；
 
 本轮新增（Round 70）：**设备与系统常用入口 + VS Code 补全闭环**——新增 `vpn.status/connect/disconnect/openSettings`，只读取和控制宿主 App 自己通过 Personal VPN entitlement 预存的已启用配置，不创建、选择或删除其他 VPN App/MDM 配置；新增 `system.openSettings(panel)` best-effort 打开 VPN/Wi-Fi/蓝牙/蜂窝/热点/飞行模式/定位/电池等设置页，明确不静默切换全局开关；新增 `device.isLowPowerModeEnabled()`、`location.isEnabled()` 与 `location.getAuthorizationStatus()`；VS Code `device.` 候选补齐完整 `AutoDeviceAPI` 并加入声明一致性回归测试；整理重复设备卡后文档为 259 个可运行条目，bootstrap 61262/61440（余 178），Node 测试 88 项、插件测试 97 项；
