@@ -719,7 +719,9 @@ check(uiKitAdapter.includes('@"nodeId"') && uiKitAdapter.includes('@"parentId"')
 const debugServerSource = read('Sources/AutoSDK/AutoDebugServer.m');
 check(debugServerSource.includes('(void)retainedData') && debugServerSource.includes('dispatch_data_create_concat'), 'Debug transport must retain and concatenate framed data without a full payload copy');
 check(debugServerSource.includes('nw_interface_type_cellular') && debugServerSource.includes('nw_interface_type_loopback') && debugServerSource.includes('token.length < 16'), 'Debug transport must restrict and authenticate Wi-Fi listeners');
-check(debugServerSource.includes('nw_listener_set_service') && debugServerSource.includes('"_autosdk._tcp"') &&
+check(debugServerSource.includes('nw_advertise_descriptor_create_bonjour_service') &&
+      debugServerSource.includes('nw_listener_set_advertise_descriptor') &&
+      debugServerSource.includes('"_autosdk._tcp"') &&
       engineSource.includes('debugServiceName'),
       'Wi-Fi debug transport must publish a stable AutoSDK Bonjour service without exposing its token');
 check(debugServerSource.includes('strongSelf.peers.count < 8') && debugServerSource.includes('acceptedPeer') && debugServerSource.includes('authenticationRejected') && debugServerSource.includes('!strongSelf.authenticated'), 'Debug transport must atomically bound peers and reject unauthenticated connections');

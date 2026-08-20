@@ -6,6 +6,15 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.35.2] - 2026-08-20
+
+### Fixed
+
+- Replaced the nonexistent Network.framework `nw_listener_set_service` call
+  with an official Bonjour advertise descriptor and
+  `nw_listener_set_advertise_descriptor`, restoring Xcode compilation while
+  preserving the authenticated `_autosdk._tcp` discovery flow.
+
 ## [1.35.1] - 2026-08-20
 
 ### Fixed

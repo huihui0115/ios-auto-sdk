@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 68（v1.35.1，2026-08-20）。
+> 最后更新：Round 69（v1.35.2，2026-08-20）。
 
 ---
 
@@ -83,7 +83,7 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 68 / v1.35.1）
+## 4. 当前状态（Round 69 / v1.35.2）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **60782 / 61440**（预算 60×1024 UTF-16 码元，余 658）。
@@ -135,6 +135,10 @@ bridge (__bridge 对象，JSValue block)
 - **Round 68 macOS 发布验证热修**：插件 0.10.1 的 USB 备用工具路径改为按目标
   平台选择 `path.win32` / `path.posix`，修复 Windows 本地测试通过但 macOS CI
   无法解析 `C:\...\iproxy.exe` 同目录工具的跨平台错误，并增加 POSIX 路径回归断言。
+- **Round 69 Bonjour 原生编译热修**：将不存在的 `nw_listener_set_service` 替换为
+  Apple Network.framework 的 `nw_advertise_descriptor_create_bonjour_service` 与
+  `nw_listener_set_advertise_descriptor` 正式调用，解除 Xcode 编译阻断；插件行为与
+  `_autosdk._tcp` 广播协议不变。
 
 已实现能力（详见唯一 HTML 文档入口 `docs/index.html`）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -245,6 +249,9 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 
 ## 9. 历轮主线（git log 可查）
 
+- R69（v1.35.2）：**Bonjour 原生编译热修**——按 Apple Network.framework C API
+  先创建 Bonjour advertise descriptor，再绑定 listener，恢复 iOS/Xcode 构建；
+  局域网扫描、一键添加、SecretStorage token 配对与编辑器运行流程保持不变。
 - R68（v1.35.1）：**macOS 发布验证热修**——插件 0.10.1 修复 USB 备用发现中
   目标平台与宿主平台路径语义混用，Windows/POSIX 工具同目录候选现在跨平台稳定，
   解除 Round 66 起的 CI 验证阻断。

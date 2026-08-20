@@ -556,7 +556,14 @@ static NSData *AutoWebSocketHeader(NSUInteger length, uint8_t opcode) {
             if (completion) completion(AutoDebugError(AutoSDKErrorInvalidConfiguration, @"Bonjour service name must be at most 63 UTF-8 bytes and contain no control characters.", nil));
             return;
         }
-        nw_listener_set_service(listener, bonjourName.UTF8String, "_autosdk._tcp", NULL);
+        nw_advertise_descriptor_t advertiseDescriptor =
+            nw_advertise_descriptor_create_bonjour_service(bonjourName.UTF8String, "_autosdk._tcp", NULL);
+        if (!advertiseDescriptor) {
+            nw_listener_cancel(listener);
+            if (completion) completion(AutoDebugError(AutoSDKErrorDebugServerFailed, @"Unable to create Bonjour advertisement.", nil));
+            return;
+        }
+        nw_listener_set_advertise_descriptor(listener, advertiseDescriptor);
     }
     NSUInteger generation = 0;
     BOOL accepted = NO;
