@@ -234,12 +234,24 @@ check(rootLock.name === rootPackage.name && rootLock.version === rootPackage.ver
       rootLock.packages?.['']?.name === rootPackage.name && rootLock.packages?.['']?.version === rootPackage.version,
       'Root package-lock.json is missing or inconsistent with package.json');
 
-const devdocs = read('docs/devdocs/index.html');
-check((devdocs.match(/class="fn" id="fn-/g) || []).length === APIS.length,
-      'devdocs must render every API function (' + APIS.length + ')');
-check(devdocs.includes('page-intro') && devdocs.includes('page-cat-touch') && devdocs.includes('page-cat-speech') &&
-      devdocs.includes('控件查找器') && devdocs.includes('data-copy='),
-      'devdocs must keep prose pages, speech category, inspector page and copy buttons');
+const developerDocs = read('docs/index.html');
+check((developerDocs.match(/class="api-entry"/g) || []).length === APIS.length,
+      'canonical developer docs must render every API function (' + APIS.length + ')');
+check(developerDocs.includes('page-quickstart') && developerDocs.includes('page-api-touch') &&
+      developerDocs.includes('page-api-speech') && developerDocs.includes('可视化检查器') &&
+      developerDocs.includes('data-copy=') && developerDocs.includes('globalSearch') &&
+      developerDocs.includes('menuButton'),
+      'canonical developer docs must keep guides, all API modules, search, copy and mobile navigation');
+check(!existsSync('docs/api-reference.html') && !existsSync('docs/devdocs/index.html') &&
+      !existsSync('docs/guide/index.html'),
+      'redundant legacy HTML documentation must stay removed');
+for (const [index, api] of APIS.entries()) {
+  try {
+    new vm.Script(api.example);
+  } catch (error) {
+    check(false, `API example ${index} (${api.sig}) must parse as JavaScript: ${error.message}`);
+  }
+}
 // Round 47: external WDA support is removed; the built-in no-WDA adapter is the only cross-app path.
 check(!existsSync('Sources/AutoSDK/AutoWDAHTTPAdapter.m') && !existsSync('Sources/AutoSDK/include/AutoWDAHTTPAdapter.h'),
       'AutoWDAHTTPAdapter must stay removed; the built-in no-WDA adapter is the only cross-app path');
@@ -254,7 +266,7 @@ const extensionVsixName = `autosdk-vscode-${extensionPackage.version}.vsix`;
 const buildWorkflow = read('.github/workflows/ios-build.yml');
 check(buildWorkflow.split(extensionVsixName).length - 1 === 4 &&
       read('vscode-extension/README.md').includes(extensionVsixName) &&
-      read('docs/guide/index.html').includes(extensionVsixName),
+      developerDocs.includes(extensionVsixName),
       'VS Code extension version must match its READMEs/guides and all workflow artifact/release names');
 check(extensionPackage.private === true && extensionPackage.license === 'UNLICENSED',
       'VS Code extension package must remain private and unlicensed for npm publication');
@@ -1010,8 +1022,8 @@ check(typeDefinitions.includes('interface AutoMediaAPI') &&
 check(read('LICENSE').includes('AUTOSDK SOFTWARE LICENSE'), 'Root LICENSE file must describe the commercial SDK license');
 check(read('vscode-extension/LICENSE.txt').includes('AUTOSDK SOFTWARE LICENSE'),
       'Extension license must reference the repository root license');
-check(read('docs/index.html').includes('AutoSDK 文档中心'),
-      'docs/index.html landing page must exist for GitHub Pages');
+check(developerDocs.includes('AutoSDK 开发文档'),
+      'docs/index.html must remain the canonical GitHub Pages developer site');
 check(read('Sources/AutoSDK/AutoBootstrapScript.m').includes('bridge.invokeTouch({fingers:normalized})') &&
       bootstrapScript.includes('base.gesture=function(actions)') &&
       bootstrapScript.includes('base.multiGesture=function(fingers)') &&

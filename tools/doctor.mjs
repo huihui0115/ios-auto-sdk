@@ -56,7 +56,7 @@ report('iproxy available (USB tunnel)', iproxy.ok, iproxy.ok ? 'found in PATH' :
 const syntaxFiles = [
   'tools/auto-sdk.mjs', 'tools/debug-client.mjs', 'tools/verify.mjs',
   'tools/init-project.mjs', 'tools/doctor.mjs', 'tools/bump-version.mjs',
-  'tools/generate-api-reference.mjs',
+  'tools/generate-api-reference.mjs', 'tools/generate-devdocs.mjs',
 ];
 const syntaxFailures = syntaxFiles.filter(path => {
   const result = spawnSync(process.execPath, ['--check', resolve(root, path)], { encoding: 'utf8', windowsHide: true });
@@ -66,7 +66,7 @@ report('Node syntax check (tools/*.mjs)', syntaxFailures.length === 0,
   syntaxFailures.length ? 'failed: ' + syntaxFailures.join(', ') : undefined);
 
 const requiredDocs = [
-  'README.md', 'docs/index.html', 'docs/guide/index.html', 'docs/api-reference.html', 'docs/QUICK_START.md',
+  'README.md', 'docs/index.html', 'docs/QUICK_START.md',
   'types/autosdk.d.ts', 'Examples/TemplateApp/App/Info.plist', 'Examples/TemplateApp/project.yml',
 ];
 const missingDocs = requiredDocs.filter(path => !existsSync(resolve(root, path)));

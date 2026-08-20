@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 64（v1.32.0，2026-08-20）。
+> 最后更新：Round 65（v1.33.0，2026-08-20）。
 
 ---
 
@@ -67,8 +67,9 @@ bridge (__bridge 对象，JSValue block)
 | `types/autosdk.d.ts` | TypeScript 类型声明（与文档闭环） |
 | `tools/verify.mjs` | 一致性断言（bootstrap/原生/d.ts/文档/版本） |
 | `tools/bootstrap.test.mjs` | bootstrap 行为测试（Node vm + mock bridge） |
-| `tools/generate-api-reference.mjs` | 手写 APIS 列表 → `docs/api-reference.html`（导出 APIS/CATEGORIES） |
-| `tools/generate-devdocs.mjs` | AScript 风格文档站 → `docs/devdocs/index.html`（侧栏树+散文页+函数页+搜索+复制+调试提示） |
+| `tools/generate-api-reference.mjs` | 手写 APIS/CATEGORIES 元数据，不直接生成 HTML |
+| `tools/generate-devdocs.mjs` | 唯一文档站 → `docs/index.html`（指南+模块导航+搜索+过滤+复制） |
+| `tools/devdocs-template.html` | 文档站 HTML/CSS/交互模板（零外部依赖、可离线打开） |
 | `tools/bump-version.mjs` | 版本四件套同步 |
 | `tools/auto-sdk.mjs` | build / build-remote（IPA 产物） |
 | `vscode-extension/inspector-service.js` | VS Code 截图/节点/OCR/找图协议校验与全局重任务串行队列 |
@@ -80,11 +81,11 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 64 / v1.32.0）
+## 4. 当前状态（Round 65 / v1.33.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **60782 / 61440**（预算 60×1024 UTF-16 码元，余 658）。
-- 文档 **263 个函数 / 263 个可运行示例 / 13 个分类**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **83 项**。
+- 文档 **263 个 API 条目 / 263 个可运行示例 / 14 个模块**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **83 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
   `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制）。
@@ -114,8 +115,13 @@ bridge (__bridge 对象，JSValue block)
   别名的定向候选，25 组历史复合签名不再生成损坏代码。Inspector 使用规范化
   selector 键恢复选择，并以完整相关快照而非过滤结果集验证最小唯一选择器；所有生成脚本进入纯模型回归测试；
   `speech` 命名空间补齐 TypeScript 声明。bootstrap 零改动。
+- **Round 65 HTML 开发文档收敛**：把门户、图文教程、开发站和 API 卡片合并为
+  唯一 `docs/index.html`；新站提供 7 篇任务指南、14 个 API 模块、263 个条目，
+  支持全局搜索、模块过滤、深链接、移动导航、明暗主题和离线复制。删除 3 份重复
+  HTML，修正 `http.getJSON` 返回值及 3 个不可直接使用的 API 示例；verify 新增
+  示例语法、条目全量与旧入口不得回归的约束。
 
-已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
+已实现能力（详见唯一 HTML 文档入口 `docs/index.html`）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
 findNotColor/findImage/cmpColor/isColors）、像素（screen.getColor 系列）、
 颜色工具（parseColor/int2Hex/hex2Int/rgb/argb）、OCR（Apple Vision +
@@ -224,6 +230,9 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 
 ## 9. 历轮主线（git log 可查）
 
+- R65（v1.33.0）：**HTML 开发文档单入口重构**——生成唯一 `docs/index.html`，
+  合并 7 篇任务指南、14 个模块和 263 个 API 条目；新增搜索/过滤/深链接/主题/
+  移动导航/离线复制，删除 3 份旧 HTML；修正 4 处示例/返回值并新增文档完整性校验。
 - R64（v1.32.0）：**VS Code 补全与 Inspector 生成链修复**——插件 0.8.0 新增
   可测试 completion model，自动识别命名空间并拆开 25 组复合签名；补齐新模块候选；
   Inspector 规范化 selector 键、以完整相关快照生成最小唯一选择器并集中单测代码生成；
@@ -312,7 +321,7 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 - R49（v1.19.0）：内置 no-WDA 适配器补 `findImage`（有界两阶段模板匹配，
   capabilities.findImage=YES）+ App 中文名启动库（60+，launch/terminate/
   appState 通用）；verify 锚点 + 文档/卡片同步。零 bootstrap 改动。
-- R48（v1.18.0）：**AScript 风格开发文档站** `docs/devdocs/index.html`（22 页：开始/控件检索散文页 +
+- R48（v1.18.0）：**旧版 AScript 风格开发文档站**（R65 已合并到 `docs/index.html`；22 页：开始/控件检索散文页 +
   15 个 API 分类页，257 函数全渲染，每函数带参数表/返回值/一键复制示例/调试提示；
   顶栏搜索 + 侧栏树 + hash 路由，单文件离线）。顺带修复两个文档渲染 bug：
   `speech`（TTS）与 `base64` 两个分类不在 CATEGORIES 导致卡片从未渲染。

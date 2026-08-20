@@ -1,14 +1,5 @@
-// Generates docs/api-reference.html (offline, EasyClick-style API reference).
-import { writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+// Authoritative API metadata shared by the developer docs and verification.
 const APIS = [];
-
-function esc(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 const CATEGORIES = [
   { id: 'start',    name: '快速开始', color: '#2563eb' },
@@ -27,165 +18,6 @@ const CATEGORIES = [
   { id: 'ui',       name: '悬浮窗口', color: '#f59e0b' },
   { id: 'speech',   name: '语音朗读', color: '#059669' }
 ];
-
-const REFS = {
-  'logd(message)': 'EasyClick logd() · AutoJS log()',
-  'console.log': 'EasyClick logi()/logw()/loge() · AutoJS console.*',
-  'toast(message)': 'EasyClick toast() · AutoJS toast()',
-  'toastLog(message)': 'EasyClick toastLog() · AutoJS toast()',
-  'sleep(milliseconds)': 'EasyClick sleep() · AutoJS sleep()',
-  'click(selector)': 'EasyClick click() · AutoJS click()',
-  'click(x, y, jitter?)': 'AScript click(x, y, jitter) 拟人坐标点击',
-  'clickRandomPoint(x1, y1, x2, y2)': 'AScript click_random 区域随机点击',
-  'slidePath(points, durationMs?)': 'AScript slide_path 连续轨迹滑动',
-  'touchAndSlide(x1, y1, x2, y2, durationMs?)': 'AScript touch_and_slide',
-  'audioPlay(path, volume?, stopWhenScriptEnd?)': 'AScript audio_play 按 ID 管理',
-  'audioStop(id?)': 'AScript audio_stop',
-  'device.isLocked()': 'AScript system.is_locked',
-  'device.keepScreenOn()': 'EasyClick keepScreenOn() · AutoJS device.keepScreenOn()',
-  'device.setFlashlight() / torch() / flashlight()': 'EasyClick setFlashlight()',
-  'device.getLanguage() / getCountry() / getTimezone()': 'AScript get_language/get_country/get_timezone · EasyClick getLanguage()/getCountry()',
-  'device.getNetworkType() / isWifi()': 'EasyClick getNetworkType() · AutoJS getNetworkType()',
-  'speak(text, options?) / speechStop()': 'AScript speak · EasyClick speak()',
-  'app.openSettings() / openAppSetting() / openAppStore(appId)': 'AScript app_open_setting / app_store · EasyClick openAppSetting()/openAppStore()',
-  'app.getAppScheme() / launchByScheme()': 'AScript 内置 URL Scheme 启动库 · EasyClick getAppScheme()',
-  'app.getFrontmostApp()': 'AScript get_frontmost_app · EasyClick getFrontmostApp()',
-  'Selector().text(v).type(t).findOne()': 'AScript Selector 链式选择器 · EasyClick node idMatch/nameMatch/textMatch 选择器',
-  'clickPoint(x, y)': 'EasyClick clickPoint() · AutoJS click(x, y)',
-  'doubleClickPoint(x, y, interval?)': 'EasyClick doubleClickPoint() · AutoJS click(x, y, true)',
-  'longClick(selector, duration?)': 'EasyClick longClick() · AutoJS longClick()',
-  'swipe(x1, y1, x2, y2, duration?)': 'EasyClick swipe() · AutoJS swipe()',
-  'input(selector, text)': 'EasyClick inputText() · AutoJS setText()',
-  'setText(selector, text)': 'EasyClick inputText() 别名',
-  'getText(selector)': 'EasyClick getText() · AutoJS text()',
-  'exists(selector)': 'EasyClick exists() · AutoJS exists()',
-  'findElement(selector)': 'EasyClick getNode() · AutoJS findOne()',
-  'findElements(selector)': 'EasyClick getNodes() · AutoJS findOnce()',
-  'waitFor(selector, timeoutMs?)': 'EasyClick waitNode() · AutoJS waitFor()',
-  'getAttribute(selector, name)': 'EasyClick getAttribute() · AutoJS attr()',
-  'getBounds(selector)': 'EasyClick getBounds() · AutoJS bounds()',
-  'getChildren(selector)': 'EasyClick getChildren() · AutoJS children()',
-  'getParent(selector)': 'EasyClick getParent() · AutoJS parent()',
-  'scrollIntoView(selector)': 'EasyClick scrollTo() · AutoJS scrollForward()',
-  'screenshot()': 'EasyClick screenshot() · AutoJS captureScreen()',
-  'findImage(templatePath, options?)': 'EasyClick findImage() · AutoJS findImage()',
-  'findColor(color, region?, options?)': 'EasyClick findColor() · AutoJS findColor()',
-  'findMultiColor(color, offsets, region?, options?)': 'EasyClick findMultiColor() · AutoJS findMultiColor()',
-  'getPixelColor(x, y)': 'EasyClick getPixelColor() · AutoJS images.pixel()',
-  'ocr(options?)': 'EasyClick ocr() · AutoJS OCR（MLKit）',
-  'launchApp(bundleId)': 'EasyClick launchApp() · AutoJS launchApp()',
-  'activateApp(bundleId)': 'EasyClick activateApp() · AutoJS app.launch()',
-  'terminateApp(bundleId)': 'EasyClick closeApp() · AutoJS app.close()',
-  'appState(bundleId)': 'EasyClick getAppState()',
-  'openURL(url)': 'EasyClick openUrl() · AutoJS app.openUrl()',
-  'app.homeScreen()': 'EasyClick home()/lock()/unlock() · AutoJS home()',
-  'device.getDeviceInfo()': 'EasyClick getDeviceInfo()',
-  'device.getScreenWidth()': 'EasyClick getScreenWidth()/getScreenHeight() · AutoJS device.width/height',
-  'device.getBattery()': 'EasyClick getBattery()/isCharging()',
-  'device.getOrientation()': 'EasyClick getScreenOrientation()',
-  'device.getClipboard()': 'EasyClick getClipboard()/setClipboard() · AutoJS setClip()',
-  'device.getBrightness()': 'EasyClick getScreenBrightness()/setScreenBrightness()',
-  'device.getVolume()': 'EasyClick getVolume()',
-  'device.vibrate(durationMs?)': 'EasyClick vibrate()',
-  'device.vibrateLong()': 'AutoJS vibrateLong()',
-  'device.vibrateShort()': 'AutoJS vibrateShort()',
-  'file.sandboxDir()': 'EasyClick 沙盒根目录',
-  'file.readFile(path)': 'EasyClick readFile() · AutoJS files.read()',
-  'file.writeFile(path, text)': 'EasyClick writeFile() · AutoJS files.write()',
-  'file.exists(path)': 'EasyClick exists() · AutoJS files.exists()',
-  'file.list(path)': 'EasyClick list() · AutoJS files.listDir()',
-  'file.remove(path)': 'EasyClick remove() · AutoJS files.remove()',
-  'file.copy(src, dest, overwrite?)': 'EasyClick copy() · AutoJS files.copy()',
-  'file.move(src, dest, overwrite?)': 'EasyClick move() · AutoJS files.move()',
-  'storages.create(name)': 'EasyClick storage() · AutoJS storages.create()',
-  'store.putString': 'EasyClick putString()/putInt() · AutoJS put()',
-  'store.getString': 'EasyClick getString()/getInt() · AutoJS get()',
-  'http.get(url, options?)': 'EasyClick httpGet() · AutoJS http.get()',
-  'http.post(url, body?, options?)': 'EasyClick httpPost() · AutoJS http.post()',
-  'http.postJSON(url, body?, options?)': 'EasyClick httpPostJson() · AutoJS http.post()',
-  'http.downloadFile(url, path, options?)': 'EasyClick downloadFile() · AutoJS http.download()',
-  'http.request(url, options?)': 'EasyClick 通用请求',
-  'media.saveImage(path)': 'EasyClick 保存图片到相册',
-  'media.saveScreenshot()': 'EasyClick 截图存相册',
-  'setTimeout(fn, ms, ...args)': 'EasyClick setTimeout()/clearTimeout()',
-  'setInterval(fn, ms)': 'EasyClick setInterval()/clearInterval()',
-  'time()': 'EasyClick time()/random() · AutoJS Date.now()/random()',
-  'console.time(label)': 'AutoJS console.time()/timeEnd()',
-  'setScreenMetrics(width, height)': 'EasyClick setScreenMetrics() · AutoJS setScreenMetrics()',
-  'getScreenMetrics()': 'EasyClick getScreenMetrics() · AutoJS getScreenMetrics()',
-  'metrics.point(x, y)': 'EasyClick 分辨率坐标适配',
-  'device.width': 'AutoJS device.width/height',
-  'auto.getChild(selector, index)': 'EasyClick getChild() · AutoJS child()',
-  'auto.getSiblings(selector)': 'AutoJS siblings()',
-  'node.children() / node.parent() / node.siblings()': 'EasyClick node children()/allChildren()/parent()/siblings() 关系遍历',
-  'auto.clickCenter(selector)': 'AutoJS 点击控件中心',
-  'auto.clickRandom(selector)': '随机点击（防检测）',
-  'swipeToPoint(x1, y1, x2, y2, duration?)': 'EasyClick swipeToPoint()',
-  'swipeUp(percent?, durationMs?)': 'EasyClick swipe() 方向封装',
-  'swipeDown(percent?, durationMs?)': 'EasyClick swipe() 方向封装',
-  'swipeLeft(percent?, durationMs?)': 'EasyClick swipe() 方向封装',
-  'swipeRight(percent?, durationMs?)': 'EasyClick swipe() 方向封装',
-  'app.appList()': 'EasyClick getInstalledApps() · AutoJS app.getInstalledApps()',
-  'screenshotRegion(x, y, width, height)': 'EasyClick image.clip() 区域截图',
-  'childCount(selector)': 'EasyClick childcount()',
-  'drag(x1, y1, x2, y2, durationMs?)': 'EasyClick drag()',
-  'randomString(length?, chars?)': 'EasyClick utils.randomCharNumber()',
-  'randomCharNumber(length?)': 'EasyClick utils.randomCharNumber()',
-  'launchAppByPrefix(bundleIdPrefix)': 'EasyClick appLaunchByPrefix()',
-  'app.launchByPrefix(bundleIdPrefix)': 'EasyClick appLaunchByPrefix()',
-  'device.getScreenWidthHeightText()': 'EasyClick getScreenWidthHeightText()',
-  'md5(text) / sha1(text)': 'EasyClick utils.dataMd5()',
-  'file.md5(path) / file.md5File(path)': 'EasyClick utils.fileMd5()',
-  'file.imageSize(path)': 'EasyClick image.getWidth()/getHeight()',
-  'image.getSize(path)': 'EasyClick image.getWidth()/getHeight()',
-  'findColorEx(colors, threshold?, x?, y?, ex?, ey?, limit?, direction?)': 'EasyClick image.findColorEx()',
-  'playMp3(path, volume?, queue?, stopWhenScriptEnd?)': 'EasyClick utils.playMp3()',
-  'stopMp3()': 'EasyClick utils.stopMp3()',
-  'media.requestPhotoAuthorization()': 'EasyClick utils.requestPhotoAuthorization()',
-  'media.getPhotoAuthorizationStatus()': 'EasyClick utils.requestPhotoAuthorization()',
-  'findNotColor(colors, threshold?, x?, y?, ex?, ey?, limit?, direction?)': 'EasyClick image.findNotColor()',
-  'image.clip(src, x, y, ex, ey, dest)': 'EasyClick image.clip()',
-  'image.scale(src, width, height, dest)': 'EasyClick image.scaleBitmap()',
-  'image.gray(src, dest)': 'EasyClick image.gray()',
-  'image.binaryzation(src, dest, threshold?)': 'EasyClick image.binaryzation()',
-  'image.rotate(src, degrees, dest)': 'EasyClick image.rotateImage()',
-  'image.pixelAt(src, x, y)': 'EasyClick image.pixelInImage()',
-  'image.getWidth(path) / image.getHeight(path)': 'EasyClick image.getWidth()/getHeight()',  'http.getJSON(url, options?)': 'EasyClick httpGetJson() · AutoJS http.get()+JSON',
-  'uuid()': 'EasyClick uuid()',
-  'base64.encode(str)': 'EasyClick base64.encode()/decode()',
-  'file.zip(dest, sources, passwd?)': 'EasyClick utils.zip()',
-  'file.unzip(zipPath, dest, passwd?)': 'EasyClick utils.unzip()/unzipWithEncode()',
-  'file.readFileInZip(zipPath, entry, passwd?)': 'EasyClick utils.readFileInZip()',
-  'file.readExcelAllRow(path, sheetIndex?)': 'EasyClick file.readExcelAllRow()',
-  'file.readExcelRow(path, sheetIndex?, row?)': 'EasyClick file.readExcelRow()',
-  'device.getDeviceId()': 'EasyClick getDeviceId()',
-  'device.getDeviceAlias() / getSerialNo()': 'EasyClick getDeviceAlias()/getSerialNo()',
-  'app.getAppVersion() / getPackageName()': 'EasyClick version/ipaVersion/getPackageName()',
-  'execAsync(fn, ...args)': 'EasyClick execAsync()/execSync()',
-  'execSync(fn, ...args)': 'EasyClick execSync()',
-  'cancelThread(thread) / stopAllThreads() / isCancelled()': 'EasyClick cancelThread()/stopAllThreads()/isCancelled()',
-  'longClickPoint(x, y, durationMs?)': 'EasyClick longClickPoint()',
-  'getOneNodeInfo(selector) / getNodeInfo(selector)': 'EasyClick getOneNodeInfo()/getNodeInfo()',
-  'getRangeInt(min, max) / getRatio(ratio)': 'EasyClick utils.getRangeInt()/getRatio()'
-};
-function card(api) {
-  const ref = REFS[api.sig.split(' / ')[0].trim()];
-  const refLine = ref ? `<div class="ref"><b>对标</b> ${esc(ref)}</div>` : '';
-  const params = (api.params || []).map(([n, t, d]) =>
-    `<div class="param"><code class="pname">${esc(n)}</code><span class="ptype">${esc(t)}</span><span class="pdesc">${esc(d)}</span></div>`).join('');
-  return `<article class="card" data-search="${esc(api.sig + ' ' + api.title)}">
-  <header class="card-head">
-    <h4><code>${esc(api.sig)}</code> <span class="cname">${esc(api.title)}</span></h4>
-    <button class="copy" data-copy>复制</button>
-  </header>
-  <p class="desc">${esc(api.desc)}</p>
-  ${refLine}
-  ${params ? `<div class="params"><b>参数</b>${params}</div>` : ''}
-  <div class="ret"><b>返回值</b> <span>${esc(api.returns)}</span></div>
-  <pre><code>${esc(api.example)}</code></pre>
-</article>`;
-}
-
 
 // ==== 补齐：设备与系统 ====
 APIS.push({ cat:'device', sig:'device.getIPAddress() / device.getIP() / getIPAddress() / getIP()', title:'获取局域网 IP', desc:'返回当前 Wi-Fi 的 IPv4 地址（en0/en1），未连接 Wi-Fi 时返回 null。对标 AScript system.get_ip_address。', params:[], returns:'string | null', example:`function main(){
@@ -624,140 +456,6 @@ APIS.push({ cat:'timer', sig:'utils.dataMd5(text) / utils.fileMd5(path) / utils.
   logd(image.captureFullScreen());
 }
 main();` });
-function render() {
-  const sidebar = CATEGORIES.map(c => `<a href="#${c.id}" style="--c:${c.color}">${esc(c.name)}<span>${APIS.filter(a => a.cat === c.id).length}</span></a>`).join('');
-  const sections = CATEGORIES.map(c => {
-    const items = APIS.filter(a => a.cat === c.id).map(card).join('\n');
-    return `<section id="${c.id}" class="cat" style="--c:${c.color}">
-  <h2><span class="tag">${esc(c.name)}</span><i>${items ? APIS.filter(a => a.cat === c.id).length : ''}</i></h2>
-  ${items || '<p class="empty">（暂无）</p>'}
-</section>`;
-  }).join('\n');
-
-  return `<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AutoSDK 脚本函数参考</title>
-<style>
-:root{--bg:#0f172a;--panel:#1e293b;--card:#1e293b;--line:#334155;--text:#e2e8f0;--muted:#94a3b8;--code:#0b1220;--accent:#38bdf8;}
-*{box-sizing:border-box}
-body{margin:0;font:15px/1.65 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text)}
-header.top{position:sticky;top:0;z-index:20;background:rgba(15,23,42,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-header.top h1{font-size:18px;margin:0;white-space:nowrap}
-header.top h1 span{color:var(--accent)}
-.search{flex:1;min-width:220px}
-.search input{width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--code);color:var(--text);font-size:14px;outline:none}
-.search input:focus{border-color:var(--accent)}
-.hint{font-size:12px;color:var(--muted)}
-.layout{display:flex;gap:0;max-width:1400px;margin:0 auto}
-nav.side{position:sticky;top:64px;align-self:flex-start;width:200px;flex:0 0 200px;padding:18px 14px;border-right:1px solid var(--line);height:calc(100vh - 64px);overflow:auto}
-nav.side a{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;border-left:3px solid transparent;margin-bottom:2px}
-nav.side a:hover{background:var(--panel)}
-nav.side a span{font-size:11px;background:var(--code);border:1px solid var(--line);border-radius:999px;padding:0 7px;color:var(--muted)}
-main{flex:1;min-width:0;padding:20px 26px 80px}
-section.cat{margin-bottom:34px}
-section.cat>h2{display:flex;align-items:center;gap:10px;font-size:20px;border-bottom:2px solid var(--line);padding-bottom:8px;margin:26px 0 16px}
-section.cat>h2 .tag{color:#fff;background:var(--c);padding:3px 12px;border-radius:999px;font-size:15px}
-section.cat>h2 i{font-style:normal;font-size:12px;color:var(--muted)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 14px}
-.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.card h4{margin:0;font-size:15px;font-family:ui-monospace,Consolas,monospace;word-break:break-all}
-.card h4 .cname{font-family:inherit;color:var(--muted);font-weight:500;font-size:13px}
-button.copy{flex:0 0 auto;background:var(--c,var(--accent));border:0;color:#fff;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer}
-button.copy.done{background:#16a34a}
-.desc{margin:10px 0 8px;color:var(--text)}
-.params{margin:6px 0;display:flex;flex-direction:column;gap:3px}
-.params b,.ret b{color:var(--accent);font-size:12px;margin-right:8px}
-.param{display:flex;gap:10px;font-size:13px;align-items:baseline;padding-left:10px}
-.pname{color:#fbbf24}
-.ptype{color:#67e8f9;font-size:12px}
-.pdesc{color:var(--muted)}
-.ret{font-size:13px;color:var(--text)}
-.ref{font-size:12px;color:var(--muted);margin:8px 0 4px}
-.ref b{color:#fbbf24;font-weight:600;margin-right:6px}
-pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;margin:10px 0 0}
-pre code{font:12.5px/1.6 ui-monospace,Consolas,monospace;color:#a5f3fc;white-space:pre}
-.empty{color:var(--muted)}
-#toast-copy{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:#16a34a;color:#fff;padding:8px 18px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:.25s}
-#toast-copy.show{opacity:1;transform:translateX(-50%)}
-footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
-@media(max-width:900px){nav.side{display:none}.layout{display:block}}
-</style>
-</head>
-<body>
-<header class="top">
-  <h1>AutoSDK <span>脚本函数参考</span></h1>
-  <div class="search"><input id="q" type="search" placeholder="搜索函数，例如 readFile / click / saveImage …"><div class="hint">离线文档 · 点击每个示例的“复制”即可直接粘贴到脚本</div></div>
-</header>
-<div class="layout">
-<nav class="side">${sidebar}</nav>
-<main>
-<section id="start" class="cat" style="--c:#2563eb">
-<h2><span class="tag">快速开始</span><i>连接与运行</i></h2>
-<div class="card">
-<header class="card-head"><h4>最小可运行脚本</h4><button class="copy" data-copy>复制</button></header>
-<p class="desc">连上手机后（USB：<code>iproxy 9001:9001</code> + <code>ws://127.0.0.1:9001</code>；Wi-Fi：<code>ws://手机IP:9001</code> + token），把下面代码粘到 VS Code，按 <b>AutoSDK: Run Current Script</b>。</p>
-<div class="params"><b>参数</b><span class="pdesc">无需参数</span></div>
-<div class="ret"><b>返回值</b> <span>控制台实时输出日志</span></div>
-<pre><code>function main(){
-  toastLog("脚本已启动");
-  logd("设备: " + device.getModel() + " / iOS " + device.getOSVersion());
-  logd("屏幕: " + device.getScreenWidth() + "x" + device.getScreenHeight());
-  logd("能力: " + JSON.stringify(auto.capabilities()));
-  const png = screenshot();
-  logd("截屏成功，PNG base64 长度 = " + png.length);
-  toastLog("全部调试输出完成");
-}
-main();</code></pre>
-</div>
-</section>
-${sections}
-</main>
-</div>
-<footer>AutoSDK 离线函数参考 · 共 ${APIS.length} 个函数 · 对标 EasyClick/AutoScript · 生成于 ${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}-${String(new Date().getDate()).padStart(2,"0")} · 浏览器双击即开</footer>
-<div id="toast-copy">已复制到剪贴板</div>
-<script>
-const q = document.getElementById('q');
-const cards = Array.from(document.querySelectorAll('.card'));
-q.addEventListener('input', () => {
-  const text = q.value.trim().toLowerCase();
-  for (const card of cards) {
-    card.style.display = (!text || card.dataset.search.toLowerCase().includes(text)) ? '' : 'none';
-  }
-});
-async function copyText(text) {
-  try { await navigator.clipboard.writeText(text); return true; }
-  catch (_) {
-    const ta = document.createElement('textarea');
-    ta.value = text; document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); } finally { ta.remove(); }
-    return true;
-  }
-}
-const toast = document.getElementById('toast-copy');
-document.addEventListener('click', async ev => {
-  const btn = ev.target.closest('button[data-copy]');
-  if (!btn) return;
-  const code = btn.closest('.card').querySelector('pre code');
-  if (!code) return;
-  await copyText(code.textContent);
-  const old = btn.textContent;
-  btn.textContent = '已复制';
-  btn.classList.add('done');
-  toast.classList.add('show');
-  setTimeout(() => { btn.textContent = old; btn.classList.remove('done'); toast.classList.remove('show'); }, 1200);
-});
-document.addEventListener('keydown', ev => {
-  if (ev.key === '/' && document.activeElement !== q) { ev.preventDefault(); q.focus(); }
-  if (ev.key === 'Escape' && document.activeElement === q) { q.value = ''; q.dispatchEvent(new Event('input')); }
-});
-</script>
-</body>
-</html>`;
-}
-
 APIS.push({ cat:'logs', sig:'logd(message)', title:'调试日志（debug）', desc:'打印调试日志，等价于 console.log。', params:[['message','any','要打印的内容']], returns:'void', example:`function main(){
   const name = "AutoSDK";
   logd("开始运行: " + name);
@@ -1343,7 +1041,7 @@ APIS.push({ cat:'file', sig:'file.readBase64(path)', title:'读取为 Base64', d
 }
 main();` });
 APIS.push({ cat:'file', sig:'file.writeFile(path, text)', title:'写入文本', desc:'原子写入 UTF-8 文本（覆盖，别名 writeText）。', params:[['path','string','路径'],['text','string','内容']], returns:'boolean', example:`function main(){
-  const ok = file.writeFile("data/1.txt", "hello\nworld");
+  const ok = file.writeFile("data/1.txt", "hello\\nworld");
   logd("写入: " + ok);
 }
 main();` });
@@ -1771,9 +1469,9 @@ APIS.push({ cat:'app', sig:'app.getAppVersion() / getPackageName()', title:'应�
   logd("v" + getAppVersion() + " " + getPackageName());
 }
 main();` });
-APIS.push({ cat:'http', sig:'http.getJSON(url, options?)', title:'GET 并解析 JSON', desc:'等价 http.get(url, {parseJson:true})，直接返回解析后的对象。', params:[['url','string','地址'],['options','object','可选 headers/timeout 等']], returns:'object|string|number', example:`function main(){
-  const data = http.getJSON("https://api.example.com/v1/status");
-  logd("status: " + JSON.stringify(data));
+APIS.push({ cat:'http', sig:'http.getJSON(url, options?)', title:'GET 并解析 JSON', desc:'等价 http.get(url, {parseJson:true})，返回完整响应；解析结果位于 response.json。', params:[['url','string','地址'],['options','object','可选 headers/timeout 等']], returns:'AutoHTTPResponse', example:`function main(){
+  const response = http.getJSON("https://api.example.com/v1/status");
+  logd("status: " + JSON.stringify(response.json));
 }
 main();` });
 
@@ -1854,10 +1552,10 @@ APIS.push({ cat:'file', sig:'image.readBitmap(path) / image.saveBitmap(bitmap, d
 }
 main();` });
 APIS.push({ cat:'touch', sig:'node.find(selector) / node.findOne(selector) / findNode(selector)', title:'查找节点（Node 对象）', desc:'对标 AScript Selector().find()：按选择器查找第一个匹配节点，返回带方法的高级 Node 对象（.click()/.tap()/.rect/.text 等）；未找到返回 null。选择器支持 {id,label,text,type,visible} 或 XPath。node.click(dur)/tap_hold(dur)/longClick(dur) 的 dur 单位为秒，如 node.tap_hold(1.5) 长按 1.5 秒。', params:[['selector','object|string','节点选择器']], returns:'AutoNode|null', example:`function main(){
-  const node = node.find({ text: "确定" });
-  if (node) {
-    logd(node.rect.center.x, node.rect.center.y);
-    node.click();
+  const found = node.find({ text: "确定" });
+  if (found) {
+    logd(found.rect.center.x, found.rect.center.y);
+    found.click();
   }
   const btn = findNode({ type: "XCUIElementTypeButton", label: "登录" });
   if (btn) btn.tap();
@@ -1870,10 +1568,10 @@ APIS.push({ cat:'touch', sig:'node.findAll(selector) / findNodes(selector)', tit
 }
 main();` });
 APIS.push({ cat:'touch', sig:'node.at(x, y) / nodeAt(x, y)', title:'坐标直查控件', desc:'对标 AScript Node.at(x, y)：直接获取屏幕坐标处最深层的可点击控件（从节点快照中按包围盒命中筛选，取面积最小者），返回 Node 对象；该坐标无控件时返回 null。坐标单位与 clickPoint 一致（物理像素）。', params:[['x','number','屏幕 x 坐标'],['y','number','屏幕 y 坐标']], returns:'AutoNode|null', example:`function main(){
-  const node = node.at(300, 600);
-  if (node) {
-    logd(node.label, node.rect);
-    node.click();
+  const hit = node.at(300, 600);
+  if (hit) {
+    logd(hit.label, hit.rect);
+    hit.click();
   }
 }
 main();` });
@@ -1924,8 +1622,4 @@ APIS.push({ cat:'speech', sig:'speak(text, options?) / tts(text, options?) / spe
   speechStop();
 }
 main();` });
-writeFileSync(join(root, 'docs', 'api-reference.html'), render(), 'utf8');
-
-console.log('Generated docs/api-reference.html with ' + APIS.length + ' functions.');
-
 export { APIS, CATEGORIES };

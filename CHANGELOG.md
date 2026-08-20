@@ -6,6 +6,30 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.33.0] - 2026-08-20
+
+### Added
+
+- Added one canonical offline developer site at `docs/index.html` with seven
+  task-focused guides, 14 API modules, global search, module filters, deep
+  links, mobile navigation, theme switching, and copyable examples.
+- Added generation checks that require all 263 API examples to parse as
+  JavaScript and all API entries to appear in the canonical site.
+
+### Changed
+
+- Consolidated the old portal, tutorial, developer site, and API cards into
+  one generated entry point and removed the three redundant HTML documents.
+- Made `generate-api-reference.mjs` metadata-only and simplified `npm run docs`
+  to generate the canonical site once.
+
+### Fixed
+
+- Corrected the `file.writeFile` newline example and two `node` examples that
+  shadowed the global namespace.
+- Documented `http.getJSON` as returning `AutoHTTPResponse`, with parsed data
+  available through `response.json`.
+
 ## [1.32.0] - 2026-08-20
 
 ### Added

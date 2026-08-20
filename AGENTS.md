@@ -10,7 +10,7 @@
 npm run verify          # 全量一致性检查（必须通过）
 npm test                # Node 端测试（bootstrap 行为测试）
 npx -y -p typescript@5.6.3 tsc -p jsconfig.json --noEmit   # d.ts 类型检查
-npm run docs            # 重新生成 docs/api-reference.html
+npm run docs            # 重新生成唯一 HTML 文档入口 docs/index.html
 ```
 
 ## 铁律
@@ -50,7 +50,8 @@ npm run docs            # 重新生成 docs/api-reference.html
 - `types/autosdk.d.ts` — 类型声明（与文档闭环）
 - `tools/verify.mjs` — 一致性断言（bootstrap 内容、d.ts、文档、版本、原生锚点）
 - `tools/bootstrap.test.mjs` — bootstrap 行为测试（mock bridge 在 Node 里跑）
-- `tools/generate-api-reference.mjs` — 手写 APIS 列表生成交互式文档
+- `tools/generate-api-reference.mjs` — 手写 APIS/CATEGORIES 元数据（不直接写 HTML）
+- `tools/generate-devdocs.mjs` — 生成唯一 HTML 文档入口 `docs/index.html`
 - `docs/EASYCLICK_COMPARISON.md` — 与 EasyClick 的能力差距审计（每轮更新）
 - `docs/AI_HANDOFF.md` — 完整交接手册（架构/历史/缺口/工作流，新 AI 先读）
 

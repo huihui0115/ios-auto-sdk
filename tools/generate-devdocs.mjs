@@ -1,497 +1,409 @@
-﻿// Generates docs/devdocs/index.html — an AScript/Docusaurus-style docs site
-// (sidebar tree + prose topic pages + per-function pages with copyable examples
-// and debug hints). Single offline file, no external dependencies.
-import { writeFileSync, mkdirSync } from 'node:fs';
+#!/usr/bin/env node
+// Generates the single canonical offline developer site at docs/index.html.
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { APIS, CATEGORIES } from './generate-api-reference.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const rootPackage = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+const extensionPackage = JSON.parse(readFileSync(join(root, 'vscode-extension', 'package.json'), 'utf8'));
+const template = readFileSync(join(root, 'tools', 'devdocs-template.html'), 'utf8');
 
-const DEBUG_HINTS = {
-  logs: 'VS Code「Run Current Script」直接看日志面板；toast 会在设备屏幕弹浮层，不连电脑也能确认执行。',
-  touch: '先在 VS Code 控件查找器（Visual Inspector）里「测试选择器」确认定位，再粘回脚本；跨 App 点击前用 auto.capabilities() 确认 realTouchInjection 为 true。',
-  vision: 'Inspector 的找图/OCR 模式可先用本地 PNG 离线测试；真机用 screenshotRegion 保存截图核对区域是否框对。',
-  app: '用 auto.capabilities() 确认 appLifecycle/systemActions/appList；launch 后用 app.current() 轮询等待前台切换。',
-  device: '设备信息在宿主 App 内即可读取；音量键/锁屏等系统动作以 capabilities 报告为准（内置 no-WDA 适配器按运行时能力如实降级）。',
-  metrics: 'setScreenMetrics 后用 metrics.point(x,y) 把设计稿坐标换算成设备坐标，适配不同机型。',
-  file: '所有路径限制在沙盒根内；file.sandboxDir() 查看当前根目录；deleteAllFile 会递归清空目录，慎用。',
-  storage: 'storages 按名字隔离命名空间；clear() 只清当前命名空间；getInt/getBoolean 带默认值兜底。',
-  http: 'HTTP 默认关闭，需宿主配置 allowHTTP + 域名 allowlist；先用 http.get 小请求验证连通性再写业务。',
-  media: '首次保存相册会触发 iOS 授权弹窗；deleteAllPhotos 等需要读写权限并返回删除条数，先在测试机验证。',
-  timer: 'sleep 是一次性原生等待不占 JS 时间片；execAsync 返回线程对象，用 cancelThread/stopAllThreads 取消。',
-  strings: '纯 JS 函数，直接 console.log 返回值即可验证；toPinYin/fromUnicode 等注意输入类型。',
-  ui: '悬浮窗显示在宿主屏幕上层；不连电脑调试时用 floatLog 实时看日志最方便。',
-  speech: '朗读是异步的，脚本里朗读后要 sleep 等待，否则脚本结束会停止朗读（可用 stopWhenScriptEnd 控制）。'
-};
+function esc(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-const PROSE = [
-{ id: 'intro', group: '开始', title: '介绍', html: `
-<h1>AutoSDK 介绍</h1>
-<p>AutoSDK 是嵌入式 <b>iOS JavaScript 自动化引擎</b>：宿主 App 内嵌 JavaScriptCore，加载内置 bootstrap，
-把 <b>258 个脚本函数</b>（触摸、控件、图色、OCR、YOLO、文件、存储、HTTP、SQLite、线程、定位、相册、悬浮窗、TTS…）
-交给 JS 脚本，通过 bridge 调原生能力。对标 EasyClick iOS / AScript iOS / TrollAutoScript / kuaijs。</p>
-<div class="note ok"><b>内置 no-WDA（v1.17.0+ 唯一跨 App 路线）</b>：不再依赖外部 WebDriverAgent Runner。
-<code>AutoBuiltinAdapter</code> 用 IOHIDEvent 注入真实触摸、AXUIElement 系统级控件检索（毫秒级）、
-SpringBoard/LSApplicationWorkspace 控制应用，全部私有符号运行时 dlopen/dlsym 解析、不链接私有框架，
-能力缺失时 <code>auto.capabilities()</code> 如实降级报告。</div>
-<h2>与同类产品对比</h2>
-<table><tr><th>维度</th><th>AScript iOS</th><th>EasyClick iOS</th><th>AutoSDK</th></tr>
-<tr><td>脚本语言</td><td>Python</td><td>JS（控制器侧）</td><td>JavaScript（设备内 JSCore）</td></tr>
-<tr><td>跨 App 触摸</td><td>Agent no-WDA / ESP32 HID</td><td>需代理 IPA / WDA</td><td>内置 IOHIDEvent 注入（no-WDA）</td></tr>
-<tr><td>控件检索</td><td>毫秒级 Agent 通道</td><td>WDA dump</td><td>系统级 AX 遍历（毫秒级）</td></tr>
-<tr><td>OCR</td><td>PaddleOCR/Vision/MLKit</td><td>多引擎</td><td>Apple Vision 离线 + 百度 OCR 可选</td></tr>
-<tr><td>YOLO</td><td>NCNN 自训模型</td><td>—</td><td>Vision 全图分类兼容入口（yolo.detect，iOS 15+，非检测器）</td></tr>
-<tr><td>开发体验</td><td>VS Code/Cursor + 云</td><td>PC 控制器</td><td>VS Code 扩展：Run/Send/Inspector/日志</td></tr>
-<tr><td>签名要求</td><td>特签分发</td><td>代理签</td><td>宿主内免费签可用；跨 App 需特签（TrollStore/企业签）</td></tr></table>
-<h2>怎么用这份文档</h2>
-<ol><li><a href="#/install">安装与签名</a> 把模板 App 装到手机；</li>
-<li><a href="#/connect">连接与调试</a> 接上 VS Code；</li>
-<li><a href="#/first-script">第一行代码</a> 跑通 hello world；</li>
-<li>左侧「API 参考」按分类查函数，每个函数都带<b>一键复制</b>的可运行示例和<b>调试提示</b>。</li></ol>` },
-{ id: 'install', group: '开始', title: '安装与签名', html: `
-<h1>安装与签名</h1>
-<h2>路线 A：Xcode 直接构建（开发者）</h2>
-<p>克隆仓库 → 用 CocoaPods 引入 <code>AutoSDK.podspec</code>（或把 <code>Sources/AutoSDK</code> 拖进工程）→
-参考 <code>Examples/TemplateApp</code> 接线：<code>[AutoTemplateSettings applyEngineConfiguration]</code> 一行完成引擎+适配器配置。</p>
-<h2>路线 B：GitHub Actions 出 unsigned IPA + Apple ID 免费签（免越狱）</h2>
-<ol><li>推送提交触发 workflow，产出 <code>AutoSDKTemplate.ipa</code>；</li>
-<li>Windows 侧用 AltStore/Sideloadly 等免费签名安装（7 天续签）；</li>
-<li>此路线下<b>宿主 App 内自动化、图色、OCR、相册、文件、HTTP、悬浮窗全部可用</b>；
-跨 App 系统级能力需要路线 C 的信任上下文。</li></ol>
-<h2>路线 C：TrollStore / 企业签（跨 App 完整能力）</h2>
-<p>内置 no-WDA 适配器的触摸注入与系统级 AX 依赖私有 API，需要允许私有 API 的构建
-（TrollStore 或企业开发者证书）。App Store 正规分发请保持 <code>AutoSDKAdapter=UIKIT</code>（审核安全）。</p>
-<h2>适配器选择（Info.plist / NSUserDefaults）</h2>
-<table><tr><th>AutoSDKAdapter 值</th><th>适配器</th><th>范围</th></tr>
-<tr><td>默认 / <code>BUILTIN</code></td><td>AutoBuiltinAdapter（内置 no-WDA）</td><td>全设备跨 App</td></tr>
-<tr><td><code>UIKIT</code></td><td>AutoUIKitAdapter</td><td>仅宿主 App 视图（App Store 安全）</td></tr></table>
-<p>可选键：<code>AutoSDKMaxSnapshotNodes</code>（默认 5000）、<code>AutoSDKMaxSnapshotDepth</code>（默认 30）、
-<code>AutoSDKScreenshotCacheDuration</code>。App 设置页的「Built-in no-WDA adapter」开关即时切换。</p>
-<div class="note warn">诚实说明：跨 App 能力在免费签环境下<b>不可用</b>，这是 iOS 平台红线，与 AScript/kuaijs 相同，均走特签分发。</div>` },
-{ id: 'connect', group: '开始', title: '连接与调试', html: `
-<h1>连接与调试（VS Code）</h1>
-<h2>1. 装扩展</h2>
-<p><code>vscode-extension/</code> 目录 F5 运行，或打包 vsix 安装。命令面板搜 <b>AutoSDK</b>。</p>
-<h2>2. 拿 token</h2>
-<p>App 设置页显示 <code>ws://地址:9001</code> 与安装 token（≥16 位）。Wi-Fi 开关默认开；
-关闭则只允许 USB 回环：<code>iproxy 9001 9001</code> 后连 <code>ws://127.0.0.1:9001</code>。</p>
-<h2>3. 常用命令</h2>
-<table><tr><th>命令</th><th>作用</th></tr>
-<tr><td>AutoSDK: Connect</td><td>输入 URL + token 建立 WebSocket</td></tr>
-<tr><td>AutoSDK: Run Current Script</td><td>把当前打开的 JS/TS 直接推到手机执行（无需重装 IPA）</td></tr>
-<tr><td>AutoSDK: Send Current Script to Device</td><td>存进 App 沙盒（部署脚本列表）</td></tr>
-<tr><td>AutoSDK: Manage Device Scripts</td><td>列出/运行/删除已部署脚本</td></tr>
-<tr><td>AutoSDK: Open Visual Inspector</td><td>控件查找器：左截图右节点树</td></tr></table>
-<h2>4. 日志</h2>
-<p>脚本里 <code>console.log/warn/error</code>、<code>toast/toastLog</code> 实时回传 VS Code 输出面板；
-不连电脑时用 <code>floatLog</code> 悬浮日志窗在设备上看。</p>
-<h2>5. 命令行调试</h2>
-<pre><code>node tools/debug-client.mjs --token &lt;token&gt; --url ws://127.0.0.1:9001 --script-file .\\hello.js</code></pre>
-<div class="note ok">调试提示：Wi-Fi 模式仅 token 认证未加密，只在可信网络使用；生产分发请关闭
-<code>AutoSDKDebugAllowWiFi</code>。</div>` },
-{ id: 'first-script', group: '开始', title: '第一行代码', html: `
-<h1>第一行代码</h1>
-<pre><code>function main() {
-  console.log('hello, AutoSDK');          // VS Code 日志面板可见
-  toast('脚本已运行');                      // 设备屏幕浮层
-  const caps = auto.capabilities();        // 能力门控，先问再做
-  console.log('crossApp =', caps.crossApp, 'touch =', caps.realTouchInjection);
-  if (caps.click) clickPoint(500, 800);    // 坐标点击
-  return 'done';
+let snippetIndex = 0;
+function codeBlock(source) {
+  const id = 'example-' + (++snippetIndex);
+  return `<div class="code-block"><button class="copy-button" type="button" data-copy="${id}">复制</button><pre><code id="${id}">${esc(source.trim())}</code></pre></div>`;
 }
-main();</code></pre>
-<h2>运行步骤</h2>
-<ol><li>VS Code 连接设备（见<a href="#/connect">连接与调试</a>）；</li>
-<li>打开或新建 .js，命令面板 → <b>AutoSDK: Run Current Script</b>；</li>
-<li>输出面板看 console 回传；设备上看到 toast 即成功。</li></ol>
-<h2>常见错误速查</h2>
-<table><tr><th>现象</th><th>原因 / 处理</th></tr>
-<tr><td>capabilities.crossApp=false</td><td>当前是 UIKit 适配器或免费签环境；设置页开 Built-in no-WDA 且需特签构建</td></tr>
-<tr><td>click 返回 false</td><td>触摸注入不可用（签名上下文不足），capabilities.realTouchInjection 会如实为 false</td></tr>
-<tr><td>HTTP 报错 disabled</td><td>宿主未开 allowHTTP / 域名不在 allowlist</td></tr>
-<tr><td>脚本超时</td><td>默认 300s；死循环纯 JS 目前协作式中断，sleep/原生调用可被打断</td></tr></table>` },
-{ id: 'structure', group: '开始', title: '工程结构', html: `
-<h1>工程结构（二次开发）</h1>
-<pre><code>Sources/AutoSDK/            SDK 本体（CocoaPods 可直接引）
-  AutoEngine.m              JS 桥接/调度/取消/调试入口
-  AutoBuiltinAdapter.m      内置 no-WDA 适配器（IOHID/AX/SpringBoard 运行时解析）
-  AutoUIKitAdapter.m        宿主 App 内公共 API 适配器
-  AutoScriptSupport.m       文件沙盒/HTTP 安全/sqlite/yolo/HMAC
-  AutoDebugServer.m         WebSocket 调试服务（VS Code 对接）
-tools/bootstrap-source.js   bootstrap JS 唯一权威源（60KB 预算）
-tools/generate-api-reference.mjs / generate-devdocs.mjs   文档生成器
-types/autosdk.d.ts          TS 类型（VS Code 补全 + verify 闭环）
-Examples/TemplateApp/       宿主模板 App（设置页/脚本示例/Info.plist）
-vscode-extension/           VS Code 扩展（Run/Send/Inspector）
-docs/                       本站 + 函数速查 + 教程 + 对标审计</code></pre>
-<h2>加一个函数的闭环</h2>
-<ol><li><code>tools/bootstrap-source.js</code> 定义并导出 → <code>npm run regenerate:bootstrap</code>；</li>
-<li><code>types/autosdk.d.ts</code> 加声明；</li>
-<li><code>tools/generate-api-reference.mjs</code> 加 APIS 卡片（sig 覆盖新名字，verify 强制）；</li>
-<li><code>tools/bootstrap.test.mjs</code> 加行为测试；</li>
-<li><code>npm run verify && npm test && npm run docs</code> 全绿后发版。</li></ol>` },
-{ id: 'selector', group: '控件检索', title: '选择器快速上手', html: `
-<h1>选择器快速上手</h1>
-<p>所有节点 API 的选择器可以是字符串（按 label/text 精确匹配）或对象（字段 AND 组合）：</p>
-<pre><code>auto.click({ id: "login", type: "Button" });          // 精确字段
-auto.click({ textMatch: "^登\\\\s*录$" });                // 正则变体
-const n = node.find({ label: "确认" }); if (n) n.click(); // Node 对象风格
-Selector().label("确认").click().find(3000);            // AScript 链式风格</code></pre>
-<h2>字段表</h2>
-<table><tr><th>字段</th><th>含义</th><th>正则变体</th></tr>
-<tr><td>id / label / name(text) / value / type</td><td>精确匹配</td><td>idMatch / labelMatch / textMatch / valueMatch / typeMatch</td></tr>
-<tr><td>enabled / visible / selected / accessible</td><td>状态过滤</td><td>—</td></tr>
-<tr><td>index / depth / childCount / bounds</td><td>结构过滤</td><td>—</td></tr></table>
-<div class="note ok"><b>xpath 子集（Round 53+）</b>：内置 no-WDA 适配器支持有界 xpath 子集，单步写法：
-<code>//Button</code>、<code>//*[@text='确认']</code>、<code>//*[contains(@text,'确认')]</code>、
-<code>//Button[@text='a' and @id='b']</code>、<code>//ScrollView[2]</code>（第 2 个匹配）、
-<code>//Image[starts-with(@id,'icon_')]</code>；属性支持 @text/@label/@name/@value/@id/@type/@index/@depth。
-不支持嵌套路径（如 <code>//a/b</code>）与 <code>predicate</code>（返回清晰错误）。先在<a href="#/inspector">控件查找器</a>里验证选择器再写进脚本。</div>` },
-{ id: 'node-object', group: '控件检索', title: '控件对象', html: `
-<h1>控件对象（Node）</h1>
-<p><code>node.find(selector)</code> 返回带方法的 Node 对象，可链式操作：</p>
-<pre><code>const n = node.find({ label: "用户名" });
-if (n) {
-  n.click();                 // 点击中心
-  n.tap_hold(1.5);           // 长按 1.5 秒（秒为单位）
-  n.setText("hello");        // 输入
-  console.log(n.text, n.rect, n.boundsInfo());
-  n.children().forEach(c => console.log(c.type, c.label));
-  n.parent(); n.siblings(); n.allChildren();  // 关系遍历
-}</code></pre>
-<h2>常用方法</h2>
-<table><tr><th>方法</th><th>说明</th></tr>
-<tr><td>click() / click(dur) / tap_hold(sec) / longClick(sec)</td><td>激活节点（长按单位为秒）</td></tr>
-<tr><td>setText(t) / clearText()（别名 set_text/clear_text）</td><td>输入/清空</td></tr>
-<tr><td>attr(name) / .text / .rect / .center / .boundsInfo()</td><td>属性与坐标</td></tr>
-<tr><td>children() / parent() / siblings() / nextSiblings() / previousSiblings() / allChildren()</td><td>关系遍历（返回包装节点）</td></tr>
-<tr><td>keep() / unkeep()</td><td>保留句柄（对标 TrollAutoScript）</td></tr></table>` },
-{ id: 'inspector', group: '控件检索', title: '控件查找器', html: `
-<h1>控件查找器（Visual Inspector）</h1>
-<ol><li>VS Code 命令面板 → <b>AutoSDK: Open Visual Inspector</b>；</li>
-<li>左侧实时截图，右侧节点树；点节点高亮并<b>自动生成选择器代码</b>；</li>
-<li>「测试选择器」立即在设备上执行验证；</li>
-<li>找图/OCR 模式可先用本地 PNG 测试（自动上传到手机 debug-assets）；</li>
-<li>生成的 <code>auto.click(...)</code> 直接粘回脚本。</li></ol>
-<div class="note ok">工作流建议：Inspector 取选择器 → 本页面查函数示例 → Run Current Script 热跑 →
-日志面板看回传，全程不用重装 IPA。</div>` },
-{ id: 'guide-threads', group: '高级指南', title: '多线程', html: `
-<h1>多线程</h1>
-<p>脚本主体跑在 JSContext 主线程；耗时任务（HTTP、长循环、等待）用 <code>execAsync</code> 放到独立线程，
-避免卡住触摸/控件操作。最多 8 个并发线程，线程函数参数必须是可 JSON 序列化的值。</p>
-<pre><code>function main(){
-  // 子线程跑耗时任务
-  const t = execAsync(function (n) {
-    sleep(2000);
-    return n * 2;
-  }, 21);
 
-  // 主线程继续干活
-  logd("子线程还没结束: " + !t.isFinished());
-  const value = t.join();      // 阻塞等结果
-  logd("结果: " + value);      // 42
-  t.cancel();                  // 幂等，可随时调用
+function page(id, group, title, lead, body, eyebrow = group) {
+  return `<article class="page" id="page-${id}" data-group="${esc(group)}" data-title="${esc(title)}">
+  <header class="page-head">
+    <p class="eyebrow">${esc(eyebrow)}</p>
+    <h1>${esc(title)}</h1>
+    <p class="lead">${esc(lead)}</p>
+  </header>
+  ${body}
+</article>`;
 }
-main();</code></pre>
-<h2>定时器</h2>
-<pre><code>function main(){
-  setTimeout(function(){ logd("2 秒后执行一次"); }, 2000);
-  const id = setInterval(function(){ logd("每 1 秒"); }, 1000);
-  sleep(3500);
-  clearInterval(id);
-}
-main();</code></pre>
-<div class="note ok">经验：线程之间不要共享可变对象（每个线程是独立 JSContext），
-用返回值/getResult 或存储（store/sqlite）传递数据。</div>` },
 
-{ id: 'guide-db', group: '高级指南', title: '数据库', html: `
-<h1>数据库（SQLite）</h1>
-<p>内置 <code>sqlite</code> 模块（iOS 系统 libsqlite3），适合存任务队列、去重记录、运行统计。
-参数用 <code>?</code> 占位绑定，天然防 SQL 注入。</p>
-<pre><code>function main(){
-  const db = sqlite.open("data/app.db");            // 沙盒内路径，自动建库
-  sqlite.exec(db, "CREATE TABLE IF NOT EXISTS tasks(" +
-    "id INTEGER PRIMARY KEY, name TEXT, done INTEGER DEFAULT 0)");
-  const r = sqlite.exec(db, "INSERT INTO tasks(name) VALUES(?)", ["写周报"]);
-  logd("新增 id=" + r.lastInsertRowId + " changes=" + r.changes);
-  const rows = sqlite.query(db, "SELECT * FROM tasks WHERE done=?", [0]);
-  for (const row of rows) logd(row.id + ": " + row.name);
-  sqlite.close(db);                                 // 脚本停止时也会自动关闭
-}
-main();</code></pre>
-<div class="note ok">大批量写入时把多条 INSERT 放进一个循环即可，单条语句都是同步执行、
-无需事务封装；跨线程共享数据推荐用数据库而不是全局变量。</div>` },
+const firstScript = `function main() {
+  toastLog("AutoSDK 已连接");
+  logd(JSON.stringify(device.getDeviceInfo()));
+  logd(JSON.stringify(auto.capabilities()));
 
-{ id: 'guide-network', group: '高级指南', title: '网络通信', html: `
-<h1>网络通信（HTTP）</h1>
-<p><code>http</code> 模块支持 GET/POST/JSON/表单/文件下载，全局简写 <code>httpGet/httpPost</code>。
-长请求建议放进 <code>execAsync</code> 线程，避免阻塞主流程。</p>
-<pre><code>function main(){
-  if (auto.capabilities().http !== true) { logd("宿主未开放 HTTP"); return; }
-  // GET JSON
-  const r = http.get("https://example.com/api/status", {
-    headers: { "Authorization": "Bearer xxx" },
-    timeout: 5000,
-  });
-  logd("status=" + r.status);
-  const data = r.json;        // 已自动解析为对象
-  // POST JSON
-  const r2 = http.postJSON("https://example.com/api/report", { ok: true, ts: Date.now() });
-  logd("上报: " + r2.status);
+  const image = screenshot();
+  logd("截图 Base64 长度: " + image.length);
 }
-main();</code></pre>
-<h2>下载文件</h2>
-<pre><code>function main(){
-  const ok = http.downloadFile("https://example.com/a.png", "res/a.png");
-  logd("下载: " + ok);
-}
-main();</code></pre>
-<div class="note ok">ATS 提示：宿主 App 若未放开 http:// 明文域名，请用 https；
-请求失败时 r.status 为 0 且 body 为空，先判 status 再解析。</div>` },
+main();`;
 
-{ id: 'guide-vision', group: '高级指南', title: '图色识别', html: `
-<h1>图色识别</h1>
-<p>图色是自动化的兜底能力：控件取不到时用<b>找图</b>（模板匹配）、<b>找色</b>（单点/多点颜色）、
-<b>OCR</b>（文字识别）定位坐标再点击。所有图色函数都支持 <code>screen.cache(true)</code> 截图缓存，
-同一画面多次判断时只截一次图。</p>
-<h2>找色</h2>
-<pre><code>function main(){
-  screen.cache(true);                    // 同一画面多次判断时强烈建议开启
-  const p = screen.findColor("#ff5722", { x: 0, y: 0, width: 0, height: 0 }, { tolerance: 12 });
-  if (p) { logd("找到: " + p.x + "," + p.y); click(p.x, p.y); }
-  // 区域多点批量找色（一次截图找多个目标色）
-  const list = findColorEx("#00ff00", 0.9, 0, 0, 500, 800, 10, 1);
-  logd("匹配点数: " + (list ? list.length : 0));
-  screen.cache(false);
-}
-main();</code></pre>
-<h2>找图（模板匹配）</h2>
-<pre><code>function main(){
-  // 模板 png 放脚本目录 res/ 下；返回 {found,x,y,width,height,centerX,centerY,similarity}
-  const r = findImage("res/btn_ok.png", { similarity: 0.9 });
-  if (r && r.found) { click(r.centerX, r.centerY); }
-}
-main();</code></pre>
-<h2>OCR 与 YOLO</h2>
-<pre><code>function main(){
-  const words = ocr();                   // 全屏识别，返回 [{text,bounds:{...},confidence}]
-  for (const w of words) if (w.text.includes("确认")) {
-    const b = w.bounds; click(b.x + b.width / 2, b.y + b.height / 2); break;
+const selectorScript = `function main() {
+  const query = Selector()
+    .text("登录")
+    .type("Button")
+    .visible(true);
+
+  if (!query.waitFor(3000)) {
+    logw("未找到登录按钮");
+    return;
   }
-  const labels = yolo.detect("res/screen.png"); // iOS 15+ 离线全图分类（非边界框检测）
-  logd(JSON.stringify(objs));
+
+  const login = query.findOne();
+  if (!login) return;
+
+  logd(JSON.stringify(login.bounds));
+  login.click();
 }
-main();</code></pre>
-<div class="note ok">性能预算：找图比较次数有上限（默认 maxCandidates=64），OCR 单次全屏约 1-3 秒；
-高频判断优先用 findColor/cmpColor，截图缓存开启后图色操作可快一个数量级。</div>` },
+main();`;
 
-{ id: 'publish', group: '开始', title: '发布程序', html: `
-<h1>发布程序（打包与分发）</h1>
-<p>脚本开发的最终形态是<b>把脚本随宿主 App 一起分发</b>。三种常见方式：</p>
-<ol>
-<li><b>内置脚本</b>：把 .js 放进宿主 App 资源（模板 App 的 <code>Scripts/</code> 目录），
-启动即运行，无需联网，适合成品交付；</li>
-<li><b>远程脚本</b>：宿主从自己的服务器拉取脚本（HTTPS），可随时热更新逻辑，
-配合 <code>http.downloadFile</code> + 本地缓存做版本管理；</li>
-<li><b>VS Code 实时调试</b>：开发期用扩展直连设备热跑，见「连接与调试」。</li>
-</ol>
-<h2>签名要求（跨 App 自动化）</h2>
-<table><tr><th>场景</th><th>签名</th><th>说明</th></tr>
-<tr><td>仅宿主 App 内控件/文件/HTTP</td><td>免费个人签</td><td>7 天有效期，Xcode 直装即可</td></tr>
-<tr><td>跨 App 触摸/控件（内置 no-WDA）</td><td>TrollStore / 开发者证书 / 企业签</td><td>内置适配器用私有 API（运行时 dlsym 解析），App Store 审核会拒</td></tr>
-<tr><td>上架 App Store</td><td>官方分发</td><td>仅宿主内功能可用，capabilities 会如实降级</td></tr></table>
-<h2>发布前检查清单</h2>
-<ol><li><code>auto.capabilities()</code> 逐项确认目标签名下能力可用；</li>
-<li>脚本加 <code>try/catch</code> + <code>logd</code>，失败路径有兜底（重试/重启脚本）；</li>
-<li>用 <code>device.getScreenWidth/Height</code> 做分辨率适配，别写死坐标；</li>
-<li>首次运行引导用户开启辅助功能/相册等系统权限。</li></ol>
-<div class="note ok">完整上架流程（IPA 导出、商店资料、审核注意）见仓库 <code>docs/MARKET_RELEASE.md</code>。</div>` },
+const guides = [
+  {
+    id: 'quickstart',
+    group: '入门',
+    title: '5 分钟上手',
+    lead: '从安装插件到在真机运行第一段 JavaScript，只保留最短的成功路径。',
+    search: '安装 插件 VSIX 真机 连接 运行 JavaScript 快速开始 入门',
+    body: `
+      <div class="callout success"><strong>当前版本</strong>SDK v${esc(rootPackage.version)} · VS Code 插件 v${esc(extensionPackage.version)} · 完整文档和 API 均可离线使用。</div>
+      <div class="steps">
+        <div class="step"><strong>安装并签名宿主 App</strong><p>从 GitHub Releases 下载最新 IPA 或构建产物，用自己的 Apple ID 签名安装。启动后保持 App 在前台。</p></div>
+        <div class="step"><strong>安装 VS Code 插件</strong><p>下载 <code>autosdk-vscode-${esc(extensionPackage.version)}.vsix</code>，在 VS Code 的“扩展 → … → 从 VSIX 安装”中选择它。</p></div>
+        <div class="step"><strong>配置连接</strong><p>运行 <code>AutoSDK: Configure Device Connection</code>，填写宿主 App 显示的 WebSocket 地址和 token。USB 推荐先运行 <code>AutoSDK: Start USB Tunnel</code>。</p></div>
+        <div class="step"><strong>验证并运行</strong><p>先执行 <code>AutoSDK: Test Device Connection</code>，然后打开 JavaScript 文件并执行 <code>AutoSDK: Run Current Script</code>。</p></div>
+      </div>
+      <h2>第一段脚本</h2>
+      ${codeBlock(firstScript)}
+      <div class="callout warning"><strong>先看能力，再写脚本</strong><code>auto.capabilities()</code> 返回当前签名和适配器真正可用的能力。跨 App 控制、截图或节点能力不可用时，不要用死循环重试。</div>
+      <h2>接下来做什么</h2>
+      <div class="card-grid">
+        <div class="info-card"><strong>看不见控件？</strong><p>打开“可视化检查器”，直接点选截图节点并生成选择器。</p></div>
+        <div class="info-card"><strong>已经知道函数名？</strong><p>按 <code>/</code> 聚焦全局搜索，输入函数或模块名，回车直达。</p></div>
+        <div class="info-card"><strong>想复制现成代码？</strong><p>从“常用实战”开始，HTTP、图色、存储和线程都给出完整示例。</p></div>
+        <div class="info-card"><strong>遇到失败？</strong><p>先看“排错清单”，再通过 <code>lastError()</code> 获取最近错误。</p></div>
+      </div>`
+  },
+  {
+    id: 'connect',
+    group: '入门',
+    title: '连接与运行',
+    lead: 'USB 更稳定，Wi-Fi 更轻便；两种方式共用同一套插件命令。',
+    search: 'USB WiFi iproxy websocket ws token 连接 运行 停止 部署',
+    body: `
+      <h2>USB 连接（推荐）</h2>
+      <ol>
+        <li>安装 <code>iproxy</code> 并确保它在 PATH，或设置 <code>autosdk.iproxyPath</code>。</li>
+        <li>手机通过 USB 连接电脑，保持宿主 App 在前台。</li>
+        <li>执行 <code>AutoSDK: Start USB Tunnel</code>，再配置 <code>ws://127.0.0.1:9001</code> 与 token。</li>
+        <li>执行 <code>AutoSDK: Test Device Connection</code>。</li>
+      </ol>
+      <p>需要手工排查时，可在终端运行：</p>
+      ${codeBlock('iproxy 9001 9001')}
+      <h2>Wi-Fi 连接</h2>
+      <ol>
+        <li>电脑与手机进入同一可信局域网。</li>
+        <li>宿主 App 必须启用 Wi-Fi 调试，并使用至少 16 个字符的随机 token。</li>
+        <li>配置 App 显示的 <code>ws://手机IP:9001</code>，无需启动 USB 隧道。</li>
+      </ol>
+      <h2>常用命令</h2>
+      <table>
+        <thead><tr><th>命令</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td><code>Run Current Script</code></td><td>立即执行当前编辑器内容，最适合迭代。</td></tr>
+          <tr><td><code>Send Current Script to Device</code></td><td>把脚本保存到设备脚本列表。</td></tr>
+          <tr><td><code>Stop Active Script</code></td><td>停止当前脚本、定时器和后台任务。</td></tr>
+          <tr><td><code>Capture Device Screenshot</code></td><td>抓取当前设备画面。</td></tr>
+          <tr><td><code>Open Visual Inspector</code></td><td>采集截图和节点树并进行交互调试。</td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><strong>token 不写入工作区配置</strong>插件把 token 放入 VS Code SecretStorage，并与连接地址、工作区绑定。</div>`
+  },
+  {
+    id: 'scope',
+    group: '核心指南',
+    title: '能力与签名',
+    lead: 'iOS 自动化能力由宿主、签名和当前适配器共同决定；文档只承诺运行时报告为可用的能力。',
+    search: '能力 capabilities 签名 越狱 非越狱 跨应用 权限 安全 限制',
+    body: `
+      <h2>先读取能力</h2>
+      ${codeBlock(`function main() {
+  const caps = auto.capabilities();
+  logd(JSON.stringify(caps, null, 2));
+}
+main();`)}
+      <table>
+        <thead><tr><th>场景</th><th>通常可用</th><th>需要确认</th></tr></thead>
+        <tbody>
+          <tr><td>宿主 App 内</td><td>JavaScript、文件、存储、HTTP、日志、定时器</td><td>相册、通知、麦克风等系统权限</td></tr>
+          <tr><td>内置无 WDA 适配器</td><td>由 <code>auto.capabilities()</code> 明确报告的触摸、截图和节点能力</td><td>签名 entitlement、设备系统版本与宿主集成</td></tr>
+          <tr><td>网络调试</td><td>USB 回环或可信 Wi-Fi 上的实时运行</td><td>调试服务器开关、端口、token 和局域网权限</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warning"><strong>失败必须可见</strong>交互 API 返回 <code>false</code> 或 <code>null</code> 时，读取 <code>lastError()</code>；不要把“调用完成”当作“操作成功”。</div>
+      <h2>安全建议</h2>
+      <ul>
+        <li>发布构建默认关闭调试服务器，开发时才显式启用。</li>
+        <li>Wi-Fi 模式使用随机长 token，只连接可信局域网。</li>
+        <li>HTTP 白名单和 TLS 校验按宿主需求配置，不在脚本中绕过。</li>
+        <li>脚本退出前关闭定时器、线程、音频和截图缓存。</li>
+      </ul>`
+  },
+  {
+    id: 'inspector',
+    group: '核心指南',
+    title: '可视化检查器',
+    lead: '把截图、节点树、选择器验证和代码生成放在一个面板里，减少来回猜坐标。',
+    search: 'Visual Inspector 可视化检查器 截图 节点树 选择器 图片 颜色 OCR 调试',
+    body: `
+      <h2>推荐流程</h2>
+      <div class="steps">
+        <div class="step"><strong>打开目标页面</strong><p>让设备停在要调试的界面，执行 <code>AutoSDK: Open Visual Inspector</code>。</p></div>
+        <div class="step"><strong>采集关联快照</strong><p>检查器会把截图和节点树作为同一轮采集结果处理，避免节点位置与画面错位；采集可取消。</p></div>
+        <div class="step"><strong>点选并验证</strong><p>点击截图或节点，查看属性、范围和层级；使用选择器测试确认唯一匹配。</p></div>
+        <div class="step"><strong>生成最小选择器</strong><p>优先保留稳定且能唯一定位的属性，再复制 JavaScript 到脚本。</p></div>
+      </div>
+      <h2>面板能做什么</h2>
+      <div class="card-grid">
+        <div class="info-card"><strong>节点模式</strong><p>树与截图联动、高亮匹配区域、节点动作后自动刷新。</p></div>
+        <div class="info-card"><strong>选择器模式</strong><p>验证匹配数量，生成链式 Selector 或对象选择器代码。</p></div>
+        <div class="info-card"><strong>图像模式</strong><p>框选区域、导出截图、生成找图或区域截图参数。</p></div>
+        <div class="info-card"><strong>颜色模式</strong><p>读取像素、生成颜色值与区域参数，适合图色调试。</p></div>
+      </div>
+      <div class="callout"><strong>节点太多时</strong>通过 <code>autosdk.inspectorMaxNodes</code> 控制 1–2000 个节点；动作后的刷新延迟可通过 <code>autosdk.inspectorActionRefreshDelay</code> 调整为 0–5000ms。</div>
+      <h2>稳定选择器原则</h2>
+      <ol>
+        <li>优先使用业务稳定的 <code>id</code>、<code>name</code> 或明确文本。</li>
+        <li>属性不唯一时再组合 <code>type</code>、<code>visible</code> 和层级关系。</li>
+        <li>动态列表避免绝对坐标和完整 XPath；先缩小父容器，再找子节点。</li>
+        <li>操作前验证匹配数，页面变化后重新采集快照。</li>
+      </ol>`
+  },
+  {
+    id: 'selectors',
+    group: '核心指南',
+    title: '选择器与节点',
+    lead: '链式 Selector 负责查找，节点对象负责读取属性、遍历关系和执行动作。',
+    search: 'Selector node 节点 选择器 XPath text id name type bounds findOne findAll',
+    body: `
+      <h2>链式查找</h2>
+      ${codeBlock(selectorScript)}
+      <h2>常用条件</h2>
+      <table>
+        <thead><tr><th>条件</th><th>适合场景</th></tr></thead>
+        <tbody>
+          <tr><td><code>text(value)</code></td><td>稳定、完整的可见文字。</td></tr>
+          <tr><td><code>id(value)</code> / <code>name(value)</code></td><td>开发者提供的稳定标识。</td></tr>
+          <tr><td><code>type(value)</code></td><td>Button、TextField 等控件类型。</td></tr>
+          <tr><td><code>visible(true)</code> / <code>enabled(true)</code></td><td>排除不可交互节点。</td></tr>
+          <tr><td><code>contains(value)</code> / 正则条件</td><td>文字包含动态部分。</td></tr>
+        </tbody>
+      </table>
+      <h2>节点关系</h2>
+      ${codeBlock(`function main() {
+  const item = Selector().text("设置").findOne(2000);
+  if (!item) return;
 
-{ id: 'faq', group: '开始', title: '常见问题', html: `
-<h1>常见问题（FAQ）</h1>
-<h2>安装与签名</h2>
-<p><b>Q: 免费个人签能用跨 App 自动化吗？</b><br>A: 不能。跨 App 触摸/控件依赖内置 no-WDA 适配器的私有 API，
-需要 TrollStore、开发者证书或企业签；免费签下 <code>auto.capabilities()</code> 会如实报告降级，脚本应做兜底。</p>
-<p><b>Q: 和 WDA 方案比有什么优势？</b><br>A: 无需额外的 WebDriverAgent Runner 进程、无 8100 端口转发，
-控件检索为系统级 AX 直查（毫秒级），触摸为 IOHIDEvent 真实注入。</p>
-<h2>脚本编写</h2>
-<p><b>Q: 支持 xpath 选择器吗？</b><br>A: 宿主 UIKit 路径支持完整 xpath；内置跨 App AX 路径支持<b>有界子集</b>
-（Round 53+）：<code>//Type[@attr='v']</code>、<code>contains/starts-with/ends-with(@attr,'v')</code>、
-<code>and</code> 组合、位置下标 <code>//ScrollView[2]</code>；不支持嵌套路径与 predicate（返回清晰错误）。</p>
-<p><b>Q: 脚本里怎么适配不同分辨率？</b><br>A: 优先控件检索；必须用坐标时用 <code>setScreenMetrics(w,h)</code> 
-做设计稿坐标换算（<code>metrics.x()/y()</code>）。</p>
-<p><b>Q: 死循环停不下来怎么办？</b><br>A: 纯 JS 密集循环无法被抢占式中断，循环体内调用任意 bridge 函数
-（如 <code>sleep(1)</code>）即可响应停止按钮；或用 <code>isCancelled()</code> 主动检查。</p>
-<h2>调试</h2>
-<p><b>Q: 日志在哪里看？</b><br>A: VS Code 扩展日志面板（实时回传）；设备侧可用 <code>floatLog</code> 悬浮窗。</p>
-<p><b>Q: 找图找不到？</b><br>A: 确认模板截图与设备分辨率一致；降低 <code>similarity</code>（0.8 起试）；
-用 Visual Inspector 的找图模式先在本地 PNG 上验证。</p>` },
+  const parent = item.parent();
+  const children = parent ? parent.children() : [];
+  logd("同级数量: " + item.siblings().length);
+  logd("子节点数量: " + children.length);
+}
+main();`)}
+      <h2>XPath</h2>
+      <p>XPath 适合迁移已有脚本或表达复杂层级。移动端页面结构容易变化，新脚本优先使用链式条件和关系查找。</p>
+      ${codeBlock(`function main() {
+  const result = Selector()
+    .xpath('//*[@type="Button" and @text="继续"]')
+    .findAll();
+  if (result && result.length) result[0].click();
+}
+main();`)}
+      <div class="callout warning"><strong>超时单位是毫秒</strong><code>waitFor(3000)</code> 最多等待 3 秒；超时返回 <code>false</code>，随后再用 <code>findOne()</code> 获取节点。</div>`
+  },
+  {
+    id: 'recipes',
+    group: '核心指南',
+    title: '常用实战',
+    lead: '可直接复制的完整片段，覆盖图色、HTTP、SQLite 和后台任务。',
+    search: '实战 示例 图色 OCR HTTP JSON SQLite 线程 execAsync cache',
+    body: `
+      <h2>同一画面做多次图色识别</h2>
+      ${codeBlock(`function main() {
+  screen.cache(true);
+  try {
+    const logo = screen.findImage("images/logo.png", { threshold: 0.9 });
+    const warning = screen.findColor("#ff3b30", { x: 0, y: 0, width: 390, height: 300 });
+    const words = screen.ocr({ x: 0, y: 0, width: 390, height: 400 });
+    logd(JSON.stringify({ logo, warning, words }));
+  } finally {
+    screen.cache(false);
+  }
+}
+main();`)}
+      <h2>获取 JSON</h2>
+      ${codeBlock(`function main() {
+  const response = http.getJSON("https://api.example.com/status", {
+    timeout: 10000,
+    headers: { Accept: "application/json" }
+  });
+  logd("HTTP " + response.status);
+  logd(JSON.stringify(response.json));
+}
+main();`)}
+      <h2>SQLite 持久化</h2>
+      ${codeBlock(`function main() {
+  const db = sqlite.open("data/tasks.sqlite");
+  try {
+    sqlite.exec(db, "CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, title TEXT)");
+    sqlite.exec(db, "INSERT INTO tasks(title) VALUES (?)", ["同步"]);
+    logd(JSON.stringify(sqlite.query(db, "SELECT * FROM tasks ORDER BY id DESC")));
+  } finally {
+    sqlite.close(db);
+  }
+}
+main();`)}
+      <h2>后台执行并等待结果</h2>
+      ${codeBlock(`function main() {
+  const worker = execAsync(function (a, b) {
+    sleep(200);
+    return a + b;
+  }, 20, 22);
+
+  logd("结果: " + worker.join());
+}
+main();`)}
+      <div class="callout"><strong>先复制，再按实际环境替换</strong>URL、文件路径、图片模板和选择器只是示例值；API 的精确参数以对应模块页为准。</div>`
+  },
+  {
+    id: 'troubleshooting',
+    group: '帮助',
+    title: '排错清单',
+    lead: '按连接、能力、选择器和脚本生命周期的顺序排查，通常能最快定位问题。',
+    search: '排错 故障 连接失败 token 点击 false 找不到 节点 HTTP lastError 超时 死循环',
+    body: `
+      <div class="faq"><h3>插件连不上设备</h3><ol><li>宿主 App 是否在前台、调试服务器是否开启。</li><li>USB 是否已启动插件管理的隧道；Wi-Fi 是否在同一局域网。</li><li>URL 端口是否为 9001，token 是否来自当前安装。</li><li>重新执行 <code>Configure Device Connection</code> 与 <code>Test Device Connection</code>。</li></ol></div>
+      <div class="faq"><h3>点击返回 false</h3><p>打印 <code>auto.capabilities()</code> 与 <code>lastError()</code>。确认当前适配器支持触摸、坐标在屏幕范围内，节点仍然可见且可交互。</p></div>
+      <div class="faq"><h3>选择器找不到节点</h3><p>重新采集检查器快照，先测试单个稳定条件，再逐步增加限制。注意页面切换、动画、WebView 和动态文本会让旧节点失效。</p></div>
+      <div class="faq"><h3>HTTP 请求被拒绝</h3><p>检查宿主的 HTTP 开关、域名白名单、ATS/TLS 配置和超时。<code>http.getJSON()</code> 返回完整响应，解析结果在 <code>response.json</code>。</p></div>
+      <div class="faq"><h3>脚本一直不结束</h3><p>检查未清理的 <code>setInterval</code>、后台线程、音频或持续任务。用 <code>Stop Active Script</code> 停止，并在 <code>finally</code> 中释放资源。</p></div>
+      <h2>最小诊断脚本</h2>
+      ${codeBlock(`function main() {
+  logd(JSON.stringify(auto.capabilities(), null, 2));
+  logd(JSON.stringify(device.getDeviceInfo(), null, 2));
+  logd("最近错误: " + JSON.stringify(lastError()));
+}
+main();`)}
+      <p>仍无法判断时，把插件输出面板日志、宿主日志、最小脚本和能力结果一起提交到 GitHub Issues。</p>`
+  }
 ];
 
-function fnBlock(api, i) {
-  const params = (api.params && api.params.length)
-    ? `<table class="pt"><tr><th>参数</th><th>类型</th><th>说明</th></tr>${api.params.map(p => `<tr><td><code>${esc(p[0])}</code></td><td>${esc(p[1])}</td><td>${esc(p[2])}</td></tr>`).join('')}</table>`
-    : '<p class="noparam">无参数</p>';
-  const hint = DEBUG_HINTS[api.cat] || '';
-  return `<section class="fn" id="fn-${i}">
-<h3>${esc(api.title)}</h3>
-<div class="sig"><code>${esc(api.sig)}</code><button class="copy" data-copy="sig-${i}">复制</button></div>
-<p class="desc">${esc(api.desc)}</p>
-${params}
-<div class="ret"><b>返回值</b> <code>${esc(api.returns)}</code></div>
-<div class="exhead"><span>示例（可直接复制运行）</span><button class="copy" data-copy="ex-${i}">复制</button></div>
-<pre id="ex-${i}"><code>${esc(api.example)}</code></pre>
-<pre id="sig-${i}" class="hidden">${esc(api.sig)}</pre>
-${hint ? `<div class="hintbox">🔧 调试：${esc(hint)}</div>` : ''}
-</section>`;
+const apiCategories = CATEGORIES
+  .map(category => ({ ...category, items: APIS.filter(api => api.cat === category.id) }))
+  .filter(category => category.items.length > 0);
+
+function apiEntry(api, index) {
+  const exampleId = 'api-example-' + index;
+  const filter = [api.sig, api.title, api.desc, ...(api.params || []).flat(), api.returns].join(' ').toLowerCase();
+  const params = api.params?.length
+    ? `<table class="param-table"><thead><tr><th>参数</th><th>类型</th><th>说明</th></tr></thead><tbody>${api.params.map(([name, type, desc]) =>
+      `<tr><td><code>${esc(name)}</code></td><td><code>${esc(type)}</code></td><td>${esc(desc)}</td></tr>`).join('')}</tbody></table>`
+    : '<p class="return-value">无参数</p>';
+  return `<details class="api-entry" id="fn-${index}" data-filter="${esc(filter)}">
+    <summary><span class="api-signature">${esc(api.sig)}</span><span class="api-name">${esc(api.title)}</span></summary>
+    <div class="api-body">
+      <p class="api-description">${esc(api.desc)}</p>
+      <p class="meta-label">参数</p>
+      ${params}
+      <p class="meta-label">返回值</p>
+      <p class="return-value"><code>${esc(api.returns)}</code></p>
+      <p class="meta-label">示例</p>
+      <div class="code-block"><button class="copy-button" type="button" data-copy="${exampleId}">复制</button><pre><code id="${exampleId}">${esc(api.example)}</code></pre></div>
+    </div>
+  </details>`;
 }
 
-const catPages = CATEGORIES.filter(c => c.id !== 'start').map(c => {
-  const items = APIS.map((a, i) => ({ a, i })).filter(x => x.a.cat === c.id);
-  return { id: 'cat-' + c.id, group: 'API 参考', title: c.name, count: items.length,
-    html: `<h1>${esc(c.name)}<span class="cnt">${items.length}</span></h1>` +
-      (items.length ? items.map(x => fnBlock(x.a, x.i)).join('\n') : '<p>（暂无）</p>') };
+const apiPages = apiCategories.map(category => {
+  const indexedItems = category.items.map(api => ({ api, index: APIS.indexOf(api) }));
+  const jump = indexedItems.map(({ api, index }) => {
+    const filter = (api.sig + ' ' + api.title).toLowerCase();
+    return `<a href="#/api-${category.id}/fn-${index}" data-filter="${esc(filter)}">${esc(api.sig)}</a>`;
+  }).join('');
+  const body = `
+    <div class="api-toolbar">
+      <input class="api-filter" type="search" placeholder="在本模块过滤…" aria-label="过滤${esc(category.name)} API">
+      <button class="secondary-button" type="button" data-expand>全部展开</button>
+      <span><span class="api-visible-count">${indexedItems.length}</span> / ${indexedItems.length}</span>
+    </div>
+    <nav class="api-jump" aria-label="${esc(category.name)}函数索引">${jump}</nav>
+    <div class="api-empty">本模块没有匹配的 API</div>
+    ${indexedItems.map(({ api, index }) => apiEntry(api, index)).join('')}
+  `;
+  return page(
+    'api-' + category.id,
+    'API 参考',
+    category.name,
+    `本模块共 ${indexedItems.length} 个 API 条目。点击函数展开参数、返回值和完整示例。`,
+    body,
+    'API Reference'
+  );
 });
 
-const PAGES = [...PROSE.map(p => ({ ...p, count: 0 })), ...catPages];
-const GROUPS = ['开始', '控件检索', '高级指南', 'API 参考'];
-
-const sidebar = GROUPS.map(g => {
-  const items = PAGES.filter(p => p.group === g);
-  return `<div class="grp"><div class="grp-title">${esc(g)}</div>${items.map(p =>
-    `<a class="side-link" data-page="${p.id}" href="#/${p.id}">${esc(p.title)}${p.count ? `<span>${p.count}</span>` : ''}</a>` +
-    (p.id.startsWith('cat-') ? `<div class="fnlist" data-fnlist="${p.id}">${APIS.map((a, i) => a.cat === p.id.slice(4) ? `<a href="#/${p.id}/fn-${i}">${esc(a.title)}</a>` : '').join('')}</div>` : '')
-  ).join('')}</div>`;
-}).join('');
-
-const content = PAGES.map(p => `<article class="page" id="page-${p.id}">${p.html}</article>`).join('\n');
-
-const searchIndex = [];
-APIS.forEach((a, i) => searchIndex.push({ t: a.title, s: a.sig, page: 'cat-' + a.cat, anchor: 'fn-' + i, cat: (CATEGORIES.find(c => c.id === a.cat) || {}).name || a.cat }));
-PAGES.forEach(p => { if (!p.id.startsWith('cat-')) searchIndex.push({ t: p.title, s: '', page: p.id, anchor: '', cat: p.group }); });
-
-const html = `<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AutoSDK 开发文档</title>
-<style>
-:root{--bg:#17181a;--side:#1e2022;--panel:#202225;--line:#2e3134;--text:#e6e6e6;--muted:#9aa0a6;--accent:#25c2a0;--code:#101214;--warn:#f59e0b;--ok:#25c2a0}
-*{box-sizing:border-box}html{scroll-behavior:smooth}
-body{margin:0;font:15px/1.7 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text)}
-a{color:var(--accent)}
-.topbar{position:fixed;top:0;left:0;right:0;height:56px;background:rgba(23,24,26,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 20px;z-index:50}
-.topbar .logo{font-weight:700;font-size:16px;white-space:nowrap}.topbar .logo b{color:var(--accent)}
-.searchwrap{position:relative;flex:1;max-width:520px}
-.searchwrap input{width:100%;padding:8px 14px;border-radius:20px;border:1px solid var(--line);background:var(--code);color:var(--text);outline:none;font-size:14px}
-.searchwrap input:focus{border-color:var(--accent)}
-#searchDrop{position:absolute;top:42px;left:0;right:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;max-height:340px;overflow:auto;display:none;box-shadow:0 12px 32px rgba(0,0,0,.5)}
-#searchDrop a{display:block;padding:8px 14px;color:var(--text);text-decoration:none;font-size:13px;border-bottom:1px solid var(--line)}
-#searchDrop a:hover{background:var(--side)}#searchDrop a b{color:var(--accent);margin-right:8px}
-.toplinks{margin-left:auto;display:flex;gap:14px;font-size:13px;white-space:nowrap}
-.toplinks a{color:var(--muted);text-decoration:none}.toplinks a:hover{color:var(--accent)}
-.layout{display:flex;padding-top:56px}
-aside{width:280px;flex:0 0 280px;position:fixed;top:56px;bottom:0;overflow:auto;background:var(--side);border-right:1px solid var(--line);padding:14px 10px 40px}
-.grp{margin-bottom:6px}
-.grp-title{padding:10px 12px 4px;font-size:12px;color:var(--muted);letter-spacing:1px}
-.side-link{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;margin:1px 0}
-.side-link:hover{background:var(--panel)}
-.side-link.on{color:var(--accent);background:rgba(37,194,160,.12)}
-.side-link span{font-size:11px;color:var(--muted);background:var(--code);border:1px solid var(--line);border-radius:10px;padding:0 7px}
-.fnlist{display:none;margin:0 0 4px 14px;border-left:1px solid var(--line);padding-left:8px}
-.fnlist.open{display:block}
-.fnlist a{display:block;padding:3px 10px;font-size:12.5px;color:var(--muted);text-decoration:none;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fnlist a:hover{color:var(--accent);background:var(--panel)}
-main{margin-left:280px;flex:1;min-width:0;padding:34px 44px 90px;max-width:1060px}
-.page{display:none}.page.on{display:block}
-h1{font-size:26px;margin:0 0 14px;border-bottom:1px solid var(--line);padding-bottom:12px}
-h1 .cnt{font-size:12px;color:var(--muted);background:var(--code);border:1px solid var(--line);border-radius:10px;padding:2px 10px;vertical-align:middle;margin-left:10px}
-h2{font-size:19px;margin:26px 0 10px}h3{font-size:16.5px;margin:0 0 8px}
-table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
-th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
-th{background:var(--panel)}
-code{background:var(--code);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-family:ui-monospace,Consolas,monospace;font-size:13px}
-pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.6;margin:8px 0}
-pre code{background:none;border:none;padding:0}
-pre.hidden{display:none}
-.fn{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:18px 20px;margin:18px 0}
-.fn:target{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37,194,160,.25)}
-.sig{display:flex;align-items:center;gap:10px;background:var(--code);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0 10px}
-.sig code{flex:1;border:none;background:none;word-break:break-all;color:#7dd3fc}
-.desc{color:#cfd4d9}
-.ret{margin:8px 0;color:var(--muted);font-size:13.5px}.ret code{color:#7dd3fc}
-.exhead{display:flex;justify-content:space-between;align-items:center;margin:12px 0 4px;font-size:12.5px;color:var(--muted)}
-.copy{background:var(--accent);color:#08251d;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;font-weight:600}
-.copy:hover{filter:brightness(1.1)}
-.hintbox{margin-top:10px;border-left:3px solid var(--accent);background:rgba(37,194,160,.08);border-radius:0 8px 8px 0;padding:8px 12px;font-size:13px;color:#bfe8dd}
-.note{border-radius:10px;padding:12px 16px;margin:14px 0;font-size:14px}
-.note.ok{background:rgba(37,194,160,.1);border:1px solid rgba(37,194,160,.35)}
-.note.warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4)}
-.noparam{color:var(--muted);font-size:13px}
-@media (max-width:900px){aside{display:none}main{margin-left:0;padding:20px}}
-</style>
-</head>
-<body>
-<div class="topbar">
-  <div class="logo"><b>AutoSDK</b> 开发文档</div>
-  <div class="searchwrap"><input id="q" placeholder="搜索函数 / 页面（如 click、找色、http）…" autocomplete="off"><div id="searchDrop"></div></div>
-  <div class="toplinks"><a href="../api-reference.html">函数速查卡</a><a href="../guide/index.html">图文教程</a><a href="../index.html">文档门户</a></div>
-</div>
-<div class="layout">
-<aside id="side">${sidebar}</aside>
-<main>${content}</main>
-</div>
-<script>
-const INDEX = ${JSON.stringify(searchIndex)};
-const pages = [...document.querySelectorAll('.page')];
-const sideLinks = [...document.querySelectorAll('.side-link')];
-function show(id, anchor) {
-  let ok = false;
-  pages.forEach(p => { const on = p.id === 'page-' + id; p.classList.toggle('on', on); ok = ok || on; });
-  if (!ok) { id = 'intro'; pages.forEach(p => p.classList.toggle('on', p.id === 'page-intro')); }
-  sideLinks.forEach(a => {
-    const on = a.dataset.page === id;
-    a.classList.toggle('on', on);
-    const fl = document.querySelector('.fnlist[data-fnlist="' + a.dataset.page + '"]');
-    if (fl) fl.classList.toggle('open', on);
-  });
-  if (anchor) { const el = document.getElementById(anchor); if (el) setTimeout(() => el.scrollIntoView({ block: 'start' }), 30); }
-  else window.scrollTo(0, 0);
+function navGroup(title, links) {
+  return `<section class="nav-group"><div class="nav-title">${esc(title)}</div>${links.join('')}</section>`;
 }
-function route() {
-  const h = decodeURIComponent(location.hash.replace(/^#\\//, '')) || 'intro';
-  const [id, anchor] = h.split('/');
-  show(id, anchor);
-}
-window.addEventListener('hashchange', route);
-route();
-document.addEventListener('click', e => {
-  const btn = e.target.closest('.copy');
-  if (btn) {
-    const src = document.getElementById(btn.dataset.copy);
-    const text = src ? src.textContent : '';
-    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => {
-      btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1200);
-    }).catch(() => { btn.textContent = '复制失败'; setTimeout(() => btn.textContent = '复制', 1200); });
-  }
-});
-const q = document.getElementById('q'), drop = document.getElementById('searchDrop');
-q.addEventListener('input', () => {
-  const v = q.value.trim().toLowerCase();
-  if (!v) { drop.style.display = 'none'; return; }
-  const hits = INDEX.filter(x => (x.t + ' ' + x.s).toLowerCase().includes(v)).slice(0, 14);
-  drop.innerHTML = hits.map(x => '<a href="#/' + x.page + (x.anchor ? '/' + x.anchor : '') + '"><b>' + x.cat + '</b>' + x.t.replace(/</g, '&lt;') + '</a>').join('') || '<a>无匹配</a>';
-  drop.style.display = 'block';
-});
-drop.addEventListener('click', e => { if (e.target.closest('a')) { drop.style.display = 'none'; q.value = ''; } });
-document.addEventListener('keydown', e => { if (e.key === '/' && document.activeElement !== q) { e.preventDefault(); q.focus(); } });
-</script>
-</body>
-</html>`;
 
-mkdirSync(join(root, 'docs', 'devdocs'), { recursive: true });
-writeFileSync(join(root, 'docs', 'devdocs', 'index.html'), html, 'utf8');
-console.log('Generated docs/devdocs/index.html with ' + PAGES.length + ' pages / ' + APIS.length + ' functions.');
+function navLink(id, title, count = '') {
+  return `<a class="nav-link" href="#/${id}" data-page="${id}"><span>${esc(title)}</span>${count === '' ? '' : `<span class="nav-count">${count}</span>`}</a>`;
+}
+
+const sidebar = [
+  navGroup('入门', guides.filter(item => item.group === '入门').map(item => navLink(item.id, item.title))),
+  navGroup('核心指南', guides.filter(item => item.group === '核心指南').map(item => navLink(item.id, item.title))),
+  navGroup('API 参考', apiCategories.map(category => navLink('api-' + category.id, category.name, category.items.length))),
+  navGroup('帮助', guides.filter(item => item.group === '帮助').map(item => navLink(item.id, item.title)))
+].join('');
+
+const searchIndex = [
+  ...guides.map(item => ({
+    title: item.title,
+    meta: item.group,
+    href: '#/' + item.id,
+    search: [item.title, item.lead, item.search].join(' ')
+  })),
+  ...apiCategories.map(category => ({
+    title: category.name,
+    meta: 'API 模块 · ' + category.items.length + ' 项',
+    href: '#/api-' + category.id,
+    search: category.name + ' API 模块 ' + category.items.map(item => item.sig).join(' ')
+  })),
+  ...APIS.map((api, index) => ({
+    title: api.sig,
+    meta: CATEGORIES.find(category => category.id === api.cat)?.name || 'API',
+    href: '#/api-' + api.cat + '/fn-' + index,
+    search: [api.sig, api.title, api.desc, ...(api.params || []).flat(), api.returns].join(' ')
+  }))
+];
+
+const content = [
+  ...guides.map(item => page(item.id, item.group, item.title, item.lead, item.body)),
+  ...apiPages
+].join('');
+
+const html = template
+  .replaceAll('{{VERSION}}', esc(rootPackage.version))
+  .replaceAll('{{API_COUNT}}', String(APIS.length))
+  .replace('{{SIDEBAR}}', sidebar)
+  .replace('{{CONTENT}}', content)
+  .replace('{{SEARCH_INDEX}}', JSON.stringify(searchIndex).replace(/</g, '\\u003c'))
+  .replace(/[ \t]+(?=\r?$)/gm, '');
+
+writeFileSync(join(root, 'docs', 'index.html'), html, 'utf8');
+console.log(`Generated docs/index.html with ${guides.length} guide pages / ${apiCategories.length} API categories / ${APIS.length} functions.`);

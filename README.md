@@ -23,7 +23,7 @@
 - 基于公共 API 的 `AutoUIKitAdapter`，可直接自动化宿主 App 自己的 UIKit 视图
 - 内置 no-WDA 适配器 `AutoBuiltinAdapter`：IOHIDEvent 真实触摸注入 + 系统级无障碍控件查询 + 应用控制，无外部 WDA 进程（面向 TrollStore/企业签构建，架构与签名要求见 `docs/NO_WDA_ARCHITECTURE.md`）
 
-> 📖 中文图文教程（离线网页版，双击即开）：[docs/guide/index.html](docs/guide/index.html)（安装 → 连接 → 第一行代码 → 调试）。
+> 📖 开发文档（离线网页版，双击即开）：[docs/index.html](docs/index.html)（快速上手、可视化调试、实战与完整 API）。
 > 🤖 AI 交接手册（换 AI 继续迭代前必读）：[`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md) + 根目录 [`AGENTS.md`](AGENTS.md)。
 > 🆚 对标文档：[`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)（EasyClick）、[`docs/TROLLAUTOSCRIPT_COMPARISON.md`](docs/TROLLAUTOSCRIPT_COMPARISON.md)（TrollAutoScript）、[`docs/ASCRIPT_COMPARISON.md`](docs/ASCRIPT_COMPARISON.md)（AScript）、[`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)（AutoScript）。
 > 🚀 免巨魔路线（对标 AScript/kuaijs）：[`docs/NO_TROLLSTORE.md`](docs/NO_TROLLSTORE.md)——免费签名安装 / XCTest 激活 WDA / HID 模式。
@@ -80,8 +80,7 @@ AutoEngine *engine = AutoEngine.sharedEngine;
 `AutoUIKitAdapter` 支持 `id`、`label`、`type`、`value` 及组合选择器，可完成宿主 App 内点击、输入、滚动、节点查询、截图和 Vision OCR。跨 App 自动化主路线是内置 no-WDA 的 [`AutoBuiltinAdapter`](Sources/AutoSDK/include/AutoBuiltinAdapter.h)：IOHIDEvent 注入真实触摸、系统级无障碍接口查询控件、LSApplicationWorkspace/SpringBoardServices 控制应用，全部私有符号运行时解析、缺能力时如实报错（签名要求与验证计划见 `docs/NO_WDA_ARCHITECTURE.md`）。Round 47 起外部 WDA 适配器（`AutoWDAHTTPAdapter`）已完全移除，不再保留回退，避免双路线维护成本。
 
 ## 脚本 API
-> 📚 开发文档站（侧栏分类 + 263 个函数页：参数/返回值/一键复制示例/调试提示，对标 AScript 文档）：[docs/devdocs/index.html](docs/devdocs/index.html)；
-> 交互式 API 速查（分类导航 + 搜索 + 一键复制可运行示例）：[docs/api-reference.html](docs/api-reference.html)，浏览器双击即开。
+> 📚 唯一开发文档入口：[docs/index.html](docs/index.html)。侧栏按模块浏览，支持全局搜索、模块内过滤、深链接、明暗主题和一键复制，浏览器双击即可离线打开。
 
 ```javascript
 auto.click({label: "登录", type: "Button"});
@@ -115,7 +114,7 @@ auto.toast("自定义方法由 Native 注册");
 ```
 
 `setTimeout`/`setInterval` 在脚本主代码返回后继续执行，`runScript` 的完成回调会等定时器队列排空后才触发；`setInterval` 会持续运行，需调用 `stopScript`（或等待 `scriptTimeout` 超时）才会停止。`scriptTimeout` 是包含定时器回调在内的总执行预算。
-新增 EasyClick 风格的坐标适配与常用工具：`setScreenMetrics(width, height)` 按设计稿设置分辨率基准，配合 `getScreenMetrics()`、`metrics.point(x, y)` 适配多机型；另有 `uuid()`、`base64.encode/decode`、`http.getJSON`、`auto.clickCenter/clickRandom`、`auto.getChild/getSiblings` 等封装。全部函数见上方交互式速查（263 个函数、13 个分类，每卡带 EasyClick/AutoJS 对标与可复制示例）。
+新增 EasyClick 风格的坐标适配与常用工具：`setScreenMetrics(width, height)` 按设计稿设置分辨率基准，配合 `getScreenMetrics()`、`metrics.point(x, y)` 适配多机型；另有 `uuid()`、`base64.encode/decode`、`http.getJSON`、`auto.clickCenter/clickRandom`、`auto.getChild/getSiblings` 等封装。全部函数见上方开发文档（263 个 API 条目、14 个模块，每项带参数、返回值与可复制示例）。
 
 `findImage` 使用适配器实现的模板相似度匹配，`findColor` 使用 RGBA 容差扫描；`AutoUIKitAdapter` 的 `ocr` 使用系统 Vision 框架离线执行。内置 no-WDA 适配器在系统级截图后直接执行图色扫描与 Vision OCR，不需要 OpenCV。
 

@@ -69,12 +69,12 @@ The following surfaces must not be described as production-complete yet:
 2. Validate the built-in no-WDA adapter on a real device (IOHIDEvent touch injection, system-wide AX queries, SpringBoard app control); external WDA support was removed in v1.17.0 and is not coming back.
 3. Replace the basic matcher with an optional OpenCV-backed adapter.
 4. Add workers/parallel JavaScript contexts and a safe execution interrupt mechanism.
-5. Upgrade point-in-time screenshots and node JSON into a continuous visual inspector.
+5. Continue real-device validation and performance tuning for large Inspector snapshots.
 
 ## 函数级覆盖清单（2026-08-20）
 
-交互式速查 `docs/api-reference.html` 收录 263 个可运行示例（263 个函数），分 13 个分类，
-每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
+唯一开发文档 `docs/index.html` 收录 263 个可运行示例（263 个 API 条目），分 14 个模块，
+每项包含参数、返回值与一键复制示例：
 
 | 分类 | 函数数 | 亮点 |
 | --- | --- | --- |
@@ -94,6 +94,8 @@ The following surfaces must not be described as production-complete yet:
 | 线程与工具模块 | 14 | thread.execAsync/execSync/cancelThread/stopAll/isCancelled、utils.dataMd5/fileMd5/randomInt/getRangeInt/getRatio/zip/unzip/readFileInZip/playMp3/stopMp3/deleteAllPhotos/deleteAllVideos/requestPhotoAuthorization、全局别名 getPasteboard/setPasteboard/openUrl/uploadToAlbum/childcount |
 | 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 
+本轮新增（Round 65）：**HTML 开发文档单入口重构**——将旧门户、图文教程、开发站和 API 卡片合并为唯一 `docs/index.html`，按主流自动化文档的信息架构提供 7 篇任务指南、14 个模块、263 个 API 条目；新增全局搜索（键盘导航）、模块过滤/索引、函数深链接、折叠详情、明暗主题、移动导航和离线复制，删除 3 份重复/过时 HTML；修复 `file.writeFile` 换行、`node` 命名空间遮蔽和 `http.getJSON` 返回值文档错误；verify 固化 263 个示例语法与单入口完整性；
+
 本轮新增（Round 64）：**VS Code 补全与 Inspector 代码生成闭环**——插件升级 0.8.0；补全提供器移除易漂移的命名空间硬编码，新增纯 `completion-model` 自动从候选识别模块，覆盖 thread/utils/ocr/ws/sqlite/yolo/location/colors/speech/pasteboard/json/floatLog/metrics/base64 及 action/string 别名；25 组以 `/` 合写的旧签名拆为独立有效 Snippet，避免插入语法损坏代码；Inspector selector 稳定键改为属性有序序列化，跨快照不再因 JSON 键顺序变化丢选择，生成选择器以完整相关快照而非过滤结果集判定唯一性、仅歧义时附加 type；选择器/坐标/OCR/找图/点色生成代码全部下沉纯模型并验证转义；补齐 speech 命名空间 d.ts；插件测试 83 项，bootstrap 零改动（60782/61440，余 658）；
 本轮新增（Round 63）：**VS Code Inspector 生命周期与取消链加固**——插件升级 0.7.0；新增 Cancel 按钮与 Escape 快捷键，中止当前客户端等待并淘汰所有排队旧任务；`lastSnapshot` 仅在请求仍为当前、面板可见且 signal 未取消时提交，解决取消/隐藏/销毁后的迟到结果污染下次导出；新增 `autosdk.inspectorActionRefreshDelay`（0...5000ms，默认 400ms）适配点击/输入/滚动后的动画；屏幕右/下边缘坐标限制到 `width-1/height-1`，零面积节点不参与命中，同 bounds 时优先更深且更晚的节点；DeviceClient 对显式取消的迟到响应静默回收（ID 集合上限 128），未知/超时孤儿仍报告；插件测试 72 项，bootstrap 与脚本 API 零改动（60782/61440，余 658）；
 本轮新增（Round 62）：**Xcode 编译与 XCTest 链热修**——`tools/regenerate-bootstrap.mjs` 现在固定为生成的 `AutoBootstrapScript.m` 导入 `AutoBootstrapScript.h`，解决 Swift Package/Xcode 将源文件作为独立翻译单元编译时 `NSString` 未声明的问题；继续修复 `AutoEngine.m` 的 SQLite C 指针 Objective-C 泛型/ARC、媒体下载函数声明顺序、TTS `void` 装箱和不存在的 `VNRecognizeObjectsRequest`；旧 `yolo.detect` 命名保留兼容，但语义诚实调整为 iOS 15+ 公共 `VNClassifyImageRequest` 全图分类（最多 20 标签、rect 为全图），真实边界框检测仍需用户提供 Core ML 模型；XCTest 运行后进一步修复 `deleteAllFile(file)`、`auto.node/auto.screen/auto.floatLog` 接线、`auto.click.length`、POST multipart 二参兼容和无宿主通知中心异常；verify 同步固化上述约束，bootstrap 60782/61440（余 658）；
@@ -110,7 +112,7 @@ The following surfaces must not be described as production-complete yet:
 本轮新增（Round 51）：**修复 screen.cache(true) 端到端断链 bug**——此前 bootstrap 传 `screenshotPath` 但原生从不读取，缓存形同虚设；现在内置适配器新增 `screenPNGWithOptions:`（findColor/compareColors/findMultiColor/findImage/ocr 全部接入）、UIKit 适配器新增 `screenImageHonoringCachedPath:`（findColor/findImage/ocr 接入）、引擎 `AutoEngineScanColorPoints` 新增 `cachedScreenPath` 参数（findColorEx/findNotColor 接入），路径限定 App 沙箱内、文件缺失自动回退实时截图；bootstrap 侧 findColorEx/findNotColor 经 `cachedOptions` 注入缓存路径（图色缓存覆盖面补全）；**其他修复**：`parseColor` 只剥离**开头**的 `#`/`0x` 前缀（原正则会误删字符串中间的 `0x`）、`strings.padStart/padEnd` 空填充串死循环防护；**新增对标全局**：`waitFor(selector, timeout?)`（EasyClick waitNode/AutoJS waitFor）、`currentPackage()`（AutoJS，返回前台 bundleId）、`setClip/getClip`（AutoJS 剪贴板别名）；**压缩 -204B**（cachedRegion 去重、touchAndSlide/appApi/imageApi/speechApi 包装函数改引用委托，61405→61201/61440）；Node 测试 81 项、文档 258 函数卡片（签名扩展示例覆盖新别名）；
 本轮新增（Round 50）：bootstrap 新增 EasyClick 风格低级触摸原语 `touchDown/touchMove/touchUp`（按 finger 编号分指暂存，touchUp() 无参时同时抬起全部已按下手指，可组合自定义多指手势/拖拽；+510B，61405/61440）；修复内置适配器 findImage 外层循环未检查比较次数上限导致超限后仍空转的 bug；devdocs 新增「高级指南」分组（多线程/数据库/网络通信三篇散文教程，对齐 AScript 文档结构）；d.ts/文档卡片/verify 锚点/测试同步（Node 测试 80 项，文档 258 函数）；
 本轮新增（Round 49）：内置 no-WDA 适配器补齐两大缺口——`findImage` 模板匹配（系统级截图 + 有界两阶段粗→细匹配，similarity/region/maxCandidates 可配，比较次数封顶 60M，capabilities.findImage 如实报 YES）；`app.launch/terminate/appState` 接受常用 App 中文名（60+ 内置启动库，对标 AScript `system.app_start("微信")`）；文档/卡片/verify 锚点同步；零 bootstrap 改动（60895/61440）；
-本轮新增（Round 48）：AScript 风格开发文档站 `docs/devdocs/index.html` 上线（侧栏分类树 + 开始/控件检索散文页 + 15 个 API 分类页，257 函数全量渲染，参数表/返回值/一键复制可运行示例/每分类调试提示，顶栏搜索 + hash 路由，单文件离线，对标 ascript.cn/docs/ios 文档体验）；修复 `speech`/`base64` 两个分类未进 CATEGORIES 导致 api-reference.html 从未渲染其卡片的 bug；
+本轮新增（Round 48）：旧版 AScript 风格开发文档站上线（R65 已合并到 `docs/index.html`；侧栏分类树 + 开始/控件检索散文页 + 15 个 API 分类页，257 函数全量渲染，参数表/返回值/一键复制示例、顶栏搜索 + hash 路由，单文件离线）；同时修复 `speech`/`base64` 两个分类未进入旧版渲染器的问题；
 本轮新增（Round 47）：完全移除外部 WDA 适配器（AutoWDAHTTPAdapter 及其测试/verify 锚点/模板配置/文档）——内置 no-WDA 成为唯一跨 App 路线，避免双路线维护成本；内置 capabilities 补 `appList`/`appLifecycle`/`systemActions` 键（运行时探测）；模板 App 默认 BUILTIN，设置页改为“内置 no-WDA / UIKit”开关；Node 侧测试仍 79 项，原生 Xcode 测试删除 24 个 WDA 专用用例（剩 58+14 项）、文档措辞全量同步；零 bootstrap 改动（60895/61440）；
 本轮新增（Round 46）：内置 no-WDA 适配器 `AutoBuiltinAdapter` 上线——IOHIDEvent 真实触摸注入（系统级，支持多点 W3C 手势时序回放）、AXUIElement 系统级控件查询（跨 App，毫秒级）、SpringBoard/BackBoard/LSApplicationWorkspace 应用控制（启动/终止/前台/锁屏/设置页，**Round 49 起接受常用 App 中文名，60+ 启动库对标 AScript app_start**）、UIGetScreenImage 截图 + Vision OCR + **有界模板找图**；外部 WDA 依赖降级为 legacy 回退，主路线不再需要 WDA Runner（对标 AScript Agent no-WDA / kuaijs）；新架构文档 docs/NO_WDA_ARCHITECTURE.md；本轮零 bootstrap JS 改动（60895/61440）；
 本轮新增（Round 45）：`node.allChildren()` 递归子孙遍历（EasyClick 语义补齐）；dp helper 压缩 -405B（60895/61440），并修复 boundsInfo 无 bounds 节点刷新 rect/center 时的 TypeError；测试 79 项；
