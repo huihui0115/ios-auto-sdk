@@ -640,6 +640,7 @@ async function openInspector() {
     service: inspectorService,
     postMessage: message => postInspector(panel, message),
     maxNodes: maxNodes(configuration().get('inspectorMaxNodes')),
+    actionRefreshDelay: configuration().get('inspectorActionRefreshDelay'),
     selectImage: selectImageTemplate,
     requestInput: () => vscode.window.showInputBox({
       prompt: 'Text to enter on the selected iPhone node',
@@ -671,7 +672,7 @@ async function openInspector() {
       const operations = {
         refresh: 'snapshot', ready: 'snapshot', testSelector: 'selector', testImage: 'image',
         testOCR: 'ocr', pixelColor: 'pixel', nodeAction: 'action', saveSnapshot: 'export',
-        copyCode: 'code', insertCode: 'code'
+        copyCode: 'code', insertCode: 'code', cancelOperations: 'cancel'
       };
       postInspector(panel, {
         type: 'error',

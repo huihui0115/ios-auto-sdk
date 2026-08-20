@@ -50,14 +50,18 @@
       return { node: node, index: index };
     }).filter(function (entry) {
       const bounds = entry.node && entry.node.bounds;
-      return bounds && point.x >= number(bounds.x, 0) && point.y >= number(bounds.y, 0) &&
+      return bounds && number(bounds.width, 0) > 0 && number(bounds.height, 0) > 0 &&
+        point.x >= number(bounds.x, 0) && point.y >= number(bounds.y, 0) &&
         point.x <= number(bounds.x, 0) + number(bounds.width, 0) &&
         point.y <= number(bounds.y, 0) + number(bounds.height, 0);
     });
     candidates.sort(function (left, right) {
       const a = left.node.bounds;
       const b = right.node.bounds;
-      return number(a.width, 0) * number(a.height, 0) - number(b.width, 0) * number(b.height, 0);
+      const area = number(a.width, 0) * number(a.height, 0) - number(b.width, 0) * number(b.height, 0);
+      if (area) return area;
+      const depth = number(right.node.depth, 0) - number(left.node.depth, 0);
+      return depth || right.index - left.index;
     });
     return candidates.length ? candidates[0].index : -1;
   }
@@ -72,9 +76,11 @@
     const renderedHeight = Math.max(1, number(rect?.height, 1));
     const width = Math.max(1, number(size?.width, 1));
     const height = Math.max(1, number(size?.height, 1));
+    const maximumX = Math.max(0, width - 1);
+    const maximumY = Math.max(0, height - 1);
     return {
-      x: Math.max(0, Math.min(width, (number(clientX, 0) - number(rect?.left, 0)) * width / renderedWidth)),
-      y: Math.max(0, Math.min(height, (number(clientY, 0) - number(rect?.top, 0)) * height / renderedHeight))
+      x: Math.max(0, Math.min(maximumX, (number(clientX, 0) - number(rect?.left, 0)) * width / renderedWidth)),
+      y: Math.max(0, Math.min(maximumY, (number(clientY, 0) - number(rect?.top, 0)) * height / renderedHeight))
     };
   }
 

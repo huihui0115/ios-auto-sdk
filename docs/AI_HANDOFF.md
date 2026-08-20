@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 62（v1.30.2，2026-08-11）。
+> 最后更新：Round 63（v1.31.0，2026-08-20）。
 
 ---
 
@@ -79,11 +79,11 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 62 / v1.30.2）
+## 4. 当前状态（Round 63 / v1.31.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **60782 / 61440**（预算 60×1024 UTF-16 码元，余 658）。
-- 文档 **263 个函数 / 263 个可运行示例 / 13 个分类**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **64 项**。
+- 文档 **263 个函数 / 263 个可运行示例 / 13 个分类**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **72 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
   `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制）。
@@ -104,6 +104,10 @@ bridge (__bridge 对象，JSValue block)
   `void` 装箱错误，以及 XCTest 揭出的单文件删除、`auto.node` 接线、click arity 和通知
   无宿主异常；补齐 `auto.screen`/`auto.floatLog` 与 POST multipart 二参兼容；bootstrap
   为 **60782/61440**（余 658）。
+- **Round 63 Inspector 稳定性迭代**：VS Code 插件 0.7.0 新增 Cancel/Escape 取消、
+  有界动作后刷新延迟；取消/隐藏/销毁/被替代的任务不再提交或导出陈旧快照；屏幕边缘
+  坐标限定为有效像素，重叠同尺寸节点优先最深控件；显式取消请求的迟到响应静默回收，
+  其 ID 集合上限 128，真实未知响应仍保留诊断。bootstrap 与脚本 API 零改动。
 
 已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -233,6 +237,10 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   UIGetScreenImage 截图 + Vision OCR；私有 API 全 dlopen/dlsym 运行时解析）；
   外部 WDA 依赖降级 legacy；模板 App BUILTIN 接线；新文档
   docs/NO_WDA_ARCHITECTURE.md；零 bootstrap 改动（60895/61440，余 545B）。
+- R63（v1.31.0）：**Inspector 生命周期与取消链加固**——插件 0.7.0 新增 Cancel/Escape、
+  `inspectorActionRefreshDelay`（0...5000ms）；只允许当前未取消操作提交 `lastSnapshot`；
+  修复屏幕边界像素越界、同 bounds 父节点误命中和取消迟到响应误报；插件测试 72 项，
+  bootstrap 零改动（60782/61440）。
 - R62（v1.30.2）：**bootstrap 独立翻译单元编译热修**——只修改权威生成器，令生成的
   `AutoBootstrapScript.m` 导入 `AutoBootstrapScript.h`，修复 Xcode/Swift Package 下
   `NSString` 未声明的编译阻断；继续修复 Xcode 揭出的 SQLite 指针泛型/ARC、媒体函数

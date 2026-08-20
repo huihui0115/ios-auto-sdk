@@ -11,6 +11,16 @@ test('Inspector model chooses the smallest node under a screen point', () => {
   assert.equal(model.indexAtPoint(nodes, { x: 500, y: 500 }), -1);
 });
 
+test('Inspector model prefers the deepest later node when bounds overlap exactly', () => {
+  const nodes = [
+    { nodeId: 'parent', depth: 2, bounds: { x: 10, y: 10, width: 80, height: 40 } },
+    { nodeId: 'child-a', depth: 3, bounds: { x: 10, y: 10, width: 80, height: 40 } },
+    { nodeId: 'child-b', depth: 3, bounds: { x: 10, y: 10, width: 80, height: 40 } },
+    { nodeId: 'empty', depth: 4, bounds: { x: 20, y: 20, width: 0, height: 0 } }
+  ];
+  assert.equal(model.indexAtPoint(nodes, { x: 20, y: 20 }), 2);
+});
+
 test('Inspector model preserves stable node selection across snapshots', () => {
   const previous = { nodeId: 'button' };
   const nodes = [{ nodeId: 'root' }, { nodeId: 'button' }];
@@ -29,4 +39,15 @@ test('Inspector model prefers a unique readable selector and maps screen geometr
     { x: 100, y: 200 }
   );
   assert.deepEqual(model.regionBetween({ x: 50, y: 80 }, { x: 10, y: 20 }), { x: 10, y: 20, width: 40, height: 60 });
+});
+
+test('Inspector model clamps right and bottom edges to valid pixel indices', () => {
+  assert.deepEqual(
+    model.pointFromClient(110, 220, { left: 10, top: 20, width: 100, height: 200 }, { width: 200, height: 400 }),
+    { x: 199, y: 399 }
+  );
+  assert.deepEqual(
+    model.pointFromClient(-10, -20, { left: 10, top: 20, width: 100, height: 200 }, { width: 200, height: 400 }),
+    { x: 0, y: 0 }
+  );
 });

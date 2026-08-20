@@ -21,8 +21,8 @@ From the repository root:
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.6.0.vsix
-code --install-extension .\autosdk-vscode-0.6.0.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.7.0.vsix
+code --install-extension .\autosdk-vscode-0.7.0.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An
@@ -98,10 +98,16 @@ screenshot and node commands. Screenshot, node, pixel, OCR, and image-match
 requests therefore cannot collide with the phone's single heavy-debug-request
 limit; queued requests of the same kind keep only the newest result. Webview
 messages carry request IDs, so a late response cannot overwrite a newer
-selection. Stable node IDs preserve the selected row across refreshes. Set
+selection or exported snapshot. Stable node IDs preserve the selected row
+across refreshes. **Cancel** (or `Escape`) releases a long-running Inspector
+wait and drops queued stale work. Screen-edge picks are clamped to valid pixel
+indices, and equal-size overlapping nodes prefer the deepest control. Set
 `autosdk.inspectorMaxNodes` to `1...2000` (default `1000`) to tune snapshot
-size. **Export snapshot** saves one portable JSON bundle containing the
-correlated PNG base64, node tree, device information, snapshot ID, and timing.
+size. Set `autosdk.inspectorActionRefreshDelay` to `0...5000` ms (default `400`)
+when the target app needs more or less animation settling time after click,
+input, or scroll. **Export snapshot** saves one portable JSON bundle containing
+the correlated PNG base64, node tree, device information, snapshot ID, and
+timing.
 
 The implementation is split by responsibility: `inspector-service.js`
 validates and serializes device protocol calls, `inspector-session.js` owns

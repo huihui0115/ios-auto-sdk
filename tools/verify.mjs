@@ -250,6 +250,12 @@ check(templatePlist.includes('AutoSDKAdapter') && templatePlist.includes('BUILTI
       'Template must default to the built-in no-WDA adapter and carry no WDA configuration');
 check(extensionLock.version === extensionPackage.version, 'VS Code extension version differs from package-lock.json');
 check(extensionLock.packages?.['']?.version === extensionPackage.version, 'VS Code extension root lock version is inconsistent');
+const extensionVsixName = `autosdk-vscode-${extensionPackage.version}.vsix`;
+const buildWorkflow = read('.github/workflows/ios-build.yml');
+check(buildWorkflow.split(extensionVsixName).length - 1 === 4 &&
+      read('vscode-extension/README.md').includes(extensionVsixName) &&
+      read('docs/guide/index.html').includes(extensionVsixName),
+      'VS Code extension version must match its READMEs/guides and all workflow artifact/release names');
 check(extensionPackage.private === true && extensionPackage.license === 'UNLICENSED',
       'VS Code extension package must remain private and unlicensed for npm publication');
 check(extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.startUsbTunnel') &&
@@ -258,8 +264,10 @@ check(extensionPackage.contributes?.commands?.some(item => item.command === 'aut
 check(extensionPackage.contributes?.configuration?.properties?.['autosdk.connectionTimeout']?.maximum === 3600000 &&
       extensionPackage.contributes?.configuration?.properties?.['autosdk.buildTimeout']?.maximum === 21600 &&
       extensionPackage.contributes?.configuration?.properties?.['autosdk.inspectorMaxNodes']?.minimum === 1 &&
-      extensionPackage.contributes?.configuration?.properties?.['autosdk.inspectorMaxNodes']?.maximum === 2000,
-      'VS Code extension timeouts must be bounded');
+      extensionPackage.contributes?.configuration?.properties?.['autosdk.inspectorMaxNodes']?.maximum === 2000 &&
+      extensionPackage.contributes?.configuration?.properties?.['autosdk.inspectorActionRefreshDelay']?.minimum === 0 &&
+      extensionPackage.contributes?.configuration?.properties?.['autosdk.inspectorActionRefreshDelay']?.maximum === 5000,
+      'VS Code extension timeouts and Inspector collection settings must be bounded');
 
 const extensionSource = read('vscode-extension/extension.js');
 const contributedCommandIds = extensionPackage.contributes?.commands?.map(item => item.command) || [];
@@ -280,11 +288,13 @@ check(inspectorServiceSource.includes('this.visualTail.then(task, task)') &&
       inspectorServiceSource.includes("type: 'inspectSnapshot'") && inspectorServiceSource.includes('MAX_PNG_BASE64_LENGTH'),
       'Inspector service must serialize and validate device visual requests');
 check(inspectorSessionSource.includes('class LatestTaskQueue') && inspectorSessionSource.includes('this.queue.schedule') &&
-      inspectorSessionSource.includes('isCurrent()'),
-      'Inspector session must serialize visual work and suppress superseded results');
+      inspectorSessionSource.includes('isCurrent()') && inspectorSessionSource.includes("message.type === 'cancelOperations'") &&
+      inspectorSessionSource.includes('!signal.aborted') && inspectorSessionSource.includes('actionRefreshDelay'),
+      'Inspector session must serialize, cancel, and suppress stale visual work');
 check(inspectorSource.includes('state.latestRequests') && inspectorSource.includes('state.busyRequests') &&
-      inspectorModelSource.includes('selectionIndex') && inspectorModelSource.includes('selectorForNode'),
-      'Inspector webview must correlate responses and keep testable selection logic');
+      inspectorSource.includes("send('cancel', 'cancelOperations')") && inspectorModelSource.includes('selectionIndex') &&
+      inspectorModelSource.includes('selectorForNode') && inspectorModelSource.includes('width - 1'),
+      'Inspector webview must correlate/cancel responses and keep bounded testable selection logic');
 
 const engineSource = read('Sources/AutoSDK/AutoEngine.m');
 check(engineSource.includes('AutoAppSchemeForName') && engineSource.includes('isEqualToString:@"getappscheme"') &&

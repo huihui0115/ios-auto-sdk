@@ -171,6 +171,11 @@ temporary allocations and repeated adapter work.
 - Each debug peer accepts at most eight in-flight requests and one heavy
   screenshot/node/pixel/image/OCR request, preventing rapid Inspector refreshes from
   multiplying large temporary buffers.
+- The VS Code Inspector serializes those heavy requests, cancels its current
+  client wait and invalidates queued stale generations on Cancel/Escape, and
+  commits an exportable snapshot only while its originating signal is current
+  and live. Explicitly aborted response IDs are retained in a bounded 128-entry
+  ignore set so their eventual replies do not appear as protocol faults.
 - Script HTTP request bodies and responses default to 10 MiB limits with 64 MiB
   hard maximums. Normal response chunks are checked before being appended;
   callers can disable unused UTF-8, base64, and JSON representations.

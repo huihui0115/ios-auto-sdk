@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const DEFAULT_MAX_PAYLOAD = 32 * 1024 * 1024;
 const MAX_REQUEST_TIMEOUT_MS = 60 * 60 * 1000;
 const MAX_PENDING_REQUESTS = 32;
+const MAX_IGNORED_RESPONSES = 128;
 
 function boundedText(value, maximumLength = 1024) {
   if (typeof value !== 'string') return undefined;
@@ -48,6 +49,7 @@ class DeviceClient {
     this.connectionGeneration = 0;
     this.credentialGeneration = 0;
     this.pending = new Map();
+    this.ignoredResponses = new Set();
     this.url = '';
     this.token = '';
     this.heartbeat = undefined;
@@ -174,6 +176,7 @@ class DeviceClient {
     }
     const pending = this.pending.get(id);
     if (!pending) {
+      if (this.ignoredResponses.delete(id)) return;
       this.onEvent({
         type: 'orphanResponse',
         id: boundedText(id, 128),
@@ -201,6 +204,7 @@ class DeviceClient {
       pending.reject(error);
     }
     this.pending.clear();
+    this.ignoredResponses.clear();
     this.setState('disconnected', error.message);
   }
 
@@ -250,6 +254,10 @@ class DeviceClient {
       pending.onAbort = () => {
         if (this.pending.get(id) !== pending) return;
         this.pending.delete(id);
+        this.ignoredResponses.add(id);
+        if (this.ignoredResponses.size > MAX_IGNORED_RESPONSES) {
+          this.ignoredResponses.delete(this.ignoredResponses.values().next().value);
+        }
         cleanupPending(pending);
         reject(abortError(payload.type));
       };
@@ -306,6 +314,7 @@ class DeviceClient {
       pending.reject(new Error(reason));
     }
     this.pending.clear();
+    this.ignoredResponses.clear();
     this.setState('disconnected', reason);
   }
 

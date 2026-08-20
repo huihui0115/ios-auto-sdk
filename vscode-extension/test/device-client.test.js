@@ -170,9 +170,31 @@ test('aborting a pending request frees its slot and ignores a late response', as
   controller.abort();
   await assert.rejects(request, error => error.name === 'AbortError');
   assert.equal(client.pending.size, 0);
+  assert.equal(client.ignoredResponses.size, 1);
 
   socket.receive({ id: payload.id, ok: true });
-  assert.equal(events.at(-1).type, 'orphanResponse');
+  assert.deepEqual(events, []);
+  assert.equal(client.ignoredResponses.size, 0);
+  client.dispose();
+});
+
+test('cancelled response IDs stay within the bounded ignore cache', async () => {
+  const credentials = { value: { url: 'ws://phone:9001', token: 'token' } };
+  const client = createClient(credentials);
+  const connection = client.ensureConnected();
+  const socket = await nextSocket(0);
+  socket.open();
+  await connection;
+
+  for (let index = 0; index < 130; index += 1) {
+    const controller = new AbortController();
+    const request = client.request({ type: 'inspectSnapshot' }, { timeoutMs: 5000, signal: controller.signal });
+    await new Promise(resolve => setImmediate(resolve));
+    controller.abort();
+    await assert.rejects(request, error => error.name === 'AbortError');
+  }
+
+  assert.equal(client.ignoredResponses.size, 128);
   client.dispose();
 });
 

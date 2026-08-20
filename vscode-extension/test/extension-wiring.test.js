@@ -21,6 +21,17 @@ test('the extension delegates visual capture and Inspector state to focused modu
   assert.doesNotMatch(source, /type: 'inspectSnapshot'/);
 });
 
+test('the Inspector exposes cancellation and a configurable post-action refresh delay', () => {
+  const extension = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+  const view = fs.readFileSync(path.join(__dirname, '..', 'inspector-view.js'), 'utf8');
+  const webview = fs.readFileSync(path.join(__dirname, '..', 'media', 'inspector.js'), 'utf8');
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+  assert.match(extension, /actionRefreshDelay: configuration\(\)\.get\('inspectorActionRefreshDelay'\)/);
+  assert.match(view, /id="cancel-operation"/);
+  assert.match(webview, /send\('cancel', 'cancelOperations'\)/);
+  assert.equal(manifest.contributes.configuration.properties['autosdk.inspectorActionRefreshDelay'].default, 400);
+});
+
 test('every contributed extension command is registered', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
   const commands = [

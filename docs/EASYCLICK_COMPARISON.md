@@ -1,6 +1,6 @@
 # EasyClick iOS capability comparison
 
-Audit date: 2026-08-11
+Audit date: 2026-08-20
 
 Official references:
 
@@ -32,8 +32,8 @@ unavailable.
 | HTTP | generic requests, GET/POST/JSON, download, WebSocket | guarded HTTP methods (incl. **Round 54-55:** `http.put/delete/head/patch` REST wrappers + `http.requestEx` EasyClick alias), JSON/binary responses, multipart/form upload (`files`/`formData`, **Round 54:** field/file names validated against header injection), host allowlist, response limit, sandbox download, WebSocket client (`ws.*`) | Synchronous JS facade, no cookie jar API or proxy API |
 | Timers/threads | timeout/interval, async/sync thread APIs, workers | cooperative `sleep`, timeout/interval queues drained before completion, parallel `execAsync/execSync` threads (join/getResult/cancel, up to 8), native URLSession work | No retained event loop after script completion or worker runtime |
 | External transports/services | BLE events, OTG HID, Aux remote assistance, JDBC MySQL, and network-verification services | authenticated WebSocket debugging over loopback/USB or opt-in Wi-Fi, and guarded HTTP | No BLE/OTG/Aux controller, JDBC driver, or EasyClick service integration; cross-app automation uses the built-in no-WDA adapter (external WDA removed in v1.17.0) |
-| IDE/debug | IDE, live screen, node panel, logs, remote execution | VS Code completion/snippets, safe single-file TypeScript transpilation, persistent Wi-Fi/USB-forwarded connection, correlated screenshot+node Inspector, serialized node/image/color/OCR tests, request-ID stale-response protection, stable selection recovery, portable snapshot export, code generation, deployed script/asset management, and Actions build/download | No continuous video stream, breakpoint debugger, TypeScript module bundler, package manager, or verified real-device tunnel session |
-| Deployment | signed EasyClick agent/IPA products, proxy IPA, Bluetooth and OTG HID paths | template app, unsigned IPA workflow (free Apple ID signing), built-in no-WDA adapter as the only cross-app engine (private symbols resolved at runtime, no linked private frameworks; external WDA removed in v1.17.0) | Built-in adapter requires a private-API-permitted build (TrollStore or developer signing) for touch injection and system-wide AX; not compiled or tested on Xcode or a real iPhone in this Windows workspace |
+| IDE/debug | IDE, live screen, node panel, logs, remote execution | VS Code completion/snippets, safe single-file TypeScript transpilation, persistent Wi-Fi/USB-forwarded connection, correlated screenshot+node Inspector, serialized node/image/color/OCR tests, request-ID stale-response protection, stable selection recovery, cancellable waits, configurable action-settle delay, valid edge-pixel mapping, portable snapshot export, code generation, deployed script/asset management, and Actions build/download | No continuous video stream, breakpoint debugger, TypeScript module bundler, package manager, or verified real-device tunnel session |
+| Deployment | signed EasyClick agent/IPA products, proxy IPA, Bluetooth and OTG HID paths | template app, macOS CI-verified unsigned IPA workflow (free Apple ID signing), built-in no-WDA adapter as the only cross-app engine (private symbols resolved at runtime, no linked private frameworks; external WDA removed in v1.17.0) | Built-in adapter requires a private-API-permitted build (TrollStore or developer signing) for touch injection and system-wide AX; Xcode simulator builds/tests pass, but private APIs still require real-iPhone validation |
 
 ## Current quality assessment
 
@@ -60,19 +60,18 @@ The following surfaces must not be described as production-complete yet:
 - Template matching: improved, but still a CoreGraphics matcher rather than OpenCV.
 - Script timeout: cooperative native calls stop, but an infinite pure-JS loop
   cannot currently be preempted safely.
-- Debug transport and all Objective-C changes: static checks passed on Windows,
-  but an iOS compiler and a real-device test have not run.
+- Debug transport and Objective-C changes pass the macOS/Xcode simulator CI;
+  private-API behavior and the physical Wi-Fi/USB tunnel still need a real-device test.
 
 ## Prioritized remaining work
 
-1. Run the GitHub Actions iOS build and fix every compiler warning/error.
-2. Install the unsigned IPA with free Apple ID signing and verify the debug server through direct Wi-Fi or a loopback `iproxy` tunnel.
-3. Validate the built-in no-WDA adapter on a real device (IOHIDEvent touch injection, system-wide AX queries, SpringBoard app control); external WDA support was removed in v1.17.0 and is not coming back.
-4. Replace the basic matcher with an optional OpenCV-backed adapter.
-5. Add workers/parallel JavaScript contexts and a safe execution interrupt mechanism.
-6. Upgrade point-in-time screenshots and node JSON into a continuous visual inspector.
+1. Install the unsigned IPA with free Apple ID signing and verify the debug server through direct Wi-Fi or a loopback `iproxy` tunnel.
+2. Validate the built-in no-WDA adapter on a real device (IOHIDEvent touch injection, system-wide AX queries, SpringBoard app control); external WDA support was removed in v1.17.0 and is not coming back.
+3. Replace the basic matcher with an optional OpenCV-backed adapter.
+4. Add workers/parallel JavaScript contexts and a safe execution interrupt mechanism.
+5. Upgrade point-in-time screenshots and node JSON into a continuous visual inspector.
 
-## 函数级覆盖清单（2026-08-06）
+## 函数级覆盖清单（2026-08-20）
 
 交互式速查 `docs/api-reference.html` 收录 263 个可运行示例（263 个函数），分 13 个分类，
 每张函数卡带 EasyClick/AutoJS 对标函数与一键复制示例：
@@ -95,6 +94,7 @@ The following surfaces must not be described as production-complete yet:
 | 线程与工具模块 | 14 | thread.execAsync/execSync/cancelThread/stopAll/isCancelled、utils.dataMd5/fileMd5/randomInt/getRangeInt/getRatio/zip/unzip/readFileInZip/playMp3/stopMp3/deleteAllPhotos/deleteAllVideos/requestPhotoAuthorization、全局别名 getPasteboard/setPasteboard/openUrl/uploadToAlbum/childcount |
 | 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 
+本轮新增（Round 63）：**VS Code Inspector 生命周期与取消链加固**——插件升级 0.7.0；新增 Cancel 按钮与 Escape 快捷键，中止当前客户端等待并淘汰所有排队旧任务；`lastSnapshot` 仅在请求仍为当前、面板可见且 signal 未取消时提交，解决取消/隐藏/销毁后的迟到结果污染下次导出；新增 `autosdk.inspectorActionRefreshDelay`（0...5000ms，默认 400ms）适配点击/输入/滚动后的动画；屏幕右/下边缘坐标限制到 `width-1/height-1`，零面积节点不参与命中，同 bounds 时优先更深且更晚的节点；DeviceClient 对显式取消的迟到响应静默回收（ID 集合上限 128），未知/超时孤儿仍报告；插件测试 72 项，bootstrap 与脚本 API 零改动（60782/61440，余 658）；
 本轮新增（Round 62）：**Xcode 编译与 XCTest 链热修**——`tools/regenerate-bootstrap.mjs` 现在固定为生成的 `AutoBootstrapScript.m` 导入 `AutoBootstrapScript.h`，解决 Swift Package/Xcode 将源文件作为独立翻译单元编译时 `NSString` 未声明的问题；继续修复 `AutoEngine.m` 的 SQLite C 指针 Objective-C 泛型/ARC、媒体下载函数声明顺序、TTS `void` 装箱和不存在的 `VNRecognizeObjectsRequest`；旧 `yolo.detect` 命名保留兼容，但语义诚实调整为 iOS 15+ 公共 `VNClassifyImageRequest` 全图分类（最多 20 标签、rect 为全图），真实边界框检测仍需用户提供 Core ML 模型；XCTest 运行后进一步修复 `deleteAllFile(file)`、`auto.node/auto.screen/auto.floatLog` 接线、`auto.click.length`、POST multipart 二参兼容和无宿主通知中心异常；verify 同步固化上述约束，bootstrap 60782/61440（余 658）；
 本轮新增（Round 61）：**Xcode 15.4 ARC 发布热修**——修复内置 no-WDA Accessibility 遍历中 CFTypeRef 到 Objective-C 对象缺少显式桥接、以不合法的 `NSArray<AutoAXElementRef>` 承载 C 指针等编译阻断；子节点遍历统一以 Objective-C 对象持有、使用时 `__bridge` 回 AX 引用，句柄重放时显式 `CFRetain`；同时修正 `type` 选择器逻辑非优先级导致的匹配反转，并加入 verify 回归锚点；bootstrap、脚本 API 与 VS Code 插件 0.6.0 均不变；
 本轮新增（Round 60）：**VS Code 插件与截图/节点采集调试工具重构**——插件 0.6.0 将设备可视化协议、Inspector 会话调度和 Webview 几何/选择器模型拆为独立模块；普通截图、节点 JSON 和可视化 Inspector 共用一个重任务串行通道，匹配设备端“一次只处理一个 screenshot/nodes/pixel/findImage/OCR 重请求”的约束，消除并发 `device busy`；同类待处理操作只保留最新结果，所有 Webview 消息以 requestId 关联，迟到响应不再覆盖新状态；刷新后按稳定 nodeId/handle 恢复选择；新增 `autosdk.inspectorMaxNodes`（1...2000）和包含 PNG base64、节点树、设备信息、snapshotId/耗时的可移植 JSON 快照导出；删除旧无调用方 CoalescingRunner，插件测试 64 项，bootstrap 与脚本 API 零改动（60526/61440）；

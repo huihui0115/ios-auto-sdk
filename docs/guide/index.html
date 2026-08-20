@@ -131,7 +131,7 @@
   <table>
     <tr><th>产物</th><th>路径</th><th>说明</th></tr>
     <tr><td>App IPA</td><td><code>E:\ios脚本框架开发\dist\AutoSDKTemplate.ipa</code></td><td>未签名 IPA，AltStore/Sideloadly 免费签名安装（无需巨魔）；GitHub Actions 自动编译产出</td></tr>
-    <tr><td>VS Code 插件</td><td><code>E:\ios脚本框架开发\vscode-extension\autosdk-vscode-0.6.0.vsix</code></td><td>离线安装包</td></tr>
+    <tr><td>VS Code 插件</td><td><code>E:\ios脚本框架开发\vscode-extension\autosdk-vscode-0.7.0.vsix</code></td><td>离线安装包</td></tr>
     <tr><td>本教程</td><td><code>E:\ios脚本框架开发\docs\guide\index.html</code></td><td>就是本页，双击即可打开</td></tr>
   </table>
   <div class="note">IPA 由 GitHub Actions 的 <code>Build AutoSDK IPA</code> workflow 编译（跑过模拟器 XCTest 全量测试），可直接下载：
@@ -161,7 +161,7 @@
   <div class="note warn">IPA 未签名（<code>CODE_SIGNING_ALLOWED=NO</code>），必须用免费签名工具（Apple ID）或企业开发者证书签名后安装；免费签名 7 天过期需重签。</div>
 
   <h3>3.3 安装 VS Code 插件</h3>
-  <pre><code>code --install-extension "E:\ios脚本框架开发\vscode-extension\autosdk-vscode-0.6.0.vsix" --force</code></pre>
+  <pre><code>code --install-extension "E:\ios脚本框架开发\vscode-extension\autosdk-vscode-0.7.0.vsix" --force</code></pre>
   <p>安装后命令面板（<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>）输入 <code>AutoSDK</code> 能看到全部命令。</p>
 
   <h3>3.4 安装 iproxy（USB 隧道可选，Wi-Fi 直连可跳过）</h3>

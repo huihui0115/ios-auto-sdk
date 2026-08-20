@@ -30,6 +30,7 @@ function inspectorHtml(webview, extensionUri) {
     <button id="test-image" type="button" title="Choose a local template and test it on the device">Test image</button>
     <button id="test-ocr" type="button" title="Run OCR in the selected region">Test OCR</button>
     <button id="save-snapshot" type="button" title="Export the correlated screenshot, node tree, and metadata">Export</button>
+    <button id="cancel-operation" type="button" title="Cancel the active Inspector operation (Escape)" disabled>Cancel</button>
     <span id="status" role="status">Connecting...</span>
   </header>
   <main class="workspace">

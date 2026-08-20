@@ -1,6 +1,8 @@
 const { generatedCode, inputText, nodeAction, ocrRegion, point, selectorObject } = require('./inspector-input');
 
 const MAX_REQUEST_ID_LENGTH = 128;
+const DEFAULT_ACTION_REFRESH_DELAY_MS = 400;
+const MAX_ACTION_REFRESH_DELAY_MS = 5000;
 
 function requestId(value, fallback) {
   return typeof value === 'string' && value && value.length <= MAX_REQUEST_ID_LENGTH ? value : fallback;
@@ -8,6 +10,30 @@ function requestId(value, fallback) {
 
 function abortError(error) {
   return error?.name === 'AbortError';
+}
+
+function actionRefreshDelay(value, fallback = DEFAULT_ACTION_REFRESH_DELAY_MS) {
+  const parsed = Number(value);
+  const parsedFallback = Number(fallback);
+  const safeFallback = Number.isFinite(parsedFallback)
+    ? Math.min(MAX_ACTION_REFRESH_DELAY_MS, Math.max(0, Math.floor(parsedFallback)))
+    : DEFAULT_ACTION_REFRESH_DELAY_MS;
+  return Number.isFinite(parsed)
+    ? Math.min(MAX_ACTION_REFRESH_DELAY_MS, Math.max(0, Math.floor(parsed)))
+    : safeFallback;
+}
+
+function cancellableDelay(milliseconds, signal) {
+  if (!milliseconds || signal?.aborted) return Promise.resolve();
+  return new Promise(resolve => {
+    const finish = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', finish);
+      resolve();
+    };
+    const timer = setTimeout(finish, milliseconds);
+    signal?.addEventListener('abort', finish, { once: true });
+  });
 }
 
 class LatestTaskQueue {
@@ -53,7 +79,8 @@ class InspectorSession {
     this.copyCode = options.copyCode || (async () => {});
     this.insertCode = options.insertCode || (async () => {});
     this.saveSnapshot = options.saveSnapshot || (async () => {});
-    this.delay = options.delay || (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
+    this.delay = options.delay || cancellableDelay;
+    this.actionRefreshDelay = actionRefreshDelay(options.actionRefreshDelay);
     this.maxNodes = options.maxNodes;
     this.queue = new LatestTaskQueue();
     this.abortController = new AbortController();
@@ -87,14 +114,18 @@ class InspectorSession {
     }
   }
 
-  run(operation, messageId, status, task, resultType, queueKey = operation) {
+  run(operation, messageId, status, task, resultType, queueKey = operation, commit) {
     const id = this.nextRequestId(messageId);
     this.post('operationStart', operation, id, { message: status });
     return this.queue.schedule(queueKey, async isCurrent => {
-      if (!this.visible || this.signal().aborted) return;
+      const signal = this.signal();
+      if (!this.visible || signal.aborted) return;
       try {
-        const payload = await task(this.signal());
-        if (isCurrent() && this.visible && payload !== undefined) this.post(resultType, operation, id, payload);
+        const payload = await task(signal);
+        if (isCurrent() && this.visible && !signal.aborted && payload !== undefined) {
+          if (commit) commit(payload);
+          this.post(resultType, operation, id, payload);
+        }
       } catch (error) {
         if (!abortError(error) && isCurrent() && this.visible) this.post('error', operation, id, { message: error.message });
       } finally {
@@ -108,15 +139,25 @@ class InspectorSession {
 
   refresh(messageId) {
     return this.run('snapshot', messageId, 'Capturing screenshot and node tree...', async signal => {
-      const snapshot = await this.service.snapshot({ maxNodes: this.maxNodes, signal });
-      this.lastSnapshot = snapshot;
-      return snapshot;
-    }, 'snapshot');
+      return this.service.snapshot({ maxNodes: this.maxNodes, signal });
+    }, 'snapshot', 'snapshot', snapshot => { this.lastSnapshot = snapshot; });
+  }
+
+  cancel(messageId) {
+    const id = this.nextRequestId(messageId);
+    this.abortController.abort();
+    this.queue.invalidate();
+    if (this.visible && !this.disposed) this.abortController = new AbortController();
+    this.post('cancelled', 'cancel', id, { message: 'Inspector operation cancelled' });
   }
 
   async handleMessage(message) {
     if (this.disposed || !message || typeof message !== 'object') return;
     const id = message.requestId;
+    if (message.type === 'cancelOperations') {
+      this.cancel(id);
+      return;
+    }
     if (message.type === 'ready' || message.type === 'refresh') {
       await this.refresh(id);
       return;
@@ -165,12 +206,14 @@ class InspectorSession {
           payload.text = inputText(text);
         }
         await this.service.nodeAction(payload, signal);
-        await this.delay(250);
+        await this.delay(this.actionRefreshDelay, signal);
         if (signal.aborted) return undefined;
         const snapshot = await this.service.snapshot({ maxNodes: this.maxNodes, signal });
-        this.lastSnapshot = snapshot;
         return { ...snapshot, notice: `${action} completed` };
-      }, 'snapshot', `action:${this.nextRequestId(id)}`);
+      }, 'snapshot', `action:${this.nextRequestId(id)}`, payload => {
+        const { notice: _notice, ...snapshot } = payload;
+        this.lastSnapshot = snapshot;
+      });
       return;
     }
     if (message.type === 'copyCode') {
@@ -199,4 +242,4 @@ class InspectorSession {
   }
 }
 
-module.exports = { InspectorSession, LatestTaskQueue };
+module.exports = { InspectorSession, LatestTaskQueue, actionRefreshDelay };

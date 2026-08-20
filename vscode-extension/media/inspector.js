@@ -6,6 +6,7 @@
     testImage: document.getElementById('test-image'),
     testOCR: document.getElementById('test-ocr'),
     saveSnapshot: document.getElementById('save-snapshot'),
+    cancel: document.getElementById('cancel-operation'),
     status: document.getElementById('status'),
     screen: document.getElementById('device-screen'),
     screenshot: document.getElementById('screenshot'),
@@ -55,6 +56,7 @@
     elements.inputNode.disabled = busy || state.selectedIndex < 0;
     elements.scrollNode.disabled = busy || state.selectedIndex < 0;
     elements.saveSnapshot.disabled = busy || !state.hasSnapshot;
+    elements.cancel.disabled = !busy;
     elements.screen.classList.toggle('busy', busy);
   }
 
@@ -258,6 +260,7 @@
   elements.refresh.addEventListener('click', function () { send('snapshot', 'refresh'); });
   elements.testImage.addEventListener('click', function () { send('image', 'testImage'); });
   elements.saveSnapshot.addEventListener('click', function () { send('export', 'saveSnapshot'); });
+  elements.cancel.addEventListener('click', function () { send('cancel', 'cancelOperations'); });
   elements.testOCR.addEventListener('click', function () {
     if (!state.region || state.region.width <= 0 || state.region.height <= 0) {
       setStatus('Select a region first.', true);
@@ -283,6 +286,12 @@
   elements.scrollNode.addEventListener('click', function () { requestNodeAction('scroll'); });
   elements.copyCode.addEventListener('click', function () { send('code', 'copyCode', { code: elements.generatedCode.value }); });
   elements.insertCode.addEventListener('click', function () { send('code', 'insertCode', { code: elements.generatedCode.value }); });
+  window.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && state.busyRequests.size > 0) {
+      event.preventDefault();
+      send('cancel', 'cancelOperations');
+    }
+  });
 
   elements.screenshot.addEventListener('load', function () {
     const size = screenSize();
@@ -305,6 +314,12 @@
       return;
     }
     if (!accepts(message)) return;
+    if (message.type === 'cancelled') {
+      state.busyRequests.clear();
+      setStatus(message.message || 'Inspector operation cancelled');
+      renderBusyState();
+      return;
+    }
     if (message.type === 'error') setStatus(message.message || 'Operation failed.', true);
     if (message.type === 'snapshot') {
       const previousKey = model.nodeKey(state.selectedIndex >= 0 ? state.nodes[state.selectedIndex] : null);

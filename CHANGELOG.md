@@ -6,6 +6,29 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.31.0] - 2026-08-20
+
+### Added
+
+- Added an Inspector **Cancel** button and `Escape` shortcut that abort the
+  active client request, drops queued stale work, and immediately restores the
+  panel controls.
+- Added `autosdk.inspectorActionRefreshDelay` (`0...5000` ms, default `400`) so
+  click/input/scroll refreshes can wait for target-app animations to settle.
+
+### Fixed
+
+- Prevented superseded, hidden, disposed, or cancelled Inspector requests from
+  committing `lastSnapshot` and becoming the next exported snapshot.
+- Clamped Webview screen picks to valid `0...width-1` / `0...height-1` pixels,
+  rejected zero-area hit targets, and preferred the deepest later node when
+  equal-size controls overlap.
+- Silently consumed late responses for explicitly aborted device requests while
+  retaining diagnostics for genuinely unknown responses; the ignore set is
+  bounded to 128 request IDs.
+- Upgraded the VS Code extension to 0.7.0 and extended regression/verification
+  coverage for cancellation, lifecycle commits, geometry, and delay bounds.
+
 ## [1.30.2] - 2026-08-11
 
 ### Fixed

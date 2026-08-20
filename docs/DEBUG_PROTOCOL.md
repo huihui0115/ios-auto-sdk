@@ -30,7 +30,12 @@ and does not encrypt WebSocket traffic, so do not expose it on an untrusted LAN.
 Clients may include `timeoutMs` to advertise their response budget. The device
 clamps it to `1...3,600,000` milliseconds. Script commands default to the
 engine's one-hour maximum; other commands default to six minutes. A client may
-still time out earlier and discard a late response.
+still time out earlier and discard a late response. Client cancellation only
+stops the local wait: an already-running device-side heavy operation may finish
+in the background, and an immediate retry can receive `device busy` until it
+releases the single-heavy-request slot. The VS Code Inspector drops cancelled
+queued work and silently consumes the explicitly cancelled request's eventual
+response while continuing to report genuinely unknown response IDs.
 
 ## Commands
 
