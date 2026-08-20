@@ -6,6 +6,21 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.35.1] - 2026-08-20
+
+### Fixed
+
+- Made USB helper discovery use `path.win32` or `path.posix` according to the
+  requested target platform instead of the machine running the test. This fixes
+  macOS release validation while preserving Windows `iproxy` sibling lookup.
+- Prevented VSIX dependency generation from linking the repository root into
+  `node_modules`; verification now rejects that packaging regression.
+
+### Changed
+
+- Upgraded the VS Code extension patch version to 0.10.1 and added a portable
+  POSIX-path regression assertion.
+
 ## [1.35.0] - 2026-08-20
 
 ### Added

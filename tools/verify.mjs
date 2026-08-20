@@ -279,6 +279,8 @@ check(extensionPackage.contributes?.commands?.some(item => item.command === 'aut
       'VS Code extension must expose Wi-Fi discovery plus advanced USB tunnel commands');
 check(extensionPackage.dependencies?.['bonjour-service'] === '1.4.4',
       'VS Code Wi-Fi discovery must pin its Bonjour implementation');
+check(!extensionPackage.dependencies?.['auto-sdk-tools'] && !extensionLock.packages?.['..'],
+      'VS Code extension must not package the repository root as a linked dependency');
 check(read('vscode-extension/.vscodeignore').includes('.npm-cache/**'),
       'VSIX packaging must exclude temporary npm caches');
 check(extensionPackage.contributes?.menus?.['editor/context']?.some(item =>

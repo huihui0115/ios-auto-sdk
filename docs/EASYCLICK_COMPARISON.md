@@ -94,6 +94,8 @@ The following surfaces must not be described as production-complete yet:
 | 线程与工具模块 | 14 | thread.execAsync/execSync/cancelThread/stopAll/isCancelled、utils.dataMd5/fileMd5/randomInt/getRangeInt/getRatio/zip/unzip/readFileInZip/playMp3/stopMp3/deleteAllPhotos/deleteAllVideos/requestPhotoAuthorization、全局别名 getPasteboard/setPasteboard/openUrl/uploadToAlbum/childcount |
 | 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 
+本轮新增（Round 68）：**macOS 发布验证热修**——插件升级 0.10.1；USB 高级备用搜索的工具路径从宿主系统 `path` 改为按目标平台显式选择 `path.win32` / `path.posix`，修复在 macOS CI 中验证 Windows `iproxy` 路径时同目录候选错误，并增加 POSIX 路径回归断言；Wi-Fi Bonjour 主链语义不变；
+
 本轮新增（Round 67）：**Wi-Fi Bonjour 广播扫描与一键重连**——TemplateApp 在 Wi-Fi 调试开启时发布 `_autosdk._tcp` 服务，使用稳定的每安装实例名称且绝不广播 token；插件升级 0.10.0，断开状态栏默认扫描局域网并列出手机，首次选择输入 token 后将 SecretStorage 凭据与稳定广播身份绑定，之后即使 DHCP 地址改变也可一键选择重连；手动添加支持只输入 IP 并自动补 `ws://` 与 9001 端口，USB/libimobiledevice 搜索移为高级命令；mDNS 扫描限制 15 秒/64 台设备，插件测试 97 项，bootstrap 零改动；
 
 本轮新增（Round 66）：**设备搜索/添加与编辑器一键运行**——插件升级 0.9.0；新增 `Search and Add iPhone`，以有界、无 shell 的 `idevice_id` 搜索 USB 手机并用 `ideviceinfo` 读取名称，优先复用 `iproxy` 同目录工具；选中后保存 UDID、启动托管隧道、自动测试连接，缺工具/无设备时直接回退 Wi-Fi；断开状态栏变为 add iPhone 入口，JS/TS 编辑器右键菜单与标题栏新增运行按钮；跨设备不预填旧 token、保存失败回滚 UDID；插件测试 90 项，bootstrap 零改动；

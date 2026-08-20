@@ -23,6 +23,10 @@ test('device discovery reuses tools beside the configured iproxy', () => {
     'idevice_id.exe',
     'idevice_id'
   ]);
+  assert.deepEqual(toolCandidates('/opt/libimobiledevice/bin/iproxy', 'idevice_id', 'darwin'), [
+    '/opt/libimobiledevice/bin/idevice_id',
+    'idevice_id'
+  ]);
 });
 
 test('device discovery lists phones and resolves friendly names', async () => {

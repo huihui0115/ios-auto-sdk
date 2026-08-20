@@ -10,11 +10,12 @@ function unique(values) {
 
 function toolCandidates(iproxyPath, tool, platform = process.platform) {
   const configured = String(iproxyPath || '').trim();
+  const pathApi = platform === 'win32' ? path.win32 : path.posix;
   const executable = platform === 'win32' ? `${tool}.exe` : tool;
   const candidates = [];
   if (configured) {
-    const directory = path.dirname(configured);
-    if (directory && directory !== '.') candidates.push(path.join(directory, executable));
+    const directory = pathApi.dirname(configured);
+    if (directory && directory !== '.') candidates.push(pathApi.join(directory, executable));
   }
   candidates.push(executable);
   if (platform === 'win32') candidates.push(tool);
