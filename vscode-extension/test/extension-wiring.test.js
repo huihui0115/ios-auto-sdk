@@ -49,11 +49,27 @@ test('every contributed extension command is registered', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
   const commands = [
     'autosdk.runCurrentScript', 'autosdk.sendCurrentScript', 'autosdk.manageScripts',
-    'autosdk.configureDevice', 'autosdk.startUsbTunnel', 'autosdk.stopUsbTunnel',
+    'autosdk.configureDevice', 'autosdk.discoverDevice', 'autosdk.startUsbTunnel', 'autosdk.stopUsbTunnel',
     'autosdk.testConnection', 'autosdk.stopScript', 'autosdk.captureScreenshot',
     'autosdk.inspectNodes', 'autosdk.openInspector', 'autosdk.buildIPA'
   ];
   for (const command of commands) {
     assert.match(source, new RegExp("registerCommand\\('" + command + "'"), command + ' must be registered');
   }
+});
+
+test('JavaScript and TypeScript editors expose one-click run actions', () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+  const contextRun = manifest.contributes.menus['editor/context'].find(item => item.command === 'autosdk.runCurrentScript');
+  const titleRun = manifest.contributes.menus['editor/title'].find(item => item.command === 'autosdk.runCurrentScript');
+
+  assert.match(contextRun.when, /editorLangId == javascript/);
+  assert.match(contextRun.when, /editorLangId == typescript/);
+  assert.equal(titleRun.when, contextRun.when);
+});
+
+test('the disconnected status bar opens device discovery', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+  assert.match(source, /state === 'disconnected' \? 'autosdk\.discoverDevice' : 'autosdk\.testConnection'/);
+  assert.match(source, /discoverUsbDevices\(/);
 });

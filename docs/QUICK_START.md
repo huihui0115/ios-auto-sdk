@@ -63,11 +63,11 @@ device.volumeUp();                             // 音量加（需适配器硬件
 
 安装 `vscode-extension/` 目录的插件（见 [vscode-extension/README](../vscode-extension/README.md)）：
 
-1. **AutoSDK: Configure Device Connection** 填入手机上的 `ws://IP:9001` 和 token；
-2. **AutoSDK: Test Device Connection** 验证连接；
-3. 打开 `.js` 文件，**AutoSDK: Run Current Script** 直接运行，无需重新构建；
+1. 点击状态栏 **AutoSDK: add iPhone**，或运行 **AutoSDK: Search and Add iPhone**；
+2. 选择 USB 手机并输入 App 显示的 token，插件自动启动隧道并验证连接；
+3. 打开 `.js` / `.ts` 文件，在编辑区右键 **AutoSDK: Run Current Script**；
 4. **AutoSDK: Capture Screenshot / Inspect Nodes** 可视化调试；
-5. 无 Mac 时用 **AutoSDK: Start USB Tunnel**（需 `iproxy`）或同 Wi-Fi 直连。
+5. USB 搜索依赖 libimobiledevice 的 `idevice_id` + `iproxy`；不可用时在搜索界面选择 Wi-Fi 手动添加。
 
 ## 5. 把脚本能力嵌进自己的 App
 

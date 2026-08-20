@@ -271,8 +271,13 @@ check(buildWorkflow.split(extensionVsixName).length - 1 === 4 &&
 check(extensionPackage.private === true && extensionPackage.license === 'UNLICENSED',
       'VS Code extension package must remain private and unlicensed for npm publication');
 check(extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.startUsbTunnel') &&
-      extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.stopUsbTunnel'),
-      'VS Code extension must expose managed USB tunnel commands');
+      extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.stopUsbTunnel') &&
+      extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.discoverDevice'),
+      'VS Code extension must expose device discovery and managed USB tunnel commands');
+check(extensionPackage.contributes?.menus?.['editor/context']?.some(item =>
+        item.command === 'autosdk.runCurrentScript' && item.when.includes('javascript') && item.when.includes('typescript')) &&
+      extensionPackage.contributes?.menus?.['editor/title']?.some(item => item.command === 'autosdk.runCurrentScript'),
+      'VS Code extension must expose run actions in script editor context and title menus');
 check(extensionPackage.contributes?.configuration?.properties?.['autosdk.connectionTimeout']?.maximum === 3600000 &&
       extensionPackage.contributes?.configuration?.properties?.['autosdk.buildTimeout']?.maximum === 21600 &&
       extensionPackage.contributes?.configuration?.properties?.['autosdk.inspectorMaxNodes']?.minimum === 1 &&
@@ -293,9 +298,14 @@ check(/type === 'selectorResult'[\s\S]{0,800}state\.match = null[\s\S]{0,200}ele
 const inspectorServiceSource = read('vscode-extension/inspector-service.js');
 const inspectorSessionSource = read('vscode-extension/inspector-session.js');
 const inspectorModelSource = read('vscode-extension/media/inspector-model.js');
+const deviceDiscoverySource = read('vscode-extension/device-discovery.js');
 check(extensionSource.includes('new InspectorService(sendRequest)') && extensionSource.includes('new InspectorSession({') &&
       !extensionSource.includes("type: 'inspectSnapshot'"),
       'Extension commands must delegate Inspector protocol and session state to focused modules');
+check(extensionSource.includes('discoverUsbDevices({') && extensionSource.includes("registerCommand('autosdk.discoverDevice'") &&
+      deviceDiscoverySource.includes('shell: false') && deviceDiscoverySource.includes("'idevice_id'") &&
+      deviceDiscoverySource.includes('MAX_TOOL_OUTPUT_BYTES'),
+      'Device discovery must remain bounded, shell-free and wired to the extension command');
 check(inspectorServiceSource.includes('this.visualTail.then(task, task)') &&
       inspectorServiceSource.includes("type: 'inspectSnapshot'") && inspectorServiceSource.includes('MAX_PNG_BASE64_LENGTH'),
       'Inspector service must serialize and validate device visual requests');

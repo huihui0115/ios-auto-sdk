@@ -6,6 +6,28 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.34.0] - 2026-08-20
+
+### Added
+
+- Added **AutoSDK: Search and Add iPhone**, which discovers USB devices with
+  bounded, shell-free `idevice_id` / `ideviceinfo` calls, saves the selected
+  UDID, starts the managed tunnel, and tests the connection.
+- Added direct Wi-Fi fallback when USB tools or devices are unavailable.
+- Added **Run Current Script** to JavaScript/TypeScript editor context menus
+  and the editor title bar.
+
+### Changed
+
+- Changed the disconnected status-bar action to open device discovery and
+  upgraded the VS Code extension to 0.9.0.
+- Expanded the extension suite from 83 to 90 tests.
+
+### Fixed
+
+- Avoided prefilling a token from a different USB phone and restored the
+  previous UDID if saving the new connection fails.
+
 ## [1.33.0] - 2026-08-20
 
 ### Added

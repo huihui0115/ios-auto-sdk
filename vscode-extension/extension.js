@@ -5,6 +5,7 @@ const fs = require('fs');
 const { DeviceClient } = require('./device-client');
 const { connectionCredentials, tokenForConfiguration, updateConnectionConfiguration } = require('./connection-settings');
 const { completionEntries } = require('./completion-model');
+const { discoverUsbDevices } = require('./device-discovery');
 const { generatedCode, inputText } = require('./inspector-input');
 const { InspectorService, maxNodes, responseError } = require('./inspector-service');
 const { InspectorSession } = require('./inspector-session');
@@ -352,11 +353,66 @@ async function manageDeviceScripts() {
   }
 }
 
-async function configureDevice() {
+async function saveDeviceConnection({ current, credentialScope, mode, token, url, usbDeviceUdid }) {
+  const inspection = current.inspect?.('usbDeviceUdid');
+  const previousUdid = inspection?.workspaceValue;
+  let udidChanged = false;
+  if (usbDeviceUdid !== undefined) {
+    await current.update('usbDeviceUdid', usbDeviceUdid, vscode.ConfigurationTarget.Workspace);
+    udidChanged = true;
+  }
+  let result;
+  try {
+    result = await updateConnectionConfiguration(
+      current,
+      extensionContext.secrets,
+      token,
+      url,
+      credentialScope,
+      vscode.ConfigurationTarget.Workspace,
+      [
+        { target: vscode.ConfigurationTarget.Global, inspectKey: 'globalValue' },
+        { target: vscode.ConfigurationTarget.WorkspaceFolder, inspectKey: 'workspaceFolderValue' }
+      ]
+    );
+  } catch (error) {
+    if (udidChanged) {
+      try {
+        await current.update('usbDeviceUdid', previousUdid, vscode.ConfigurationTarget.Workspace);
+      } catch (rollbackError) {
+        throw new Error(`${error.message} Restoring the previous USB device also failed: ${rollbackError.message}`);
+      }
+    }
+    throw error;
+  }
+  if (result.plaintextCleanupErrors.length) {
+    vscode.window.showWarningMessage('AutoSDK connected, but the old plaintext debug token could not be removed from one or more VS Code settings scopes. Remove autosdk.debugToken manually.');
+  }
+  deviceClient?.disconnect('Device connection settings changed.');
+  if (mode === 'wifi' && usbTunnel?.running) await stopUsbTunnel();
+}
+
+async function promptDebugToken(mode, savedToken) {
+  return vscode.window.showInputBox({
+    prompt: 'AutoSDK debug token shown in the iPhone app',
+    password: true,
+    value: savedToken,
+    validateInput(value) {
+      if (!value) return 'Enter the installation token displayed by the AutoSDK app.';
+      if (Buffer.byteLength(value, 'utf8') > 1024) return 'The debug token must not exceed 1024 UTF-8 bytes.';
+      if (mode === 'wifi' && value.length < 16) return 'Wi-Fi tokens must contain at least 16 characters.';
+      return undefined;
+    }
+  });
+}
+
+async function configureDevice(preferredMode) {
   const current = configuration();
   const credentialScope = workspaceCredentialScope();
   const savedToken = await tokenForConfiguration(current, extensionContext.secrets, credentialScope);
-  const connection = await vscode.window.showQuickPick([
+  const connection = preferredMode ? {
+    mode: preferredMode
+  } : await vscode.window.showQuickPick([
     {
       label: '$(radio-tower) Wi-Fi direct',
       description: 'Use the ws:// address displayed by the AutoSDK app',
@@ -402,49 +458,104 @@ async function configureDevice() {
     }
   });
   if (!url) return;
-  const token = await vscode.window.showInputBox({
-    prompt: 'AutoSDK debug token',
-    password: true,
-    value: savedToken,
-    validateInput(value) {
-      if (!value) return 'Enter the installation token displayed by the AutoSDK app.';
-      if (Buffer.byteLength(value, 'utf8') > 1024) return 'The debug token must not exceed 1024 UTF-8 bytes.';
-      if (connection.mode === 'wifi' && value.length < 16) return 'Wi-Fi tokens must contain at least 16 characters.';
-      return undefined;
-    }
-  });
+  const token = await promptDebugToken(connection.mode, savedToken);
   if (token === undefined) return;
   if (credentialScope !== workspaceCredentialScope()) {
     vscode.window.showErrorMessage('AutoSDK: The workspace changed while configuring the device. Run the command again.');
     return;
   }
   try {
-    const result = await updateConnectionConfiguration(
-      current,
-      extensionContext.secrets,
-      token,
-      url,
-      credentialScope,
-      vscode.ConfigurationTarget.Workspace,
-      [
-        { target: vscode.ConfigurationTarget.Global, inspectKey: 'globalValue' },
-        { target: vscode.ConfigurationTarget.WorkspaceFolder, inspectKey: 'workspaceFolderValue' }
-      ]
-    );
-    if (result.plaintextCleanupErrors.length) {
-      vscode.window.showWarningMessage('AutoSDK connected, but the old plaintext debug token could not be removed from one or more VS Code settings scopes. Remove autosdk.debugToken manually.');
-    }
+    await saveDeviceConnection({ current, credentialScope, mode: connection.mode, token, url });
   } catch (error) {
     vscode.window.showErrorMessage(`AutoSDK could not save the device connection: ${error.message}`);
     return;
   }
-  deviceClient?.disconnect('Device connection settings changed.');
-  if (connection.mode === 'wifi' && usbTunnel?.running) await stopUsbTunnel();
   const action = await vscode.window.showInformationMessage(
     'AutoSDK device connection saved.',
     ...(connection.mode === 'usb' ? ['Start USB Tunnel'] : [])
   );
   if (action === 'Start USB Tunnel') await startUsbTunnel();
+}
+
+function loopbackUsbUrl(current) {
+  try {
+    const parsed = new URL(String(current.get('debugUrl') || ''));
+    const loopback = ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname);
+    if (parsed.protocol === 'ws:' && loopback && parsed.port) return `ws://127.0.0.1:${parsed.port}`;
+  } catch (_) { /* use the standard local port */ }
+  return 'ws://127.0.0.1:9001';
+}
+
+async function discoverDevice() {
+  const channel = outputChannel();
+  channel.show(true);
+  try {
+    if (!vscode.workspace.isTrusted) throw new Error('Trust this workspace before running local USB discovery tools.');
+    const current = configuration();
+    const result = await vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: 'AutoSDK: Searching for USB iPhones…',
+      cancellable: false
+    }, () => discoverUsbDevices({ iproxyPath: String(current.get('iproxyPath') || 'iproxy') }));
+    channel.appendLine(`USB search via ${result.executable}: ${result.devices.length} iPhone(s) found.`);
+    if (!result.devices.length) {
+      const action = await vscode.window.showWarningMessage(
+        'AutoSDK found no USB iPhone. Unlock the phone, trust this computer, and reconnect the cable.',
+        'Search Again',
+        'Add Wi-Fi Device'
+      );
+      if (action === 'Search Again') return discoverDevice();
+      if (action === 'Add Wi-Fi Device') return configureDevice('wifi');
+      return;
+    }
+    const selection = await vscode.window.showQuickPick([
+      ...result.devices.map(device => ({
+        label: `$(device-mobile) ${device.name}`,
+        description: device.id,
+        detail: 'USB · select to add, start the tunnel, and test the connection',
+        device
+      })),
+      {
+        label: '$(radio-tower) Add Wi-Fi device manually',
+        description: 'Use the address displayed in the AutoSDK iPhone app',
+        mode: 'wifi'
+      }
+    ], {
+      placeHolder: 'Select an iPhone to add to this workspace',
+      matchOnDescription: true,
+      matchOnDetail: true
+    });
+    if (!selection) return;
+    if (selection.mode === 'wifi') return configureDevice('wifi');
+    const credentialScope = workspaceCredentialScope();
+    const previousUdid = String(current.get('usbDeviceUdid') || '');
+    const savedToken = previousUdid === selection.device.id
+      ? await tokenForConfiguration(current, extensionContext.secrets, credentialScope)
+      : '';
+    const token = await promptDebugToken('usb', savedToken);
+    if (token === undefined) return;
+    if (credentialScope !== workspaceCredentialScope()) {
+      vscode.window.showErrorMessage('AutoSDK: The workspace changed while adding the device. Run the command again.');
+      return;
+    }
+    await saveDeviceConnection({
+      current,
+      credentialScope,
+      mode: 'usb',
+      token,
+      url: loopbackUsbUrl(current),
+      usbDeviceUdid: selection.device.id
+    });
+    const started = await startUsbTunnel();
+    if (started) await testConnection();
+  } catch (error) {
+    channel.appendLine(`Device search failed: ${error.stack || error.message}`);
+    const action = await vscode.window.showErrorMessage(
+      `AutoSDK device search failed: ${error.message}`,
+      'Add Wi-Fi Device'
+    );
+    if (action === 'Add Wi-Fi Device') await configureDevice('wifi');
+  }
 }
 
 function usbTunnelOptions() {
@@ -475,9 +586,11 @@ async function startUsbTunnel() {
     const result = await usbTunnel.start(usbTunnelOptions());
     channel.appendLine(`${result.alreadyRunning ? 'Using' : 'Started'} USB tunnel: ${result.commandLine}`);
     vscode.window.showInformationMessage(result.alreadyRunning ? 'AutoSDK USB tunnel is already running.' : 'AutoSDK USB tunnel started.');
+    return true;
   } catch (error) {
     channel.appendLine(`USB tunnel failed: ${error.stack || error.message}`);
     vscode.window.showErrorMessage(`AutoSDK USB tunnel failed: ${error.message}`);
+    return false;
   }
 }
 
@@ -509,9 +622,11 @@ async function testConnection() {
     channel.appendLine(JSON.stringify(response.deviceInfo, null, 2));
     channel.appendLine(JSON.stringify(capabilityResponse.capabilities, null, 2));
     vscode.window.showInformationMessage('AutoSDK device connection is ready.');
+    return true;
   } catch (error) {
     channel.appendLine(error.stack || error.message);
     vscode.window.showErrorMessage(`AutoSDK connection failed: ${error.message}`);
+    return false;
   }
 }
 
@@ -560,10 +675,11 @@ function updateConnectionStatus(state, detail) {
   const labels = {
     connecting: '$(sync~spin) AutoSDK: connecting',
     ready: '$(debug-alt) AutoSDK: ready',
-    disconnected: '$(debug-disconnect) AutoSDK: disconnected'
+    disconnected: '$(device-mobile) AutoSDK: add iPhone'
   };
   connectionStatus.text = labels[state] || labels.disconnected;
   connectionStatus.tooltip = detail || 'AutoSDK device connection';
+  connectionStatus.command = state === 'disconnected' ? 'autosdk.discoverDevice' : 'autosdk.testConnection';
   connectionStatus.backgroundColor = state === 'disconnected'
     ? new vscode.ThemeColor('statusBarItem.warningBackground')
     : undefined;
@@ -830,7 +946,7 @@ async function buildIPA() {
 function activate(context) {
   extensionContext = context;
   connectionStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
-  connectionStatus.command = 'autosdk.testConnection';
+  connectionStatus.command = 'autosdk.discoverDevice';
   deviceClient = new DeviceClient({
     credentials: async () => connectionCredentials(configuration(), extensionContext.secrets, workspaceCredentialScope()),
     onState: updateConnectionStatus,
@@ -847,7 +963,7 @@ function activate(context) {
       }
     }
   });
-  updateConnectionStatus('disconnected', 'Run AutoSDK: Test Device Connection.');
+  updateConnectionStatus('disconnected', 'Click to search for and add an iPhone.');
   const activeEditor = vscode.window.activeTextEditor;
   if (activeEditor && (activeEditor.document.languageId === 'javascript' || activeEditor.document.languageId === 'typescript')) lastScriptEditor = activeEditor;
   context.subscriptions.push(
@@ -869,6 +985,7 @@ function activate(context) {
     vscode.commands.registerCommand('autosdk.sendCurrentScript', deployCurrentScript),
     vscode.commands.registerCommand('autosdk.manageScripts', manageDeviceScripts),
     vscode.commands.registerCommand('autosdk.configureDevice', configureDevice),
+    vscode.commands.registerCommand('autosdk.discoverDevice', discoverDevice),
     vscode.commands.registerCommand('autosdk.startUsbTunnel', startUsbTunnel),
     vscode.commands.registerCommand('autosdk.stopUsbTunnel', stopUsbTunnel),
     vscode.commands.registerCommand('autosdk.testConnection', testConnection),

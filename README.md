@@ -150,8 +150,8 @@ xcodebuild -scheme AutoSDK -destination 'generic/platform=iOS' build
 如果当前目录是已登录 GitHub CLI 可识别的 Git 仓库，可省略 `--repo`。提交前可运行
 `npm run verify` 执行仓库级静态检查。
 
-VS Code 插件源码位于 [`vscode-extension`](vscode-extension)。它支持 JS/TS 脚本发送与停止、截图保存、原子截图+节点快照、请求串行化且可取消的可视化 Inspector、动作后刷新延迟、快照 JSON 导出、API 补全、代码片段，以及等待并下载 GitHub Actions 构建产物。安装及手机连接限制见 [`vscode-extension/README.md`](vscode-extension/README.md)。
+VS Code 插件源码位于 [`vscode-extension`](vscode-extension)。它支持 USB 手机搜索/添加、编辑器右键与标题栏一键运行、JS/TS 脚本发送与停止、截图保存、原子截图+节点快照、请求串行化且可取消的可视化 Inspector、动作后刷新延迟、快照 JSON 导出、API 补全、代码片段，以及等待并下载 GitHub Actions 构建产物。安装及手机连接限制见 [`vscode-extension/README.md`](vscode-extension/README.md)。
 
-通过 USB 时可在 VS Code 执行 **AutoSDK: Start USB Tunnel**，插件会管理自身启动的 `iproxy` 进程；也可手动执行 `iproxy 9001 9001`。通过 Wi-Fi 时可直接配置 TemplateApp 显示的 `ws://手机IP:9001` 和 debug token。
+通过 USB 时点击状态栏 **AutoSDK: add iPhone**：插件调用 libimobiledevice 的 `idevice_id` 搜索手机，选中后保存 UDID、管理 `iproxy` 隧道并自动测试连接。通过 Wi-Fi 时可在同一搜索界面选择手动添加，填写 TemplateApp 显示的 `ws://手机IP:9001` 和 debug token。
 
 版本更新记录见 [`CHANGELOG.md`](CHANGELOG.md)。

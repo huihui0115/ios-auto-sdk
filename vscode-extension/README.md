@@ -21,14 +21,31 @@ From the repository root:
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.8.0.vsix
-code --install-extension .\autosdk-vscode-0.8.0.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.9.0.vsix
+code --install-extension .\autosdk-vscode-0.9.0.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An
 installed VSIX runs in VS Code's extension host and includes its `ws` runtime
-dependency. Configure the device URL and token through **AutoSDK: Configure
-Device Connection**. The command keeps
+dependency.
+
+The shortest USB setup is now:
+
+1. Unlock the iPhone, trust the computer, and keep the AutoSDK app open.
+2. Click **AutoSDK: add iPhone** in the status bar, or run **AutoSDK: Search and
+   Add iPhone** from the Command Palette.
+3. Select the discovered phone and enter the token displayed by the app. The
+   extension saves the UDID, starts its managed tunnel, and tests the connection.
+4. Open a `.js` or `.ts` file, right-click in the editor, and choose
+   **AutoSDK: Run Current Script**. The editor title also has a play button.
+
+USB discovery uses `idevice_id` and optional `ideviceinfo`, preferring copies
+beside the configured `iproxy` executable. These tools ship together in a
+libimobiledevice distribution. If they are unavailable or no cable device is
+found, the same command offers **Add Wi-Fi Device** as a direct fallback.
+
+The manual **AutoSDK: Configure Device Connection** command remains available.
+Connection setup keeps
 the token in VS Code SecretStorage and binds it to the configured URL and
 workspace. Changing either requires configuring the connection again, which
 prevents another workspace from redirecting a saved token. The legacy plaintext

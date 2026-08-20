@@ -77,8 +77,8 @@ const guides = [
       <div class="steps">
         <div class="step"><strong>安装并签名宿主 App</strong><p>从 GitHub Releases 下载最新 IPA 或构建产物，用自己的 Apple ID 签名安装。启动后保持 App 在前台。</p></div>
         <div class="step"><strong>安装 VS Code 插件</strong><p>下载 <code>autosdk-vscode-${esc(extensionPackage.version)}.vsix</code>，在 VS Code 的“扩展 → … → 从 VSIX 安装”中选择它。</p></div>
-        <div class="step"><strong>配置连接</strong><p>运行 <code>AutoSDK: Configure Device Connection</code>，填写宿主 App 显示的 WebSocket 地址和 token。USB 推荐先运行 <code>AutoSDK: Start USB Tunnel</code>。</p></div>
-        <div class="step"><strong>验证并运行</strong><p>先执行 <code>AutoSDK: Test Device Connection</code>，然后打开 JavaScript 文件并执行 <code>AutoSDK: Run Current Script</code>。</p></div>
+        <div class="step"><strong>搜索并添加手机</strong><p>点击状态栏的 <code>AutoSDK: add iPhone</code>，选择搜索到的 USB 手机并输入宿主 App 显示的 token；插件会自动保存、启动隧道并测试连接。</p></div>
+        <div class="step"><strong>右键运行</strong><p>打开 JavaScript 或 TypeScript 文件，在编辑区右键选择 <code>AutoSDK: Run Current Script</code>；编辑器标题栏也提供播放按钮。</p></div>
       </div>
       <h2>第一段脚本</h2>
       ${codeBlock(firstScript)}
@@ -96,14 +96,14 @@ const guides = [
     group: '入门',
     title: '连接与运行',
     lead: 'USB 更稳定，Wi-Fi 更轻便；两种方式共用同一套插件命令。',
-    search: 'USB WiFi iproxy websocket ws token 连接 运行 停止 部署',
+    search: 'USB WiFi iproxy idevice_id 搜索 添加 iPhone websocket ws token 连接 运行 停止 部署',
     body: `
       <h2>USB 连接（推荐）</h2>
       <ol>
-        <li>安装 <code>iproxy</code> 并确保它在 PATH，或设置 <code>autosdk.iproxyPath</code>。</li>
+        <li>安装包含 <code>iproxy</code>、<code>idevice_id</code> 和 <code>ideviceinfo</code> 的 libimobiledevice 工具，并确保它们在 PATH 或同一目录。</li>
         <li>手机通过 USB 连接电脑，保持宿主 App 在前台。</li>
-        <li>执行 <code>AutoSDK: Start USB Tunnel</code>，再配置 <code>ws://127.0.0.1:9001</code> 与 token。</li>
-        <li>执行 <code>AutoSDK: Test Device Connection</code>。</li>
+        <li>点击状态栏 <code>AutoSDK: add iPhone</code>，或运行 <code>AutoSDK: Search and Add iPhone</code>。</li>
+        <li>选择手机并输入 token；插件自动保存 UDID、启动隧道并测试连接。</li>
       </ol>
       <p>需要手工排查时，可在终端运行：</p>
       ${codeBlock('iproxy 9001 9001')}
@@ -117,6 +117,7 @@ const guides = [
       <table>
         <thead><tr><th>命令</th><th>用途</th></tr></thead>
         <tbody>
+          <tr><td><code>Search and Add iPhone</code></td><td>搜索 USB 手机，选中后自动保存、启动隧道并测试；也可回退到 Wi-Fi 添加。</td></tr>
           <tr><td><code>Run Current Script</code></td><td>立即执行当前编辑器内容，最适合迭代。</td></tr>
           <tr><td><code>Send Current Script to Device</code></td><td>把脚本保存到设备脚本列表。</td></tr>
           <tr><td><code>Stop Active Script</code></td><td>停止当前脚本、定时器和后台任务。</td></tr>
@@ -289,7 +290,7 @@ main();`)}
     lead: '按连接、能力、选择器和脚本生命周期的顺序排查，通常能最快定位问题。',
     search: '排错 故障 连接失败 token 点击 false 找不到 节点 HTTP lastError 超时 死循环',
     body: `
-      <div class="faq"><h3>插件连不上设备</h3><ol><li>宿主 App 是否在前台、调试服务器是否开启。</li><li>USB 是否已启动插件管理的隧道；Wi-Fi 是否在同一局域网。</li><li>URL 端口是否为 9001，token 是否来自当前安装。</li><li>重新执行 <code>Configure Device Connection</code> 与 <code>Test Device Connection</code>。</li></ol></div>
+      <div class="faq"><h3>插件搜不到设备或连不上</h3><ol><li>解锁手机、确认已信任此电脑，并保持宿主 App 在前台。</li><li>确认 libimobiledevice 的 <code>idevice_id</code> 与 <code>iproxy</code> 在 PATH 或同一目录。</li><li>重新运行 <code>Search and Add iPhone</code>；搜不到时可直接选择 Wi-Fi 添加。</li><li>确认 token 来自当前安装，端口为 9001。</li></ol></div>
       <div class="faq"><h3>点击返回 false</h3><p>打印 <code>auto.capabilities()</code> 与 <code>lastError()</code>。确认当前适配器支持触摸、坐标在屏幕范围内，节点仍然可见且可交互。</p></div>
       <div class="faq"><h3>选择器找不到节点</h3><p>重新采集检查器快照，先测试单个稳定条件，再逐步增加限制。注意页面切换、动画、WebView 和动态文本会让旧节点失效。</p></div>
       <div class="faq"><h3>HTTP 请求被拒绝</h3><p>检查宿主的 HTTP 开关、域名白名单、ATS/TLS 配置和超时。<code>http.getJSON()</code> 返回完整响应，解析结果在 <code>response.json</code>。</p></div>

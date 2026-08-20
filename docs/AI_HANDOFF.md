@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 65（v1.33.0，2026-08-20）。
+> 最后更新：Round 66（v1.34.0，2026-08-20）。
 
 ---
 
@@ -76,16 +76,17 @@ bridge (__bridge 对象，JSValue block)
 | `vscode-extension/inspector-session.js` | Inspector 面板生命周期、请求关联、同类待处理任务去重 |
 | `vscode-extension/media/inspector-model.js` | Webview 可单测的节点选择器、坐标与区域纯模型 |
 | `vscode-extension/completion-model.js` | 无 VS Code 依赖的补全命名空间、复合签名与 Snippet 纯模型 |
+| `vscode-extension/device-discovery.js` | 有界、无 shell 的 USB iPhone 搜索（idevice_id/ideviceinfo） |
 | `tools/bootstrap-history/` | 历史改写脚本（仅参考，勿对新版本执行） |
 | `Examples/TemplateApp/` | 宿主模板 App（含 Info.plist、脚本示例） |
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 65 / v1.33.0）
+## 4. 当前状态（Round 66 / v1.34.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **60782 / 61440**（预算 60×1024 UTF-16 码元，余 658）。
-- 文档 **263 个 API 条目 / 263 个可运行示例 / 14 个模块**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **83 项**。
+- 文档 **263 个 API 条目 / 263 个可运行示例 / 14 个模块**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **90 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
   `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制）。
@@ -120,6 +121,11 @@ bridge (__bridge 对象，JSValue block)
   支持全局搜索、模块过滤、深链接、移动导航、明暗主题和离线复制。删除 3 份重复
   HTML，修正 `http.getJSON` 返回值及 3 个不可直接使用的 API 示例；verify 新增
   示例语法、条目全量与旧入口不得回归的约束。
+- **Round 66 设备接入与一键运行**：插件 0.9.0 新增 USB iPhone 搜索/添加命令，
+  使用有界、无 shell 的 `idevice_id` / `ideviceinfo` 子进程，优先复用 `iproxy`
+  同目录工具；选择手机后保存 UDID、启动托管隧道并自动测试，失败可直接回退 Wi-Fi。
+  断开状态栏改为“add iPhone”，JS/TS 编辑器新增右键运行和标题栏播放按钮；跨设备
+  不复用旧 token，连接保存失败会回滚 UDID。插件测试 90 项，bootstrap 零改动。
 
 已实现能力（详见唯一 HTML 文档入口 `docs/index.html`）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -230,6 +236,9 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 
 ## 9. 历轮主线（git log 可查）
 
+- R66（v1.34.0）：**设备搜索与编辑器一键运行**——插件 0.9.0 新增 USB iPhone
+  搜索/添加、自动隧道/连接测试、Wi-Fi 回退、断开状态栏入口，以及 JS/TS 右键与
+  标题栏运行；设备发现有输出/超时边界且禁用 shell，插件测试 90 项。
 - R65（v1.33.0）：**HTML 开发文档单入口重构**——生成唯一 `docs/index.html`，
   合并 7 篇任务指南、14 个模块和 263 个 API 条目；新增搜索/过滤/深链接/主题/
   移动导航/离线复制，删除 3 份旧 HTML；修正 4 处示例/返回值并新增文档完整性校验。

@@ -2,7 +2,7 @@
   "name": "autosdk-vscode",
   "displayName": "AutoSDK Script Tools",
   "description": "Edit, run, and build AutoSDK scripts for an iOS app installed via free Apple ID signing",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "publisher": "autosdk",
   "repository": {
@@ -32,6 +32,7 @@
     "onCommand:autosdk.sendCurrentScript",
     "onCommand:autosdk.manageScripts",
     "onCommand:autosdk.configureDevice",
+    "onCommand:autosdk.discoverDevice",
     "onCommand:autosdk.startUsbTunnel",
     "onCommand:autosdk.stopUsbTunnel",
     "onCommand:autosdk.testConnection",
@@ -47,7 +48,8 @@
     "commands": [
       {
         "command": "autosdk.runCurrentScript",
-        "title": "AutoSDK: Run Current Script"
+        "title": "AutoSDK: Run Current Script",
+        "icon": "$(play)"
       },
       {
         "command": "autosdk.sendCurrentScript",
@@ -60,6 +62,11 @@
       {
         "command": "autosdk.configureDevice",
         "title": "AutoSDK: Configure Device Connection"
+      },
+      {
+        "command": "autosdk.discoverDevice",
+        "title": "AutoSDK: Search and Add iPhone",
+        "icon": "$(device-mobile)"
       },
       {
         "command": "autosdk.startUsbTunnel",
@@ -94,6 +101,22 @@
         "title": "AutoSDK: Build IPA"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "autosdk.runCurrentScript",
+          "when": "editorLangId == javascript || editorLangId == typescript",
+          "group": "navigation@10"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "autosdk.runCurrentScript",
+          "when": "editorLangId == javascript || editorLangId == typescript",
+          "group": "navigation@10"
+        }
+      ]
+    },
     "configuration": {
       "title": "AutoSDK",
       "properties": {
@@ -193,7 +216,7 @@
     ]
   },
   "scripts": {
-    "check": "node --check extension.js && node --check completion-model.js && node --check connection-settings.js && node --check device-client.js && node --check inspector-input.js && node --check inspector-service.js && node --check inspector-session.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector-model.js && node --check media/inspector.js",
+    "check": "node --check extension.js && node --check completion-model.js && node --check connection-settings.js && node --check device-client.js && node --check device-discovery.js && node --check inspector-input.js && node --check inspector-service.js && node --check inspector-session.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector-model.js && node --check media/inspector.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
