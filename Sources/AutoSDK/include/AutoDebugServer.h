@@ -29,6 +29,14 @@ typedef void (^AutoDebugRequestHandler)(NSDictionary<NSString *, id> *request,
        requestHandler:(AutoDebugRequestHandler)requestHandler
            completion:(void (^)(NSError * _Nullable error))completion;
 
+/** Wi-Fi variant that publishes `_autosdk._tcp` with a stable Bonjour name. */
+- (void)startWithPort:(uint16_t)port
+                token:(NSString *)token
+           allowsWiFi:(BOOL)allowsWiFi
+          serviceName:(nullable NSString *)serviceName
+       requestHandler:(AutoDebugRequestHandler)requestHandler
+           completion:(void (^)(NSError * _Nullable error))completion;
+
 - (void)stop;
 
 @end

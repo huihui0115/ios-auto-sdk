@@ -37,6 +37,10 @@
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Connect Visual Studio Code to AutoSDK on this iPhone for local development.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_autosdk._tcp</string>
+	</array>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Save images and videos created by automation scripts to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

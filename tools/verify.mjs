@@ -257,7 +257,9 @@ check(!existsSync('Sources/AutoSDK/AutoWDAHTTPAdapter.m') && !existsSync('Source
       'AutoWDAHTTPAdapter must stay removed; the built-in no-WDA adapter is the only cross-app path');
 check(read('docs/LUA_FRAMEWORK_AUDIT.md').includes('LuaTouch'), 'Lua framework audit document is missing');
 const templatePlist = read('Examples/TemplateApp/App/Info.plist');
-check(templatePlist.includes('NSAllowsLocalNetworking'), 'Template must allow loopback networking for the debug server');
+check(templatePlist.includes('NSAllowsLocalNetworking') && templatePlist.includes('NSBonjourServices') &&
+      templatePlist.includes('_autosdk._tcp'),
+      'Template must allow local networking and declare AutoSDK Bonjour discovery');
 check(templatePlist.includes('AutoSDKAdapter') && templatePlist.includes('BUILTIN') && !templatePlist.includes('AutoSDKWDAURL'),
       'Template must default to the built-in no-WDA adapter and carry no WDA configuration');
 check(extensionLock.version === extensionPackage.version, 'VS Code extension version differs from package-lock.json');
@@ -272,8 +274,13 @@ check(extensionPackage.private === true && extensionPackage.license === 'UNLICEN
       'VS Code extension package must remain private and unlicensed for npm publication');
 check(extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.startUsbTunnel') &&
       extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.stopUsbTunnel') &&
-      extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.discoverDevice'),
-      'VS Code extension must expose device discovery and managed USB tunnel commands');
+      extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.discoverDevice') &&
+      extensionPackage.contributes?.commands?.some(item => item.command === 'autosdk.discoverUsbDevice'),
+      'VS Code extension must expose Wi-Fi discovery plus advanced USB tunnel commands');
+check(extensionPackage.dependencies?.['bonjour-service'] === '1.4.4',
+      'VS Code Wi-Fi discovery must pin its Bonjour implementation');
+check(read('vscode-extension/.vscodeignore').includes('.npm-cache/**'),
+      'VSIX packaging must exclude temporary npm caches');
 check(extensionPackage.contributes?.menus?.['editor/context']?.some(item =>
         item.command === 'autosdk.runCurrentScript' && item.when.includes('javascript') && item.when.includes('typescript')) &&
       extensionPackage.contributes?.menus?.['editor/title']?.some(item => item.command === 'autosdk.runCurrentScript'),
@@ -299,13 +306,18 @@ const inspectorServiceSource = read('vscode-extension/inspector-service.js');
 const inspectorSessionSource = read('vscode-extension/inspector-session.js');
 const inspectorModelSource = read('vscode-extension/media/inspector-model.js');
 const deviceDiscoverySource = read('vscode-extension/device-discovery.js');
+const wifiDiscoverySource = read('vscode-extension/wifi-discovery.js');
 check(extensionSource.includes('new InspectorService(sendRequest)') && extensionSource.includes('new InspectorSession({') &&
       !extensionSource.includes("type: 'inspectSnapshot'"),
       'Extension commands must delegate Inspector protocol and session state to focused modules');
-check(extensionSource.includes('discoverUsbDevices({') && extensionSource.includes("registerCommand('autosdk.discoverDevice'") &&
+check(extensionSource.includes('discoverUsbDevices({') && extensionSource.includes("registerCommand('autosdk.discoverUsbDevice'") &&
       deviceDiscoverySource.includes('shell: false') && deviceDiscoverySource.includes("'idevice_id'") &&
       deviceDiscoverySource.includes('MAX_TOOL_OUTPUT_BYTES'),
-      'Device discovery must remain bounded, shell-free and wired to the extension command');
+      'USB discovery must remain bounded, shell-free and wired to its advanced command');
+check(extensionSource.includes('discoverWifiDevices()') && extensionSource.includes("registerCommand('autosdk.discoverDevice'") &&
+      wifiDiscoverySource.includes("type: 'autosdk'") && wifiDiscoverySource.includes('MAX_DISCOVERED_DEVICES') &&
+      wifiDiscoverySource.includes('MAX_DISCOVERY_TIMEOUT_MS'),
+      'Wi-Fi discovery must remain bounded and scan only the AutoSDK Bonjour service');
 check(inspectorServiceSource.includes('this.visualTail.then(task, task)') &&
       inspectorServiceSource.includes("type: 'inspectSnapshot'") && inspectorServiceSource.includes('MAX_PNG_BASE64_LENGTH'),
       'Inspector service must serialize and validate device visual requests');
@@ -705,6 +717,9 @@ check(uiKitAdapter.includes('@"nodeId"') && uiKitAdapter.includes('@"parentId"')
 const debugServerSource = read('Sources/AutoSDK/AutoDebugServer.m');
 check(debugServerSource.includes('(void)retainedData') && debugServerSource.includes('dispatch_data_create_concat'), 'Debug transport must retain and concatenate framed data without a full payload copy');
 check(debugServerSource.includes('nw_interface_type_cellular') && debugServerSource.includes('nw_interface_type_loopback') && debugServerSource.includes('token.length < 16'), 'Debug transport must restrict and authenticate Wi-Fi listeners');
+check(debugServerSource.includes('nw_listener_set_service') && debugServerSource.includes('"_autosdk._tcp"') &&
+      engineSource.includes('debugServiceName'),
+      'Wi-Fi debug transport must publish a stable AutoSDK Bonjour service without exposing its token');
 check(debugServerSource.includes('strongSelf.peers.count < 8') && debugServerSource.includes('acceptedPeer') && debugServerSource.includes('authenticationRejected') && debugServerSource.includes('!strongSelf.authenticated'), 'Debug transport must atomically bound peers and reject unauthenticated connections');
 check(debugServerSource.includes('pendingStartCompletion') && debugServerSource.includes('stopped before it became ready'), 'Stopping a starting debug listener must complete its start callback');
 check(debugServerSource.includes('failedPeers') && !debugServerSource.includes('if (startCompletion) startCompletion(AutoDebugError(AutoSDKErrorDebugServerFailed, @"Debug listener failed.", AutoNSErrorFromNWError(error)));\n            [strongSelf stop]'), 'A failed listener must not stop a newer reentrant listener');

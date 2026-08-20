@@ -6,10 +6,24 @@ const {
   canonicalDebugUrl,
   connectionCredentials,
   currentBindingSecretKey,
+  normalizeWifiDebugUrl,
   tokenForConfiguration,
   updateConnectionConfiguration,
   workspaceTokenSecretKey
 } = require('../connection-settings');
+
+test('Wi-Fi addresses accept a bare phone IP and add the default port', () => {
+  assert.equal(normalizeWifiDebugUrl('192.168.1.25'), 'ws://192.168.1.25:9001/');
+  assert.equal(normalizeWifiDebugUrl('phone.local:9100'), 'ws://phone.local:9100/');
+  assert.equal(normalizeWifiDebugUrl('wss://phone.local:9443/debug'), 'wss://phone.local:9443/debug');
+});
+
+test('Wi-Fi addresses reject loopback, credentials, fragments and invalid schemes', () => {
+  assert.throws(() => normalizeWifiDebugUrl('127.0.0.1'), /LAN address/);
+  assert.throws(() => normalizeWifiDebugUrl('ws://user:pass@phone.local'), /token separately/);
+  assert.throws(() => normalizeWifiDebugUrl('ws://phone.local/#bad'), /#fragment/);
+  assert.throws(() => normalizeWifiDebugUrl('http://phone.local'), /ws:\/\//);
+});
 
 function settings(values) {
   return { get: key => values[key] };

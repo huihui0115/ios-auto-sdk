@@ -71,7 +71,7 @@ class DeviceClient {
     }
     const url = String(credentials?.url || '').trim();
     const token = String(credentials?.token || '');
-    if (!token) throw new Error('Run AutoSDK: Search and Add iPhone first.');
+    if (!token) throw new Error('Run AutoSDK: Scan Wi-Fi and Add iPhone first.');
     if (!url) throw new Error('Configure an AutoSDK device URL first.');
     if (Buffer.byteLength(token, 'utf8') > 1024) throw new Error('The AutoSDK debug token exceeds 1024 UTF-8 bytes.');
     if (url.length > 2048) throw new Error('The AutoSDK device URL is too long.');

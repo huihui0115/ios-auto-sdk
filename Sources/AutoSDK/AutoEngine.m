@@ -4221,7 +4221,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         AutoDebugServer *server = self.debugServer;
         NSDictionary *config = self.config ?: @{};
         NSString *token = [config[@"debugToken"] isKindOfClass:NSString.class] ? config[@"debugToken"] : @"";
-        NSDictionary *desiredConfiguration = @{ @"port": @(port), @"allowsWiFi": @(allowsWiFi), @"token": token };
+        NSString *serviceName = [config[@"debugServiceName"] isKindOfClass:NSString.class] ? config[@"debugServiceName"] : @"AutoSDK iPhone";
+        NSDictionary *desiredConfiguration = @{ @"port": @(port), @"allowsWiFi": @(allowsWiFi), @"token": token, @"serviceName": serviceName };
         if ([self.debugServerConfiguration isEqualToDictionary:desiredConfiguration]) {
             if (server.isRunning) {
                 if (completion) AutoDispatchDebugServerCompletions(@[[completion copy]], nil);
@@ -4242,7 +4243,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         self.debugServerStartCompletions = startCompletions;
 
         __weak AutoEngine *weakSelf = self;
-        [server startWithPort:port token:token allowsWiFi:allowsWiFi requestHandler:^(NSDictionary<NSString *,id> *request, AutoDebugResponseHandler response) {
+        [server startWithPort:port token:token allowsWiFi:allowsWiFi serviceName:serviceName requestHandler:^(NSDictionary<NSString *,id> *request, AutoDebugResponseHandler response) {
             AutoEngine *strongSelf = weakSelf;
             if (strongSelf) [strongSelf handleDebugRequest:request response:response];
         } completion:^(NSError * _Nullable error) {

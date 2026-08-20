@@ -1,4 +1,5 @@
 *.vsix
+.npm-cache/**
 old-builds/**
 test/**
 node_modules/typescript/**

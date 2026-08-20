@@ -3,7 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const { DeviceClient } = require('./device-client');
-const { connectionCredentials, tokenForConfiguration, updateConnectionConfiguration } = require('./connection-settings');
+const { canonicalDebugUrl, connectionCredentials, normalizeWifiDebugUrl, tokenForConfiguration, updateConnectionConfiguration } = require('./connection-settings');
 const { completionEntries } = require('./completion-model');
 const { discoverUsbDevices } = require('./device-discovery');
 const { generatedCode, inputText } = require('./inspector-input');
@@ -13,6 +13,7 @@ const { inspectorHtml } = require('./inspector-view');
 const { terminateOwnedProcess } = require('./process-lifecycle');
 const { deployedAssetName, deployedScriptName, transpileScript } = require('./script-tools');
 const { UsbTunnel } = require('./usb-tunnel');
+const { discoverWifiDevices } = require('./wifi-discovery');
 
 let extensionContext;
 let channel;
@@ -353,16 +354,22 @@ async function manageDeviceScripts() {
   }
 }
 
-async function saveDeviceConnection({ current, credentialScope, mode, token, url, usbDeviceUdid }) {
-  const inspection = current.inspect?.('usbDeviceUdid');
-  const previousUdid = inspection?.workspaceValue;
-  let udidChanged = false;
-  if (usbDeviceUdid !== undefined) {
-    await current.update('usbDeviceUdid', usbDeviceUdid, vscode.ConfigurationTarget.Workspace);
-    udidChanged = true;
-  }
+async function saveDeviceConnection({ current, credentialScope, mode, token, url, usbDeviceUdid, wifiDeviceId }) {
+  const deviceUpdates = [
+    ['usbDeviceUdid', usbDeviceUdid],
+    ['wifiDeviceId', wifiDeviceId]
+  ].filter(([, value]) => value !== undefined).map(([key, value]) => ({
+    key,
+    value,
+    previous: current.inspect?.(key)?.workspaceValue
+  }));
+  const appliedUpdates = [];
   let result;
   try {
+    for (const update of deviceUpdates) {
+      await current.update(update.key, update.value, vscode.ConfigurationTarget.Workspace);
+      appliedUpdates.push(update);
+    }
     result = await updateConnectionConfiguration(
       current,
       extensionContext.secrets,
@@ -376,13 +383,15 @@ async function saveDeviceConnection({ current, credentialScope, mode, token, url
       ]
     );
   } catch (error) {
-    if (udidChanged) {
+    const rollbackErrors = [];
+    for (const update of [...appliedUpdates].reverse()) {
       try {
-        await current.update('usbDeviceUdid', previousUdid, vscode.ConfigurationTarget.Workspace);
+        await current.update(update.key, update.previous, vscode.ConfigurationTarget.Workspace);
       } catch (rollbackError) {
-        throw new Error(`${error.message} Restoring the previous USB device also failed: ${rollbackError.message}`);
+        rollbackErrors.push(`${update.key}: ${rollbackError.message}`);
       }
     }
+    if (rollbackErrors.length) throw new Error(`${error.message} Restoring the previous device selection also failed: ${rollbackErrors.join('; ')}`);
     throw error;
   }
   if (result.plaintextCleanupErrors.length) {
@@ -409,7 +418,6 @@ async function promptDebugToken(mode, savedToken) {
 async function configureDevice(preferredMode) {
   const current = configuration();
   const credentialScope = workspaceCredentialScope();
-  const savedToken = await tokenForConfiguration(current, extensionContext.secrets, credentialScope);
   const connection = preferredMode ? {
     mode: preferredMode
   } : await vscode.window.showQuickPick([
@@ -431,13 +439,18 @@ async function configureDevice(preferredMode) {
   const configuredUrl = String(current.get('debugUrl') || '');
   const defaultUrl = connection.mode === 'usb'
     ? 'ws://127.0.0.1:9001'
-    : (/^wss?:\/\/(?!127\.0\.0\.1|localhost|\[::1\])/i.test(configuredUrl) ? configuredUrl : 'ws://192.168.1.2:9001');
-  const url = await vscode.window.showInputBox({
+    : (/^wss?:\/\/(?!127\.0\.0\.1|localhost|\[::1\])/i.test(configuredUrl) ? configuredUrl : '');
+  const enteredUrl = await vscode.window.showInputBox({
     prompt: connection.mode === 'wifi'
-      ? 'Enter the Wi-Fi debug URL displayed by the AutoSDK app'
+      ? 'Enter the iPhone IP address or debug URL shown by the AutoSDK app'
       : 'AutoSDK USB tunnel URL',
     value: defaultUrl,
+    placeHolder: connection.mode === 'wifi' ? '192.168.1.25 or ws://192.168.1.25:9001' : undefined,
     validateInput(value) {
+      if (connection.mode === 'wifi') {
+        try { normalizeWifiDebugUrl(value); return undefined; }
+        catch (error) { return error.message; }
+      }
       try {
         const parsed = new URL(value);
         if (parsed.protocol !== 'ws:' && parsed.protocol !== 'wss:') return 'Use a ws:// or wss:// URL.';
@@ -445,9 +458,6 @@ async function configureDevice(preferredMode) {
         if (parsed.username || parsed.password) return 'Do not put credentials in the URL; enter the debug token separately.';
         if (parsed.hash) return 'Do not include a #fragment in the device URL.';
         const loopback = ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname);
-        if (connection.mode === 'wifi' && loopback) {
-          return 'Wi-Fi mode requires the iPhone address displayed by the AutoSDK app.';
-        }
         if (connection.mode === 'usb' && (parsed.protocol !== 'ws:' || !loopback)) {
           return 'USB mode requires a local ws://127.0.0.1:PORT tunnel URL.';
         }
@@ -457,7 +467,11 @@ async function configureDevice(preferredMode) {
       }
     }
   });
-  if (!url) return;
+  if (enteredUrl === undefined) return;
+  const url = connection.mode === 'wifi' ? normalizeWifiDebugUrl(enteredUrl) : enteredUrl;
+  const savedToken = canonicalDebugUrl(configuredUrl) === canonicalDebugUrl(url)
+    ? await tokenForConfiguration(current, extensionContext.secrets, credentialScope)
+    : '';
   const token = await promptDebugToken(connection.mode, savedToken);
   if (token === undefined) return;
   if (credentialScope !== workspaceCredentialScope()) {
@@ -465,15 +479,25 @@ async function configureDevice(preferredMode) {
     return;
   }
   try {
-    await saveDeviceConnection({ current, credentialScope, mode: connection.mode, token, url });
+    await saveDeviceConnection({
+      current,
+      credentialScope,
+      mode: connection.mode,
+      token,
+      url,
+      usbDeviceUdid: connection.mode === 'wifi' ? '' : undefined,
+      wifiDeviceId: ''
+    });
   } catch (error) {
     vscode.window.showErrorMessage(`AutoSDK could not save the device connection: ${error.message}`);
     return;
   }
-  const action = await vscode.window.showInformationMessage(
-    'AutoSDK device connection saved.',
-    ...(connection.mode === 'usb' ? ['Start USB Tunnel'] : [])
-  );
+  if (connection.mode === 'wifi') {
+    outputChannel().appendLine(`Saved Wi-Fi device ${canonicalDebugUrl(url)}; testing connection…`);
+    await testConnection();
+    return;
+  }
+  const action = await vscode.window.showInformationMessage('AutoSDK device connection saved.', 'Start USB Tunnel');
   if (action === 'Start USB Tunnel') await startUsbTunnel();
 }
 
@@ -487,6 +511,99 @@ function loopbackUsbUrl(current) {
 }
 
 async function discoverDevice() {
+  const channel = outputChannel();
+  channel.show(true);
+  try {
+    const devices = await vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: 'AutoSDK: Scanning the local network for iPhones…',
+      cancellable: false
+    }, () => discoverWifiDevices());
+    channel.appendLine(`Wi-Fi Bonjour scan: ${devices.length} AutoSDK iPhone(s) found.`);
+    if (!devices.length) {
+      const action = await vscode.window.showWarningMessage(
+        'No AutoSDK iPhone was found. Keep the app open, enable Wi-Fi debugging, and use the same local network.',
+        'Scan Again',
+        'Enter IP Address'
+      );
+      if (action === 'Scan Again') return discoverDevice();
+      if (action === 'Enter IP Address') return configureDevice('wifi');
+      return;
+    }
+    const selection = await vscode.window.showQuickPick([
+      ...devices.map(device => ({
+        label: `$(radio-tower) ${device.name}`,
+        description: `${device.address}:${device.port}`,
+        detail: 'Wi-Fi · select to add and test this iPhone',
+        device
+      })),
+      {
+        label: '$(edit) Enter an IP address manually',
+        description: 'Use the address shown in the AutoSDK iPhone app',
+        mode: 'manual'
+      }
+    ], {
+      placeHolder: 'Select an AutoSDK iPhone to add to this workspace',
+      matchOnDescription: true,
+      matchOnDetail: true
+    });
+    if (!selection) return;
+    if (selection.mode === 'manual') return configureDevice('wifi');
+
+    const current = configuration();
+    const credentialScope = workspaceCredentialScope();
+    const previousDeviceId = String(current.get('wifiDeviceId') || '');
+    const savedToken = previousDeviceId === selection.device.deviceId
+      ? await tokenForConfiguration(current, extensionContext.secrets, credentialScope)
+      : '';
+    const token = savedToken || await promptDebugToken('wifi', '');
+    if (token === undefined) return;
+    if (credentialScope !== workspaceCredentialScope()) {
+      vscode.window.showErrorMessage('AutoSDK: The workspace changed while adding the device. Run the command again.');
+      return;
+    }
+    await saveDeviceConnection({
+      current,
+      credentialScope,
+      mode: 'wifi',
+      token,
+      url: selection.device.url,
+      usbDeviceUdid: '',
+      wifiDeviceId: selection.device.deviceId
+    });
+    channel.appendLine(`${savedToken ? 'Reconnected' : 'Added'} Wi-Fi device ${selection.device.name} at ${selection.device.url}.`);
+    const connected = await testConnection();
+    if (!connected && savedToken) {
+      const action = await vscode.window.showWarningMessage(
+        'The saved token may no longer match this iPhone.',
+        'Update Token'
+      );
+      if (action === 'Update Token') {
+        const replacement = await promptDebugToken('wifi', '');
+        if (replacement === undefined) return;
+        await saveDeviceConnection({
+          current,
+          credentialScope,
+          mode: 'wifi',
+          token: replacement,
+          url: selection.device.url,
+          usbDeviceUdid: '',
+          wifiDeviceId: selection.device.deviceId
+        });
+        await testConnection();
+      }
+    }
+  } catch (error) {
+    channel.appendLine(`Wi-Fi discovery failed: ${error.stack || error.message}`);
+    const action = await vscode.window.showErrorMessage(
+      `AutoSDK Wi-Fi scan failed: ${error.message}`,
+      'Enter IP Address'
+    );
+    if (action === 'Enter IP Address') await configureDevice('wifi');
+  }
+}
+
+async function discoverUsbDevice() {
   const channel = outputChannel();
   channel.show(true);
   try {
@@ -504,7 +621,7 @@ async function discoverDevice() {
         'Search Again',
         'Add Wi-Fi Device'
       );
-      if (action === 'Search Again') return discoverDevice();
+      if (action === 'Search Again') return discoverUsbDevice();
       if (action === 'Add Wi-Fi Device') return configureDevice('wifi');
       return;
     }
@@ -544,7 +661,8 @@ async function discoverDevice() {
       mode: 'usb',
       token,
       url: loopbackUsbUrl(current),
-      usbDeviceUdid: selection.device.id
+      usbDeviceUdid: selection.device.id,
+      wifiDeviceId: ''
     });
     const started = await startUsbTunnel();
     if (started) await testConnection();
@@ -675,10 +793,10 @@ function updateConnectionStatus(state, detail) {
   const labels = {
     connecting: '$(sync~spin) AutoSDK: connecting',
     ready: '$(debug-alt) AutoSDK: ready',
-    disconnected: '$(device-mobile) AutoSDK: add iPhone'
+    disconnected: '$(radio-tower) AutoSDK: scan Wi-Fi iPhone'
   };
   connectionStatus.text = labels[state] || labels.disconnected;
-  connectionStatus.tooltip = detail || 'AutoSDK device connection';
+  connectionStatus.tooltip = detail || 'Scan the local network and add an AutoSDK iPhone';
   connectionStatus.command = state === 'disconnected' ? 'autosdk.discoverDevice' : 'autosdk.testConnection';
   connectionStatus.backgroundColor = state === 'disconnected'
     ? new vscode.ThemeColor('statusBarItem.warningBackground')
@@ -986,6 +1104,7 @@ function activate(context) {
     vscode.commands.registerCommand('autosdk.manageScripts', manageDeviceScripts),
     vscode.commands.registerCommand('autosdk.configureDevice', configureDevice),
     vscode.commands.registerCommand('autosdk.discoverDevice', discoverDevice),
+    vscode.commands.registerCommand('autosdk.discoverUsbDevice', discoverUsbDevice),
     vscode.commands.registerCommand('autosdk.startUsbTunnel', startUsbTunnel),
     vscode.commands.registerCommand('autosdk.stopUsbTunnel', stopUsbTunnel),
     vscode.commands.registerCommand('autosdk.testConnection', testConnection),

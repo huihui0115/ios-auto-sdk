@@ -12,6 +12,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)applyEngineConfiguration;
 /** The en0 IPv4 address used for Wi-Fi debug connections. */
 + (nullable NSString *)wifiIPv4Address;
+/** Stable Bonjour name advertised while Wi-Fi debugging is enabled. */
++ (NSString *)debugServiceName;
 
 @end
 

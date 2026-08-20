@@ -21,45 +21,51 @@ From the repository root:
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.9.0.vsix
-code --install-extension .\autosdk-vscode-0.9.0.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.10.0.vsix
+code --install-extension .\autosdk-vscode-0.10.0.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An
 installed VSIX runs in VS Code's extension host and includes its `ws` runtime
 dependency.
 
-The shortest USB setup is now:
+The normal setup is direct Wi-Fi:
 
-1. Unlock the iPhone, trust the computer, and keep the AutoSDK app open.
-2. Click **AutoSDK: add iPhone** in the status bar, or run **AutoSDK: Search and
-   Add iPhone** from the Command Palette.
-3. Select the discovered phone and enter the token displayed by the app. The
-   extension saves the UDID, starts its managed tunnel, and tests the connection.
+1. Put VS Code and the iPhone on the same trusted LAN, keep the AutoSDK app open,
+   enable Wi-Fi debugging, and allow the iOS local-network prompt.
+2. Click **AutoSDK: scan Wi-Fi iPhone** in the status bar, or run **AutoSDK: Scan
+   Wi-Fi and Add iPhone** from the Command Palette.
+3. Select the Bonjour-discovered phone. Enter the token displayed by the app on
+   first pairing; the extension saves the stable broadcast identity and tests the
+   connection. Later scans reconnect with one selection even if the DHCP address changes.
 4. Open a `.js` or `.ts` file, right-click in the editor, and choose
    **AutoSDK: Run Current Script**. The editor title also has a play button.
 
-USB discovery uses `idevice_id` and optional `ideviceinfo`, preferring copies
-beside the configured `iproxy` executable. These tools ship together in a
-libimobiledevice distribution. If they are unavailable or no cable device is
-found, the same command offers **Add Wi-Fi Device** as a direct fallback.
+Discovery uses the `_autosdk._tcp` Bonjour service and does not broadcast the
+debug token. If multicast DNS is blocked, choose **Enter IP Address** and enter
+either `192.168.1.25` or the complete `ws://192.168.1.25:9001` address shown by
+the app. No `iproxy`, USB cable, or libimobiledevice install is needed for Wi-Fi.
 
 The manual **AutoSDK: Configure Device Connection** command remains available.
 Connection setup keeps
 the token in VS Code SecretStorage and binds it to the configured URL and
-workspace. Changing either requires configuring the connection again, which
-prevents another workspace from redirecting a saved token. The legacy plaintext
+workspace. A rediscovered phone may safely rebind the workspace token only when
+its stable Bonjour identity matches; selecting a different phone asks for its
+token. The legacy plaintext
 `autosdk.debugToken` setting is never read; saving a connection removes any
 leftover value from the workspace and global settings:
 
 ```json
 {
-  "autosdk.debugUrl": "ws://127.0.0.1:9001",
+  "autosdk.debugUrl": "ws://192.168.1.25:9001",
   "autosdk.connectionTimeout": 300000
 }
 ```
 
-The extension can manage this forwarder with **AutoSDK: Start USB Tunnel** and
+USB remains an advanced fallback through **AutoSDK: Search USB iPhone
+(Advanced)**. USB discovery uses `idevice_id` and optional `ideviceinfo`,
+preferring tools beside the configured `iproxy` executable. The extension can
+manage the forwarder with **AutoSDK: Start USB Tunnel** and
 **AutoSDK: Stop USB Tunnel**. Install `iproxy` from a Windows libimobiledevice
 distribution and keep it on PATH, or set `autosdk.iproxyPath` to the executable.
 The local port comes from `autosdk.debugUrl`; `autosdk.usbDevicePort` defaults
@@ -70,11 +76,9 @@ Run **AutoSDK: Test Device Connection** after starting the tunnel. Sideloading
 alone does not install `iproxy` or create the tunnel. Without `iproxy`, use
 direct Wi-Fi, another usbmuxd forwarder, or bundled scripts in the TemplateApp.
 
-The template app also supports direct Wi-Fi debugging. Put Windows and the
-iPhone on the same trusted Wi-Fi network, allow the app's local-network prompt,
-and enter the `ws://IPHONE_WIFI_ADDRESS:9001` URL and installation token displayed by
-the app in **AutoSDK: Configure Device Connection**. Wi-Fi mode does not need
-`iproxy`; switching to Wi-Fi stops a tunnel managed by the extension.
+The template app advertises its stable development-only Bonjour name only while
+Wi-Fi debugging is active. Wi-Fi mode does not need `iproxy`; switching to
+Wi-Fi stops a tunnel managed by the extension.
 Guest-network client isolation may block direct access.
 Keep the TemplateApp foregrounded and the iPhone unlocked: free signing does not
 prevent iOS from suspending an ordinary app after it is backgrounded.

@@ -150,8 +150,8 @@ xcodebuild -scheme AutoSDK -destination 'generic/platform=iOS' build
 如果当前目录是已登录 GitHub CLI 可识别的 Git 仓库，可省略 `--repo`。提交前可运行
 `npm run verify` 执行仓库级静态检查。
 
-VS Code 插件源码位于 [`vscode-extension`](vscode-extension)。它支持 USB 手机搜索/添加、编辑器右键与标题栏一键运行、JS/TS 脚本发送与停止、截图保存、原子截图+节点快照、请求串行化且可取消的可视化 Inspector、动作后刷新延迟、快照 JSON 导出、API 补全、代码片段，以及等待并下载 GitHub Actions 构建产物。安装及手机连接限制见 [`vscode-extension/README.md`](vscode-extension/README.md)。
+VS Code 插件源码位于 [`vscode-extension`](vscode-extension)。它支持局域网 Bonjour 扫描/添加 Wi-Fi 手机、编辑器右键与标题栏一键运行、JS/TS 脚本发送与停止、截图保存、原子截图+节点快照、请求串行化且可取消的可视化 Inspector、动作后刷新延迟、快照 JSON 导出、API 补全、代码片段，以及等待并下载 GitHub Actions 构建产物。安装及手机连接限制见 [`vscode-extension/README.md`](vscode-extension/README.md)。
 
-通过 USB 时点击状态栏 **AutoSDK: add iPhone**：插件调用 libimobiledevice 的 `idevice_id` 搜索手机，选中后保存 UDID、管理 `iproxy` 隧道并自动测试连接。通过 Wi-Fi 时可在同一搜索界面选择手动添加，填写 TemplateApp 显示的 `ws://手机IP:9001` 和 debug token。
+默认通过 Wi-Fi：电脑与手机进入同一可信局域网后，点击状态栏 **AutoSDK: scan Wi-Fi iPhone**，插件扫描 `_autosdk._tcp` 广播，选中手机后自动保存并测试；首次配对输入 TemplateApp 显示的 debug token，后续即使 DHCP 地址变化也可按稳定广播身份一键重连。广播不包含 token；mDNS 被禁用时可手动输入手机 IP。USB/libimobiledevice 隧道保留为高级备用。
 
 版本更新记录见 [`CHANGELOG.md`](CHANGELOG.md)。

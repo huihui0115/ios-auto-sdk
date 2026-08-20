@@ -11,6 +11,7 @@ NSString *debugToken = NSUUID.UUID.UUIDString;
     @"debugPort": @9001,
     @"debugToken": debugToken,
     @"debugAllowWiFi": @YES,
+    @"debugServiceName": @"My iPhone · A1B2C3D4",
     @"debugLogging": @YES
 }];
 ```
@@ -26,6 +27,14 @@ a client to correlate concurrent requests. `id` must be a non-empty string of
 at most 128 characters (and 512 UTF-8 bytes); `type` must be a non-empty string
 of at most 64 characters. The transport is development-only
 and does not encrypt WebSocket traffic, so do not expose it on an untrusted LAN.
+
+While Wi-Fi debugging is enabled, the server publishes `_autosdk._tcp` through
+Bonjour using the optional `debugServiceName` (at most 63 UTF-8 bytes). Add
+`_autosdk._tcp` to the host app's `NSBonjourServices`; the template already does
+this. Discovery exposes only the service name, addresses, and port—the debug
+token is never placed in Bonjour TXT data. The VS Code extension scans this
+service, remembers the stable name for the workspace, and can rebind the stored
+SecretStorage token when DHCP changes the phone address.
 
 Clients may include `timeoutMs` to advertise their response budget. The device
 clamps it to `1...3,600,000` milliseconds. Script commands default to the

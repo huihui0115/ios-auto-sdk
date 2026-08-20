@@ -77,7 +77,7 @@ const guides = [
       <div class="steps">
         <div class="step"><strong>安装并签名宿主 App</strong><p>从 GitHub Releases 下载最新 IPA 或构建产物，用自己的 Apple ID 签名安装。启动后保持 App 在前台。</p></div>
         <div class="step"><strong>安装 VS Code 插件</strong><p>下载 <code>autosdk-vscode-${esc(extensionPackage.version)}.vsix</code>，在 VS Code 的“扩展 → … → 从 VSIX 安装”中选择它。</p></div>
-        <div class="step"><strong>搜索并添加手机</strong><p>点击状态栏的 <code>AutoSDK: add iPhone</code>，选择搜索到的 USB 手机并输入宿主 App 显示的 token；插件会自动保存、启动隧道并测试连接。</p></div>
+        <div class="step"><strong>扫描并添加手机</strong><p>电脑和手机进入同一局域网，点击状态栏的 <code>AutoSDK: scan Wi-Fi iPhone</code>，选择广播发现的手机；首次输入宿主 App 显示的 token，插件会自动保存并测试连接。</p></div>
         <div class="step"><strong>右键运行</strong><p>打开 JavaScript 或 TypeScript 文件，在编辑区右键选择 <code>AutoSDK: Run Current Script</code>；编辑器标题栏也提供播放按钮。</p></div>
       </div>
       <h2>第一段脚本</h2>
@@ -95,29 +95,24 @@ const guides = [
     id: 'connect',
     group: '入门',
     title: '连接与运行',
-    lead: 'USB 更稳定，Wi-Fi 更轻便；两种方式共用同一套插件命令。',
-    search: 'USB WiFi iproxy idevice_id 搜索 添加 iPhone websocket ws token 连接 运行 停止 部署',
+    lead: 'Wi-Fi 是默认开发通道：局域网自动发现、一次配对、后续一键重连。',
+    search: 'Bonjour mDNS 局域网 广播 USB WiFi iproxy idevice_id 搜索 添加 iPhone websocket ws token 连接 运行 停止 部署',
     body: `
-      <h2>USB 连接（推荐）</h2>
+      <h2>Wi-Fi 自动发现（推荐）</h2>
       <ol>
-        <li>安装包含 <code>iproxy</code>、<code>idevice_id</code> 和 <code>ideviceinfo</code> 的 libimobiledevice 工具，并确保它们在 PATH 或同一目录。</li>
-        <li>手机通过 USB 连接电脑，保持宿主 App 在前台。</li>
-        <li>点击状态栏 <code>AutoSDK: add iPhone</code>，或运行 <code>AutoSDK: Search and Add iPhone</code>。</li>
-        <li>选择手机并输入 token；插件自动保存 UDID、启动隧道并测试连接。</li>
+        <li>电脑与手机进入同一可信局域网，宿主 App 开启 Wi-Fi 调试并允许 iOS“本地网络”权限。</li>
+        <li>点击状态栏 <code>AutoSDK: scan Wi-Fi iPhone</code>，或运行 <code>AutoSDK: Scan Wi-Fi and Add iPhone</code>。</li>
+        <li>插件扫描 <code>_autosdk._tcp</code> Bonjour 广播；选择手机，首次输入至少 16 个字符的 token。</li>
+        <li>插件自动保存稳定广播身份并测试连接；同一手机以后只需选择一次，DHCP 地址变化也会自动更新。</li>
       </ol>
-      <p>需要手工排查时，可在终端运行：</p>
-      ${codeBlock('iproxy 9001 9001')}
-      <h2>Wi-Fi 连接</h2>
-      <ol>
-        <li>电脑与手机进入同一可信局域网。</li>
-        <li>宿主 App 必须启用 Wi-Fi 调试，并使用至少 16 个字符的随机 token。</li>
-        <li>配置 App 显示的 <code>ws://手机IP:9001</code>，无需启动 USB 隧道。</li>
-      </ol>
+      <p>广播不包含 token。若路由器或防火墙屏蔽 mDNS（UDP 5353），选择 <code>Enter IP Address</code>，直接输入 App 显示的手机 IP 或完整 <code>ws://手机IP:9001</code>。</p>
+      <h2>USB 高级备用</h2>
+      <p>运行 <code>AutoSDK: Search USB iPhone (Advanced)</code> 可使用 <code>idevice_id</code> + <code>iproxy</code>。普通 Wi-Fi 开发无需安装 libimobiledevice。</p>
       <h2>常用命令</h2>
       <table>
         <thead><tr><th>命令</th><th>用途</th></tr></thead>
         <tbody>
-          <tr><td><code>Search and Add iPhone</code></td><td>搜索 USB 手机，选中后自动保存、启动隧道并测试；也可回退到 Wi-Fi 添加。</td></tr>
+          <tr><td><code>Scan Wi-Fi and Add iPhone</code></td><td>扫描局域网 AutoSDK 广播，选择手机后自动保存并测试连接。</td></tr>
           <tr><td><code>Run Current Script</code></td><td>立即执行当前编辑器内容，最适合迭代。</td></tr>
           <tr><td><code>Send Current Script to Device</code></td><td>把脚本保存到设备脚本列表。</td></tr>
           <tr><td><code>Stop Active Script</code></td><td>停止当前脚本、定时器和后台任务。</td></tr>
@@ -125,7 +120,7 @@ const guides = [
           <tr><td><code>Open Visual Inspector</code></td><td>采集截图和节点树并进行交互调试。</td></tr>
         </tbody>
       </table>
-      <div class="callout"><strong>token 不写入工作区配置</strong>插件把 token 放入 VS Code SecretStorage，并与连接地址、工作区绑定。</div>`
+      <div class="callout"><strong>token 不参与广播</strong>插件把 token 放入 VS Code SecretStorage，并与工作区和稳定手机身份关联；选择另一台手机时必须重新输入。</div>`
   },
   {
     id: 'scope',
@@ -290,7 +285,7 @@ main();`)}
     lead: '按连接、能力、选择器和脚本生命周期的顺序排查，通常能最快定位问题。',
     search: '排错 故障 连接失败 token 点击 false 找不到 节点 HTTP lastError 超时 死循环',
     body: `
-      <div class="faq"><h3>插件搜不到设备或连不上</h3><ol><li>解锁手机、确认已信任此电脑，并保持宿主 App 在前台。</li><li>确认 libimobiledevice 的 <code>idevice_id</code> 与 <code>iproxy</code> 在 PATH 或同一目录。</li><li>重新运行 <code>Search and Add iPhone</code>；搜不到时可直接选择 Wi-Fi 添加。</li><li>确认 token 来自当前安装，端口为 9001。</li></ol></div>
+      <div class="faq"><h3>插件搜不到 Wi-Fi 手机或连不上</h3><ol><li>保持宿主 App 在前台，确认 Wi-Fi 调试已开启并允许 iOS“本地网络”权限。</li><li>电脑和手机必须在同一局域网；访客网络/AP 隔离会阻止互访。</li><li>放行 mDNS UDP 5353 后重新运行 <code>Scan Wi-Fi and Add iPhone</code>；仍搜不到就选择手动输入 App 显示的 IP。</li><li>确认 token 来自当前安装，端口为 9001。</li></ol></div>
       <div class="faq"><h3>点击返回 false</h3><p>打印 <code>auto.capabilities()</code> 与 <code>lastError()</code>。确认当前适配器支持触摸、坐标在屏幕范围内，节点仍然可见且可交互。</p></div>
       <div class="faq"><h3>选择器找不到节点</h3><p>重新采集检查器快照，先测试单个稳定条件，再逐步增加限制。注意页面切换、动画、WebView 和动态文本会让旧节点失效。</p></div>
       <div class="faq"><h3>HTTP 请求被拒绝</h3><p>检查宿主的 HTTP 开关、域名白名单、ATS/TLS 配置和超时。<code>http.getJSON()</code> 返回完整响应，解析结果在 <code>response.json</code>。</p></div>

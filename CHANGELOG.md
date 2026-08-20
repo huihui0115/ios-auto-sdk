@@ -6,6 +6,35 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.35.0] - 2026-08-20
+
+### Added
+
+- Added `_autosdk._tcp` Bonjour advertising whenever authenticated Wi-Fi
+  debugging is enabled. The template publishes a stable per-installation name
+  and declares the required local-network service without exposing its token.
+- Added bounded multicast-DNS discovery to the VS Code extension. The normal
+  status-bar flow now scans the LAN, lists AutoSDK iPhones, saves the selected
+  identity, and immediately tests the connection.
+
+### Changed
+
+- Made direct Wi-Fi the default plugin workflow and moved USB/libimobiledevice
+  discovery to an advanced command. Manual setup now accepts a bare phone IP
+  and adds `ws://` plus port 9001 automatically.
+- Upgraded the VS Code extension to 0.10.0 and expanded its suite from 90 to 97
+  tests.
+
+### Fixed
+
+- Reuses a saved SecretStorage token only when the rediscovered Bonjour identity
+  matches, allowing one-selection reconnect after DHCP address changes without
+  leaking credentials to another phone.
+- Device identity settings now roll back together if connection persistence
+  fails midway.
+- Excluded the temporary npm cache from VSIX packaging, reducing the verified
+  plugin artifact from 47 MB to 1.75 MB.
+
 ## [1.34.0] - 2026-08-20
 
 ### Added

@@ -12,6 +12,26 @@ function canonicalDebugUrl(value) {
   catch (_) { return url; }
 }
 
+function normalizeWifiDebugUrl(value, defaultPort = 9001) {
+  const raw = String(value || '').trim();
+  if (!raw) throw new Error('Enter the iPhone IP address or WebSocket URL.');
+  const port = Number(defaultPort);
+  if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error('The default debug port is invalid.');
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `ws://${raw}`;
+  let parsed;
+  try { parsed = new URL(candidate); }
+  catch (_) { throw new Error('Enter a valid iPhone IP address or WebSocket URL.'); }
+  if (parsed.protocol !== 'ws:' && parsed.protocol !== 'wss:') throw new Error('Use a ws:// or wss:// address.');
+  if (!parsed.hostname) throw new Error('Include the iPhone address.');
+  if (parsed.username || parsed.password) throw new Error('Enter the debug token separately, not in the URL.');
+  if (parsed.hash) throw new Error('Do not include a #fragment in the device URL.');
+  if (['127.0.0.1', 'localhost', '::1', '[::1]'].includes(parsed.hostname)) {
+    throw new Error('Wi-Fi mode requires the iPhone LAN address.');
+  }
+  if (!parsed.port) parsed.port = String(port);
+  return parsed.href;
+}
+
 function secretDigest(value) {
   return crypto.createHash('sha256').update(String(value || '')).digest('hex');
 }
@@ -97,6 +117,7 @@ module.exports = {
   canonicalDebugUrl,
   connectionCredentials,
   currentBindingSecretKey,
+  normalizeWifiDebugUrl,
   tokenForConfiguration,
   updateConnectionConfiguration,
   workspaceTokenSecretKey

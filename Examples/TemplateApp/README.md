@@ -33,8 +33,9 @@ the scripts in `Scripts`.
   and switches between the built-in no-WDA adapter (default, cross-app) and
   the host-app UIKit adapter. Toggling re-creates the automation adapter and
   re-applies engine config.
-- Debug: with `AutoSDKDebugAllowWiFi`, the log panel shows the phone's
-  `ws://` URL and installation token for `npm run debug`.
+- Debug: with `AutoSDKDebugAllowWiFi`, the app advertises `_autosdk._tcp`
+  through Bonjour and the log panel shows the phone's `ws://` URL and
+  installation token for the VS Code extension or `npm run debug`.
 
 ## Integration notes
 
@@ -81,6 +82,8 @@ shows the phone's `ws://` URL and installation token. Keep the token in the
 settings UI only; do not log it. Set `AutoSDKDebugAllowWiFi` to `false` to
 restore loopback-only USB-tunnel mode. Wi-Fi debugging is authenticated but
 unencrypted and intended only for development.
+The Bonjour announcement contains a stable installation name and port, never
+the token; custom host apps must list `_autosdk._tcp` in `NSBonjourServices`.
 
 See `docs/MARKET_RELEASE.md` for the distribution checklist before shipping a
 signed build.

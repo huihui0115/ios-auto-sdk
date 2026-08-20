@@ -447,6 +447,20 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
     [self waitForExpectationsWithTimeout:1 handler:nil];
 }
 
+- (void)testWiFiDebugServerRejectsOversizedBonjourName {
+    AutoDebugServer *server = [AutoDebugServer new];
+    XCTestExpectation *expectation = [self expectationWithDescription:@"Bonjour name rejection"];
+    NSString *name = [@"x" stringByPaddingToLength:64 withString:@"x" startingAtIndex:0];
+    [server startWithPort:9001 token:@"strong-development-token" allowsWiFi:YES serviceName:name requestHandler:^(NSDictionary *request, AutoDebugResponseHandler response) {
+        response(@{@"ok": @YES});
+    } completion:^(NSError *error) {
+        XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
+        XCTAssertTrue([error.localizedDescription containsString:@"Bonjour"]);
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:1 handler:nil];
+}
+
 - (void)testDebugServerRejectsOversizedToken {
     AutoDebugServer *server = [AutoDebugServer new];
     XCTestExpectation *expectation = [self expectationWithDescription:@"oversized token rejection"];

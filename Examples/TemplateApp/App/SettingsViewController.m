@@ -4,6 +4,7 @@
 
 typedef NS_ENUM(NSInteger, AutoSettingsRow) {
     AutoSettingsRowDebugURL,
+    AutoSettingsRowBonjourName,
     AutoSettingsRowDebugToken,
     AutoSettingsRowDebugPort,
     AutoSettingsRowWiFi,
@@ -40,7 +41,7 @@ typedef NS_ENUM(NSInteger, AutoSettingsRow) {
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    if (section == 0) return 4;   // Debug
+    if (section == 0) return 5;   // Debug
     if (section == 1) return 1;   // Adapter
     return 1;                     // Info
 }
@@ -72,12 +73,15 @@ typedef NS_ENUM(NSInteger, AutoSettingsRow) {
 
     UITableViewCell *cell = nil;
     if (indexPath.section == 0) {
-        if (indexPath.row == AutoSettingsRowDebugURL || indexPath.row == AutoSettingsRowDebugToken) {
+        if (indexPath.row == AutoSettingsRowDebugURL || indexPath.row == AutoSettingsRowBonjourName || indexPath.row == AutoSettingsRowDebugToken) {
             cell = [tableView dequeueReusableCellWithIdentifier:@"cell" forIndexPath:indexPath];
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
             if (indexPath.row == AutoSettingsRowDebugURL) {
                 cell.textLabel.text = @"Debug URL";
                 cell.detailTextLabel.text = [NSString stringWithFormat:@"ws://%@:%lu", address, (unsigned long)port];
+            } else if (indexPath.row == AutoSettingsRowBonjourName) {
+                cell.textLabel.text = @"Wi-Fi Broadcast";
+                cell.detailTextLabel.text = [AutoTemplateSettings debugServiceName];
             } else {
                 cell.textLabel.text = @"Debug Token";
                 cell.detailTextLabel.text = token;

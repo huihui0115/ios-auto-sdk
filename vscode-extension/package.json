@@ -2,7 +2,7 @@
   "name": "autosdk-vscode",
   "displayName": "AutoSDK Script Tools",
   "description": "Edit, run, and build AutoSDK scripts for an iOS app installed via free Apple ID signing",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "publisher": "autosdk",
   "repository": {
@@ -33,6 +33,7 @@
     "onCommand:autosdk.manageScripts",
     "onCommand:autosdk.configureDevice",
     "onCommand:autosdk.discoverDevice",
+    "onCommand:autosdk.discoverUsbDevice",
     "onCommand:autosdk.startUsbTunnel",
     "onCommand:autosdk.stopUsbTunnel",
     "onCommand:autosdk.testConnection",
@@ -65,8 +66,12 @@
       },
       {
         "command": "autosdk.discoverDevice",
-        "title": "AutoSDK: Search and Add iPhone",
+        "title": "AutoSDK: Scan Wi-Fi and Add iPhone",
         "icon": "$(device-mobile)"
+      },
+      {
+        "command": "autosdk.discoverUsbDevice",
+        "title": "AutoSDK: Search USB iPhone (Advanced)"
       },
       {
         "command": "autosdk.startUsbTunnel",
@@ -122,8 +127,8 @@
       "properties": {
         "autosdk.debugUrl": {
           "type": "string",
-          "default": "ws://127.0.0.1:9001",
-          "description": "Direct Wi-Fi or USB-forwarded WebSocket URL for the iPhone's AutoSDK debug server."
+          "default": "",
+          "description": "Wi-Fi or USB-forwarded WebSocket URL for the iPhone's AutoSDK debug server. Use Scan Wi-Fi and Add iPhone for normal setup."
         },
         "autosdk.connectionTimeout": {
           "type": "number",
@@ -162,6 +167,11 @@
           "type": "string",
           "default": "",
           "description": "Optional iPhone UDID passed to iproxy when more than one device is connected."
+        },
+        "autosdk.wifiDeviceId": {
+          "type": "string",
+          "default": "",
+          "description": "Bonjour identity of the Wi-Fi iPhone paired with this workspace."
         },
         "autosdk.iproxyUdidStyle": {
           "type": "string",
@@ -216,10 +226,11 @@
     ]
   },
   "scripts": {
-    "check": "node --check extension.js && node --check completion-model.js && node --check connection-settings.js && node --check device-client.js && node --check device-discovery.js && node --check inspector-input.js && node --check inspector-service.js && node --check inspector-session.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector-model.js && node --check media/inspector.js",
+    "check": "node --check extension.js && node --check completion-model.js && node --check connection-settings.js && node --check device-client.js && node --check device-discovery.js && node --check wifi-discovery.js && node --check inspector-input.js && node --check inspector-service.js && node --check inspector-session.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector-model.js && node --check media/inspector.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "bonjour-service": "1.4.4",
     "typescript": "5.9.3",
     "ws": "^8.18.0"
   }

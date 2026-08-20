@@ -8,6 +8,24 @@
 
 @implementation AutoTemplateSettings
 
++ (NSString *)debugServiceName {
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    NSString *deviceID = [defaults stringForKey:@"AutoSDKDebugDeviceID"];
+    if (deviceID.length < 8) {
+        deviceID = NSUUID.UUID.UUIDString;
+        [defaults setObject:deviceID forKey:@"AutoSDKDebugDeviceID"];
+    }
+    NSString *compactID = [deviceID stringByReplacingOccurrencesOfString:@"-" withString:@""];
+    NSString *suffix = compactID.length >= 8 ? [compactID substringToIndex:8] : compactID;
+    NSString *deviceName = [[UIDevice.currentDevice.name componentsSeparatedByCharactersInSet:NSCharacterSet.controlCharacterSet] componentsJoinedByString:@""];
+    if (deviceName.length == 0) deviceName = @"AutoSDK iPhone";
+    NSString *name = [NSString stringWithFormat:@"%@ · %@", deviceName, suffix];
+    if ([name lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 63) {
+        name = [NSString stringWithFormat:@"AutoSDK-%@", suffix];
+    }
+    return name;
+}
+
 + (NSString *)wifiIPv4Address {
     struct ifaddrs *interfaces = NULL;
     if (getifaddrs(&interfaces) != 0 || !interfaces) return nil;
@@ -73,6 +91,7 @@
     config[@"debugPort"] = @(debugPort);
     config[@"debugToken"] = debugToken;
     config[@"debugAllowWiFi"] = @(allowWiFi);
+    config[@"debugServiceName"] = [self debugServiceName];
     config[@"debugLogging"] = @YES;
 #endif
     [engine configureWithConfig:config];

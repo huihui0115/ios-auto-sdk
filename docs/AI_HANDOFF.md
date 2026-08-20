@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 66（v1.34.0，2026-08-20）。
+> 最后更新：Round 67（v1.35.0，2026-08-20）。
 
 ---
 
@@ -77,16 +77,17 @@ bridge (__bridge 对象，JSValue block)
 | `vscode-extension/media/inspector-model.js` | Webview 可单测的节点选择器、坐标与区域纯模型 |
 | `vscode-extension/completion-model.js` | 无 VS Code 依赖的补全命名空间、复合签名与 Snippet 纯模型 |
 | `vscode-extension/device-discovery.js` | 有界、无 shell 的 USB iPhone 搜索（idevice_id/ideviceinfo） |
+| `vscode-extension/wifi-discovery.js` | 有界 Bonjour/mDNS 局域网扫描（`_autosdk._tcp`，默认 Wi-Fi 接入） |
 | `tools/bootstrap-history/` | 历史改写脚本（仅参考，勿对新版本执行） |
 | `Examples/TemplateApp/` | 宿主模板 App（含 Info.plist、脚本示例） |
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 66 / v1.34.0）
+## 4. 当前状态（Round 67 / v1.35.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **60782 / 61440**（预算 60×1024 UTF-16 码元，余 658）。
-- 文档 **263 个 API 条目 / 263 个可运行示例 / 14 个模块**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **90 项**。
+- 文档 **263 个 API 条目 / 263 个可运行示例 / 14 个模块**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **97 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
   `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制）。
@@ -126,6 +127,11 @@ bridge (__bridge 对象，JSValue block)
   同目录工具；选择手机后保存 UDID、启动托管隧道并自动测试，失败可直接回退 Wi-Fi。
   断开状态栏改为“add iPhone”，JS/TS 编辑器新增右键运行和标题栏播放按钮；跨设备
   不复用旧 token，连接保存失败会回滚 UDID。插件测试 90 项，bootstrap 零改动。
+- **Round 67 Wi-Fi 广播发现与一键重连**：插件 0.10.0 把 Wi-Fi 调试升为默认入口，
+  TemplateApp 在 Wi-Fi 调试开启时通过 Network.framework 发布 `_autosdk._tcp`
+  Bonjour 服务，稳定服务名不携带 token；插件用有界 mDNS 扫描列出手机，首次输入
+  token 后把 SecretStorage 凭据与稳定广播身份关联，后续 DHCP 地址变化仍可一键
+  重连。手动地址支持只输手机 IP，USB 搜索降为高级备用。插件测试 97 项。
 
 已实现能力（详见唯一 HTML 文档入口 `docs/index.html`）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -236,6 +242,10 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 
 ## 9. 历轮主线（git log 可查）
 
+- R67（v1.35.0）：**Wi-Fi Bonjour 广播与一键重连**——TemplateApp 发布
+  `_autosdk._tcp` 稳定身份，插件 0.10.0 默认扫描局域网、选择添加并测试；首次 token
+  配对后按广播身份安全复用，支持 DHCP 地址变化，广播不含 token；手动输入只需手机
+  IP，USB/libimobiledevice 保留为高级命令；插件测试 97 项。
 - R66（v1.34.0）：**设备搜索与编辑器一键运行**——插件 0.9.0 新增 USB iPhone
   搜索/添加、自动隧道/连接测试、Wi-Fi 回退、断开状态栏入口，以及 JS/TS 右键与
   标题栏运行；设备发现有输出/超时边界且禁用 shell，插件测试 90 项。

@@ -509,6 +509,20 @@ static NSData *AutoWebSocketHeader(NSUInteger length, uint8_t opcode) {
            allowsWiFi:(BOOL)allowsWiFi
        requestHandler:(AutoDebugRequestHandler)requestHandler
            completion:(void (^)(NSError * _Nullable error))completion {
+    [self startWithPort:port
+                  token:token
+             allowsWiFi:allowsWiFi
+            serviceName:nil
+         requestHandler:requestHandler
+             completion:completion];
+}
+
+- (void)startWithPort:(uint16_t)port
+                token:(NSString *)token
+           allowsWiFi:(BOOL)allowsWiFi
+          serviceName:(NSString *)serviceName
+       requestHandler:(AutoDebugRequestHandler)requestHandler
+           completion:(void (^)(NSError * _Nullable error))completion {
     if (port == 0 || token.length == 0 || !requestHandler) {
         if (completion) completion(AutoDebugError(AutoSDKErrorInvalidConfiguration, @"Debug server requires a port, token and request handler.", nil));
         return;
@@ -533,6 +547,16 @@ static NSData *AutoWebSocketHeader(NSUInteger length, uint8_t opcode) {
     if (!listener) {
         if (completion) completion(AutoDebugError(AutoSDKErrorDebugServerFailed, @"Unable to create debug listener.", nil));
         return;
+    }
+    if (allowsWiFi) {
+        NSString *bonjourName = serviceName.length > 0 ? serviceName : @"AutoSDK iPhone";
+        NSData *nameBytes = [bonjourName dataUsingEncoding:NSUTF8StringEncoding];
+        if (nameBytes.length > 63 || [bonjourName rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location != NSNotFound) {
+            nw_listener_cancel(listener);
+            if (completion) completion(AutoDebugError(AutoSDKErrorInvalidConfiguration, @"Bonjour service name must be at most 63 UTF-8 bytes and contain no control characters.", nil));
+            return;
+        }
+        nw_listener_set_service(listener, bonjourName.UTF8String, "_autosdk._tcp", NULL);
     }
     NSUInteger generation = 0;
     BOOL accepted = NO;

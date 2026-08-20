@@ -49,7 +49,7 @@ test('every contributed extension command is registered', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
   const commands = [
     'autosdk.runCurrentScript', 'autosdk.sendCurrentScript', 'autosdk.manageScripts',
-    'autosdk.configureDevice', 'autosdk.discoverDevice', 'autosdk.startUsbTunnel', 'autosdk.stopUsbTunnel',
+    'autosdk.configureDevice', 'autosdk.discoverDevice', 'autosdk.discoverUsbDevice', 'autosdk.startUsbTunnel', 'autosdk.stopUsbTunnel',
     'autosdk.testConnection', 'autosdk.stopScript', 'autosdk.captureScreenshot',
     'autosdk.inspectNodes', 'autosdk.openInspector', 'autosdk.buildIPA'
   ];
@@ -68,8 +68,18 @@ test('JavaScript and TypeScript editors expose one-click run actions', () => {
   assert.equal(titleRun.when, contextRun.when);
 });
 
-test('the disconnected status bar opens device discovery', () => {
+test('the disconnected status bar opens Wi-Fi discovery', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
   assert.match(source, /state === 'disconnected' \? 'autosdk\.discoverDevice' : 'autosdk\.testConnection'/);
+  assert.match(source, /discoverWifiDevices\(\)/);
   assert.match(source, /discoverUsbDevices\(/);
+});
+
+test('the normal add flow is Wi-Fi first and keeps USB as an advanced command', () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+  const wifi = manifest.contributes.commands.find(item => item.command === 'autosdk.discoverDevice');
+  const usb = manifest.contributes.commands.find(item => item.command === 'autosdk.discoverUsbDevice');
+  assert.match(wifi.title, /Scan Wi-Fi/);
+  assert.match(usb.title, /USB.*Advanced/);
+  assert.equal(manifest.contributes.configuration.properties['autosdk.debugUrl'].default, '');
 });
