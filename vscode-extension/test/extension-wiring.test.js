@@ -21,6 +21,12 @@ test('the extension delegates visual capture and Inspector state to focused modu
   assert.doesNotMatch(source, /type: 'inspectSnapshot'/);
 });
 
+test('the extension delegates completion parsing instead of hard-coding namespaces', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
+  assert.match(source, /completionEntries\(API_COMPLETIONS, prefix/);
+  assert.doesNotMatch(source, /namespaceMatch\s*=\s*prefix\.match/);
+});
+
 test('the Inspector exposes cancellation and a configurable post-action refresh delay', () => {
   const extension = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
   const view = fs.readFileSync(path.join(__dirname, '..', 'inspector-view.js'), 'utf8');
@@ -30,6 +36,13 @@ test('the Inspector exposes cancellation and a configurable post-action refresh 
   assert.match(view, /id="cancel-operation"/);
   assert.match(webview, /send\('cancel', 'cancelOperations'\)/);
   assert.equal(manifest.contributes.configuration.properties['autosdk.inspectorActionRefreshDelay'].default, 400);
+});
+
+test('selector results keep the correlated snapshot tree as the uniqueness baseline', () => {
+  const webview = fs.readFileSync(path.join(__dirname, '..', 'media', 'inspector.js'), 'utf8');
+  assert.match(webview, /snapshotNodes:\s*\[\]/);
+  assert.match(webview, /belongsToSnapshot \? state\.snapshotNodes : state\.nodes/);
+  assert.doesNotMatch(webview, /state\.snapshotNodes\s*=\s*nodes;/);
 });
 
 test('every contributed extension command is registered', () => {

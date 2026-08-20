@@ -6,6 +6,28 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.32.0] - 2026-08-20
+
+### Added
+
+- Added focused completion coverage for `thread`, `utils`, `ocr`, `ws`,
+  `sqlite`, `yolo`, `location`, `colors`, `speech`, `pasteboard`, `json`,
+  `floatLog`, `metrics`, and `base64`, including `action` / `string` aliases.
+- Added the missing `speech` namespace TypeScript declaration.
+
+### Fixed
+
+- Replaced the VS Code completion provider's hard-coded namespace allowlist
+  with a tested pure model and split 25 grouped signatures into valid,
+  independently insertable snippets.
+- Made Inspector selection keys independent of selector-property order and
+  generated the smallest unique readable selector, adding `type` only when
+  needed to disambiguate a match against the full correlated snapshot rather
+  than only the current selector-result subset.
+- Moved Inspector selector/point/OCR/image/color script generation into its
+  pure model with deterministic escaping and regression coverage.
+- Upgraded the VS Code extension to 0.8.0 and expanded its suite to 83 tests.
+
 ## [1.31.0] - 2026-08-20
 
 ### Added

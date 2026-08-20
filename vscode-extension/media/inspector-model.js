@@ -8,13 +8,29 @@
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
+  function stableStringify(value, seen) {
+    if (value === null || typeof value !== 'object') return JSON.stringify(value);
+    if (seen.indexOf(value) >= 0) throw new TypeError('Circular value');
+    seen.push(value);
+    var result;
+    if (Array.isArray(value)) {
+      result = '[' + value.map(function (item) { return stableStringify(item, seen); }).join(',') + ']';
+    } else {
+      result = '{' + Object.keys(value).sort().map(function (key) {
+        return JSON.stringify(key) + ':' + stableStringify(value[key], seen);
+      }).join(',') + '}';
+    }
+    seen.pop();
+    return result;
+  }
+
   function nodeKey(node) {
     if (!node || typeof node !== 'object') return '';
     for (const key of ['nodeId', 'handle', 'path']) {
       if (typeof node[key] === 'string' && node[key]) return key + ':' + node[key];
     }
     if (node.selector && typeof node.selector === 'object') {
-      try { return 'selector:' + JSON.stringify(node.selector); }
+      try { return 'selector:' + stableStringify(node.selector, []); }
       catch (_) { return ''; }
     }
     return '';
@@ -30,13 +46,25 @@
     const type = text(node.type);
     const original = node.selector && typeof node.selector === 'object' ? node.selector : {};
     const candidates = [];
-    if (id) candidates.push(type ? { id: id, type: type } : { id: id });
-    if (label) candidates.push(type ? { label: label, type: type } : { label: label });
-    if (name) candidates.push(type ? { name: name, type: type } : { name: name });
-    if (value && type) candidates.push({ value: value, type: type });
+    function addCandidate(key, candidateValue) {
+      var simple = {};
+      simple[key] = candidateValue;
+      candidates.push(simple);
+      if (type) {
+        var typed = {};
+        typed[key] = candidateValue;
+        typed.type = type;
+        candidates.push(typed);
+      }
+    }
+    if (id) addCandidate('id', id);
+    if (label) addCandidate('label', label);
+    if (name) addCandidate('name', name);
+    if (value) addCandidate('value', value);
     const unique = candidates.find(function (selector) {
       const entries = Object.entries(selector);
       return (Array.isArray(nodes) ? nodes : []).filter(function (candidate) {
+        if (!candidate || typeof candidate !== 'object') return false;
         return entries.every(function (entry) { return String(candidate[entry[0]] ?? '') === String(entry[1]); });
       }).length === 1;
     });
@@ -95,5 +123,34 @@
     };
   }
 
-  return { indexAtPoint, nodeKey, number, pointFromClient, regionBetween, selectionIndex, selectorForNode };
+  function codeForSelector(selector, operation) {
+    if (!selector || typeof selector !== 'object' || Array.isArray(selector)) return '';
+    var encoded = JSON.stringify(selector);
+    if (operation === 'find') return 'const node = auto.findElement(' + encoded + ');\nconsole.log(node);';
+    if (operation === 'wait') return 'auto.waitFor(' + encoded + ', 5000);';
+    return 'auto.click(' + encoded + ');';
+  }
+
+  function codeForPoint(point) {
+    return 'auto.clickPoint(' + Math.round(number(point && point.x, 0)) + ', ' + Math.round(number(point && point.y, 0)) + ');';
+  }
+
+  function codeForOCR(region) {
+    return 'const region = ' + JSON.stringify(region || {}) + ';\nconst words = auto.ocr(region);\nconsole.log(words);';
+  }
+
+  function codeForImage(assetPath) {
+    return 'const match = auto.findImage(' + JSON.stringify(String(assetPath || '')) + ', {threshold: 0.9});\nif (match && match.found) auto.clickPoint(match.centerX, match.centerY);';
+  }
+
+  function codeForColor(color) {
+    if (!color || typeof color.hex !== 'string' || !color.hex) return '';
+    return 'const matches = auto.compareColors([{x:' + Math.round(number(color.x, 0)) + ',y:' +
+      Math.round(number(color.y, 0)) + ',color:' + JSON.stringify(color.hex) + '}], {tolerance:8});\nconsole.log(matches);';
+  }
+
+  return {
+    codeForColor, codeForImage, codeForOCR, codeForPoint, codeForSelector,
+    indexAtPoint, nodeKey, number, pointFromClient, regionBetween, selectionIndex, selectorForNode
+  };
 }));

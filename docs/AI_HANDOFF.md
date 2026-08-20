@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 63（v1.31.0，2026-08-20）。
+> 最后更新：Round 64（v1.32.0，2026-08-20）。
 
 ---
 
@@ -74,16 +74,17 @@ bridge (__bridge 对象，JSValue block)
 | `vscode-extension/inspector-service.js` | VS Code 截图/节点/OCR/找图协议校验与全局重任务串行队列 |
 | `vscode-extension/inspector-session.js` | Inspector 面板生命周期、请求关联、同类待处理任务去重 |
 | `vscode-extension/media/inspector-model.js` | Webview 可单测的节点选择器、坐标与区域纯模型 |
+| `vscode-extension/completion-model.js` | 无 VS Code 依赖的补全命名空间、复合签名与 Snippet 纯模型 |
 | `tools/bootstrap-history/` | 历史改写脚本（仅参考，勿对新版本执行） |
 | `Examples/TemplateApp/` | 宿主模板 App（含 Info.plist、脚本示例） |
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 63 / v1.31.0）
+## 4. 当前状态（Round 64 / v1.32.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **60782 / 61440**（预算 60×1024 UTF-16 码元，余 658）。
-- 文档 **263 个函数 / 263 个可运行示例 / 13 个分类**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **72 项**。
+- 文档 **263 个函数 / 263 个可运行示例 / 13 个分类**；bootstrap/工具测试 **87 项**；VS Code 插件测试 **83 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
   `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制）。
@@ -108,6 +109,11 @@ bridge (__bridge 对象，JSValue block)
   有界动作后刷新延迟；取消/隐藏/销毁/被替代的任务不再提交或导出陈旧快照；屏幕边缘
   坐标限定为有效像素，重叠同尺寸节点优先最深控件；显式取消请求的迟到响应静默回收，
   其 ID 集合上限 128，真实未知响应仍保留诊断。bootstrap 与脚本 API 零改动。
+- **Round 64 插件补全与 Inspector 生成链修复**：插件 0.8.0 将命名空间识别、复合
+  签名拆分和 Snippet 生成提取到纯模型；补齐 14 个缺失模块及 `action`/`string`
+  别名的定向候选，25 组历史复合签名不再生成损坏代码。Inspector 使用规范化
+  selector 键恢复选择，并以完整相关快照而非过滤结果集验证最小唯一选择器；所有生成脚本进入纯模型回归测试；
+  `speech` 命名空间补齐 TypeScript 声明。bootstrap 零改动。
 
 已实现能力（详见 `docs/api-reference.html` 每张卡的对标标注）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -218,6 +224,10 @@ floatBall/screenDraw）、webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 
 ## 9. 历轮主线（git log 可查）
 
+- R64（v1.32.0）：**VS Code 补全与 Inspector 生成链修复**——插件 0.8.0 新增
+  可测试 completion model，自动识别命名空间并拆开 25 组复合签名；补齐新模块候选；
+  Inspector 规范化 selector 键、以完整相关快照生成最小唯一选择器并集中单测代码生成；
+  插件测试 83 项，bootstrap 零改动（60782/61440）。
 - R36（v1.6.0）：device 全局简写 20 个。
 - R37（v1.7.0）：YOLO 检测 + SQLite；_ff/_pc 压缩。
 - R38（v1.8.0）：GPS 定位（一次性 fix）+ HMAC；导出压缩。

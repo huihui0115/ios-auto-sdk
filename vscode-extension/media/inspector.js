@@ -30,7 +30,7 @@
     insertCode: document.getElementById('insert-code')
   };
   const state = {
-    nodes: [], device: {}, selectedIndex: -1, mode: 'node', regionStart: null, region: null,
+    nodes: [], snapshotNodes: [], device: {}, selectedIndex: -1, mode: 'node', regionStart: null, region: null,
     match: null, snapshotId: '', capturedAtMs: 0, hasSnapshot: false,
     requestSequence: 0, latestRequests: {}, busyRequests: new Set()
   };
@@ -74,19 +74,15 @@
   }
 
   function nodeSelector(node) {
-    return model.selectorForNode(node, state.nodes);
+    const key = model.nodeKey(node);
+    const belongsToSnapshot = key && state.snapshotNodes.some(function (candidate) {
+      return model.nodeKey(candidate) === key;
+    });
+    return model.selectorForNode(node, belongsToSnapshot ? state.snapshotNodes : state.nodes);
   }
 
   function nodeTitle(node) {
     return node.label || node.text || node.id || node.name || node.value || '(unnamed)';
-  }
-
-  function codeForSelector(selector, operation) {
-    if (!selector) return '';
-    const encoded = JSON.stringify(selector);
-    if (operation === 'find') return 'const node = auto.findElement(' + encoded + ');\nconsole.log(node);';
-    if (operation === 'wait') return 'auto.waitFor(' + encoded + ', 5000);';
-    return 'auto.click(' + encoded + ');';
   }
 
   function setGenerated(code) {
@@ -156,12 +152,12 @@
     elements.details.textContent = node ? JSON.stringify(node, null, 2) : 'Select a node or point.';
     if (selector) {
       elements.selector.value = JSON.stringify(selector, null, 2);
-      setGenerated(codeForSelector(selector, 'click'));
+      setGenerated(model.codeForSelector(selector, 'click'));
     } else if (node && node.bounds) {
       const x = Math.round(number(node.bounds.centerX, number(node.bounds.x, 0) + number(node.bounds.width, 0) / 2));
       const y = Math.round(number(node.bounds.centerY, number(node.bounds.y, 0) + number(node.bounds.height, 0) / 2));
       elements.selector.value = JSON.stringify({ x: x, y: y }, null, 2);
-      setGenerated('auto.clickPoint(' + x + ', ' + y + ');');
+      setGenerated(model.codeForPoint({ x: x, y: y }));
     }
     renderNodes();
     renderOverlays();
@@ -234,7 +230,7 @@
     else {
       state.selectedIndex = -1;
       elements.details.textContent = JSON.stringify({ x: Math.round(point.x), y: Math.round(point.y) }, null, 2);
-      setGenerated('auto.clickPoint(' + Math.round(point.x) + ', ' + Math.round(point.y) + ');');
+      setGenerated(model.codeForPoint(point));
       renderNodes();
       renderOverlays();
       renderBusyState();
@@ -248,7 +244,7 @@
     state.regionStart = null;
     state.region = region;
     elements.details.textContent = JSON.stringify(region, null, 2);
-    setGenerated('const region = ' + JSON.stringify(region) + ';\nconst words = auto.ocr(region);\nconsole.log(words);');
+    setGenerated(model.codeForOCR(region));
     renderBusyState();
   });
 
@@ -278,7 +274,7 @@
     }
   });
   elements.useSelector.addEventListener('click', function () {
-    try { setGenerated(codeForSelector(JSON.parse(elements.selector.value), 'find')); }
+    try { setGenerated(model.codeForSelector(JSON.parse(elements.selector.value), 'find')); }
     catch (error) { setStatus('Invalid selector JSON: ' + error.message, true); }
   });
   elements.clickNode.addEventListener('click', function () { requestNodeAction('click'); });
@@ -323,7 +319,8 @@
     if (message.type === 'error') setStatus(message.message || 'Operation failed.', true);
     if (message.type === 'snapshot') {
       const previousKey = model.nodeKey(state.selectedIndex >= 0 ? state.nodes[state.selectedIndex] : null);
-      state.nodes = Array.isArray(message.nodes) ? message.nodes : [];
+      state.snapshotNodes = Array.isArray(message.nodes) ? message.nodes : [];
+      state.nodes = state.snapshotNodes;
       state.device = message.deviceInfo || {};
       state.selectedIndex = model.selectionIndex(state.nodes, previousKey);
       state.regionStart = null;
@@ -374,19 +371,19 @@
       setStatus(imageStatus, Boolean(state.match && state.match.truncated));
       if (state.match && state.match.found) {
         const assetPath = typeof message.assetPath === 'string' ? message.assetPath : 'debug-assets/template.png';
-        setGenerated('const match = auto.findImage(' + JSON.stringify(assetPath) + ', {threshold: 0.9});\nif (match && match.found) auto.clickPoint(match.centerX, match.centerY);');
+        setGenerated(model.codeForImage(assetPath));
       }
     }
     if (message.type === 'ocrResult') {
       const items = Array.isArray(message.items) ? message.items : [];
       elements.details.textContent = JSON.stringify(items, null, 2);
       setStatus(items.length + ' OCR result' + (items.length === 1 ? '' : 's'));
-      setGenerated('const words = auto.ocr(' + JSON.stringify(message.region || {}) + ');\nconsole.log(words);');
+      setGenerated(model.codeForOCR(message.region || {}));
     }
     if (message.type === 'pixelColor') {
       const color = message.color || {};
       elements.details.textContent = JSON.stringify(color, null, 2);
-      if (color.hex) setGenerated('const matches = auto.compareColors([{x:' + Math.round(number(color.x, 0)) + ',y:' + Math.round(number(color.y, 0)) + ',color:' + JSON.stringify(color.hex) + '}], {tolerance:8});\nconsole.log(matches);');
+      setGenerated(model.codeForColor(color));
     }
     if (message.type === 'notice') setStatus(message.message || 'Done');
   });

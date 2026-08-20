@@ -21,8 +21,8 @@ From the repository root:
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.7.0.vsix
-code --install-extension .\autosdk-vscode-0.7.0.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.8.0.vsix
+code --install-extension .\autosdk-vscode-0.8.0.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An
@@ -112,7 +112,10 @@ timing.
 The implementation is split by responsibility: `inspector-service.js`
 validates and serializes device protocol calls, `inspector-session.js` owns
 panel lifecycle and request correlation, and `media/inspector-model.js` holds
-the DOM-independent geometry/selector model used by the webview and tests.
+the DOM-independent geometry, selector, and generated-script model used by the
+webview and tests. `completion-model.js` expands grouped API signatures into
+independent snippets and discovers namespaces from the completion data, so new
+modules cannot silently fall back to an unrelated all-API list.
 
 **AutoSDK: Run Current Script** executes the editor contents immediately.
 **AutoSDK: Send Current Script to Device** stores a transpiled `.js` copy in

@@ -504,6 +504,7 @@ interface AutoSpeechAPI {
 }
 
 type AutoSpeechOptions = { rate?: number; volume?: number; language?: string };
+declare const speech: AutoSpeechAPI;
 
 
 interface AutoScreenAPI {

@@ -4,6 +4,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const { DeviceClient } = require('./device-client');
 const { connectionCredentials, tokenForConfiguration, updateConnectionConfiguration } = require('./connection-settings');
+const { completionEntries } = require('./completion-model');
 const { generatedCode, inputText } = require('./inspector-input');
 const { InspectorService, maxNodes, responseError } = require('./inspector-service');
 const { InspectorSession } = require('./inspector-session');
@@ -205,6 +206,25 @@ const API_COMPLETIONS = [
   ['screen.findColorCount(colors, threshold, x, y, ex, ey, maxCount)', 'Screen-module color counting entry.'],
   ['image.findColorCount(colors, threshold, x, y, ex, ey, maxCount)', 'Image-module color counting entry.'],
   ['image.toBase64(path)', 'Read a sandbox image file as a Base64 string.'],
+  ['metrics.set(width, height) / get() / x(value) / y(value) / point(x, y)', 'Scale design coordinates to the current screen.'],
+  ['base64.encode(text) / decode(base64)', 'Encode or decode UTF-8 text with Base64.'],
+  ['thread.execAsync(fn, ...args) / execSync(fn, ...args) / cancelThread(handle) / stopAll() / isCancelled()', 'Run and control cooperative script threads.'],
+  ['utils.dataMd5(text) / fileMd5(path) / randomInt(min, max) / randomCharNumber(length) / getRangeInt(min, max) / getRatio(ratio)', 'Common hashing and random helpers.'],
+  ['utils.zip(source, destination) / unzip(path, destination) / readFileInZip(path, name)', 'Archive helpers for sandbox files.'],
+  ['utils.playMp3(path, volume, loop) / stopMp3() / deleteAllPhotos() / deleteAllVideos() / requestPhotoAuthorization()', 'Media utility helpers.'],
+  ['ocr(options) / ocr.newOcr(defaults)', 'Run Vision OCR or create an OCR instance with defaults.'],
+  ['ws.connect(url) / poll(handle) / send(handle, text) / close(handle)', 'Open and operate a WebSocket connection.'],
+  ['sqlite.open(path) / exec(handle, sql, params) / query(handle, sql, params) / close(handle)', 'Open and query a sandbox SQLite database.'],
+  ['yolo.detect(imagePath) / detectByFilePath(imagePath)', 'Run bounded on-device Vision image classification.'],
+  ['location.getLocation(timeoutMs)', 'Read one bounded GPS fix.'],
+  ['colors.parseColor(color) / toInt(color) / int2Hex(color) / toHex(color) / hex2Int(color) / rgb(r, g, b) / argb(a, r, g, b)', 'Parse and convert color values.'],
+  ['speech.speak(text, options, stopWhenScriptEnd) / tts(text, options, stopWhenScriptEnd) / stop() / stopSpeak()', 'Speak text or stop active speech.'],
+  ['pasteboard.read() / write(text)', 'Read or replace the iOS pasteboard text.'],
+  ['json.encode(value) / decode(text)', 'Encode or safely decode JSON.'],
+  ['floatLog.show(x, y, width, height) / log(text) / clear() / hide() / isShow() / destroy()', 'Control the on-device floating log window.'],
+  ['node.find(selector) / findOne(selector) / findAll(selector) / at(x, y) / snapshot(maxResults) / keptCount()', 'Find nodes or capture a bounded node snapshot.'],
+  ['webView.takeMessage(token) / injectBridge(token) / loadHTML(token, html)', 'Exchange messages with or update a floating web view.'],
+  ['screenDraw.release(token) / clearAll()', 'Release floating drawing resources.'],
 ];
 
 function outputChannel() {
@@ -691,18 +711,12 @@ function completionProvider() {
   return {
     provideCompletionItems(document, position) {
       const prefix = document.lineAt(position.line).text.slice(0, position.character);
-      const namespaceMatch = prefix.match(/\b(auto|file|storages|device|http|image|app|media|strings|string|screen|webView|screenDraw|floatBall|plist|node|metrics|base64)\.$/);
-      const namespace = namespaceMatch?.[1];
-      return API_COMPLETIONS.filter(([signature]) => !namespace || signature.startsWith(`${namespace}.`)).map(([signature, documentation]) => {
-        const label = signature.slice(0, signature.indexOf('('));
-        const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Method);
+      return completionEntries(API_COMPLETIONS, prefix, { action: 'auto', string: 'strings' }).map(candidate => {
+        const item = new vscode.CompletionItem(candidate.label, vscode.CompletionItemKind.Method);
+        const { documentation, signature } = candidate;
         item.detail = signature;
         item.documentation = new vscode.MarkdownString(documentation);
-        const insertion = namespace ? signature.slice(namespace.length + 1) : signature;
-        item.insertText = new vscode.SnippetString(insertion.replace(/\((.*)\)$/, (_, args) => {
-          if (!args) return '()';
-          return `(${args.split(', ').map((arg, index) => `\${${index + 1}:${arg}}`).join(', ')})`;
-        }));
+        item.insertText = new vscode.SnippetString(candidate.insertText);
         return item;
       });
     }
