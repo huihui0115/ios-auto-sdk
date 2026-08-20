@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 70（v1.36.0，2026-08-20）。
+> 最后更新：Round 71（v1.36.1，2026-08-20）。
 
 ---
 
@@ -83,11 +83,11 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 70 / v1.36.0）
+## 4. 当前状态（Round 71 / v1.36.1）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **61262 / 61440**（预算 60×1024 UTF-16 码元，余 178）。
-- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；VS Code 插件 **0.11.0**，测试 **97 项**。
+- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **75 项**；VS Code 插件 **0.11.0**，测试 **97 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
   `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制）。
@@ -145,6 +145,10 @@ bridge (__bridge 对象，JSValue block)
   VPN/Wi-Fi/蓝牙/蜂窝/飞行模式等设置页，但不静默修改系统开关；新增低电量模式、定位
   总开关与本 App 定位授权状态查询。VS Code 的 `device.` 补全现覆盖完整
   `AutoDeviceAPI`，并由类型声明一致性测试防止再次漏项；插件版本为 **0.11.0**。
+- **Round 71 iOS CI 稳定性修复**：低电量、定位总开关和定位授权映射的原生
+  回归测试改为注入原始系统状态，不再依赖冷启动模拟器的实时 `locationd`；生产默认
+  provider 为 `nil`，仍调用真实 `NSProcessInfo` / `CLLocationManager` API。新增覆盖全部
+  授权枚举及未知值回退的确定性测试，原生 XCTest 共 **75 项**，公开 API 与插件不变。
 
 已实现能力（详见唯一 HTML 文档入口 `docs/index.html`）：
 触摸/节点（含 WDA selector）、图色（findColor/findColorEx/findMultiColor/
@@ -254,10 +258,15 @@ webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   会二次应用。当前唯一入口是 `regenerate-bootstrap.mjs`。
 - **版本一致性**：verify 会检查四件套版本号；`bump-version.mjs` 会自动同步。
 - **测试隔离**：bootstrap 测试在 Node vm 里跑 mock bridge，不连真机；
-  原生能力以 verify 锚点断言 + Xcode 实机为准。
+  低电量/定位系统状态的模拟器回归测试使用原始值注入，不依赖实时 TCC/CoreLocation
+  daemon；原生真值仍以 verify 锚点 + Xcode 真机抽查为准。
 
 ## 9. 历轮主线（git log 可查）
 
+- R71（v1.36.1）：**iOS 系统状态测试稳定性修复**——把低电量、定位服务与定位授权
+  的原生测试改为私有 provider 注入原始值，覆盖五种授权状态和未知枚举回退，消除冷
+  模拟器 `locationd` 对发布 CI 的非确定性依赖；生产默认路径与 Round 70 完全一致，
+  无新增公开 API，原生 XCTest 75 项。
 - R70（v1.36.0）：**设备与系统常用入口 + 补全闭环**——新增宿主自有 Personal VPN
   状态/连接/断开与设置页入口（需 entitlement 和预存配置），新增 best-effort 常用设置页、
   低电量模式、定位总开关和本 App 定位授权查询；不伪装成静默系统开关。VS Code

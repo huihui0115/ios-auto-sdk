@@ -98,6 +98,8 @@ The following surfaces must not be described as production-complete yet:
 | 悬浮窗口 | 3 | screenDraw 屏幕绘制、floatBall 悬浮球（可拖动、setFloatBallPoint 别名） |
 | 语音朗读 | 1 | speak/tts/speechStop/stopSpeak 与 speech 命名空间 |
 
+本轮新增（Round 71）：**iOS 系统状态测试稳定性修复**——不新增或改变公开 API；原生 XCTest 通过私有 provider 注入低电量、定位服务和原始定位授权枚举，覆盖全部五种授权状态及未知值回退，不再依赖冷启动模拟器的实时 TCC/CoreLocation daemon；生产 provider 默认为空，仍读取真实 `NSProcessInfo` / `CLLocationManager` 状态；bootstrap 61262/61440（余 178），文档 259 项、Node 测试 88 项、原生 XCTest 75 项、插件测试 97 项；
+
 本轮新增（Round 70）：**设备与系统常用入口 + VS Code 补全闭环**——新增 `vpn.status/connect/disconnect/openSettings`，只读取和控制宿主 App 自己通过 Personal VPN entitlement 预存的已启用配置，不创建、选择或删除其他 VPN App/MDM 配置；新增 `system.openSettings(panel)` best-effort 打开 VPN/Wi-Fi/蓝牙/蜂窝/热点/飞行模式/定位/电池等设置页，明确不静默切换全局开关；新增 `device.isLowPowerModeEnabled()`、`location.isEnabled()` 与 `location.getAuthorizationStatus()`；VS Code `device.` 候选补齐完整 `AutoDeviceAPI` 并加入声明一致性回归测试；整理重复设备卡后文档为 259 个可运行条目，bootstrap 61262/61440（余 178），Node 测试 88 项、插件测试 97 项；
 
 本轮新增（Round 69）：**Bonjour 原生编译热修**——按 Apple Network.framework 正式 C API 创建 `nw_advertise_descriptor_t` 并通过 `nw_listener_set_advertise_descriptor` 发布 `_autosdk._tcp`，替换不存在的 `nw_listener_set_service` 调用，恢复 Xcode 构建；局域网广播扫描、一键添加和身份配对语义不变；

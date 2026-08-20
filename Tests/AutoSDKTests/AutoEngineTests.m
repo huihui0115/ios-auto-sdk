@@ -1,5 +1,6 @@
 #import <XCTest/XCTest.h>
 @import AutoSDK;
+#import <CoreLocation/CoreLocation.h>
 #import <UIKit/UIKit.h>
 
 @interface AutoTestAdapter : NSObject <AutoAutomationAdapter>
@@ -41,6 +42,36 @@
 - (NSNumber *)applicationStateForBundleId:(NSString *)bundleId error:(NSError **)error { return bundleId.length > 0 ? @4 : nil; }
 - (NSDictionary *)capabilities { return @{@"scope": @"test", @"nodes": @YES}; }
 - (void)cancelCurrentOperations { self.cancellationCount += 1; }
+@end
+
+@interface AutoTestSystemStatusProvider : NSObject
+@property (nonatomic, assign) BOOL lowPowerModeEnabled;
+@property (nonatomic, assign) BOOL locationServicesEnabled;
+@property (nonatomic, assign) CLAuthorizationStatus authorizationStatus;
+@property (nonatomic, copy) NSArray<NSNumber *> *authorizationStatuses;
+@property (nonatomic, assign) NSInteger lowPowerReadCount;
+@property (nonatomic, assign) NSInteger locationServicesReadCount;
+@property (nonatomic, assign) NSInteger authorizationReadCount;
+@end
+
+@implementation AutoTestSystemStatusProvider
+- (BOOL)autoLowPowerModeEnabled {
+    self.lowPowerReadCount += 1;
+    return self.lowPowerModeEnabled;
+}
+- (BOOL)autoLocationServicesEnabled {
+    self.locationServicesReadCount += 1;
+    return self.locationServicesEnabled;
+}
+- (CLAuthorizationStatus)autoLocationAuthorizationStatus {
+    NSInteger index = self.authorizationReadCount;
+    self.authorizationReadCount += 1;
+    if (self.authorizationStatuses.count > 0) {
+        NSUInteger boundedIndex = MIN((NSUInteger)index, self.authorizationStatuses.count - 1);
+        return (CLAuthorizationStatus)[self.authorizationStatuses[boundedIndex] intValue];
+    }
+    return self.authorizationStatus;
+}
 @end
 
 @interface AutoMainThreadTestAdapter : AutoTestAdapter
@@ -102,9 +133,20 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
 @interface AutoEngine (AutoSDKTests)
 - (void)handleDebugRequest:(NSDictionary<NSString *, id> *)request response:(AutoDebugResponseHandler)response;
 - (NSDictionary<NSString *, id> *)capabilityInfo;
+@property (atomic, strong, nullable) id systemStatusProviderForTesting;
 @end
 
 @implementation AutoEngineTests
+- (void)setUp {
+    [super setUp];
+    AutoEngine.sharedEngine.systemStatusProviderForTesting = nil;
+}
+
+- (void)tearDown {
+    AutoEngine.sharedEngine.systemStatusProviderForTesting = nil;
+    [super tearDown];
+}
+
 - (void)testFileWriteCapabilityRequiresFileAccess {
     AutoEngine *engine = AutoEngine.sharedEngine;
     [engine initWithConfig:@{ @"allowFileAccess": @NO, @"allowFileWrite": @YES }];
@@ -1039,19 +1081,50 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
 
 - (void)testReliableSystemSwitchStatesAreExposed {
     AutoEngine *engine = AutoEngine.sharedEngine;
-    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    [engine initWithConfig:@{ @"scriptTimeout": @5, @"allowSystemControl": @NO }];
     [engine setAutomationAdapter:[AutoTestAdapter new]];
+    AutoTestSystemStatusProvider *provider = [AutoTestSystemStatusProvider new];
+    provider.lowPowerModeEnabled = YES;
+    provider.locationServicesEnabled = NO;
+    provider.authorizationStatus = kCLAuthorizationStatusDenied;
+    engine.systemStatusProviderForTesting = provider;
     XCTestExpectation *expectation = [self expectationWithDescription:@"system switch states"];
     NSString *script = @"({ lowPower: device.isLowPowerModeEnabled(), location: location.isEnabled(), authorization: location.getAuthorizationStatus() });";
     [engine runScript:script completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(error);
-        XCTAssertTrue([result[@"value"][@"lowPower"] isKindOfClass:NSNumber.class]);
-        XCTAssertTrue([result[@"value"][@"location"] isKindOfClass:NSNumber.class]);
-        NSSet *statuses = [NSSet setWithArray:@[@"notDetermined", @"restricted", @"denied", @"authorizedWhenInUse", @"authorizedAlways"]];
-        XCTAssertTrue([statuses containsObject:result[@"value"][@"authorization"]]);
+        XCTAssertEqualObjects(result[@"value"], (@{ @"lowPower": @YES,
+                                                     @"location": @NO,
+                                                     @"authorization": @"denied" }));
         [expectation fulfill];
     }];
     [self waitForExpectationsWithTimeout:2 handler:nil];
+    XCTAssertEqual(provider.lowPowerReadCount, 1);
+    XCTAssertEqual(provider.locationServicesReadCount, 1);
+    XCTAssertEqual(provider.authorizationReadCount, 1);
+}
+
+- (void)testLocationAuthorizationStatusMappingIsDeterministic {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    [engine initWithConfig:@{ @"scriptTimeout": @5, @"allowSystemControl": @NO }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    AutoTestSystemStatusProvider *provider = [AutoTestSystemStatusProvider new];
+    provider.authorizationStatuses = @[@(kCLAuthorizationStatusNotDetermined),
+                                       @(kCLAuthorizationStatusRestricted),
+                                       @(kCLAuthorizationStatusDenied),
+                                       @(kCLAuthorizationStatusAuthorizedAlways),
+                                       @(kCLAuthorizationStatusAuthorizedWhenInUse),
+                                       @999];
+    engine.systemStatusProviderForTesting = provider;
+    XCTestExpectation *expectation = [self expectationWithDescription:@"location authorization mapping"];
+    NSString *script = @"[location.getAuthorizationStatus(), location.getAuthorizationStatus(), location.getAuthorizationStatus(), location.getAuthorizationStatus(), location.getAuthorizationStatus(), location.getAuthorizationStatus()];";
+    [engine runScript:script completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqualObjects(result[@"value"], (@[@"notDetermined", @"restricted", @"denied",
+                                                    @"authorizedAlways", @"authorizedWhenInUse", @"notDetermined"]));
+        [expectation fulfill];
+    }];
+    [self waitForExpectationsWithTimeout:2 handler:nil];
+    XCTAssertEqual(provider.authorizationReadCount, 6);
 }
 
 - (void)testMediaLibraryCapabilityReflectsConfiguration {

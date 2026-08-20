@@ -6,6 +6,14 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.36.1] - 2026-08-20
+
+### Fixed
+
+- Made the native low-power and location-state regression tests deterministic by
+  injecting raw system state in XCTest instead of consulting a cold simulator's
+  live CoreLocation service. Production builds still query the real iOS APIs.
+
 ## [1.36.0] - 2026-08-20
 
 ### Added

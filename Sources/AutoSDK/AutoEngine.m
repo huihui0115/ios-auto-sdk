@@ -85,6 +85,12 @@
 
 @class AutoEngine;
 
+@protocol AutoSystemStatusProviding <NSObject>
+- (BOOL)autoLowPowerModeEnabled;
+- (BOOL)autoLocationServicesEnabled;
+- (CLAuthorizationStatus)autoLocationAuthorizationStatus;
+@end
+
 @interface AutoJSBridge : NSObject <AutoJSExport>
 @property (nonatomic, weak) AutoEngine *engine;
 @property (nonatomic, strong) id<AutoAutomationAdapter> adapter;
@@ -159,6 +165,7 @@
 @property (nonatomic, strong) UIView *floatLogView;
 @property (nonatomic, strong) UITextView *floatLogTextView;
 @property (nonatomic, strong) NSMutableArray<NSString *> *floatLogLines;
+@property (atomic, strong, nullable) id<AutoSystemStatusProviding> systemStatusProviderForTesting;
 - (void)loadScript:(NSString *)value config:(NSDictionary *)config completion:(void (^)(NSString * _Nullable source, NSError * _Nullable error))completion;
 - (void)evaluateScript:(NSString *)source config:(NSDictionary *)config adapter:(id<AutoAutomationAdapter>)adapter completion:(AutoScriptCompletion)completion;
 - (void)finishWithResult:(NSDictionary * _Nullable)result error:(NSError * _Nullable)error completion:(AutoScriptCompletion)completion;
@@ -1270,8 +1277,8 @@ static NSString *AutoVPNStatusName(NEVPNStatus status) {
     }
 }
 
-static NSString *AutoLocationAuthorizationStatusName(void) {
-    switch (CLLocationManager.authorizationStatus) {
+static NSString *AutoLocationAuthorizationStatusName(CLAuthorizationStatus status) {
+    switch (status) {
         case kCLAuthorizationStatusRestricted: return @"restricted";
         case kCLAuthorizationStatusDenied: return @"denied";
         case kCLAuthorizationStatusAuthorizedAlways: return @"authorizedAlways";
@@ -3182,13 +3189,18 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         return AutoValueOnMainThread(^id{ return [self.engine deviceMemoryInfo]; }) ?: @{};
     }
     if ([operation isEqualToString:@"lowPowerMode"]) {
-        return @(NSProcessInfo.processInfo.lowPowerModeEnabled);
+        id<AutoSystemStatusProviding> provider = self.engine.systemStatusProviderForTesting;
+        return @(provider ? [provider autoLowPowerModeEnabled] : NSProcessInfo.processInfo.lowPowerModeEnabled);
     }
     if ([operation isEqualToString:@"locationServices"]) {
-        return @([CLLocationManager locationServicesEnabled]);
+        id<AutoSystemStatusProviding> provider = self.engine.systemStatusProviderForTesting;
+        return @(provider ? [provider autoLocationServicesEnabled] : [CLLocationManager locationServicesEnabled]);
     }
     if ([operation isEqualToString:@"locationAuthorization"]) {
-        return AutoLocationAuthorizationStatusName();
+        id<AutoSystemStatusProviding> provider = self.engine.systemStatusProviderForTesting;
+        CLAuthorizationStatus status = provider ? [provider autoLocationAuthorizationStatus]
+                                                : CLLocationManager.authorizationStatus;
+        return AutoLocationAuthorizationStatusName(status);
     }
     if ([operation isEqualToString:@"vpnStatus"] || [operation isEqualToString:@"vpnSet"]) {
         NEVPNManager *manager = AutoLoadPersonalVPNManager(&error);
