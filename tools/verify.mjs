@@ -845,6 +845,8 @@ check(templateSettingsSource.includes('makeAutomationAdapter') && templateSettin
 const builtinAdapterSource = read('Sources/AutoSDK/AutoBuiltinAdapter.m');
 const resourcePolicySource = read('Sources/AutoSDK/AutoResourcePolicy.m');
 const backgroundLeaseSource = read('Sources/AutoSDK/AutoBackgroundLease.m');
+check((engineSource.match(/^- \(void\)dealloc\s*\{/gm) || []).length === 1,
+      'Engine background/resource cleanup must share its existing audio dealloc method');
 check(resourcePolicySource.includes('AutoUsesLowMemoryProfile') &&
       resourcePolicySource.includes('width <= budget / 4') &&
       resourcePolicySource.indexOf('CGImageSourceCopyPropertiesAtIndex') < resourcePolicySource.indexOf('CGImageSourceCreateImageAtIndex') &&

@@ -4277,11 +4277,6 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     [self configureWithConfig:config];
 }
 
-- (void)dealloc {
-    [NSNotificationCenter.defaultCenter removeObserver:self];
-    [_backgroundLease finish];
-}
-
 - (void)requestStopForRun:(NSUUID *)identifier reason:(NSString *)reason {
     @synchronized (self) {
         if (!self.running || ![self.activeRunIdentifier isEqual:identifier]) return;
@@ -5404,6 +5399,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 }
 
 - (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self];
+    [_backgroundLease finish];
     [self stopAllAudioPlayback];
 }
 
