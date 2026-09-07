@@ -27,6 +27,9 @@ All notable changes to AutoSDK are documented here. The format follows
 - Phone editor logs are bounded and batch-rendered. Replaced obsolete WDA performance
   advice and clarified cooperative cancellation, finite background time and untested
   iPhone 7 behavior. No entitlement, permanent keep-alive or automatic action replay is added.
+- Native CI caught and fixed an autoreleased error escaping an inner pool during
+  capture/node cancellation. HTTP regressions now isolate engines and synchronize
+  cancellation with request start instead of relying on a sleeping utility worker.
 
 ## [1.39.0] - 2026-09-07
 

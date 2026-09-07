@@ -42,12 +42,13 @@ NSArray<NSDictionary *> *AutoBoundedNodeWalk(id root, NSUInteger maxNodes, NSUIn
     NSMutableArray *results = [NSMutableArray array];
     NSUInteger visited = 0;
     BOOL truncated = NO;
+    NSError *walkError = nil;
     while (pending.count > 0) {
         @autoreleasepool {
             if (cancelled()) {
-                if (error) *error = [NSError errorWithDomain:AutoSDKErrorDomain code:AutoSDKErrorScriptCancelled
+                walkError = [NSError errorWithDomain:AutoSDKErrorDomain code:AutoSDKErrorScriptCancelled
                     userInfo:@{NSLocalizedDescriptionKey: @"Built-in adapter: accessibility walk was cancelled."}];
-                return nil;
+                break;
             }
             if (visited >= maxNodes) { truncated = YES; break; }
             NSArray *frame = pending.lastObject;
@@ -62,9 +63,9 @@ NSArray<NSDictionary *> *AutoBoundedNodeWalk(id root, NSUInteger maxNodes, NSUIn
                 if (results.count >= maxResults && !cancelled()) return results;
             }
             if (cancelled()) {
-                if (error) *error = [NSError errorWithDomain:AutoSDKErrorDomain code:AutoSDKErrorScriptCancelled
+                walkError = [NSError errorWithDomain:AutoSDKErrorDomain code:AutoSDKErrorScriptCancelled
                     userInfo:@{NSLocalizedDescriptionKey: @"Built-in adapter: accessibility walk was cancelled."}];
-                return nil;
+                break;
             }
             NSArray *descendants = children(element) ?: @[];
             if (descendants.count == 0) continue;
@@ -82,6 +83,7 @@ NSArray<NSDictionary *> *AutoBoundedNodeWalk(id root, NSUInteger maxNodes, NSUIn
             }
         }
     }
+    if (walkError) { if (error) *error = walkError; return nil; }
     // Never present a budget-limited search as a definitive absence.
     if (truncated && filter) {
         if (error) *error = [NSError errorWithDomain:AutoSDKErrorDomain code:AutoSDKErrorAutomationFailed

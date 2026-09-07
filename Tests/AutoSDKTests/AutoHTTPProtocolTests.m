@@ -13,6 +13,7 @@
 
 static NSString *const AutoTestHTTPHost = @"autosdk.test";
 static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
+static dispatch_block_t AutoTestSlowScriptStarted;
 
 @implementation AutoTestHTTPProtocol
 
@@ -28,6 +29,11 @@ static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
 - (void)startLoading {
     NSString *path = self.request.URL.path ?: @"/";
     if ([path isEqualToString:@"/slow"] || [path isEqualToString:@"/slow-script.js"]) {
+        if ([path isEqualToString:@"/slow-script.js"]) {
+            dispatch_block_t started;
+            @synchronized (AutoTestHTTPProtocol.class) { started = AutoTestSlowScriptStarted; AutoTestSlowScriptStarted = nil; }
+            if (started) started();
+        }
         return; // Never respond; tests cancel the task or wait for the timeout.
     }
     NSInteger status = 200;
@@ -124,6 +130,7 @@ static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
 @end
 
 @interface AutoHTTPProtocolTests : XCTestCase
+@property (nonatomic, strong) AutoEngine *engine;
 @end
 
 @implementation AutoHTTPProtocolTests
@@ -131,10 +138,14 @@ static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
 - (void)setUp {
     [super setUp];
     [NSURLProtocol registerClass:AutoTestHTTPProtocol.class];
-    [AutoEngine.sharedEngine setAutomationAdapter:[AutoHTTPTestAdapter new]];
+    self.engine = [AutoEngine new];
+    [self.engine setAutomationAdapter:[AutoHTTPTestAdapter new]];
 }
 
 - (void)tearDown {
+    @synchronized (AutoTestHTTPProtocol.class) { AutoTestSlowScriptStarted = nil; }
+    [self.engine stopScript];
+    self.engine = nil;
     [NSURLProtocol unregisterClass:AutoTestHTTPProtocol.class];
     [super tearDown];
 }
@@ -144,8 +155,8 @@ static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
       completion:(void (^)(NSDictionary * _Nullable result, NSError * _Nullable error))completion {
     NSMutableDictionary *mergedConfig = [NSMutableDictionary dictionaryWithDictionary:config ?: @{}];
     mergedConfig[@"urlProtocolClasses"] = @[AutoTestHTTPProtocol.class];
-    [AutoEngine.sharedEngine initWithConfig:mergedConfig];
-    [AutoEngine.sharedEngine runScript:script completion:completion];
+    [self.engine initWithConfig:mergedConfig];
+    [self.engine runScript:script completion:completion];
 }
 
 - (void)testHTTPDataRequestParsesUTF8JSONBody {
@@ -352,6 +363,10 @@ static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
 
 - (void)testStopScriptCancelsRemoteDownload {
     XCTestExpectation *expectation = [self expectationWithDescription:@"cancel remote"];
+    AutoEngine *engine = self.engine;
+    @synchronized (AutoTestHTTPProtocol.class) {
+        AutoTestSlowScriptStarted = ^{ dispatch_async(dispatch_get_main_queue(), ^{ [engine stopScript]; }); };
+    }
     [self runScript:@"http://autosdk.test/slow-script.js"
          withConfig:@{@"allowRemoteScripts": @YES, @"remoteScriptTimeout": @10, @"scriptTimeout": @5}
          completion:^(NSDictionary *result, NSError *error) {
@@ -359,11 +374,7 @@ static NSString *const AutoTestHTTPBase = @"http://autosdk.test";
         XCTAssertEqual(error.code, AutoSDKErrorScriptCancelled);
         [expectation fulfill];
     }];
-    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-        [NSThread sleepForTimeInterval:0.1];
-        [AutoEngine.sharedEngine stopScript];
-    });
-    [self waitForExpectationsWithTimeout:5 handler:nil];
+    [self waitForExpectationsWithTimeout:15 handler:nil];
 }
 
 - (void)testHTTPSameSessionServesConsecutiveRequests {

@@ -854,6 +854,7 @@ check(resourcePolicySource.includes('AutoUsesLowMemoryProfile') &&
       resourcePolicySource.includes('truncated && filter') && !builtinAdapterSource.includes('walkBlock'),
       'Low-memory image preflight and iterative node traversal must bound visits, pending nodes and incomplete filtered searches');
 check(builtinAdapterSource.includes('performVisualOperation:') && builtinAdapterSource.includes('[self.visualLock tryLock]') &&
+      builtinAdapterSource.includes('operationError = innerError') && resourcePolicySource.includes('if (walkError)') &&
       builtinAdapterSource.includes('generation == self.cancellationGeneration') &&
       builtinAdapterSource.includes('cleanup(AutoBuiltinBitmapFree)') && builtinAdapterSource.includes('comparisonBudget'),
       'Built-in visual work must reject concurrent capture, discard cancelled cache commits and release bounded buffers');

@@ -538,26 +538,32 @@ static NSString *AutoBuiltinStringOrNil(id value) {
     }
 }
 
-- (id)performVisualOperation:(id (^)(void))operation error:(NSError **)error {
+- (id)performVisualOperation:(id (^)(NSError **))operation error:(NSError **)error {
     // Never block the main thread behind a capture that itself needs the main queue.
     if (![self.visualLock tryLock]) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"A visual operation is already running; retry after it completes.");
         return nil;
     }
     NSUInteger generation = self.cancellationGeneration;
+    id result = nil;
+    NSError *operationError = nil;
     @try {
         @autoreleasepool {
-            id result = operation();
+            NSError *innerError = nil;
+            result = operation(&innerError);
             if ([self operationCancelledSince:generation]) {
-                if (error) *error = AutoBuiltinError(AutoSDKErrorScriptCancelled, @"Visual operation cancelled.");
-                return nil;
+                innerError = AutoBuiltinError(AutoSDKErrorScriptCancelled, @"Visual operation cancelled.");
+                result = nil;
             }
-            return result;
+            // NSError out parameters are autoreleasing: retain before draining this pool.
+            operationError = innerError;
         }
     } @catch (NSException *exception) {
-        if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, exception.reason);
-        return nil;
+        operationError = AutoBuiltinError(AutoSDKErrorAutomationFailed, exception.reason);
+        result = nil;
     } @finally { [self.visualLock unlock]; }
+    if (error) *error = operationError;
+    return result;
 }
 
 - (BOOL)operationCancelledSince:(NSUInteger)generation {
@@ -1612,7 +1618,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (NSData *)screenshotWithError:(NSError **)error {
-    return [self performVisualOperation:^id { return [self captureScreenshotWithError:error]; } error:error];
+    return [self performVisualOperation:^id(NSError **innerError) { return [self captureScreenshotWithError:innerError]; } error:error];
 }
 
 - (NSData *)captureScreenshotWithError:(NSError **)error {
@@ -1654,7 +1660,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (NSDictionary *)pixelColorAtX:(CGFloat)x y:(CGFloat)y error:(NSError **)error {
-    return [self performVisualOperation:^id { return [self rawPixelColorAtX:x y:y error:error]; } error:error];
+    return [self performVisualOperation:^id(NSError **innerError) { return [self rawPixelColorAtX:x y:y error:innerError]; } error:error];
 }
 
 - (NSDictionary *)rawPixelColorAtX:(CGFloat)x y:(CGFloat)y error:(NSError **)error {
@@ -1675,7 +1681,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (NSDictionary *)findColor:(id)color region:(NSDictionary *)region options:(NSDictionary *)options error:(NSError **)error {
-    return [self performVisualOperation:^id { return [self rawFindColor:color region:region options:options error:error]; } error:error];
+    return [self performVisualOperation:^id(NSError **innerError) { return [self rawFindColor:color region:region options:options error:innerError]; } error:error];
 }
 
 - (NSDictionary *)rawFindColor:(id)color region:(NSDictionary *)region options:(NSDictionary *)options error:(NSError **)error {
@@ -1726,7 +1732,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (BOOL)compareColors:(NSArray<NSDictionary *> *)points options:(NSDictionary *)options error:(NSError **)error {
-    return [[self performVisualOperation:^id { return @([self rawCompareColors:points options:options error:error]); } error:error] boolValue];
+    return [[self performVisualOperation:^id(NSError **innerError) { return @([self rawCompareColors:points options:options error:innerError]); } error:error] boolValue];
 }
 
 - (BOOL)rawCompareColors:(NSArray<NSDictionary *> *)points options:(NSDictionary *)options error:(NSError **)error {
@@ -1767,7 +1773,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (NSDictionary *)findMultiColor:(id)color offsets:(NSArray *)offsets region:(NSDictionary *)region options:(NSDictionary *)options error:(NSError **)error {
-    return [self performVisualOperation:^id { return [self rawFindMultiColor:color offsets:offsets region:region options:options error:error]; } error:error];
+    return [self performVisualOperation:^id(NSError **innerError) { return [self rawFindMultiColor:color offsets:offsets region:region options:options error:innerError]; } error:error];
 }
 
 - (NSDictionary *)rawFindMultiColor:(id)color offsets:(NSArray *)offsets region:(NSDictionary *)region options:(NSDictionary *)options error:(NSError **)error {
@@ -1837,7 +1843,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (NSDictionary *)findImageAtPath:(NSString *)templatePath options:(NSDictionary *)options error:(NSError **)error {
-    return [self performVisualOperation:^id { return [self rawFindImageAtPath:templatePath options:options error:error]; } error:error];
+    return [self performVisualOperation:^id(NSError **innerError) { return [self rawFindImageAtPath:templatePath options:options error:innerError]; } error:error];
 }
 
 - (NSDictionary *)rawFindImageAtPath:(NSString *)templatePath options:(NSDictionary *)options error:(NSError **)error {
@@ -1957,7 +1963,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (NSArray<NSDictionary<NSString *, id> *> *)ocrInRegion:(NSDictionary *)region error:(NSError **)error {
-    return [self performVisualOperation:^id { return [self rawOCRInRegion:region error:error]; } error:error];
+    return [self performVisualOperation:^id(NSError **innerError) { return [self rawOCRInRegion:region error:innerError]; } error:error];
 }
 
 - (NSArray<NSDictionary<NSString *, id> *> *)rawOCRInRegion:(NSDictionary *)region error:(NSError **)error {
