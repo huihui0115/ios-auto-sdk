@@ -2,7 +2,7 @@
   "name": "autosdk-vscode",
   "displayName": "AutoSDK Script Tools",
   "description": "Edit, run, and build AutoSDK scripts for an iOS app installed via free Apple ID signing",
-  "version": "0.13.1",
+  "version": "0.14.0",
   "private": true,
   "publisher": "autosdk",
   "repository": {
@@ -28,6 +28,7 @@
   },
   "main": "extension.js",
   "activationEvents": [
+    "onView:autosdk.devices",
     "onCommand:autosdk.runCurrentScript",
     "onCommand:autosdk.runSelection",
     "onCommand:autosdk.sendCurrentScript",
@@ -47,15 +48,43 @@
     "onLanguage:typescript"
   ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "autosdk",
+          "title": "AutoSDK",
+          "icon": "media/device-home.svg"
+        }
+      ]
+    },
+    "views": {
+      "autosdk": [
+        {
+          "id": "autosdk.devices",
+          "name": "设备与调试",
+          "type": "webview"
+        }
+      ]
+    },
     "commands": [
       {
+        "command": "autosdk.openDeviceHome",
+        "title": "AutoSDK: 打开设备与调试",
+        "icon": "$(device-mobile)"
+      },
+      {
+        "command": "autosdk.newScript",
+        "title": "AutoSDK: 新建示例脚本",
+        "icon": "$(new-file)"
+      },
+      {
         "command": "autosdk.runSelection",
-        "title": "AutoSDK: Run Selected Code",
+        "title": "AutoSDK: 只运行选中代码",
         "enablement": "editorHasSelection && !editorHasMultipleSelections && (editorLangId == javascript || editorLangId == typescript)"
       },
       {
         "command": "autosdk.runCurrentScript",
-        "title": "AutoSDK: Run Current Script",
+        "title": "AutoSDK: 运行整个脚本",
         "icon": "$(play)"
       },
       {
@@ -72,7 +101,7 @@
       },
       {
         "command": "autosdk.discoverDevice",
-        "title": "AutoSDK: Scan Wi-Fi and Add iPhone",
+        "title": "AutoSDK: 搜索 Wi-Fi 手机",
         "icon": "$(device-mobile)"
       },
       {
@@ -93,7 +122,7 @@
       },
       {
         "command": "autosdk.stopScript",
-        "title": "AutoSDK: Stop Active Script"
+        "title": "AutoSDK: 停止脚本"
       },
       {
         "command": "autosdk.captureScreenshot",
@@ -105,7 +134,7 @@
       },
       {
         "command": "autosdk.openInspector",
-        "title": "AutoSDK: Open Visual Inspector"
+        "title": "AutoSDK: 截图与节点"
       },
       {
         "command": "autosdk.buildIPA",
@@ -113,6 +142,18 @@
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "autosdk.discoverDevice",
+          "when": "view == autosdk.devices",
+          "group": "navigation@1"
+        },
+        {
+          "command": "autosdk.newScript",
+          "when": "view == autosdk.devices",
+          "group": "navigation@2"
+        }
+      ],
       "editor/context": [
         {
           "command": "autosdk.runSelection",
@@ -237,8 +278,10 @@
     ]
   },
   "scripts": {
+    "precheck": "npm run check:home",
     "check": "node --check extension.js && node --check completion-model.js && node --check connection-recovery.js && node --check connection-settings.js && node --check device-client.js && node --check device-discovery.js && node --check wifi-discovery.js && node --check inspector-input.js && node --check inspector-service.js && node --check inspector-session.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector-model.js && node --check media/inspector.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "check:home": "node --check device-home.js && node --check device-home-view.js && node --check media/device-home.js"
   },
   "dependencies": {
     "bonjour-service": "1.4.4",

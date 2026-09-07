@@ -82,9 +82,9 @@ async function bindTokenToUrl(secrets, token, url, scope) {
   try { await secrets.delete(LEGACY_TOKEN_SECRET); } catch (_) { /* legacy cleanup is best effort */ }
 }
 
-async function updateConnectionConfiguration(settings, secrets, token, url, scope, target, cleanupTargets = []) {
+async function updateConnectionConfiguration(settings, secrets, token, url, scope, target, cleanupTargets = [], inspectKey = 'workspaceValue') {
   const canonicalUrl = canonicalDebugUrl(url);
-  const previousWorkspaceUrl = settings.inspect?.('debugUrl')?.workspaceValue;
+  const previousWorkspaceUrl = settings.inspect?.('debugUrl')?.[inspectKey];
   await settings.update('debugUrl', canonicalUrl, target);
   try {
     await bindTokenToUrl(secrets, token, canonicalUrl, scope);

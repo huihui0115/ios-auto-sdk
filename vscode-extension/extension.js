@@ -2,6 +2,8 @@ const vscode = require('vscode');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
+const { DeviceHome } = require('./device-home');
+const { deviceHomeHtml } = require('./device-home-view');
 const { REENTER_TOKEN, RETRY_CONNECTION, SCAN_WIFI_DEVICE, connectWithRecovery, connectionTargetIsCurrent, runErrorActions } = require('./connection-recovery');
 const { DeviceClient } = require('./device-client');
 const { canonicalDebugUrl, connectionCredentials, normalizeWifiDebugUrl, tokenForConfiguration, updateConnectionConfiguration } = require('./connection-settings');
@@ -25,6 +27,9 @@ let inspectorPanel;
 let inspectorService;
 let inspectorSession;
 let lastScriptEditor;
+let deviceHome;
+let deviceHomeView;
+let scriptRunning = false;
 const activeBuildProcesses = new Set();
 
 const API_COMPLETIONS = [
@@ -281,21 +286,27 @@ function runScript(script) {
   return sendRequest({ type: 'run', script: script.source });
 }
 
-async function runCurrentScript(selectionOnly = false) {
+async function runCurrentScript(selectionOnly = false, editor = vscode.window.activeTextEditor) {
+  if (scriptRunning) return vscode.window.showWarningMessage('脚本正在运行，请先停止或等待完成。');
   const channel = outputChannel();
   channel.show(true);
   try {
     if (!vscode.workspace.isTrusted) throw new Error('Trust this workspace before running its scripts on the iPhone.');
-    const script = currentScript(selectionOnly);
+    const script = editorScript(editor, selectionOnly);
+    scriptRunning = true;
+    deviceHome?.setRunning(true);
     channel.appendLine(`Running ${script.name}...`);
     const response = await runScript(script);
     if (!response.ok) throw new Error(responseError(response));
     channel.appendLine(JSON.stringify(response, null, 2));
-    vscode.window.showInformationMessage(`AutoSDK finished ${script.name}.`);
+    vscode.window.showInformationMessage(`AutoSDK 已完成：${script.name}`);
   } catch (error) {
     channel.appendLine(error.stack || error.message);
     const action = await vscode.window.showErrorMessage(`AutoSDK: ${error.message}`, ...runErrorActions(error));
     if (action === SCAN_WIFI_DEVICE) await vscode.commands.executeCommand('autosdk.discoverDevice');
+  } finally {
+    scriptRunning = false;
+    deviceHome?.setRunning(false);
   }
 }
 
@@ -361,19 +372,23 @@ async function manageDeviceScripts() {
 }
 
 async function saveDeviceConnection({ current, credentialScope, mode, token, url, usbDeviceUdid, wifiDeviceId }) {
+  if (scriptRunning) throw new Error('脚本正在运行，请先停止后再切换手机。');
+  const hasWorkspace = Boolean(vscode.workspace.workspaceFile || vscode.workspace.workspaceFolders?.length);
+  const target = hasWorkspace ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
+  const inspectKey = hasWorkspace ? 'workspaceValue' : 'globalValue';
   const deviceUpdates = [
     ['usbDeviceUdid', usbDeviceUdid],
     ['wifiDeviceId', wifiDeviceId]
   ].filter(([, value]) => value !== undefined).map(([key, value]) => ({
     key,
     value,
-    previous: current.inspect?.(key)?.workspaceValue
+    previous: current.inspect?.(key)?.[inspectKey]
   }));
   const appliedUpdates = [];
   let result;
   try {
     for (const update of deviceUpdates) {
-      await current.update(update.key, update.value, vscode.ConfigurationTarget.Workspace);
+      await current.update(update.key, update.value, target);
       appliedUpdates.push(update);
     }
     result = await updateConnectionConfiguration(
@@ -382,17 +397,18 @@ async function saveDeviceConnection({ current, credentialScope, mode, token, url
       token,
       url,
       credentialScope,
-      vscode.ConfigurationTarget.Workspace,
+      target,
       [
         { target: vscode.ConfigurationTarget.Global, inspectKey: 'globalValue' },
         { target: vscode.ConfigurationTarget.WorkspaceFolder, inspectKey: 'workspaceFolderValue' }
-      ]
+      ],
+      inspectKey
     );
   } catch (error) {
     const rollbackErrors = [];
     for (const update of [...appliedUpdates].reverse()) {
       try {
-        await current.update(update.key, update.previous, vscode.ConfigurationTarget.Workspace);
+        await current.update(update.key, update.previous, target);
       } catch (rollbackError) {
         rollbackErrors.push(`${update.key}: ${rollbackError.message}`);
       }
@@ -409,13 +425,14 @@ async function saveDeviceConnection({ current, credentialScope, mode, token, url
 
 async function promptDebugToken(mode, savedToken) {
   return vscode.window.showInputBox({
-    prompt: 'AutoSDK debug token shown in the iPhone app',
+    title: '首次连接手机 · 安全配对',
+    prompt: '输入手机 AutoSDK 中显示的配对码（Debug Token），只需配对一次，不是代码。',
     password: true,
     value: savedToken,
     validateInput(value) {
-      if (!value) return 'Enter the installation token displayed by the AutoSDK app.';
-      if (Buffer.byteLength(value, 'utf8') > 1024) return 'The debug token must not exceed 1024 UTF-8 bytes.';
-      if (mode === 'wifi' && value.length < 16) return 'Wi-Fi tokens must contain at least 16 characters.';
+      if (!value) return '请填写手机上显示的配对码。';
+      if (Buffer.byteLength(value, 'utf8') > 1024) return '配对码过长，请检查是否复制了其他内容。';
+      if (mode === 'wifi' && value.length < 16) return 'Wi-Fi 配对码至少 16 个字符，请复制完整内容。';
       return undefined;
     }
   });
@@ -555,93 +572,93 @@ function loopbackUsbUrl(current) {
 }
 
 async function discoverDevice() {
-  const channel = outputChannel();
-  channel.show(true);
-  try {
-    const devices = await vscode.window.withProgress({
-      location: vscode.ProgressLocation.Notification,
-      title: 'AutoSDK: Scanning the local network for iPhones…',
-      cancellable: true
-    }, async (_progress, cancellation) => {
-      const controller = new AbortController();
-      const subscription = cancellation.onCancellationRequested(() => controller.abort());
-      try {
-        return await discoverWifiDevices({ signal: controller.signal });
-      } finally {
-        subscription.dispose();
-      }
-    });
-    channel.appendLine(`Wi-Fi Bonjour scan: ${devices.length} AutoSDK iPhone(s) found.`);
-    if (!devices.length) {
-      const action = await vscode.window.showWarningMessage(
-        'No AutoSDK iPhone was found. Keep the app open, enable Wi-Fi debugging, and use the same local network.',
-        'Scan Again',
-        'Enter IP Address'
-      );
-      if (action === 'Scan Again') return discoverDevice();
-      if (action === 'Enter IP Address') return configureDevice('wifi');
-      return;
-    }
-    const selection = await vscode.window.showQuickPick([
-      ...devices.map(device => ({
-        label: `$(radio-tower) ${device.name}`,
-        description: `${device.address}:${device.port}`,
-        detail: 'Wi-Fi · select to add and test this iPhone',
-        device
-      })),
-      {
-        label: '$(edit) Enter an IP address manually',
-        description: 'Use the address shown in the AutoSDK iPhone app',
-        mode: 'manual'
-      }
-    ], {
-      placeHolder: 'Select an AutoSDK iPhone to add to this workspace',
-      matchOnDescription: true,
-      matchOnDetail: true
-    });
-    if (!selection) return;
-    if (selection.mode === 'manual') return configureDevice('wifi');
+  await vscode.commands.executeCommand('autosdk.devices.focus');
+  await deviceHome?.scan();
+}
 
-    const current = configuration();
-    const credentialScope = workspaceCredentialScope();
-    const previousDeviceId = String(current.get('wifiDeviceId') || '');
-    const savedToken = previousDeviceId === selection.device.deviceId
-      ? await tokenForConfiguration(current, extensionContext.secrets, credentialScope)
-      : '';
-    const token = savedToken || await promptDebugToken('wifi', '');
-    if (token === undefined) return;
-    if (credentialScope !== workspaceCredentialScope()) {
-      vscode.window.showErrorMessage('AutoSDK: The workspace changed while adding the device. Run the command again.');
-      return;
-    }
-    await saveDeviceConnection({
-      current,
-      credentialScope,
-      mode: 'wifi',
-      token,
-      url: selection.device.url,
-      usbDeviceUdid: '',
-      wifiDeviceId: selection.device.deviceId
-    });
-    channel.appendLine(`${savedToken ? 'Reconnected' : 'Added'} Wi-Fi device ${selection.device.name} at ${selection.device.url}.`);
-    await testWifiConnectionWithRecovery({
-      current,
-      credentialScope,
-      url: selection.device.url,
-      wifiDeviceId: selection.device.deviceId
-    });
-  } catch (error) {
-    if (error?.name === 'AbortError') {
-      channel.appendLine('Wi-Fi discovery cancelled.');
-      return;
-    }
-    channel.appendLine(`Wi-Fi discovery failed: ${error.stack || error.message}`);
-    const action = await vscode.window.showErrorMessage(
-      `AutoSDK Wi-Fi scan failed: ${error.message}`,
-      'Enter IP Address'
-    );
-    if (action === 'Enter IP Address') await configureDevice('wifi');
+async function pairWifiDevice(device, forcePair = false) {
+  const current = configuration();
+  const credentialScope = workspaceCredentialScope();
+  const previousUrl = canonicalDebugUrl(current.get('debugUrl'));
+  const previousDeviceId = String(current.get('wifiDeviceId') || '');
+  const savedToken = !forcePair && device.deviceId && previousDeviceId === device.deviceId
+    ? await tokenForConfiguration(current, extensionContext.secrets, credentialScope) : '';
+  const token = savedToken || await promptDebugToken('wifi', '');
+  if (token === undefined) return false;
+  if (credentialScope !== workspaceCredentialScope() || previousUrl !== canonicalDebugUrl(configuration().get('debugUrl')) ||
+      previousDeviceId !== String(configuration().get('wifiDeviceId') || '')) {
+    throw new Error('工作区或连接目标已改变，请重新选择手机。');
   }
+  await saveDeviceConnection({ current, credentialScope, mode: 'wifi', token,
+    url: device.url, usbDeviceUdid: '', wifiDeviceId: device.deviceId });
+  await extensionContext.workspaceState.update('autosdk.selectedDevice', {
+    scope: credentialScope, url: canonicalDebugUrl(device.url), name: device.name
+  });
+  deviceHome?.publish();
+  return testConnection({ showFailure: false, showSuccess: false, throwOnFailure: true });
+}
+
+function sidebarEditor() {
+  return lastScriptEditor && !lastScriptEditor.document.isClosed ? lastScriptEditor : undefined;
+}
+
+function homeContext() {
+  const url = canonicalDebugUrl(configuration().get('debugUrl'));
+  const selected = extensionContext.workspaceState.get('autosdk.selectedDevice');
+  const editor = sidebarEditor();
+  let address = '';
+  try { address = new URL(url).host; } catch (_) { /* no valid configured address */ }
+  return {
+    configured: Boolean(url), address,
+    deviceName: selected?.scope === workspaceCredentialScope() && selected.url === url ? selected.name : url ? '上次添加的手机' : '',
+    scriptName: editor ? path.basename(editor.document.fileName) : '',
+    canRun: Boolean(editor), canSelect: Boolean(editor && editor.selections.length === 1 && !editor.selection.isEmpty),
+    trusted: vscode.workspace.isTrusted
+  };
+}
+
+async function performHomeAction(action, device) {
+  if ((action === 'run' || action === 'runSelection') && !sidebarEditor()) {
+    throw new Error('请先打开脚本，或点击「新建示例脚本」。');
+  }
+  switch (action) {
+    case 'connect': return pairWifiDevice(device);
+    case 'reconnect': return testConnection({ showFailure: false, showSuccess: false, throwOnFailure: true });
+    case 'pair': if (!configuration().get('wifiDeviceId') && configuration().get('usbDeviceUdid')) return configureDevice('usb');
+      return pairWifiDevice({ url: configuration().get('debugUrl'),
+      deviceId: configuration().get('wifiDeviceId') || '', name: homeContext().deviceName }, true);
+    case 'disconnect': deviceClient?.disconnect('用户断开连接。'); return;
+    case 'newScript': return newScript();
+    case 'run': return runCurrentScript(false, sidebarEditor());
+    case 'runSelection': return runCurrentScript(true, sidebarEditor());
+    case 'stop': return stopScript();
+    case 'inspector': return openInspector();
+    case 'logs': return outputChannel().show(true);
+    case 'help': return vscode.commands.executeCommand('markdown.showPreview', vscode.Uri.joinPath(extensionContext.extensionUri, 'START_HERE.md'));
+    case 'manual': return configureDevice('wifi');
+    case 'usb': return discoverUsbDevice();
+  }
+}
+
+async function newScript() {
+  const document = await vscode.workspace.openTextDocument({ language: 'javascript',
+    content: '// 点击「运行整个脚本」，或在这里右键运行。\n// 这是脚本示例，连接手机不需要写代码。\nlogd("AutoSDK 连接成功");\nlogd(JSON.stringify(device.getDeviceInfo(), null, 2));\n' });
+  const editor = await vscode.window.showTextDocument(document, { preview: false });
+  lastScriptEditor = editor;
+  deviceHome?.publish();
+}
+
+function resolveDeviceHome(view) {
+  deviceHomeView = view;
+  view.webview.options = { enableScripts: true,
+    localResourceRoots: [vscode.Uri.joinPath(extensionContext.extensionUri, 'media')] };
+  const subscription = view.webview.onDidReceiveMessage(message => deviceHome?.receive(message));
+  const visibility = view.onDidChangeVisibility(() => { if (view.visible) deviceHome?.publish(); });
+  view.onDidDispose(() => {
+    subscription.dispose(); visibility.dispose();
+    if (deviceHomeView === view) deviceHomeView = undefined;
+  });
+  view.webview.html = deviceHomeHtml(view.webview, extensionContext.extensionUri);
 }
 
 async function discoverUsbDevice() {
@@ -768,9 +785,9 @@ async function stopUsbTunnel() {
   }
 }
 
-async function testConnection({ showFailure = true } = {}) {
+async function testConnection({ showFailure = true, showSuccess = true, throwOnFailure = false } = {}) {
   const channel = outputChannel();
-  channel.show(true);
+  if (showSuccess) channel.show(true);
   try {
     const pong = await sendRequest({ type: 'ping' });
     if (!pong.ok) throw new Error(responseError(pong));
@@ -780,11 +797,12 @@ async function testConnection({ showFailure = true } = {}) {
     if (!capabilityResponse.ok) throw new Error(responseError(capabilityResponse));
     channel.appendLine(JSON.stringify(response.deviceInfo, null, 2));
     channel.appendLine(JSON.stringify(capabilityResponse.capabilities, null, 2));
-    vscode.window.showInformationMessage('AutoSDK device connection is ready.');
+    if (showSuccess) vscode.window.showInformationMessage('手机已连接，可以开始运行和采集。');
     return true;
   } catch (error) {
     channel.appendLine(error.stack || error.message);
     if (showFailure) vscode.window.showErrorMessage(`AutoSDK connection failed: ${error.message}`);
+    if (throwOnFailure) throw error;
     return false;
   }
 }
@@ -830,15 +848,16 @@ async function inspectNodes() {
 }
 
 function updateConnectionStatus(state, detail) {
+  deviceHome?.setConnection(state);
   if (!connectionStatus) return;
   const labels = {
-    connecting: '$(sync~spin) AutoSDK: connecting',
-    ready: '$(debug-alt) AutoSDK: ready',
-    disconnected: '$(radio-tower) AutoSDK: scan Wi-Fi iPhone'
+    connecting: '$(sync~spin) AutoSDK: 正在连接',
+    ready: '$(device-mobile) AutoSDK: 已连接',
+    disconnected: '$(device-mobile) AutoSDK: 连接手机'
   };
   connectionStatus.text = labels[state] || labels.disconnected;
-  connectionStatus.tooltip = detail || 'Scan the local network and add an AutoSDK iPhone';
-  connectionStatus.command = state === 'disconnected' ? 'autosdk.discoverDevice' : 'autosdk.testConnection';
+  connectionStatus.tooltip = '打开设备与调试：搜索手机、连接、运行、截图与节点';
+  connectionStatus.command = 'autosdk.openDeviceHome';
   connectionStatus.backgroundColor = state === 'disconnected'
     ? new vscode.ThemeColor('statusBarItem.warningBackground')
     : undefined;
@@ -922,7 +941,7 @@ async function openInspector() {
   }
   const panel = vscode.window.createWebviewPanel(
     'autosdkInspector',
-    'AutoSDK Inspector',
+    'AutoSDK 截图与节点',
     vscode.ViewColumn.Beside,
     {
       enableScripts: true,
@@ -1104,8 +1123,16 @@ async function buildIPA() {
 
 function activate(context) {
   extensionContext = context;
+  deviceHome = new DeviceHome({ context: homeContext, discover: discoverWifiDevices,
+    perform: performHomeAction, log: error => outputChannel().appendLine(error.stack || String(error)),
+    publish: state => {
+      try {
+        if (deviceHomeView) void Promise.resolve(deviceHomeView.webview.postMessage({ type: 'state', state })).catch(() => {});
+      } catch (_) { /* view disposed between state update and post */ }
+    }
+  });
   connectionStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
-  connectionStatus.command = 'autosdk.discoverDevice';
+  connectionStatus.command = 'autosdk.openDeviceHome';
   deviceClient = new DeviceClient({
     credentials: async () => connectionCredentials(configuration(), extensionContext.secrets, workspaceCredentialScope()),
     onState: updateConnectionStatus,
@@ -1126,12 +1153,18 @@ function activate(context) {
   const activeEditor = vscode.window.activeTextEditor;
   if (activeEditor && (activeEditor.document.languageId === 'javascript' || activeEditor.document.languageId === 'typescript')) lastScriptEditor = activeEditor;
   context.subscriptions.push(
+    deviceHome,
+    vscode.window.registerWebviewViewProvider('autosdk.devices', { resolveWebviewView: resolveDeviceHome }),
     outputChannel(),
     connectionStatus,
     deviceClient,
     vscode.window.onDidChangeActiveTextEditor(editor => {
       if (editor && (editor.document.languageId === 'javascript' || editor.document.languageId === 'typescript')) lastScriptEditor = editor;
+      deviceHome?.publish();
     }),
+    vscode.window.onDidChangeTextEditorSelection(() => deviceHome?.publish()),
+    vscode.workspace.onDidCloseTextDocument(() => deviceHome?.publish()),
+    vscode.workspace.onDidGrantWorkspaceTrust(() => deviceHome?.publish()),
     vscode.workspace.onDidChangeConfiguration(event => {
       if (event.affectsConfiguration('autosdk.debugUrl') || event.affectsConfiguration('autosdk.debugToken')) {
         deviceClient?.disconnect('Device connection settings changed.');
@@ -1139,7 +1172,10 @@ function activate(context) {
     }),
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       deviceClient?.disconnect('Workspace identity changed; configure the device connection again.');
+      deviceHome?.reset();
     }),
+    vscode.commands.registerCommand('autosdk.openDeviceHome', () => vscode.commands.executeCommand('autosdk.devices.focus')),
+    vscode.commands.registerCommand('autosdk.newScript', newScript),
     vscode.commands.registerCommand('autosdk.runCurrentScript', () => runCurrentScript()),
     vscode.commands.registerCommand('autosdk.runSelection', () => runCurrentScript(true)),
     vscode.commands.registerCommand('autosdk.sendCurrentScript', deployCurrentScript),
@@ -1160,6 +1196,10 @@ function activate(context) {
 }
 
 function deactivate() {
+  deviceHome?.dispose();
+  deviceHome = undefined;
+  deviceHomeView = undefined;
+  scriptRunning = false;
   for (const child of activeBuildProcesses) terminateOwnedProcess(child);
   activeBuildProcesses.clear();
   usbTunnel?.dispose();

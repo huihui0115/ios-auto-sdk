@@ -1,6 +1,6 @@
 {
   "name": "auto-sdk-tools",
-  "version": "1.38.2",
+  "version": "1.39.0",
   "private": true,
   "description": "Cross-platform helper for validating and invoking an iOS AutoSDK build",
   "bin": {

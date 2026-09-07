@@ -334,14 +334,19 @@ check(extensionSource.includes('discoverUsbDevices({') && extensionSource.includ
       deviceDiscoverySource.includes('shell: false') && deviceDiscoverySource.includes("'idevice_id'") &&
       deviceDiscoverySource.includes('MAX_TOOL_OUTPUT_BYTES'),
       'USB discovery must remain bounded, shell-free and wired to its advanced command');
-check(extensionSource.includes('discoverWifiDevices({ signal: controller.signal })') &&
-      extensionSource.includes('cancellable: true') &&
+check(extensionSource.includes('discover: discoverWifiDevices') &&
+      read('vscode-extension/device-home.js').includes('this.options.discover({ signal: controller.signal })') &&
       extensionSource.includes("registerCommand('autosdk.discoverDevice'") &&
       wifiDiscoverySource.includes("type: 'autosdk'") && wifiDiscoverySource.includes('MAX_DISCOVERED_DEVICES') &&
       wifiDiscoverySource.includes('MAX_DISCOVERY_TIMEOUT_MS') &&
       wifiDiscoverySource.includes('DISCOVERY_SETTLE_MS = 1200') &&
       wifiDiscoverySource.includes("error.name = 'AbortError'"),
       'Wi-Fi discovery must remain bounded, cancellable and scan only the AutoSDK Bonjour service');
+check(extensionPackage.contributes?.views?.autosdk?.some(view => view.id === 'autosdk.devices' && view.type === 'webview') &&
+      extensionSource.includes("registerWebviewViewProvider('autosdk.devices'") &&
+      read('vscode-extension/device-home-view.js').includes('搜索 Wi-Fi 手机') &&
+      read('vscode-extension/media/device-home.js').includes("send('connect', device.key)"),
+      'VS Code must provide a graphical device sidebar with host-owned scan selections');
 check(inspectorServiceSource.includes('this.visualTail.then(task, task)') &&
       inspectorServiceSource.includes("type: 'inspectSnapshot'") && inspectorServiceSource.includes('MAX_PNG_BASE64_LENGTH'),
       'Inspector service must serialize and validate device visual requests');

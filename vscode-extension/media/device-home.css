@@ -1,0 +1,24 @@
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px 14px 28px; color: var(--vscode-foreground); font: var(--vscode-font-size)/1.65 var(--vscode-font-family); }
+h1 { margin: 0; font-size: 17px; font-weight: 600; }
+header p { margin: 4px 0 18px; color: var(--vscode-descriptionForeground); }
+h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; }
+section { margin: 0 0 18px; padding-bottom: 18px; border-bottom: 1px solid var(--vscode-panel-border); }
+.device { display: grid; gap: 3px; padding: 10px; margin: 8px 0; border: 1px solid var(--vscode-panel-border); border-radius: 6px; overflow-wrap: anywhere; }
+.current { background: var(--vscode-sideBarSectionHeader-background); }
+.device strong { font-weight: 600; }
+small, .hint { color: var(--vscode-descriptionForeground); font-size: 12px; }
+.hint { margin: 10px 0 0; }
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+button { min-height: 30px; padding: 5px 10px; cursor: pointer; border: 1px solid var(--vscode-button-border, transparent); border-radius: 3px; font: inherit; color: var(--vscode-button-foreground); background: var(--vscode-button-background); }
+button:hover { background: var(--vscode-button-hoverBackground); }
+button.secondary { color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); }
+button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, summary:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
+[hidden] { display: none !important; }
+#message, #script-name { overflow-wrap: anywhere; }
+#connection { color: var(--vscode-descriptionForeground); }
+#connection[data-ready="true"] { color: var(--vscode-testing-iconPassed); }
+summary { cursor: pointer; }

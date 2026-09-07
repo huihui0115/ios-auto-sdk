@@ -1,4 +1,24 @@
-# AutoSDK VS Code Extension
+# AutoSDK：设备与调试
+
+安装后点 VS Code 左侧 **AutoSDK 手机图标**，日常连接和调试都在中文侧栏完成。
+无需连接命令、IP、端口或设置 JSON。
+
+## 安装与开始使用
+
+1. 下载 `autosdk-vscode-0.14.0.vsix`，在 VS Code **扩展 → … → 从 VSIX 安装** 中选择它。
+2. 手机打开 AutoSDK 并开启 Wi-Fi 调试，允许“本地网络”权限；电脑与手机使用同一可信 Wi-Fi。
+3. 左侧 **AutoSDK → 搜索 Wi-Fi 手机 → 添加并连接**，首次输入手机显示的配对码。
+4. **新建示例脚本 → 运行整个脚本**。还可右键运行代码、只运行选区，或点击编辑器右上角 ▶。
+5. **截图与节点** 打开可视化采集；**运行日志** 查看结果；**停止脚本** 发送停止请求。
+
+下次点“连接”即可；IP 变化后重新搜索同一手机。当前工作区只记住当前配对的手机；
+切换另一台手机或工作区需重新配对。连接出错时，侧栏会提供中文提示及重新配对入口。
+空白窗口也可添加手机，示例脚本无需先保存。
+
+完整离线操作说明：[使用指南](START_HERE.md)。
+手动 IP 和 USB 收在侧栏“更多连接方式”；以下是开发者和高级使用说明。
+
+## Developer reference
 
 This extension edits JavaScript or TypeScript scripts, provides AutoSDK API
 completion and snippets, transpiles TypeScript before sending, tests a device
@@ -18,39 +38,26 @@ declaration-parity test prevents future methods from silently disappearing
 from the menu. Personal VPN and Settings entries keep the same iOS permission
 limits described by the generated SDK documentation.
 
-## Install locally on Windows
+## Build the extension from source (developers only)
 
 From the repository root:
 
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.13.1.vsix
-code --install-extension .\autosdk-vscode-0.13.1.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.14.0.vsix
+code --install-extension .\autosdk-vscode-0.14.0.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An
 installed VSIX runs in VS Code's extension host and includes its `ws` runtime
 dependency.
 
-The normal setup is direct Wi-Fi:
-
-1. Put VS Code and the iPhone on the same trusted LAN, keep the AutoSDK app open,
-   enable Wi-Fi debugging, and allow the iOS local-network prompt.
-2. Click **AutoSDK: scan Wi-Fi iPhone** in the status bar, or run **AutoSDK: Scan
-   Wi-Fi and Add iPhone** from the Command Palette.
-3. Select the Bonjour-discovered phone. Enter the token displayed by the app on
-   first pairing; the extension saves the stable broadcast identity and tests the
-   connection. Later scans reconnect with one selection even if the DHCP address changes.
-4. Open a `.js` or `.ts` file, right-click in the editor, and choose
-   **AutoSDK: Run Current Script**. The editor title also has a play button.
-
 Discovery uses the `_autosdk._tcp` Bonjour service and does not broadcast the
 debug token. The scan keeps collecting after the first response so multiple
-phones can be selected, and its progress notification can be cancelled. If a
-connection test fails, choose **Re-enter Token** or **Retry Connection** without
-scanning again. Running from the editor before setup offers **Scan Wi-Fi and Add
-iPhone** directly. If multicast DNS is blocked, choose **Enter IP Address** and enter
+phones can be selected, and the sidebar has a cancel button. If a
+connection test fails, use the sidebar reconnect/re-pair buttons. If multicast DNS
+is blocked, expand the advanced section and choose the manual address button. Enter
 either `192.168.1.25` or the complete `ws://192.168.1.25:9001` address shown by
 the app. No `iproxy`, USB cable, or libimobiledevice install is needed for Wi-Fi.
 
@@ -61,14 +68,9 @@ workspace. A rediscovered phone may safely rebind the workspace token only when
 its stable Bonjour identity matches; selecting a different phone asks for its
 token. The legacy plaintext
 `autosdk.debugToken` setting is never read; saving a connection removes any
-leftover value from the workspace and global settings:
-
-```json
-{
-  "autosdk.debugUrl": "ws://192.168.1.25:9001",
-  "autosdk.connectionTimeout": 300000
-}
-```
+leftover value from the workspace and global settings. Empty windows use global
+connection settings with an isolated credential scope; workspace credentials are
+never inherited from those settings. No JSON editing is needed for normal use.
 
 USB remains an advanced fallback through **AutoSDK: Search USB iPhone
 (Advanced)**. USB discovery uses `idevice_id` and optional `ideviceinfo`,
@@ -114,7 +116,7 @@ after a disconnect. It deliberately does
 not replay interrupted commands, because replaying a click or script could
 duplicate side effects.
 
-After connecting, use **AutoSDK: Open Visual Inspector** for a consistent
+After connecting, use **截图与节点** in the sidebar for a consistent
 screenshot and node-tree snapshot, selector/image/color tests, and generated
 click code. Selecting a local PNG/JPEG deploys a hashed copy into the phone's
 `debug-assets` directory before testing, so generated `auto.findImage` code
@@ -151,8 +153,8 @@ webview and tests. `completion-model.js` expands grouped API signatures into
 independent snippets and discovers namespaces from the completion data, so new
 modules cannot silently fall back to an unrelated all-API list.
 
-**AutoSDK: Run Current Script** executes the editor contents immediately.
-**AutoSDK: Run Selected Code** runs only one selected JS/TS block from the
+**AutoSDK: 运行整个脚本** executes the editor contents immediately.
+**AutoSDK: 只运行选中代码** runs only one selected JS/TS block from the
 editor context menu. Empty/multiple selections are rejected, never expanded to
 the whole file. Each run gets a fresh context; include needed declarations.
 The output names the selected block's starting line. TypeScript language mode

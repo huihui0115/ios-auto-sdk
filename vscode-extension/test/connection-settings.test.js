@@ -152,6 +152,14 @@ test('a failed secret rebind restores the previous workspace URL', async () => {
   );
 });
 
+test('an empty-window secret failure restores the global URL rather than deleting it', async () => {
+  let url = 'ws://previous:9001/';
+  const values = { inspect: () => ({ globalValue: url }), update: async (key, value) => { if (key === 'debugUrl') url = value; } };
+  const secrets = { get: async () => '', store: async () => { throw new Error('SecretStorage unavailable'); } };
+  await assert.rejects(updateConnectionConfiguration(values, secrets, 'token', 'ws://next:9001', 'empty-window', 1, [], 'globalValue'), /unavailable/);
+  assert.equal(url, 'ws://previous:9001/');
+});
+
 test('a committed rebind remains successful when plaintext cleanup is unavailable', async () => {
   const secrets = secretStorage();
   await bindTokenToUrl(secrets, 'new-secret', 'ws://192.168.1.11:9001', 'workspace-a');

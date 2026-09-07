@@ -1,6 +1,6 @@
 # EasyClick iOS capability comparison
 
-Audit date: 2026-09-07 (Round 73; current workflow review: [QUALITY_AUDIT.md](QUALITY_AUDIT.md))
+Audit date: 2026-09-07 (Round 76; current workflow review: [QUALITY_AUDIT.md](QUALITY_AUDIT.md))
 
 Official references:
 
@@ -34,6 +34,22 @@ unavailable.
 | External transports/services | BLE events, OTG HID, Aux remote assistance, JDBC MySQL, and network-verification services | authenticated WebSocket debugging over loopback/USB or opt-in Wi-Fi, and guarded HTTP | No BLE/OTG/Aux controller, JDBC driver, or EasyClick service integration; cross-app automation uses the built-in no-WDA adapter (external WDA removed in v1.17.0) |
 | IDE/debug | IDE, live screen, node panel, logs, remote execution | VS Code completion/snippets, safe single-file TypeScript transpilation, Bonjour LAN scan/add with stable Wi-Fi identity and one-selection reconnect after initial token pairing, manual-IP and advanced USB fallbacks, editor context/title one-click run plus explicit selection-only JS/TS execution, persistent authenticated connection, correlated screenshot+node Inspector, serialized node/image/color/OCR tests, request-ID and selection-revision stale-response protection, stable selection recovery, cancellable waits, configurable action-settle delay, valid edge-pixel mapping, portable snapshot export, code generation, deployed script/asset management, and Actions build/download | No continuous video stream, breakpoint debugger, TypeScript module bundler, package manager, or verified real-device Wi-Fi session |
 | Deployment | signed EasyClick agent/IPA products, proxy IPA, Bluetooth and OTG HID paths | template app, macOS CI-verified unsigned IPA workflow (free Apple ID signing), built-in no-WDA adapter as the only cross-app engine (private symbols resolved at runtime, no linked private frameworks; external WDA removed in v1.17.0) | Built-in adapter requires a private-API-permitted build (TrollStore or developer signing) for touch injection and system-wide AX; Xcode simulator builds/tests pass, but private APIs still require real-iPhone validation |
+
+## Round 76 graphical workflow
+
+Rechecked the official [EasyClick first-project guide](https://ieasyclick.com/iosdocs/firstproject/)
+and [AScript AI Studio guide](https://www.ascript.cn/docs/ai/studio/).
+EasyClick exposes project/controller/device selection; AScript describes a unified
+screen, node, log and run/stop workspace. These are workflow references, not
+comparative performance measurements or evidence of complete feature parity.
+
+Extension 0.14.0 now has an activity-bar device dashboard: visible LAN scan results,
+add/connect/reconnect/re-pair buttons, a new sample, run/selection/stop, Inspector,
+logs and offline help. Normal setup requires only a first-pairing token, not an IP,
+command or JSON edit. Manual IP and USB remain advanced fallbacks. It remembers
+the current workspace's selected phone, not a multi-device saved-token library.
+No QR/short-code pairing protocol, breakpoints, continuous video, or real-device
+Wi-Fi acceptance is claimed. Bootstrap/native behavior is unchanged.
 
 ## Round 73 quality iteration
 

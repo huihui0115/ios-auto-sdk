@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 75（v1.38.2，2026-09-07）。
+> 最后更新：Round 76（v1.39.0，2026-09-07）。
 
 ---
 
@@ -83,11 +83,18 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 75 / v1.38.2）
+## 4. 当前状态（Round 76 / v1.39.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **61262 / 61440**（预算 60×1024 UTF-16 码元，余 178）。
-- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **90 项**；VS Code 插件 **0.13.1**，测试 **123 项**。
+- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **90 项**；VS Code 插件 **0.14.0**，测试 **144 项**。
+- **Round 76 图形化接入**：Activity Bar 手机图标 → 中文“设备与调试” WebviewView。
+  `device-home.js` 管理有界扫描、过期卡片/重复点击/工作区切换隔离，主机仅接收白名单 action
+  和不透明扫描 key，不接受 Webview 传入 URL 或任意命令。`device-home-view.js` + `media/device-home.*`
+  提供搜索/添加/重连/配对/新建/运行/停止/Inspector/日志/离线指南按钮。正常流程无需命令或配置编辑。
+  空白窗口使用 Global 设置及独立 SecretStorage scope，打开工作区不会继承配对凭证；秘密保存失败会恢复正确层级 URL。
+  侧栏保留并显示脚本编辑器，运行时不因焦点切换而误取其他文档。Inspector 主要按钮中文化。
+  `tools/check-device-home-ui.mjs` 用已安装 Playwright/Chrome 做隔离浏览器烟测，设备是模拟的，不代表真机验收。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
 - **Round 75 接入回归**：广播 URL 无尾斜杠，保存后的 URL.href 有尾斜杠；配对目标
   守卫改为规范化比较，避免首次添加被错误判为目标已切换而跳过连接测试。新增两项回归。

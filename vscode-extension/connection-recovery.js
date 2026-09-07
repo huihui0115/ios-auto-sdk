@@ -1,6 +1,6 @@
-const REENTER_TOKEN = 'Re-enter Token';
-const RETRY_CONNECTION = 'Retry Connection';
-const SCAN_WIFI_DEVICE = 'Scan Wi-Fi and Add iPhone';
+const REENTER_TOKEN = '重新配对';
+const RETRY_CONNECTION = '重试连接';
+const SCAN_WIFI_DEVICE = '搜索 Wi-Fi 手机';
 const { canonicalDebugUrl } = require('./connection-settings');
 
 function connectionTargetIsCurrent(actual, expected) {

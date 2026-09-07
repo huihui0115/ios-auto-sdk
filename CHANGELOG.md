@@ -6,6 +6,26 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.39.0] - 2026-09-07
+
+### Added
+
+- Extension 0.14.0: a Chinese activity-bar device dashboard with LAN scan cards,
+  one-click add/connect, reconnect/re-pair, a sample script, run/selection/stop,
+  Inspector, logs and bundled offline help. Manual-IP/USB remain advanced fallbacks.
+- Host-owned action allowlist and opaque scan keys; cancellation, duplicate-click,
+  workspace-change and running-script guards; real Webview and activation regressions.
+- Optional isolated Chromium smoke test validates CSP, clickable controls and
+  240/320px sidebar layouts without requiring a real phone.
+
+### Fixed
+
+- Empty VS Code windows can save pairing safely; failed secret writes restore
+  the previous global URL. Sidebar actions run the displayed JS/TS editor after
+  focus moves, and reject closed editors and untrusted workspaces.
+- Chinese Inspector controls and button-first HTML/extension documentation.
+- Bootstrap remains 61262 / 61440 UTF-16 units; no runtime API or native behavior changes.
+
 ## [1.38.2] - 2026-09-07
 
 ### Fixed

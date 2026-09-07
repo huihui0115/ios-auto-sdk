@@ -87,8 +87,8 @@ const guides = [
       <div class="steps">
         <div class="step"><strong>安装并签名宿主 App</strong><p>从 GitHub Releases 下载最新 IPA 或构建产物，用自己的 Apple ID 签名安装。启动后保持 App 在前台。</p></div>
         <div class="step"><strong>安装 VS Code 插件</strong><p>下载 <code>autosdk-vscode-${esc(extensionPackage.version)}.vsix</code>，在 VS Code 的“扩展 → … → 从 VSIX 安装”中选择它。</p></div>
-        <div class="step"><strong>扫描并添加手机</strong><p>电脑和手机进入同一局域网，点击状态栏的 <code>AutoSDK: scan Wi-Fi iPhone</code>，选择广播发现的手机；首次输入宿主 App 显示的 token，插件会自动保存并测试连接。</p></div>
-        <div class="step"><strong>右键运行</strong><p>打开 JavaScript 或 TypeScript 文件，在编辑区右键选择 <code>AutoSDK: Run Current Script</code>；编辑器标题栏也提供播放按钮。</p></div>
+        <div class="step"><strong>点击手机图标，添加手机</strong><p>电脑和手机使用同一 Wi-Fi，手机开启 Wi-Fi 调试。点 VS Code 左侧 AutoSDK 手机图标 → 搜索 Wi-Fi 手机 → 添加并连接。首次填写手机显示的配对码，不需要写连接代码。</p></div>
+        <div class="step"><strong>点按钮开始运行</strong><p>侧栏显示“已连接”后，点“新建示例脚本”→“运行整个脚本”。无需先保存文件；也可以在编辑区右键运行，或点右上角 ▶。</p></div>
       </div>
       <h2>第一段脚本</h2>
       ${codeBlock(firstScript)}
@@ -105,34 +105,34 @@ const guides = [
     id: 'connect',
     group: '入门',
     title: '连接与运行',
-    lead: 'Wi-Fi 是默认开发通道：局域网自动发现、一次配对、后续一键重连。',
+    lead: '打开左侧手机图标 → 搜索手机 → 添加并连接 → 运行。正常流程不用输入命令、IP 或配置 JSON。',
     search: 'Bonjour mDNS 局域网 广播 USB WiFi iproxy idevice_id 搜索 添加 iPhone websocket ws token 连接 运行 停止 部署',
     body: `
-      <h2>Wi-Fi 自动发现（推荐）</h2>
+      <h2>在「设备与调试」侧栏连接</h2>
       <ol>
         <li>电脑与手机进入同一可信局域网，宿主 App 开启 Wi-Fi 调试并允许 iOS“本地网络”权限。</li>
-        <li>点击状态栏 <code>AutoSDK: scan Wi-Fi iPhone</code>，或运行 <code>AutoSDK: Scan Wi-Fi and Add iPhone</code>。</li>
-        <li>插件扫描 <code>_autosdk._tcp</code> Bonjour 广播；选择手机，首次输入至少 16 个字符的 token。</li>
-        <li>插件自动保存稳定广播身份并测试连接；同一手机以后只需选择一次，DHCP 地址变化也会自动更新。</li>
+        <li>点击 VS Code 左侧 <strong>AutoSDK 手机图标</strong>，或底部“AutoSDK: 连接手机”。</li>
+        <li>点 <strong>搜索 Wi-Fi 手机</strong>，在手机卡片上点 <strong>添加并连接</strong>。首次输入手机 App 显示的配对码（Debug Token）；这是安全凭证，不是代码。</li>
+        <li>出现 <strong>已连接</strong> 后，点 <strong>新建示例脚本 → 运行整个脚本</strong>。点 <strong>截图与节点</strong> 即可打开可视化采集工具。</li>
       </ol>
-      <p>扫描会在第一台响应后继续收集其他手机，并可从进度通知取消。连接测试失败时可直接 <code>Re-enter Token</code> 或 <code>Retry Connection</code>，不必重新扫描；未配置设备就右键运行脚本时，也可直接启动 Wi-Fi 扫描添加。</p>
-      <p>广播不包含 token。若路由器或防火墙屏蔽 mDNS（UDP 5353），选择 <code>Enter IP Address</code>，直接输入 App 显示的手机 IP 或完整 <code>ws://手机IP:9001</code>。</p>
-      <h2>USB 高级备用</h2>
-      <p>运行 <code>AutoSDK: Search USB iPhone (Advanced)</code> 可使用 <code>idevice_id</code> + <code>iproxy</code>。普通 Wi-Fi 开发无需安装 libimobiledevice。</p>
-      <h2>常用命令</h2>
+      <p>再次打开 VS Code，点击侧栏“连接”即可。手机地址变化时重新搜索，选择同一手机会自动更新地址并复用当前工作区的配对信息。切换其他手机或工作区需要重新配对。空白窗口也能添加手机，不要求先建立项目。</p>
+      <p>扫描可以点“取消搜索”。连接失败时侧栏会提示下一步：重试连接、重新配对或重新搜索。不要关闭认证来省略首次配对。</p>
+      <h2>常用按钮</h2>
       <table>
-        <thead><tr><th>命令</th><th>用途</th></tr></thead>
+        <thead><tr><th>按钮</th><th>用途</th></tr></thead>
         <tbody>
-          <tr><td><code>Scan Wi-Fi and Add iPhone</code></td><td>扫描局域网 AutoSDK 广播，选择手机后自动保存并测试连接。</td></tr>
-          <tr><td><code>Run Current Script</code></td><td>立即执行当前编辑器内容，最适合迭代。</td></tr>
-          <tr><td><code>Run Selected Code</code></td><td>选中一段 JS/TS 后右键运行，只发送选区；空选区不会运行全文件。</td></tr>
-          <tr><td><code>Send Current Script to Device</code></td><td>把脚本保存到设备脚本列表。</td></tr>
-          <tr><td><code>Stop Active Script</code></td><td>停止当前脚本、定时器和后台任务。</td></tr>
-          <tr><td><code>Capture Device Screenshot</code></td><td>抓取当前设备画面。</td></tr>
-          <tr><td><code>Open Visual Inspector</code></td><td>采集截图和节点树并进行交互调试。</td></tr>
+          <tr><td>搜索 Wi-Fi 手机</td><td>自动扫描局域网，手机卡片上点“添加并连接”。</td></tr>
+          <tr><td>运行整个脚本</td><td>执行侧栏显示的脚本文件，支持未保存内容；右键与标题栏 ▶ 也能运行。</td></tr>
+          <tr><td>只运行选中代码</td><td>只发送单个非空 JS/TS 选区；不继承上次运行的变量。</td></tr>
+          <tr><td>停止脚本</td><td>发送协作停止请求；纯 JavaScript 无限循环暂不能保证强制中断。</td></tr>
+          <tr><td>截图与节点</td><td>画面点选、节点查看、颜色/OCR/图像测试和代码生成。</td></tr>
+          <tr><td>运行日志 / 使用指南</td><td>查看执行结果、详细错误和插件内置离线操作说明。</td></tr>
         </tbody>
       </table>
-      <div class="callout"><strong>token 不参与广播</strong>插件把 token 放入 VS Code SecretStorage，并与工作区和稳定手机身份关联；选择另一台手机时必须重新输入。</div>`
+      <h2>找不到手机时再看这里</h2>
+      <p>先确认 App 前台运行、Wi-Fi 调试开启、本地网络权限允许，以及手机和电脑不在隔离的访客网络。只有广播被屏蔽时，展开侧栏“更多连接方式”，点“手动填写手机地址”。USB 备用需要额外安装 idevice_id / iproxy；正常 Wi-Fi 不需要。</p>
+      <div class="callout"><strong>配对码不参与广播</strong>token 保存在 VS Code SecretStorage，不放入侧栏或设置 JSON。广播身份不是密码学认证，只连接可信局域网。未信任工作区禁止运行脚本。</div>
+      <div class="callout warning"><strong>调试范围</strong>当前支持运行、停止、日志、截图与节点采集，不支持断点单步调试；真实 iPhone Wi-Fi 和跨 App 私有能力仍需真机验收。</div>`
   },
   {
     id: 'scope',
@@ -173,7 +173,7 @@ main();`)}
     body: `
       <h2>推荐流程</h2>
       <div class="steps">
-        <div class="step"><strong>打开目标页面</strong><p>UIKit 模式请让宿主 App 保持前台；特签内置适配器仅在运行时能力可用且宿主进程仍在运行时检查其他 App。然后执行 <code>AutoSDK: Open Visual Inspector</code>。</p></div>
+        <div class="step"><strong>打开目标页面</strong><p>UIKit 模式请让宿主 App 保持前台；特签内置适配器仅在运行时能力可用且宿主进程仍在运行时检查其他 App。然后点侧栏“截图与节点”。</p></div>
         <div class="step"><strong>采集关联快照</strong><p>检查器会把截图和节点树作为同一轮采集结果处理，避免节点位置与画面错位；采集可取消。</p></div>
         <div class="step"><strong>点选并验证</strong><p>点击截图或节点，查看属性、范围和层级；使用选择器测试确认唯一匹配。</p></div>
         <div class="step"><strong>生成最小选择器</strong><p>优先保留稳定且能唯一定位的属性，再复制 JavaScript 到脚本。</p></div>

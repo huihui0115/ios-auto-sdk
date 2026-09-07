@@ -76,26 +76,27 @@ test('an unconfigured one-click run can launch normal Wi-Fi discovery', () => {
 
 test('Wi-Fi connection tests share token and retry recovery for manual and discovered devices', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
-  assert.equal((source.match(/testWifiConnectionWithRecovery\(\{/g) || []).length, 3);
+  assert.equal((source.match(/testWifiConnectionWithRecovery\(\{/g) || []).length, 2);
   assert.match(source, /REENTER_TOKEN,\s*RETRY_CONNECTION/);
   assert.match(source, /testConnection\(\{ showFailure: false \}\)/);
+  assert.match(source, /testConnection\(\{ showFailure: false, showSuccess: false, throwOnFailure: true \}\)/);
   assert.match(source, /cancellable: true/);
   assert.doesNotMatch(source, /Choose how Windows connects/);
 });
 
-test('the Inspector labels pixel sampling as Color instead of a click point', () => {
+test('the Inspector labels pixel sampling as color sampling instead of clicking', () => {
   const viewSource = fs.readFileSync(path.join(__dirname, '..', 'inspector-view.js'), 'utf8');
   const webviewSource = fs.readFileSync(path.join(__dirname, '..', 'media', 'inspector.js'), 'utf8');
-  assert.match(viewSource, /data-mode="point"[^>]*>Color<\/button>/);
+  assert.match(viewSource, /data-mode="point"[^>]*>取色<\/button>/);
   assert.doesNotMatch(viewSource, /data-mode="point"[^>]*>Point<\/button>/);
   assert.match(webviewSource, /state\.selectedIndex = -1;[\s\S]{0,240}setGenerated\(''\);[\s\S]{0,240}send\('pixel', 'pixelColor'/);
   assert.match(webviewSource, /message\.type === 'pixelColor'[\s\S]{0,180}setGenerated\(model\.codeForColor\(color\)\)/);
 });
 
-test('the disconnected status bar opens Wi-Fi discovery', () => {
+test('the status bar opens the graphical device home and scan uses its controller', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
-  assert.match(source, /state === 'disconnected' \? 'autosdk\.discoverDevice' : 'autosdk\.testConnection'/);
-  assert.match(source, /discoverWifiDevices\(\{ signal: controller\.signal \}\)/);
+  assert.match(source, /connectionStatus.command = 'autosdk.openDeviceHome'/);
+  assert.match(source, /discover: discoverWifiDevices/);
   assert.match(source, /discoverUsbDevices\(/);
 });
 
@@ -103,7 +104,7 @@ test('the normal add flow is Wi-Fi first and keeps USB as an advanced command', 
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
   const wifi = manifest.contributes.commands.find(item => item.command === 'autosdk.discoverDevice');
   const usb = manifest.contributes.commands.find(item => item.command === 'autosdk.discoverUsbDevice');
-  assert.match(wifi.title, /Scan Wi-Fi/);
+  assert.match(wifi.title, /搜索 Wi-Fi/);
   assert.match(usb.title, /USB.*Advanced/);
   assert.equal(manifest.contributes.configuration.properties['autosdk.debugUrl'].default, '');
 });
