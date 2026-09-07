@@ -139,7 +139,7 @@ const guides = [
     group: '核心指南',
     title: '能力与签名',
     lead: 'iOS 自动化能力由宿主、签名和当前适配器共同决定；文档只承诺运行时报告为可用的能力。',
-    search: '能力 capabilities 签名 越狱 非越狱 跨应用 权限 安全 限制',
+    search: '能力 capabilities 签名 越狱 非越狱 跨应用 权限 安全 限制 iPhone 7 苹果7 低内存 保活 后台 发热 稳定性',
     body: `
       <h2>先读取能力</h2>
       ${codeBlock(`function main() {
@@ -157,6 +157,10 @@ main();`)}
       </table>
       <div class="callout warning"><strong>失败必须可见</strong>交互 API 返回 <code>false</code> 或 <code>null</code> 时，读取 <code>lastError()</code>；不要把“调用完成”当作“操作成功”。</div>
       <h2>安全建议</h2>
+      <h3>iPhone 7 自动稳定性保护</h3>
+      <p>不超过 2 GiB 内存的设备自动启用低内存档，无需输入代码或修改设置：内置节点最多访问 1500 个、模板深度最多 20，像素缓冲预算 16 MiB；日志最多 250 条、每条 4096 字符、合计 1 MiB，脚本最多 1 MiB。图片预算不是整个 App 的内存上限。</p>
+      <p>截图、图色和 OCR 在内置适配器内单任务执行，忙时提示稍后重试。节点搜索或匹配达到预算会明确报错；缩小区域或页面后再试。OCR 保留原精确模式。</p>
+      <div class="callout warning"><strong>后台时间有限，不会自动重放动作</strong>每次脚本向 iOS 申请有限后台执行时间；到期、低内存告警或严重发热时请求停止并释放可清理缓存。回到 App 确认页面后手动重新运行。iOS 可能拒绝额度、挂起或终止进程；普通签名不保证跨 App 自动化。纯 JavaScript 死循环仍不能可靠强制停止。iPhone 7 真机长测与安装权限尚待验证。</div>
       <ul>
         <li>发布构建默认关闭调试服务器，开发时才显式启用。</li>
         <li>Wi-Fi 模式使用随机长 token，只连接可信局域网。</li>
@@ -297,12 +301,13 @@ main();`)}
     group: '帮助',
     title: '排错清单',
     lead: '按连接、能力、选择器和脚本生命周期的顺序排查，通常能最快定位问题。',
-    search: '排错 故障 连接失败 token 点击 false 找不到 节点 HTTP lastError 超时 死循环',
+    search: '排错 故障 连接失败 token 点击 false 找不到 节点 HTTP lastError 超时 死循环 iPhone 7 苹果7 低内存 后台 到期 发热',
     body: `
       <div class="faq"><h3>插件搜不到 Wi-Fi 手机或连不上</h3><ol><li>保持宿主 App 在前台，确认 Wi-Fi 调试已开启并允许 iOS“本地网络”权限。</li><li>电脑和手机必须在同一局域网；访客网络/AP 隔离会阻止互访。</li><li>放行 mDNS UDP 5353 后重新运行 <code>Scan Wi-Fi and Add iPhone</code>；仍搜不到就选择手动输入 App 显示的 IP。</li><li>确认 token 来自当前安装，端口为 9001。</li></ol></div>
       <div class="faq"><h3>点击返回 false</h3><p>打印 <code>auto.capabilities()</code> 与 <code>lastError()</code>。确认当前适配器支持触摸、坐标在屏幕范围内，节点仍然可见且可交互。</p></div>
       <div class="faq"><h3>选择器找不到节点</h3><p>重新采集检查器快照，先测试单个稳定条件，再逐步增加限制。注意页面切换、动画、WebView 和动态文本会让旧节点失效。</p></div>
       <div class="faq"><h3>HTTP 请求被拒绝</h3><p>检查宿主的 HTTP 开关、域名白名单、ATS/TLS 配置和超时。<code>http.getJSON()</code> 返回完整响应，解析结果在 <code>response.json</code>。</p></div>
+      <div class="faq"><h3>iPhone 7 跨 App 后停止或 Wi-Fi 断开</h3><p>先看停止原因：后台时间到期、内存告警或严重发热均会请求停止。切回 AutoSDK，待降温后重连，再确认页面、手动运行；不要自动重试有副作用的点击。系统回收进程时可能来不及输出日志，需收集设备退出日志。安装方式和实际权限决定跨 App 能力。</p></div>
       <div class="faq"><h3>脚本一直不结束</h3><p>检查未清理的 <code>setInterval</code>、后台线程、音频或持续任务。用 <code>Stop Active Script</code> 停止，并在 <code>finally</code> 中释放资源。</p></div>
       <h2>最小诊断脚本</h2>
       ${codeBlock(`function main() {

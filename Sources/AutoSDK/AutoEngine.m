@@ -5,6 +5,8 @@
 #import "AutoBootstrapScript.h"
 #import "AutoHTTPSupport.h"
 #import "AutoSystemOperations.h"
+#import "AutoBackgroundLease.h"
+#import "AutoResourcePolicy.h"
 #import <JavaScriptCore/JavaScriptCore.h>
 #import <UIKit/UIKit.h>
 #import <Photos/Photos.h>
@@ -146,6 +148,9 @@
 @property (nonatomic, strong) dispatch_queue_t scriptQueue;
 @property (nonatomic, strong) dispatch_queue_t debugAdapterQueue;
 @property (nonatomic, assign) BOOL stopRequested;
+@property (nonatomic, strong) AutoBackgroundLease *backgroundLease;
+@property (nonatomic, strong) NSUUID *activeRunIdentifier;
+@property (atomic, copy) NSString *stopReason;
 @property (nonatomic, strong) NSMutableArray<AVAudioPlayer *> *audioPlayers;
 @property (nonatomic, strong) NSMutableDictionary<NSNumber *, AVAudioPlayer *> *audioPlayersById;
 @property (nonatomic, assign) NSUInteger audioPlayerIdCounter;
@@ -1501,7 +1506,7 @@ static AutoEnginePixelBuffer AutoEnginePixelBufferMake(CGImageRef image) {
     if (width == 0 || height == 0 || width > SIZE_MAX / 4 || height > SIZE_MAX / (width * 4)) return result;
     size_t bytesPerRow = width * 4;
     size_t byteCount = height * bytesPerRow;
-    if (byteCount > 64 * 1024 * 1024) return result;
+    if (byteCount > AutoDecodedImageBudget(NSProcessInfo.processInfo.physicalMemory)) return result;
     uint8_t *bytes = calloc(height, bytesPerRow);
     if (!bytes) return result;
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
@@ -4250,7 +4255,9 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _config = @{};
+        _config = AutoUsesLowMemoryProfile(NSProcessInfo.processInfo.physicalMemory)
+            ? @{ @"maxLogEntries": @250, @"maxLogMessageLength": @4096,
+                 @"maxLogBytes": @(1024 * 1024), @"maxScriptBytes": @(1024 * 1024) } : @{};
         _nativeMethods = [NSMutableDictionary dictionary];
         _asyncThreads = [NSMutableArray array];
         _adapter = [AutoUnavailableAdapter new];
@@ -4258,6 +4265,10 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         _debugAdapterQueue = dispatch_queue_create("com.autosdk.debug-adapter", DISPATCH_QUEUE_SERIAL);
         _debugServerQueue = dispatch_queue_create("com.autosdk.debug-server-state", DISPATCH_QUEUE_SERIAL);
         dispatch_queue_set_specific(_debugServerQueue, AutoDebugServerQueueKey, AutoDebugServerQueueKey, NULL);
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(handleResourcePressure:)
+            name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(handleResourcePressure:)
+            name:NSProcessInfoThermalStateDidChangeNotification object:nil];
     }
     return self;
 }
@@ -4266,10 +4277,50 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     [self configureWithConfig:config];
 }
 
+- (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self];
+    [_backgroundLease finish];
+}
+
+- (void)requestStopForRun:(NSUUID *)identifier reason:(NSString *)reason {
+    @synchronized (self) {
+        if (!self.running || ![self.activeRunIdentifier isEqual:identifier]) return;
+        self.stopReason = reason;
+        self.stopRequested = YES;
+        // No waiting for JS/SQL/network completion on the expiration callback.
+        if ([self.activeAdapter respondsToSelector:@selector(cancelCurrentOperations)]) [self.activeAdapter cancelCurrentOperations];
+        [self.scriptTask cancel];
+    }
+}
+
+- (void)handleResourcePressure:(NSNotification *)notification {
+    BOOL memory = [notification.name isEqualToString:UIApplicationDidReceiveMemoryWarningNotification];
+    if (!memory && NSProcessInfo.processInfo.thermalState < NSProcessInfoThermalStateSerious) return;
+    id<AutoAutomationAdapter> adapter;
+    @synchronized (self) {
+        [self requestStopForRun:self.activeRunIdentifier reason:memory
+            ? @"Stopped because iOS reported low memory. Return to AutoSDK and reduce the workload before running again."
+            : @"Stopped because the device is overheating. Let it cool before running again."];
+        adapter = self.adapter;
+        if (self.activeAdapter != adapter && [self.activeAdapter respondsToSelector:@selector(releaseCachedResources)]) {
+            [self.activeAdapter releaseCachedResources];
+        }
+    }
+    if ([adapter respondsToSelector:@selector(releaseCachedResources)]) [adapter releaseCachedResources];
+}
+
 - (void)configureWithConfig:(NSDictionary<NSString *,id> *)config {
     NSDictionary *configSnapshot = nil;
     @synchronized (self) {
         configSnapshot = AutoImmutableConfigSnapshot(config);
+        if (AutoUsesLowMemoryProfile(NSProcessInfo.processInfo.physicalMemory)) {
+            NSMutableDictionary *bounded = [configSnapshot mutableCopy];
+            bounded[@"maxLogEntries"] = @(AutoBoundedPositiveInteger(bounded[@"maxLogEntries"], 250, 250));
+            bounded[@"maxLogMessageLength"] = @(AutoBoundedPositiveInteger(bounded[@"maxLogMessageLength"], 4096, 4096));
+            bounded[@"maxLogBytes"] = @(AutoConfiguredByteLimit(bounded, @"maxLogBytes", 1024 * 1024, 1024 * 1024));
+            bounded[@"maxScriptBytes"] = @(AutoConfiguredByteLimit(bounded, @"maxScriptBytes", 1024 * 1024, 1024 * 1024));
+            configSnapshot = [bounded copy];
+        }
         self.config = configSnapshot;
         if ([configSnapshot[@"adapter"] conformsToProtocol:@protocol(AutoAutomationAdapter)]) {
             self.adapter = configSnapshot[@"adapter"];
@@ -4962,6 +5013,11 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         dispatch_async(dispatch_get_main_queue(), ^{ if (completion) completion(nil, AutoMakeError(AutoSDKErrorScriptNotFound, @"Script source is empty.", nil)); });
         return;
     }
+    if (NSProcessInfo.processInfo.thermalState >= NSProcessInfoThermalStateSerious) {
+        dispatch_async(dispatch_get_main_queue(), ^{ if (completion) completion(nil,
+            AutoMakeError(AutoSDKErrorAutomationUnavailable, @"Device is overheating; wait for it to cool before running scripts.", nil)); });
+        return;
+    }
     __block NSDictionary *runConfig = nil;
     __block id<AutoAutomationAdapter> runAdapter = nil;
     @synchronized (self) {
@@ -4971,16 +5027,23 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         }
         self.running = YES;
         self.stopRequested = NO;
+        self.stopReason = nil;
+        NSUUID *identifier = NSUUID.UUID;
+        self.activeRunIdentifier = identifier;
         runConfig = self.config ?: @{};
         runAdapter = self.adapter ?: [AutoUnavailableAdapter new];
         self.activeAdapter = runAdapter;
+        __weak AutoEngine *weakSelf = self;
+        self.backgroundLease = [AutoBackgroundLease leaseWithExpiration:^{
+            [weakSelf requestStopForRun:identifier reason:@"iOS background execution time expired. Return to AutoSDK and run again; actions are not replayed automatically."];
+        }];
     }
     [self loadScript:scriptPathOrSource config:runConfig completion:^(NSString * _Nullable source, NSError * _Nullable error) {
-        if (error) { [self finishWithResult:nil error:error completion:completion]; return; }
         if ([self shouldStop]) {
-            [self finishWithResult:nil error:AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil) completion:completion];
+            [self finishWithResult:nil error:AutoMakeError(AutoSDKErrorScriptCancelled, self.stopReason ?: @"Script cancelled.", nil) completion:completion];
             return;
         }
+        if (error) { [self finishWithResult:nil error:error completion:completion]; return; }
         dispatch_async(self.scriptQueue, ^{ [self evaluateScript:source config:runConfig adapter:runAdapter completion:completion]; });
     }];
 }
@@ -5237,7 +5300,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     if (watchdog) dispatch_source_cancel(watchdog);
     NSError *error = nil;
     if (didTimeOut) error = AutoMakeError(AutoSDKErrorScriptTimeout, @"Script execution timed out.", nil);
-    else if ([self shouldStop]) error = AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil);
+    else if ([self shouldStop]) error = AutoMakeError(AutoSDKErrorScriptCancelled, self.stopReason ?: @"Script cancelled.", nil);
     else if (context.exception) {
         NSString *exceptionMessage = [context.exception toString];
         NSString *message = [exceptionMessage isKindOfClass:NSString.class] ? exceptionMessage : @"JavaScript exception";
@@ -5258,6 +5321,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 }
 
 - (void)finishWithResult:(NSDictionary *)result error:(NSError *)error completion:(AutoScriptCompletion)completion {
+    AutoBackgroundLease *lease;
     NSArray *asyncThreadsToStop = nil;
     @synchronized (self) {
         asyncThreadsToStop = [self.asyncThreads copy];
@@ -5268,9 +5332,13 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         asyncThread.bridge.threadCancelled = YES;
     }
     @synchronized (self) {
+        lease = self.backgroundLease;
+        self.backgroundLease = nil;
+        self.activeRunIdentifier = nil;
         self.running = NO;
         self.stopRequested = NO;
         self.activeAdapter = nil;
+        self.currentScriptSource = nil;
         if (self.audioStopWhenScriptEnd) {
             self.audioStopWhenScriptEnd = NO;
             [self stopAllAudioPlayback];
@@ -5280,6 +5348,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
             [self.speechSynthesizer stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
         }
     }
+    [lease finish];
     [self cleanupOverlayUI];
     dispatch_async(dispatch_get_main_queue(), ^{ if (completion) completion(result, error); });
 }

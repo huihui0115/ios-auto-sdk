@@ -8,7 +8,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-static const size_t AutoUIKitMaxPixelBufferBytes = 64 * 1024 * 1024;
+#import "AutoResourcePolicy.h"
+#define AutoUIKitMaxPixelBufferBytes AutoDecodedImageBudget(NSProcessInfo.processInfo.physicalMemory)
 static const NSUInteger AutoUIKitMaxColorPoints = 4096;
 static const NSUInteger AutoUIKitMaxColorOffsets = 256;
 static const NSUInteger AutoUIKitDefaultColorCandidates = 200000;

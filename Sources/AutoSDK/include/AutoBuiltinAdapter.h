@@ -26,7 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @interface AutoBuiltinAdapter : NSObject <AutoAutomationAdapter>
 
-/** Maximum number of elements returned by one accessibility walk (default 5000). */
+/** Visit/result limit per walk (default 5000; <=2 GiB devices capped at 1500). */
 @property (nonatomic, assign) NSUInteger maxSnapshotNodes;
 /** Maximum traversal depth for accessibility walks (default 30). */
 @property (nonatomic, assign) NSUInteger maxSnapshotDepth;

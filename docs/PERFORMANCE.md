@@ -1,243 +1,71 @@
-# Runtime performance
+# iPhone 7 稳定性与资源预算
 
-The SDK keeps the default automation behavior compatible while reducing
-temporary allocations and repeated adapter work.
+Round 77 · SDK v1.40.0 · 2026-09-07
 
-> Note (v1.17.0): `AutoWDAHTTPAdapter` has been removed. Every WDA-related
-> budget and description below is archived for reference; the current
-> cross-app path is the built-in no-WDA adapter (see `NO_WDA_ARCHITECTURE.md`).
+面向 iPhone 7 的低内存改进自动启用，不需要用户填写脚本或修改参数。
+当前跨 App 路线是内置 no-WDA 适配器；已移除的 WDA 参数不再列为现行方案。
 
-## What is optimized
+## 自动保护
 
-- WDA `/source` is parsed once for the short parent/child/sibling query window.
-  The tree is invalidated after touch, input, scrolling, app lifecycle changes,
-  and session restarts, and is released automatically when the window expires.
-- WDA window dimensions are reused for two seconds. This avoids an extra
-  `/window/size` request for every color, image, or OCR operation.
-- WDA screenshot reuse is opt-in (`screenshotCacheDuration`) because animated
-  screens can make a cached frame incorrect.
-- Screenshot, source-tree, and window-size cache ages now begin after a
-  successful capture/request. Slow WDA calls therefore do not consume the
-  cache lifetime before the value becomes usable. Changing a cache duration
-  immediately releases the previous cached value.
-- All HTTP and remote-script requests reuse one engine-wide `NSURLSession`
-  with keep-alive connections instead of creating an ephemeral session per
-  request. TLS sessions and connection pools survive between calls, so
-  repeated `auto.http` traffic no longer pays a new handshake for every
-  request. Per-task redirect policies keep the same allowlist semantics.
-- Vision, PNG decoding, source parsing, and pixel matching run inside local
-  autorelease pools. This keeps temporary UIKit/CoreGraphics objects from
-  accumulating until the next event-loop turn.
-- UIKit visual operations consume the renderer's `UIImage` directly. PNG
-  encoding is deferred until a script explicitly requests `screenshot()`,
-  avoiding an encode/decode round trip for image, color, and OCR calls.
-- UIKit capture is serialized on the main thread, while image/color scans and
-  Vision OCR continue on the caller's background queue. This keeps expensive
-  pixel and recognition work from blocking UI event delivery.
-- Image matching caps the combined template plus screenshot RGBA working set
-  at 64 MiB and rejects templates larger than the ROI before allocating pixel
-  buffers. Matching exits early when the requested similarity is no longer
-  possible. File-backed templates use
-  `imageWithContentsOfFile:` and a dedicated 32-entry/32 MiB `NSCache`, so
-  repeated templates avoid disk decoding without entering UIKit's unbounded
-  global `imageNamed:` cache. File size and modification time are part of the
-  key, so replacing a template invalidates it automatically.
-- Script logs are bounded to 1,000 entries, 16 KB per message, and 8 MiB of
-  retained message text by default. `maxLogEntries`, `maxLogMessageLength`,
-  and `maxLogBytes` have hard caps of 10,000, 256 KiB, and 32 MiB so an
-  accidental diagnostic configuration cannot exhaust phone memory.
-- Script results are bounded to 24 nesting levels, 50,000 container entries
-  and 1 MiB per string; oversized nodes become `__autosdkTruncated` markers.
-- Script sleeps and element polling pump the run loop with a real thread
-  sleep fallback. JavaScriptCore's modern execution-time limit is dispatched
-  on a GCD queue, so the script thread's run loop has no sources; without the
-  fallback a naive runMode: pump would busy-spin a CPU core for the whole
-  sleep. Old runtimes that attach a CFRunLoopTimer still block in runMode: and
-  never take the sleep path.
-- metrics.point/x/y never cross the native bridge. With
-  setScreenMetrics(w, h) they use the device size captured once at setup
-  time; without it they are pure 1:1 math. Only getScreenMetrics() and
-  metrics.get() query the live screen size (and setScreenMetrics captures
-  it once at setup). Re-call setScreenMetrics after a rotation to re-anchor
-  the mapping.
-- The timer drain sleeps for the whole remaining wait in one native
-  `invokeSleep` call instead of slicing it into 50 ms chunks from JavaScript.
-  A one-second `setTimeout` therefore costs a single JSC-to-Objective-C round
-  trip instead of about twenty, while the native sleep keeps its 20 ms
-  interruptible run-loop pump, so `stopScript` still aborts a pending timer
-  wait promptly.
-- The JavaScript timer queue accepts at most 10,000 active timers and clamps a
-  delay/interval to one hour, preventing accidental loops from retaining an
-  unbounded number of callbacks. Clearing a queued timer removes its cancellation
-  marker immediately, so repeated create/clear cycles do not grow retained state.
-  One `runScript` keeps executing until the timer queue drains, so
-  `setInterval` keeps running until `stopScript` or `scriptTimeout`.
-  `scriptTimeout` is the total execution budget and includes timer callbacks.
-  Timers fire only while the script thread pumps: callback bodies are
-  single-threaded with the main script, so work inside `auto.sleep` or a long
-  `waitFor` cannot interleave timer callbacks. Repeat timers re-anchor their
-  next deadline to `Date.now()` after each callback, so a slow callback delays
-  the next tick without a catch-up burst, and the native sleep returns `NO`
-  when the engine stops so the drain loop aborts instead of sleeping the full
-  remaining wait.
-- Automation, file, storage, HTTP, device, image, app, console, native extension,
-  and timer entry points check script cancellation before crossing the bridge.
-  A loop that repeatedly calls SDK APIs therefore exits on its next call after
-  `stopScript`. Pure-JavaScript loops (including loops inside timer
-  callbacks) are interrupted by the JavaScriptCore execution-time limit when
-  `scriptTimeout` elapses or when `stopScript` is called; this hard
-  interruption is configurable via `interruptibleScripts` (defaults to YES)
-  and is skipped on runtimes that do not export the weak-linked symbols.
-- Regex selectors use a bounded 128-entry `NSCache` in both adapters, avoiding
-  recompilation for every view or source-tree node. Invalid expressions are
-  cached as failures and patterns over 1,024 characters are rejected, avoiding
-  repeated parser work during large-tree scans.
-- UIKit single-node, multi-node, snapshot, and scroll-view fallback traversals
-  cap both visited views and temporary DFS stack growth. A high-fanout view
-  hierarchy therefore cannot bypass the node budget with one large expansion.
-- Template matching starts with a one-pixel origin step, limits coarse
-  candidates to 200,000 by default, and accepts `maxCandidates` up to
-  5,000,000. A region is searched in pixel coordinates, and the adaptive step
-  only changes the coarse scan when the region exceeds the budget; promising
-  candidates are still verified at the requested threshold. Region-limited image and
-  single-color searches allocate an RGBA buffer for the ROI instead of the
-  complete screenshot. Image and color scan steps are bounded to 1-1,024 to
-  prevent integer overflow from malformed options.
-  Coarse and exact verification calls now share one hard candidate budget;
-  exact verification is capped at 4,096 calls and responses expose
-  `coarseCandidates`, `verifiedCandidates`, and `truncated`. Transparent PNG
-  template pixels are ignored and partial alpha is weighted after
-  unpremultiplication.
-  Matching now also has a worst-case comparison budget (`maxComparedPixels`,
-  50 million by default and 500 million hard maximum). If adaptive stepping or
-  the pixel budget leaves positions unchecked, a failed result reports
-  `truncated: true` instead of claiming an exhaustive miss.
-- `findColor` and `findMultiColor` default to a 200,000 `maxCandidates` budget
-  (configurable from 1,000-5,000,000) and a 50 million actual-comparison budget
-  (`maxComparedPixels`, maximum 500 million). Multi-color comparisons count
-  the base pixel and every checked offset, so a 256-offset pattern cannot turn
-  one candidate budget into unbounded CPU work. Bounded misses report
-  `truncated`, `scannedCandidates`, `comparedPixels`, and `effectiveStep`.
-  Multi-color offsets are parsed and converted to pixel values once before scanning.
-  `compareColors` accepts at most 4,096 points and `findMultiColor` at most 256
-  offsets, bounding script-controlled CPU and temporary allocation.
-- Vision OCR supports `mode: "fast"` and `mode: "accurate"`. Fast mode turns
-  language correction off unless `languageCorrection` is explicitly supplied.
-  `maxResults` defaults to and is capped at 1,000 to prevent an unusually dense
-  frame from growing the result array without bound. OCR also rejects a request image over
-  the 64 MiB pixel budget (after ROI cropping). Invalid language/custom-word
-  entries are ignored, and Vision exceptions are converted to SDK errors.
-- WDA source parsing uses an explicit traversal stack and per-parent type
-  counters. This avoids repeated sibling scans and deep recursive calls. The
-  source response is bounded to 16 MiB and 50,000 nodes by default, with
-  configurable maximums of 32 MiB and 200,000 nodes. XPath strings are kept as
-  path components and materialized only when a selector or returned node needs
-  them, reducing retained memory for deep trees. SDK-generated absolute XPath
-  handles are resolved one hierarchy level at a time instead of scanning every
-  node.
-- UIKit node handles are stored in a strong-key/weak-view registry. Reusing a
-  returned node resolves its live view directly instead of scanning the full
-  hierarchy and assigning handles to unrelated views. Full UIKit hierarchy
-  searches use an explicit traversal stack, avoiding native stack exhaustion
-  on unusually deep view trees.
-- WDA JSON responses are cancelled when their known transfer size exceeds 40
-  MiB and are capped again before parsing. Decoded WDA screenshots are limited
-  to 24 MiB. Script/debug screenshot output defaults to 16 MiB with a 20 MiB
-  hard configuration maximum, while the WebSocket response limit is 32 MiB.
-- WDA session creation, screenshots, and source requests are single-flight.
-  State locks are never held across session-creation HTTP waits, and cache
-  generation checks prevent a response captured before a click/input from
-  being committed after that operation invalidates the cache.
-- WDA session settings are single-flight and configuration-generation aware.
-  Concurrent session preparation waits on the same application lock; a late
-  response for old settings is discarded and the newest generation is applied
-  before the waiter proceeds.
-- Image/color/OCR processing is serialized per adapter across scripts and
-  Inspector requests. Cancellation generations close the WDA task-creation
-  registration race, are polled every 4,096 local pixel comparisons, and cancel
-  registered Vision requests. UIKit captures the frame before waiting for its
-  processing lock to avoid a background-to-main-thread lock inversion.
-  WDA composite visual and element requests carry their original cancellation
-  generation into nested screenshot, window-size, session-recovery, and
-  settings calls, so a stop between subrequests cannot start fresh network work.
-- Script APIs check cancellation in both the JavaScript wrapper and every
-  Objective-C bridge entry. If a stop lands between those checks, the native
-  gate injects a JavaScript exception immediately instead of allowing the
-  script to continue after a cancelled adapter call.
-- UIKit debug screenshots capture the view on the main thread, then perform
-  PNG and base64 encoding on the background adapter queue. Hidden UIKit
-  subtrees are pruned from snapshots, and selector searches enforce a bounded
-  `maxVisited` budget.
-- Each debug peer accepts at most eight in-flight requests and one heavy
-  screenshot/node/pixel/image/OCR request, preventing rapid Inspector refreshes from
-  multiplying large temporary buffers.
-- The VS Code Inspector serializes those heavy requests, cancels its current
-  client wait and invalidates queued stale generations on Cancel/Escape, and
-  commits an exportable snapshot only while its originating signal is current
-  and live. Explicitly aborted response IDs are retained in a bounded 128-entry
-  ignore set so their eventual replies do not appear as protocol faults.
-- Script HTTP request bodies and responses default to 10 MiB limits with 64 MiB
-  hard maximums. Normal response chunks are checked before being appended;
-  callers can disable unused UTF-8, base64, and JSON representations.
-  `http.downloadFile` uses a temporary download file and atomic sandbox install
-  instead of routing the payload through JavaScript as base64. A completed
-  transfer is staged first and installed only after the script thread confirms
-  it was not cancelled, preventing a late callback from writing after timeout.
-  Completed normal responses transfer their delegate buffer directly instead
-  of copying a second full-size `NSData` before representation conversion.
-- Remote scripts download to a temporary file instead of accumulating in a
-  data-task buffer. Their default 5 MiB limit has a 64 MiB hard maximum; known
-  oversized transfers are cancelled before the file is decoded as UTF-8.
-- Script file reads check metadata before mapping data; text/base64 writes are
-  checked before and after encoding. Reads and writes default to 10 MiB with
-  64 MiB hard maximums. Copy, recursive removal, and directory listing have
-  configurable byte/item budgets so one operation cannot enumerate or copy an
-  unbounded tree while holding the file mutation lock. Named storage has a
-  16 MiB hard maximum.
-- The debug WebSocket transport composes a small frame header with the existing
-  JSON `NSData` through `dispatch_data_create_concat`, avoiding a complete
-  payload copy for screenshot and other large debug responses.
-- `auto.waitFor` checks immediately, then uses a bounded 50 ms to 250 ms
-  backoff. Set `waitPollInterval` in `AutoEngine` config to change the initial
-  interval while keeping the overall timeout unchanged. WDA existence checks
-  use the single-result `/element` endpoint, avoiding repeated allocation and
-  transfer of every matching element during polling.
-- Coordinate and duration arguments are checked for finite values in both the
-  JavaScript bridge and adapters. Invalid `NaN`/`Infinity` input is rejected
-  before CoreGraphics, UIKit animation, or WDA JSON serialization.
+按实际物理内存选择配置：不超过 2 GiB（或读取失败）使用低内存档。
+下面是资源上限，不是速度、续航或进程常驻内存保证。
 
-## Optional WDA settings
+| 项目 | 低内存档 | 行为 |
+| --- | --- | --- |
+| 内置节点采集 | 最多访问 1,500 个节点，默认深度 20 | 有界迭代，避免递归引用环；访问数与命中数分开计算 |
+| 模板 App 节点深度 | 最多 20 | 防止旧配置覆盖低内存默认值 |
+| RGBA 像素缓冲 | 16 MiB；其他设备 32 MiB | 内置找图的模板与截图合计；引擎、文件图像和 UIKit 像素缓冲也使用该单次预算 |
+| 内置图像解码 | 压缩数据最多 16 MiB，尺寸预算前置 | 先读元数据，再创建图像；不以压缩文件小推断解码内存小 |
+| 内置视觉任务 | 每个适配器同时 1 个 | 截图、取色、找色、找图、OCR 共用非阻塞保护；忙时明确报错，不堆积等待 |
+| 内置匹配计算 | 模板比较最多 1,500 万次，多点偏移比较最多 800 万次 | 分片检查取消；工作量耗尽报错，不声称完整搜索未命中 |
+| 脚本日志 | 250 条 / 每条 4,096 字符 / 合计 1 MiB | 更低的用户配置仍然保留 |
+| 脚本来源 | 1 MiB | 本地、内联和远程脚本使用引擎配置边界 |
+| 手机编辑器日志显示 | 最近 64 Ki 字符 | 合并批量更新，避免逐行重绘与无限拼接 |
 
-`AutoWDAHTTPAdapter.sessionSettings` is sent to `/appium/settings` after each
-session is created. Useful settings are runner-dependent. For example:
+节点快照可以是有界的部分结果。带条件搜索达到访问/深度上限而未完成时返回明确错误，
+应缩小页面或定位范围，不能把它当作“目标不存在”。结果达到请求数量时仍正常提前返回。
+内置 OCR 保持精确识别模式，不因设备旧而暗中降低识别模式；高开销任务尽量缩小区域。
 
-```objc
-adapter.sessionSettings = @{
-    @"shouldUseCompactResponses": @YES,
-    @"animationCoolOffTimeout": @0.2
-};
-```
+像素预算只覆盖被检查的图像/缓冲，不包括系统截图、解码器内部副本、Vision 模型、
+JavaScriptCore、网络、结果序列化和所有原生缓存。内存告警也不保证在系统回收进程前送达。
+文件/HTTP/多线程及其他旧图像路径仍需持续专项审计；不要将此表理解为整个进程 RSS 上限。
 
-Unsupported settings are ignored by default. Set
-`ignoresUnsupportedSessionSettings = NO` when deployment consistency is more
-important than compatibility with older WDA-compatible runners. Do not enable
-snapshot depth/children limits without testing selectors used by the script
-set, because those limits can hide nodes.
+## 切到其他 App 后
 
-## Measurement
+每次运行申请一个 iOS 正规的有限后台执行额度，结束和到期只释放一次。
+到期回调带运行标识，旧回调不会误停下一次运行；任务结束释放脚本源码引用。
 
-Apple recommends measuring energy and memory with Xcode Instruments on a real
-device. The repository cannot perform that measurement on Windows without
-Xcode, so the remaining numbers must be collected after WDA activation is
-installed on the target iPhone. Record idle CPU, peak resident memory during
-OCR/findImage, and request counts for repeated node traversal before and after
-changing the cache durations.
+- 到期：设置停止原因，请求取消当前原生工作和脚本下载。
+- 内存告警：请求停止运行，清理内置截图缓存并取消活动 Vision 请求。
+- 严重/临界热状态：请求停止；降温前拒绝启动新脚本。
+- 停止或恢复前台后不会自动重放点击、付款或其他脚本动作。由用户确认页面后重新运行。
 
-References:
+停止是协作式的：SDK 调用、等待和受控循环能响应；纯 JavaScript 死循环仍不能可靠抢占。
+第三方适配器的 cancelCurrentOperations / releaseCachedResources 必须线程安全且非阻塞。
+系统可能拒绝后台额度，也可能挂起或终止进程；Wi-Fi 调试连接也可能随之断开。
+没有加入静默音频、伪造定位用途或未经验证的私有保活方式。
 
-- https://developer.apple.com/library/archive/documentation/Performance/Conceptual/EnergyGuide-iOS/
-- https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/MemoryMgmt/Articles/mmAutoreleasePools.html
-- https://github.com/appium/WebDriverAgent
-- https://github.com/AirtestProject/iOS-Tagent
-- https://github.com/Tencent/MLeaksFinder (development-time leak detection)
-- https://github.com/SDWebImage/SDWebImage (bounded image-cache patterns)
+普通签名、TrollStore、越狱不能混为一种运行环境；安装方式本身不证明具体 entitlement 已具备。
+跨 App 触摸、节点和截图需要按实际设备与权限验证，不能只凭符号存在或 capabilities 就当作验收通过。
+
+依据：[Apple 后台策略](https://developer.apple.com/documentation/BackgroundTasks/choosing-background-strategies-for-your-app)。
+后台额度由系统决定，不能承诺固定分钟数，更不能承诺无限保活。
+
+## iPhone 7 真机验收（尚未完成）
+
+记录 iOS 版本、安装方式、实际签名权限、剩余存储、电池状态和构建标签。
+建议先按以下步骤跑 30 分钟；这是验收方案，不是已测结果或性能承诺。
+
+1. 前台连续采集节点、截图、找色和 OCR；观察结果正确性、延迟、峰值内存与是否持续增长。
+2. 在明确支持跨 App 权限的安装上切换两个测试 App，重复查询与点击，并核对执行次数。
+3. 分别测试锁屏、切回前台、Wi-Fi 断开重连。确认不会擅自续跑或重复动作。
+4. 开发环境模拟内存告警和后台到期，确认错误原因清楚、旧缓存释放、新任务可正常启动。
+5. 开启低电量模式，在自然出现发热时观察保护；不要通过遮盖/加热设备制造过热。
+6. 用 Xcode Instruments / 设备日志收集内存峰值、热状态、退出原因及长测结果，再决定后续预算。
+
+## 回归范围
+
+原生测试覆盖内存策略边界、图像元数据预检、有界/深度/高扇出/循环节点、
+连续采集结果释放、并发视觉任务、取消期间缓存、异常后再次采集、
+后台额度重复/同步/迟到回调、不同运行隔离以及内存告警处理。
+Node 测试不替代原生测试；macOS 模拟器测试也不替代 iPhone 7 的低内存、私有权限和后台真机验收。

@@ -1,4 +1,5 @@
 #import "AutoScriptSupport.h"
+#import "AutoResourcePolicy.h"
 #import <CoreFoundation/CoreFoundation.h>
 #import "include/AutoSDKError.h"
 #import <CommonCrypto/CommonDigest.h>
@@ -372,7 +373,7 @@ static AutoSupportPixelImage AutoSupportPixelImageMake(CGImageRef image) {
     if (width == 0 || height == 0 || width > SIZE_MAX / 4 || height > SIZE_MAX / (width * 4)) return result;
     size_t bytesPerRow = width * 4;
     size_t byteCount = height * bytesPerRow;
-    if (byteCount > 64 * 1024 * 1024) return result;
+    if (byteCount > AutoDecodedImageBudget(NSProcessInfo.processInfo.physicalMemory)) return result;
     uint8_t *bytes = calloc(height, bytesPerRow);
     if (!bytes) return result;
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
@@ -1615,7 +1616,7 @@ id AutoScriptFileOperation(NSDictionary<NSString *,id> *payload,
             return nil;
         }
         NSDictionary *properties = (__bridge_transfer NSDictionary *)CGImageSourceCopyPropertiesAtIndex(source, 0, NULL);
-        CGImageRef image = CGImageSourceCreateImageAtIndex(source, 0, NULL);
+        CGImageRef image = AutoCreateBudgetedImage(data, AutoDecodedImageBudget(NSProcessInfo.processInfo.physicalMemory));
         CFRelease(source);
         if (!image) {
             if (error) *error = AutoSupportError(AutoSDKErrorFileOperationFailed, @"Unable to decode the image file.", nil);

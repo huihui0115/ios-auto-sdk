@@ -100,8 +100,13 @@
 }
 
 - (void)appendLog:(NSString *)text {
+    const NSUInteger limit = 64 * 1024;
+    text = text ?: @"";
+    if (text.length > limit) text = [text substringFromIndex:text.length - limit];
     NSString *existing = self.logView.text ?: @"";
-    self.logView.text = existing.length == 0 ? text : [existing stringByAppendingFormat:@"\n%@", text];
+    if (existing.length > limit) existing = [existing substringFromIndex:existing.length - limit];
+    NSString *combined = existing.length == 0 ? text : [existing stringByAppendingFormat:@"\n%@", text];
+    self.logView.text = combined.length > limit ? [combined substringFromIndex:combined.length - limit] : combined;
     [self.logView scrollRangeToVisible:NSMakeRange(self.logView.text.length, 0)];
 }
 
@@ -119,11 +124,16 @@
         strongSelf.running = NO;
         NSArray *logs = error ? error.userInfo[@"logs"] : result[@"logs"];
         if ([logs isKindOfClass:NSArray.class]) {
+            NSMutableArray *lines = [NSMutableArray array];
+            NSUInteger total = 0;
             for (NSDictionary *entry in logs) {
                 if ([entry isKindOfClass:NSDictionary.class]) {
-                    [strongSelf appendLog:[NSString stringWithFormat:@"[%@] %@", entry[@"level"] ?: @"log", entry[@"message"] ?: @""]];
+                    NSString *line = [NSString stringWithFormat:@"[%@] %@", entry[@"level"] ?: @"log", entry[@"message"] ?: @""];
+                    if (total + line.length > 64 * 1024) { [lines addObject:@"[日志显示已截断]"]; break; }
+                    [lines addObject:line]; total += line.length + 1;
                 }
             }
+            [strongSelf appendLog:[lines componentsJoinedByString:@"\n"]];
         }
         if (error) {
             [strongSelf appendLog:[NSString stringWithFormat:@"Error (%ld): %@", (long)error.code, error.localizedDescription ?: @""]];

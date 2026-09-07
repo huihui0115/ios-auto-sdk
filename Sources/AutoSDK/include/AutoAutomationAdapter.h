@@ -87,8 +87,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)performMultiTouch:(NSArray<NSArray<NSDictionary *> *> *)fingers
                     error:(NSError * _Nullable * _Nullable)error;
 - (NSDictionary<NSString *, id> *)capabilities;
-/** Cancels in-flight network/vision work when supported. Must be thread-safe. */
+/** Cancels in-flight network/vision work when supported. Must be thread-safe and non-blocking. */
 - (void)cancelCurrentOperations;
+/** Releases disposable caches under memory pressure. Must not wait for an in-flight operation. */
+- (void)releaseCachedResources;
 
 @end
 

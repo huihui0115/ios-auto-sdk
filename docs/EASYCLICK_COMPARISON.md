@@ -1,6 +1,6 @@
 # EasyClick iOS capability comparison
 
-Audit date: 2026-09-07 (Round 76; current workflow review: [QUALITY_AUDIT.md](QUALITY_AUDIT.md))
+Audit date: 2026-09-07 (Round 77; current workflow review: [QUALITY_AUDIT.md](QUALITY_AUDIT.md))
 
 Official references:
 
@@ -34,6 +34,17 @@ unavailable.
 | External transports/services | BLE events, OTG HID, Aux remote assistance, JDBC MySQL, and network-verification services | authenticated WebSocket debugging over loopback/USB or opt-in Wi-Fi, and guarded HTTP | No BLE/OTG/Aux controller, JDBC driver, or EasyClick service integration; cross-app automation uses the built-in no-WDA adapter (external WDA removed in v1.17.0) |
 | IDE/debug | IDE, live screen, node panel, logs, remote execution | VS Code completion/snippets, safe single-file TypeScript transpilation, Bonjour LAN scan/add with stable Wi-Fi identity and one-selection reconnect after initial token pairing, manual-IP and advanced USB fallbacks, editor context/title one-click run plus explicit selection-only JS/TS execution, persistent authenticated connection, correlated screenshot+node Inspector, serialized node/image/color/OCR tests, request-ID and selection-revision stale-response protection, stable selection recovery, cancellable waits, configurable action-settle delay, valid edge-pixel mapping, portable snapshot export, code generation, deployed script/asset management, and Actions build/download | No continuous video stream, breakpoint debugger, TypeScript module bundler, package manager, or verified real-device Wi-Fi session |
 | Deployment | signed EasyClick agent/IPA products, proxy IPA, Bluetooth and OTG HID paths | template app, macOS CI-verified unsigned IPA workflow (free Apple ID signing), built-in no-WDA adapter as the only cross-app engine (private symbols resolved at runtime, no linked private frameworks; external WDA removed in v1.17.0) | Built-in adapter requires a private-API-permitted build (TrollStore or developer signing) for touch injection and system-wide AX; Xcode simulator builds/tests pass, but private APIs still require real-iPhone validation |
+
+## Round 77 iPhone 7 resource safety
+
+Automatic <=2 GiB profile, bounded node visits without recursive-block retention,
+image metadata/working-buffer budgets, single-flight built-in visual work, bounded
+logs and cancellable matching now address concrete low-memory risks. Each script
+receives a finite iOS background assertion; expiration and resource pressure request
+cooperative stop without automatically replaying actions. See [PERFORMANCE.md](PERFORMANCE.md).
+This is not evidence of parity with another product's privileged background agent:
+iPhone 7 signing/entitlements, long-run memory, locked-screen and cross-app behavior
+still require real-device acceptance. No competitor performance benchmark was run.
 
 ## Round 76 graphical workflow
 

@@ -60,9 +60,10 @@
     // Default: built-in no-WDA adapter (system-wide touch injection + accessibility).
     AutoBuiltinAdapter *adapter = [AutoBuiltinAdapter new];
     id maxNodes = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKMaxSnapshotNodes"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKMaxSnapshotNodes"];
-    if ([maxNodes isKindOfClass:NSNumber.class] && [maxNodes unsignedIntegerValue] > 0) adapter.maxSnapshotNodes = [maxNodes unsignedIntegerValue];
+    BOOL lowMemory = NSProcessInfo.processInfo.physicalMemory <= 2ULL * 1024 * 1024 * 1024;
+    if ([maxNodes isKindOfClass:NSNumber.class] && [maxNodes unsignedIntegerValue] > 0) adapter.maxSnapshotNodes = MIN([maxNodes unsignedIntegerValue], lowMemory ? 1500 : 10000);
     id maxDepth = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKMaxSnapshotDepth"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKMaxSnapshotDepth"];
-    if ([maxDepth isKindOfClass:NSNumber.class] && [maxDepth unsignedIntegerValue] > 0) adapter.maxSnapshotDepth = [maxDepth unsignedIntegerValue];
+    if ([maxDepth isKindOfClass:NSNumber.class] && [maxDepth unsignedIntegerValue] > 0) adapter.maxSnapshotDepth = MIN([maxDepth unsignedIntegerValue], lowMemory ? 20 : 60);
     id screenshotCache = [NSUserDefaults.standardUserDefaults objectForKey:@"AutoSDKScreenshotCacheDuration"] ?: [bundle objectForInfoDictionaryKey:@"AutoSDKScreenshotCacheDuration"];
     if ([screenshotCache isKindOfClass:NSNumber.class]) adapter.screenshotCacheDuration = [screenshotCache doubleValue];
     return adapter;

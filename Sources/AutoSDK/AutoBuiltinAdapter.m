@@ -1,5 +1,6 @@
 ﻿#import "include/AutoBuiltinAdapter.h"
 #import "include/AutoSDKError.h"
+#import "AutoResourcePolicy.h"
 #import <UIKit/UIKit.h>
 #import <Vision/Vision.h>
 #import <ImageIO/ImageIO.h>
@@ -389,16 +390,13 @@ static void AutoBuiltinBitmapFree(AutoBuiltinBitmap *bitmap) {
     bitmap->bytes = NULL;
 }
 
-static BOOL AutoBuiltinBitmapFromPNGData(NSData *data, AutoBuiltinBitmap *bitmap) {
+static BOOL AutoBuiltinBitmapWithinBudget(NSData *data, AutoBuiltinBitmap *bitmap, NSUInteger budget) {
     memset(bitmap, 0, sizeof(AutoBuiltinBitmap));
-    CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)data, NULL);
-    if (!source) return NO;
-    CGImageRef image = CGImageSourceCreateImageAtIndex(source, 0, NULL);
-    CFRelease(source);
+    CGImageRef image = AutoCreateBudgetedImage(data, budget);
     if (!image) return NO;
     size_t width = CGImageGetWidth(image);
     size_t height = CGImageGetHeight(image);
-    if (width == 0 || height == 0 || width > 16384 || height > 16384) {
+    if (!AutoImageFitsBudget(width, height, budget)) {
         CGImageRelease(image);
         return NO;
     }
@@ -425,6 +423,10 @@ static BOOL AutoBuiltinBitmapFromPNGData(NSData *data, AutoBuiltinBitmap *bitmap
     bitmap->height = height;
     bitmap->bytesPerRow = bytesPerRow;
     return YES;
+}
+
+static BOOL AutoBuiltinBitmapFromPNGData(NSData *data, AutoBuiltinBitmap *bitmap) {
+    return AutoBuiltinBitmapWithinBudget(data, bitmap, AutoDecodedImageBudget(NSProcessInfo.processInfo.physicalMemory));
 }
 
 static NSDictionary *AutoBuiltinPixelColorResult(const uint8_t *pixel, CGFloat x, CGFloat y) {
@@ -482,6 +484,8 @@ static NSString *AutoBuiltinStringOrNil(id value) {
 @property (atomic, strong, nullable) NSData *cachedScreenshot;
 @property (atomic, strong, nullable) NSDate *cachedScreenshotAt;
 @property (atomic, assign) CGFloat cachedScreenshotScale;
+@property (nonatomic, strong) NSLock *visualLock;
+@property (nonatomic, strong) VNRequest *activeVisionRequest;
 @end
 
 @implementation AutoBuiltinAdapter
@@ -495,12 +499,65 @@ static NSString *AutoBuiltinStringOrNil(id value) {
         _maxSnapshotNodes = AutoBuiltinDefaultMaxNodes;
         _maxSnapshotDepth = AutoBuiltinDefaultMaxDepth;
         _screenshotCacheDuration = 0;
+        _visualLock = [NSLock new];
+        if (AutoUsesLowMemoryProfile(NSProcessInfo.processInfo.physicalMemory)) {
+            _maxSnapshotNodes = 1500;
+            _maxSnapshotDepth = 20;
+        }
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(handleMemoryWarning:)
+            name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
     }
     return self;
 }
 
 - (void)cancelCurrentOperations {
-    self.cancellationGeneration += 1;
+    VNRequest *request;
+    @synchronized (self) { self.cancellationGeneration += 1; request = self.activeVisionRequest; }
+    [request cancel];
+}
+
+- (void)dealloc { [NSNotificationCenter.defaultCenter removeObserver:self]; }
+
+- (void)handleMemoryWarning:(NSNotification *)notification { [self releaseCachedResources]; }
+
+- (void)setScreenshotCacheDuration:(NSTimeInterval)duration {
+    @synchronized (self) {
+        _screenshotCacheDuration = isfinite(duration) ? MIN(5.0, MAX(0, duration)) : 0;
+        self.cachedScreenshot = nil;
+        self.cachedScreenshotAt = nil;
+        self.cancellationGeneration += 1;
+    }
+}
+
+- (void)releaseCachedResources {
+    @synchronized (self) {
+        self.cachedScreenshot = nil;
+        self.cachedScreenshotAt = nil;
+        self.cancellationGeneration += 1;
+        [self.activeVisionRequest cancel];
+    }
+}
+
+- (id)performVisualOperation:(id (^)(void))operation error:(NSError **)error {
+    // Never block the main thread behind a capture that itself needs the main queue.
+    if (![self.visualLock tryLock]) {
+        if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"A visual operation is already running; retry after it completes.");
+        return nil;
+    }
+    NSUInteger generation = self.cancellationGeneration;
+    @try {
+        @autoreleasepool {
+            id result = operation();
+            if ([self operationCancelledSince:generation]) {
+                if (error) *error = AutoBuiltinError(AutoSDKErrorScriptCancelled, @"Visual operation cancelled.");
+                return nil;
+            }
+            return result;
+        }
+    } @catch (NSException *exception) {
+        if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, exception.reason);
+        return nil;
+    } @finally { [self.visualLock unlock]; }
 }
 
 - (BOOL)operationCancelledSince:(NSUInteger)generation {
@@ -614,45 +671,17 @@ static NSString *AutoBuiltinStringOrNil(id value) {
         return nil;
     }
     NSUInteger maxNodes = self.maxSnapshotNodes > 0 ? self.maxSnapshotNodes : AutoBuiltinDefaultMaxNodes;
+    if (AutoUsesLowMemoryProfile(NSProcessInfo.processInfo.physicalMemory)) maxNodes = MIN(maxNodes, 1500);
     NSUInteger maxDepth = self.maxSnapshotDepth > 0 ? self.maxSnapshotDepth : AutoBuiltinDefaultMaxDepth;
     NSUInteger generation = self.cancellationGeneration;
-    NSMutableArray<NSDictionary *> *results = [NSMutableArray array];
-    __block BOOL budgetExceeded = NO;
-
-    void (^__block walkBlock)(AutoAXElementRef, NSString *, NSString *, NSUInteger, NSUInteger) = nil;
-    void (^walkImpl)(AutoAXElementRef, NSString *, NSString *, NSUInteger, NSUInteger) =
-        ^(AutoAXElementRef element, NSString *path, NSString *parentHandle, NSUInteger depth, NSUInteger index) {
-            if (budgetExceeded || [self operationCancelledSince:generation]) return;
-            NSDictionary *descriptor = [self descriptorForElement:element path:path parentHandle:parentHandle
-                                                            depth:depth index:index engine:ax];
-            if (!filter || filter(descriptor)) {
-                [results addObject:descriptor];
-                if (maxResults > 0 && results.count >= maxResults) {
-                    budgetExceeded = YES;
-                    return;
-                }
-            }
-            if (depth >= maxDepth) return;
-            NSArray *children = [ax copyChildrenOfElement:element];
-            NSUInteger childIndex = 0;
-            for (id childObject in children) {
-                if (budgetExceeded || [self operationCancelledSince:generation]) break;
-                AutoAXElementRef child = (__bridge const void *)childObject;
-                NSString *childPath = path.length > 0
-                    ? [NSString stringWithFormat:@"%@.%lu", path, (unsigned long)childIndex]
-                    : [NSString stringWithFormat:@"%lu", (unsigned long)childIndex];
-                walkBlock(child, childPath, descriptor[@"handle"], depth + 1, childIndex);
-                childIndex += 1;
-            }
-        };
-    walkBlock = walkImpl;
-    walkBlock(root, @"", nil, 0, 0);
-    CFRelease(root);
-    if ([self operationCancelledSince:generation]) {
-        if (error) *error = AutoBuiltinError(AutoSDKErrorScriptCancelled, @"Built-in adapter: accessibility walk was cancelled.");
-        return nil;
-    }
-    return results;
+    @try {
+        return AutoBoundedNodeWalk((__bridge id)root, maxNodes, maxDepth, maxResults,
+            ^NSDictionary *(id element, NSString *path, NSString *parent, NSUInteger depth, NSUInteger index) {
+                return [self descriptorForElement:(__bridge AutoAXElementRef)element path:path
+                    parentHandle:parent depth:depth index:index engine:ax];
+            }, ^NSArray *(id element) { return [ax copyChildrenOfElement:(__bridge AutoAXElementRef)element]; },
+            filter, ^BOOL { return [self operationCancelledSince:generation]; }, error);
+    } @finally { CFRelease(root); }
 }
 
 /** Resolves an axb: handle by replaying its child-index path from the root. */
@@ -1548,7 +1577,8 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
         (AutoUIGetScreenImageFn)AutoBuiltinSymbol(AutoBuiltinFrameworkUIKit, "UIGetScreenImage");
     if (getScreenImage) {
         UIImage *image = getScreenImage();
-        if (image) {
+        if (image && image.CGImage && AutoImageFitsBudget(CGImageGetWidth(image.CGImage),
+                CGImageGetHeight(image.CGImage), AutoDecodedImageBudget(NSProcessInfo.processInfo.physicalMemory))) {
             NSData *png = UIImagePNGRepresentation(image);
             if (png.length > 0) return png;
         }
@@ -1571,6 +1601,8 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
     }
     if (!window) window = UIApplication.sharedApplication.keyWindow;
     if (!window) return nil;
+    if (!AutoImageFitsBudget((size_t)(window.bounds.size.width * window.screen.scale),
+            (size_t)(window.bounds.size.height * window.screen.scale), AutoDecodedImageBudget(NSProcessInfo.processInfo.physicalMemory))) return nil;
     UIGraphicsBeginImageContextWithOptions(window.bounds.size, NO, window.screen.scale);
     BOOL drew = [window drawViewHierarchyInRect:window.bounds afterScreenUpdates:NO];
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
@@ -1580,6 +1612,11 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (NSData *)screenshotWithError:(NSError **)error {
+    return [self performVisualOperation:^id { return [self captureScreenshotWithError:error]; } error:error];
+}
+
+- (NSData *)captureScreenshotWithError:(NSError **)error {
+    NSUInteger generation = self.cancellationGeneration;
     if (self.screenshotCacheDuration > 0) {
         NSData *cached = self.cachedScreenshot;
         NSDate *cachedAt = self.cachedScreenshotAt;
@@ -1589,9 +1626,11 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
         }
     }
     NSData *png = [self systemWideScreenshotImageWithError:error];
-    if (png.length > 0 && self.screenshotCacheDuration > 0) {
-        self.cachedScreenshot = png;
-        self.cachedScreenshotAt = NSDate.date;
+    @synchronized (self) {
+        if (png.length > 0 && self.screenshotCacheDuration > 0 && generation == self.cancellationGeneration) {
+            self.cachedScreenshot = png;
+            self.cachedScreenshotAt = NSDate.date;
+        }
     }
     return png;
 }
@@ -1602,17 +1641,26 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
         NSString *path = (NSString *)cachedPath;
         NSString *sandboxPrefix = [NSHomeDirectory() stringByAppendingString:@"/"];
         if (path.length > 0 && [path isAbsolutePath] && [path hasPrefix:sandboxPrefix]) {
-            NSData *cached = [NSData dataWithContentsOfFile:path];
+            NSDictionary *attributes = [NSFileManager.defaultManager attributesOfItemAtPath:path error:nil];
+            if ([attributes[NSFileSize] unsignedLongLongValue] > 16 * 1024 * 1024) {
+                if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Cached screenshot exceeds 16 MiB.");
+                return nil;
+            }
+            NSData *cached = [NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:nil];
             if (cached.length > 0) return cached;
         }
     }
-    return [self screenshotWithError:error];
+    return [self captureScreenshotWithError:error];
 }
 
 - (NSDictionary *)pixelColorAtX:(CGFloat)x y:(CGFloat)y error:(NSError **)error {
-    NSData *png = [self screenshotWithError:error];
+    return [self performVisualOperation:^id { return [self rawPixelColorAtX:x y:y error:error]; } error:error];
+}
+
+- (NSDictionary *)rawPixelColorAtX:(CGFloat)x y:(CGFloat)y error:(NSError **)error {
+    NSData *png = [self captureScreenshotWithError:error];
     if (!png) return nil;
-    AutoBuiltinBitmap bitmap;
+    AutoBuiltinBitmap bitmap __attribute__((cleanup(AutoBuiltinBitmapFree))) = {0};
     if (!AutoBuiltinBitmapFromPNGData(png, &bitmap)) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: unable to decode screenshot bitmap.");
         return nil;
@@ -1627,6 +1675,12 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (NSDictionary *)findColor:(id)color region:(NSDictionary *)region options:(NSDictionary *)options error:(NSError **)error {
+    return [self performVisualOperation:^id { return [self rawFindColor:color region:region options:options error:error]; } error:error];
+}
+
+- (NSDictionary *)rawFindColor:(id)color region:(NSDictionary *)region options:(NSDictionary *)options error:(NSError **)error {
+    options = [options isKindOfClass:NSDictionary.class] ? options : @{};
+    region = [region isKindOfClass:NSDictionary.class] ? region : @{};
     uint8_t targetRed = 0, targetGreen = 0, targetBlue = 0;
     if (!AutoBuiltinParseColor(color, &targetRed, &targetGreen, &targetBlue)) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: invalid color selector.");
@@ -1634,7 +1688,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
     }
     NSData *png = [self screenPNGWithOptions:options error:error];
     if (!png) return nil;
-    AutoBuiltinBitmap bitmap;
+    AutoBuiltinBitmap bitmap __attribute__((cleanup(AutoBuiltinBitmapFree))) = {0};
     if (!AutoBuiltinBitmapFromPNGData(png, &bitmap)) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: unable to decode screenshot bitmap.");
         return nil;
@@ -1648,7 +1702,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
     NSUInteger generation = self.cancellationGeneration;
     NSDictionary *found = nil;
     NSUInteger candidates = 0;
-    for (size_t y = startY; y < endY && !found; y++) {
+    for (size_t y = startY; y < endY && !found && candidates < AutoBuiltinMaxColorCandidates; y++) {
         if ([self operationCancelledSince:generation]) break;
         const uint8_t *row = bitmap.bytes + y * bitmap.bytesPerRow;
         for (size_t x = startX; x < endX; x++) {
@@ -1660,7 +1714,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
                 break;
             }
             candidates += 1;
-            if (candidates > AutoBuiltinMaxColorCandidates) break;
+            if (candidates >= AutoBuiltinMaxColorCandidates) break;
         }
     }
     AutoBuiltinBitmapFree(&bitmap);
@@ -1672,13 +1726,18 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (BOOL)compareColors:(NSArray<NSDictionary *> *)points options:(NSDictionary *)options error:(NSError **)error {
+    return [[self performVisualOperation:^id { return @([self rawCompareColors:points options:options error:error]); } error:error] boolValue];
+}
+
+- (BOOL)rawCompareColors:(NSArray<NSDictionary *> *)points options:(NSDictionary *)options error:(NSError **)error {
+    options = [options isKindOfClass:NSDictionary.class] ? options : @{};
     if (![points isKindOfClass:NSArray.class] || points.count == 0 || points.count > AutoBuiltinMaxColorPoints) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: compareColors needs 1 to 4096 points.");
         return NO;
     }
     NSData *png = [self screenPNGWithOptions:options error:error];
     if (!png) return NO;
-    AutoBuiltinBitmap bitmap;
+    AutoBuiltinBitmap bitmap __attribute__((cleanup(AutoBuiltinBitmapFree))) = {0};
     if (!AutoBuiltinBitmapFromPNGData(png, &bitmap)) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: unable to decode screenshot bitmap.");
         return NO;
@@ -1708,6 +1767,12 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (NSDictionary *)findMultiColor:(id)color offsets:(NSArray *)offsets region:(NSDictionary *)region options:(NSDictionary *)options error:(NSError **)error {
+    return [self performVisualOperation:^id { return [self rawFindMultiColor:color offsets:offsets region:region options:options error:error]; } error:error];
+}
+
+- (NSDictionary *)rawFindMultiColor:(id)color offsets:(NSArray *)offsets region:(NSDictionary *)region options:(NSDictionary *)options error:(NSError **)error {
+    options = [options isKindOfClass:NSDictionary.class] ? options : @{};
+    region = [region isKindOfClass:NSDictionary.class] ? region : @{};
     uint8_t anchorRed = 0, anchorGreen = 0, anchorBlue = 0;
     if (!AutoBuiltinParseColor(color, &anchorRed, &anchorGreen, &anchorBlue)) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: invalid multi-color anchor.");
@@ -1719,7 +1784,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
     }
     NSData *png = [self screenPNGWithOptions:options error:error];
     if (!png) return nil;
-    AutoBuiltinBitmap bitmap;
+    AutoBuiltinBitmap bitmap __attribute__((cleanup(AutoBuiltinBitmapFree))) = {0};
     if (!AutoBuiltinBitmapFromPNGData(png, &bitmap)) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: unable to decode screenshot bitmap.");
         return nil;
@@ -1732,15 +1797,21 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
     size_t endY = (size_t)MAX(startY, MIN((NSInteger)bitmap.height, (NSInteger)llround((AutoBuiltinDouble(region[@"y"], 0) + AutoBuiltinDouble(region[@"height"], (CGFloat)bitmap.height / scale)) * scale)));
     NSDictionary *found = nil;
     NSUInteger candidates = 0;
-    for (size_t y = startY; y < endY && !found; y++) {
+    NSUInteger generation = self.cancellationGeneration;
+    NSUInteger comparisons = 0;
+    NSUInteger maxComparisons = AutoUsesLowMemoryProfile(NSProcessInfo.processInfo.physicalMemory) ? 8000000 : 32000000;
+    for (size_t y = startY; y < endY && !found && candidates < AutoBuiltinMaxColorCandidates && comparisons < maxComparisons; y++) {
+        if ([self operationCancelledSince:generation]) return nil;
         const uint8_t *row = bitmap.bytes + y * bitmap.bytesPerRow;
-        for (size_t x = startX; x < endX && !found; x++) {
+        for (size_t x = startX; x < endX && !found && candidates < AutoBuiltinMaxColorCandidates && comparisons < maxComparisons; x++) {
+            candidates++;
             const uint8_t *pixel = row + x * 4;
             if (fabs((double)pixel[0] - anchorRed) > tolerance ||
                 fabs((double)pixel[1] - anchorGreen) > tolerance ||
                 fabs((double)pixel[2] - anchorBlue) > tolerance) continue;
             BOOL offsetsMatch = YES;
             for (NSDictionary *offset in offsets) {
+                if (++comparisons > maxComparisons) { offsetsMatch = NO; break; }
                 size_t offsetX = x + (size_t)MAX(0, llround(AutoBuiltinDouble(offset[@"dx"], 0) * scale));
                 size_t offsetY = y + (size_t)MAX(0, llround(AutoBuiltinDouble(offset[@"dy"], 0) * scale));
                 if (offsetX >= bitmap.width || offsetY >= bitmap.height) { offsetsMatch = NO; break; }
@@ -1755,15 +1826,21 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
                 found = AutoBuiltinPixelColorResult(pixel, (CGFloat)x / scale, (CGFloat)y / scale);
                 break;
             }
-            candidates += 1;
-            if (candidates > AutoBuiltinMaxColorCandidates) break;
         }
     }
     AutoBuiltinBitmapFree(&bitmap);
+    if (!found && (comparisons >= maxComparisons || candidates >= AutoBuiltinMaxColorCandidates)) {
+        if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Multi-color search reached its work budget; use a smaller region or fewer offsets.");
+        return nil;
+    }
     return found;
 }
 
 - (NSDictionary *)findImageAtPath:(NSString *)templatePath options:(NSDictionary *)options error:(NSError **)error {
+    return [self performVisualOperation:^id { return [self rawFindImageAtPath:templatePath options:options error:error]; } error:error];
+}
+
+- (NSDictionary *)rawFindImageAtPath:(NSString *)templatePath options:(NSDictionary *)options error:(NSError **)error {
     options = [options isKindOfClass:NSDictionary.class] ? options : @{};
     NSData *templateData = [NSData dataWithContentsOfFile:templatePath
                                                   options:NSDataReadingMappedIfSafe
@@ -1773,7 +1850,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
             @"Built-in adapter: unable to read the image template (missing or larger than 8 MB).");
         return nil;
     }
-    AutoBuiltinBitmap needle;
+    AutoBuiltinBitmap needle __attribute__((cleanup(AutoBuiltinBitmapFree))) = {0};
     if (!AutoBuiltinBitmapFromPNGData(templateData, &needle)) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed,
             @"Built-in adapter: unable to decode the image template.");
@@ -1781,11 +1858,13 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
     }
     NSData *png = [self screenPNGWithOptions:options error:error];
     if (!png) { AutoBuiltinBitmapFree(&needle); return nil; }
-    AutoBuiltinBitmap hay;
-    if (!AutoBuiltinBitmapFromPNGData(png, &hay)) {
+    AutoBuiltinBitmap hay __attribute__((cleanup(AutoBuiltinBitmapFree))) = {0};
+    NSUInteger budget = AutoDecodedImageBudget(NSProcessInfo.processInfo.physicalMemory);
+    NSUInteger used = needle.bytesPerRow * needle.height;
+    if (!AutoBuiltinBitmapWithinBudget(png, &hay, used < budget ? budget - used : 0)) {
         AutoBuiltinBitmapFree(&needle);
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed,
-            @"Built-in adapter: unable to decode screenshot bitmap.");
+            @"Built-in adapter: screenshot and template exceed the decoded-image budget, or the image is invalid.");
         return nil;
     }
     CGFloat scale = UIScreen.mainScreen.scale > 0 ? UIScreen.mainScreen.scale : 1;
@@ -1807,16 +1886,22 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
     NSUInteger maxCandidates = [options[@"maxCandidates"] respondsToSelector:@selector(unsignedIntegerValue)] ? [options[@"maxCandidates"] unsignedIntegerValue] : AutoBuiltinDefaultImageCandidates;
     maxCandidates = MAX(1, MIN(maxCandidates, AutoBuiltinMaxImageCandidates));
     NSDictionary *result = @{ @"found": @NO };
+    NSUInteger generation = self.cancellationGeneration;
+    NSUInteger comparisonBudget = AutoUsesLowMemoryProfile(NSProcessInfo.processInfo.physicalMemory)
+        ? AutoBuiltinMaxImageComparisons / 4 : AutoBuiltinMaxImageComparisons;
     if (needle.width > 0 && needle.height > 0 &&
         needle.width <= (maxX - minX) && needle.height <= (maxY - minY)) {
         size_t step = (size_t)MAX(2, (NSInteger)llround(3 * scale));
         NSUInteger comparisons = 0;
         BOOL matched = NO;
         double matchedSim = 0; size_t matchedX = 0, matchedY = 0;
-        for (size_t py = minY; py + needle.height <= maxY && !matched && comparisons < AutoBuiltinMaxImageComparisons; py += step) {
+        for (size_t py = minY; py + needle.height <= maxY && !matched && comparisons < comparisonBudget; py += step) {
+            if ([self operationCancelledSince:generation]) return nil;
             for (size_t px = minX; px + needle.width <= maxX && !matched; px += step) {
+                if ([self operationCancelledSince:generation]) return nil;
                 NSUInteger coarseMatch = 0, coarseTotal = 0;
                 for (size_t ty = 0; ty < needle.height; ty += step) {
+                    if ([self operationCancelledSince:generation]) return nil;
                     const uint8_t *nrow = needle.bytes + ty * needle.bytesPerRow;
                     const uint8_t *hrow = hay.bytes + (py + ty) * hay.bytesPerRow + px * 4;
                     for (size_t tx = 0; tx < needle.width; tx += step) {
@@ -1825,15 +1910,16 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
                         if (abs((int)n[0] - (int)h[0]) <= 24 && abs((int)n[1] - (int)h[1]) <= 24 &&
                             abs((int)n[2] - (int)h[2]) <= 24) coarseMatch += 1;
                         coarseTotal += 1;
-                        if (++comparisons >= AutoBuiltinMaxImageComparisons) break;
+                        if (++comparisons >= comparisonBudget) break;
                     }
-                    if (comparisons >= AutoBuiltinMaxImageComparisons) break;
+                    if (comparisons >= comparisonBudget) break;
                 }
-                if (comparisons >= AutoBuiltinMaxImageComparisons) break;
+                if (comparisons >= comparisonBudget) break;
                 if (coarseTotal > 0 && (double)coarseMatch / (double)coarseTotal >= threshold - 0.1) {
                     NSUInteger fineMatch = 0, fineTotal = 0;
                     BOOL stillPossible = YES;
                     for (size_t ty = 0; ty < needle.height && stillPossible; ty++) {
+                        if ([self operationCancelledSince:generation]) return nil;
                         const uint8_t *nrow = needle.bytes + ty * needle.bytesPerRow;
                         const uint8_t *hrow = hay.bytes + (py + ty) * hay.bytesPerRow + px * 4;
                         for (size_t tx = 0; tx < needle.width; tx++) {
@@ -1842,7 +1928,7 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
                             if (abs((int)n[0] - (int)h[0]) <= 24 && abs((int)n[1] - (int)h[1]) <= 24 &&
                                 abs((int)n[2] - (int)h[2]) <= 24) fineMatch += 1;
                             fineTotal += 1;
-                            if (++comparisons >= AutoBuiltinMaxImageComparisons) { stillPossible = NO; break; }
+                            if (++comparisons >= comparisonBudget) { stillPossible = NO; break; }
                             if (fineTotal > 1024 && (double)fineMatch / (double)fineTotal < threshold - 0.05) { stillPossible = NO; break; }
                         }
                     }
@@ -1860,6 +1946,9 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
                         @"centerX": @((matchedX + needle.width / 2.0) / scale),
                         @"centerY": @((matchedY + needle.height / 2.0) / scale),
                         @"similarity": @(matchedSim) };
+        } else if (comparisons >= comparisonBudget) {
+            if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Image search reached its work budget; use a smaller template or region.");
+            return nil;
         }
     }
     AutoBuiltinBitmapFree(&needle);
@@ -1868,17 +1957,16 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
 }
 
 - (NSArray<NSDictionary<NSString *, id> *> *)ocrInRegion:(NSDictionary *)region error:(NSError **)error {
+    return [self performVisualOperation:^id { return [self rawOCRInRegion:region error:error]; } error:error];
+}
+
+- (NSArray<NSDictionary<NSString *, id> *> *)rawOCRInRegion:(NSDictionary *)region error:(NSError **)error {
+    NSUInteger generation = self.cancellationGeneration;
     NSData *png = [self screenPNGWithOptions:region error:error];
     if (!png) return nil;
-    CGImageSourceRef source = CGImageSourceCreateWithData((CFDataRef)png, NULL);
-    if (!source) {
-        if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: unable to decode screenshot for OCR.");
-        return nil;
-    }
-    CGImageRef image = CGImageSourceCreateImageAtIndex(source, 0, NULL);
-    CFRelease(source);
+    CGImageRef image = AutoCreateBudgetedImage(png, AutoDecodedImageBudget(NSProcessInfo.processInfo.physicalMemory));
     if (!image) {
-        if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"Built-in adapter: unable to prepare OCR image.");
+        if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed, @"OCR image is invalid or exceeds the decoded-image budget.");
         return nil;
     }
     CGFloat scale = UIScreen.mainScreen.scale > 0 ? UIScreen.mainScreen.scale : 1;
@@ -1899,14 +1987,24 @@ static NSString *AutoBuiltinBundleIdForAppName(NSString *name) {
         }
     }
     VNRecognizeTextRequest *request = [[VNRecognizeTextRequest alloc] init];
+    // Preserve recognition/language behavior on older phones; bound concurrency and pixels instead.
     request.recognitionLevel = VNRequestTextRecognitionLevelAccurate;
     request.usesLanguageCorrection = NO;
     NSError *visionError = nil;
     size_t requestWidth = CGImageGetWidth(requestImage);
     size_t requestHeight = CGImageGetHeight(requestImage);
     VNImageRequestHandler *handler = [[VNImageRequestHandler alloc] initWithCGImage:requestImage options:@{}];
-    BOOL ran = [handler performRequests:@[request] error:&visionError];
-    CGImageRelease(requestImage);
+    BOOL ran = NO;
+    @synchronized (self) {
+        if (generation == self.cancellationGeneration) self.activeVisionRequest = request;
+        else [request cancel];
+    }
+    @try {
+        if (![self operationCancelledSince:generation]) ran = [handler performRequests:@[request] error:&visionError];
+    } @finally {
+        @synchronized (self) { if (self.activeVisionRequest == request) self.activeVisionRequest = nil; }
+        CGImageRelease(requestImage);
+    }
     if (!ran) {
         if (error) *error = AutoBuiltinError(AutoSDKErrorAutomationFailed,
             visionError.localizedDescription ?: @"Built-in adapter: Vision OCR failed.");

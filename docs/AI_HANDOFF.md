@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 76（v1.39.0，2026-09-07）。
+> 最后更新：Round 77（v1.40.0，2026-09-07）。
 
 ---
 
@@ -83,11 +83,18 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 76 / v1.39.0）
+## 4. 当前状态（Round 77 / v1.40.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **61262 / 61440**（预算 60×1024 UTF-16 码元，余 178）。
-- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **90 项**；VS Code 插件 **0.14.0**，测试 **144 项**。
+- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **111 项（R77 新增 21 项，执行结果以标签 CI 为准）**；VS Code 插件 **0.14.0**，测试 **144 项**。
+- **Round 77 iPhone 7 稳定性**：`AutoResourcePolicy` 统一低内存判断/图像预算/有界迭代节点遍历；
+  内置节点最多访问 1500、模板深度最多 20，消除递归 block 环；图像元数据预检与 16 MiB 像素预算。
+  `AutoBackgroundLease` 为每次脚本提供有限后台额度，重复/同步/迟到回调安全；到期、内存告警和严重热状态请求停止，
+  清理内置截图缓存/取消 Vision；后台到期不自动重放动作。内置视觉任务共用非阻塞单任务门禁，匹配循环可取消。
+  日志 250 条/4096 字符/1 MiB、脚本 1 MiB，手机编辑器日志 64 Ki 字符批量显示；无需用户调参数。
+  不承诺无限后台、纯 JS 死循环抢占或所有路径的进程内存上限。iPhone 7 安装方式、实际权限及真机长测仍待确认。
+  现行预算和验收步骤见 `docs/PERFORMANCE.md`；原有 WDA 性能参数和抢占停止的错误描述已移除。
 - **Round 76 图形化接入**：Activity Bar 手机图标 → 中文“设备与调试” WebviewView。
   `device-home.js` 管理有界扫描、过期卡片/重复点击/工作区切换隔离，主机仅接收白名单 action
   和不透明扫描 key，不接受 Webview 传入 URL 或任意命令。`device-home-view.js` + `media/device-home.*`
@@ -219,6 +226,7 @@ webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   `system.openSettings` 引导用户手动修改。）
 
 ### Round 46 内置适配器真机验证待办（下轮优先）
+- 优先按 `docs/PERFORMANCE.md` 在 iPhone 7 验收：记录 iOS/安装方式/权限，覆盖长测、内存、发热、锁屏、跨 App 和 Wi-Fi 重连；禁止把模拟器通过写成真机通过。
 - 真机验证 IOHIDEvent 触摸注入（需允许私有 API 的签名：TrollStore/开发者证书；
   App Store 构建会被审核拒绝，capabilities 会如实降级报告）。
 - 真机验证系统级 AX 控件查询（跨 App 毫秒级检索）与 SpringBoard 应用控制
@@ -228,7 +236,7 @@ webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
 - 验证模板 App `AutoSDKAdapter=BUILTIN` 配置接线与 capabilities 降级路径。
 - 注：每次 push main/tag 都会触发 GitHub Actions（macos-15：verify+npm test+
   Xcode 模拟器测试+IPA 打包+Release），原生代码的编译与模拟器行为已被 CI 覆盖；
-  真机专属项仅剩私有 API 行为（IOHIDEvent/AX/SpringBoard）。
+  真机专属项还包括低内存、热状态、后台额度、锁屏、Wi-Fi 以及私有 API 行为（IOHIDEvent/AX/SpringBoard）。
 - R53-R59 新增待真机抽查：xpath 子集实机控件命中、ocr.newOcr 对文件 OCR、
   位图句柄过 image 操作链、execSync 对象返回值、lastError() 错误读取、
   pasteboard 读写（含无权限时返回）、setBacklightLevel 真机亮度生效。

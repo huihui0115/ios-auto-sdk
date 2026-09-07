@@ -6,6 +6,28 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.40.0] - 2026-09-07
+
+### Added
+
+- Automatic low-memory profile for devices with up to 2 GiB RAM, targeting iPhone 7:
+  bounded node visits, image working buffers, script input and retained logs.
+- Per-run finite iOS background assertions with exactly-once release and run-scoped
+  expiration, memory-warning cancellation/cache release and serious-thermal protection.
+- Native regression coverage for resource budgets, repeated/cyclic node walks,
+  concurrent/cancelled captures and background/pressure lifecycle edge cases.
+
+### Fixed
+
+- Removed the built-in node traversal's recursive block retain cycle and enforced
+  visit limits even when a selector never matches. Incomplete searches report errors.
+- Image metadata is checked before built-in/file-image decoding; visual work is
+  single-flight per built-in adapter, pixel buffers are cleaned up on early exits,
+  matching has cancellation/work budgets, and cancelled captures cannot restore caches.
+- Phone editor logs are bounded and batch-rendered. Replaced obsolete WDA performance
+  advice and clarified cooperative cancellation, finite background time and untested
+  iPhone 7 behavior. No entitlement, permanent keep-alive or automatic action replay is added.
+
 ## [1.39.0] - 2026-09-07
 
 ### Added

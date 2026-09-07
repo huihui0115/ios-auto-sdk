@@ -54,10 +54,12 @@ typedef NS_ENUM(NSInteger, AutoSettingsRow) {
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     if (section == 1) {
-        return @"The built-in no-WDA adapter automates any app on the device "
-               @"(IOHIDEvent touch injection + system-wide accessibility). "
-               @"Turn it off to automate only this host app with the UIKit adapter. "
-               @"Changes apply immediately.";
+        return @"内置适配器的跨 App 能力取决于系统、实际签名权限与真机验证；普通签名不保证可用。关闭后只操作宿主 App。后台执行时间由 iOS 限制，不保证永久保活。";
+    }
+    if (section == 2) {
+        BOOL lowMemory = NSProcessInfo.processInfo.physicalMemory <= 2ULL * 1024 * 1024 * 1024;
+        return lowMemory ? @"低内存保护已自动启用（适合 iPhone 7）：限制节点、图片和日志开销。内存告警或严重发热时会请求停止，需手动重新运行。"
+            : @"资源保护已启用。内存告警或严重发热时会请求停止，需手动重新运行。";
     }
     return nil;
 }

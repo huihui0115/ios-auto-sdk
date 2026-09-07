@@ -843,6 +843,27 @@ check(templateSettingsSource.includes('makeAutomationAdapter') && templateSettin
       templateSettingsSource.includes('wifiIPv4Address') && !templateSettingsSource.includes('registerNativeMethod:@"toast"'),
       'Template configuration must build adapters and rely on the engine built-in toast');
 const builtinAdapterSource = read('Sources/AutoSDK/AutoBuiltinAdapter.m');
+const resourcePolicySource = read('Sources/AutoSDK/AutoResourcePolicy.m');
+const backgroundLeaseSource = read('Sources/AutoSDK/AutoBackgroundLease.m');
+check(resourcePolicySource.includes('AutoUsesLowMemoryProfile') &&
+      resourcePolicySource.includes('width <= budget / 4') &&
+      resourcePolicySource.indexOf('CGImageSourceCopyPropertiesAtIndex') < resourcePolicySource.indexOf('CGImageSourceCreateImageAtIndex') &&
+      resourcePolicySource.includes('visited++') && resourcePolicySource.includes('maxNodes - visited') &&
+      resourcePolicySource.includes('truncated && filter') && !builtinAdapterSource.includes('walkBlock'),
+      'Low-memory image preflight and iterative node traversal must bound visits, pending nodes and incomplete filtered searches');
+check(builtinAdapterSource.includes('performVisualOperation:') && builtinAdapterSource.includes('[self.visualLock tryLock]') &&
+      builtinAdapterSource.includes('generation == self.cancellationGeneration') &&
+      builtinAdapterSource.includes('cleanup(AutoBuiltinBitmapFree)') && builtinAdapterSource.includes('comparisonBudget'),
+      'Built-in visual work must reject concurrent capture, discard cancelled cache commits and release bounded buffers');
+check(backgroundLeaseSource.includes('if (self.closed) return') && backgroundLeaseSource.includes('alreadyClosed') &&
+      engineSource.includes('requestStopForRun:identifier') && engineSource.includes('activeRunIdentifier isEqual:identifier') &&
+      engineSource.includes('UIApplicationDidReceiveMemoryWarningNotification') &&
+      engineSource.includes('NSProcessInfoThermalStateSerious') && engineSource.includes('bounded[@"maxLogBytes"]') &&
+      templateSettingsSource.includes('lowMemory ? 1500') && settingsSource.includes('低内存保护已自动启用'),
+      'Finite background leases, resource-pressure stops and low-memory template defaults must stay wired');
+check(existsSync(resolve(root, 'Tests/AutoSDKTests/AutoResourcePolicyTests.m')) &&
+      existsSync(resolve(root, 'Tests/AutoSDKTests/AutoLowMemoryLifecycleTests.m')),
+      'Resource policy and lifecycle regressions must remain covered by native tests');
 check(builtinAdapterSource.includes('IOHIDEventSystemClientCreate') &&
       builtinAdapterSource.includes('IOHIDEventCreateDigitizerEvent') &&
       builtinAdapterSource.includes('IOHIDEventSystemClientDispatchEvent') &&
