@@ -25,8 +25,8 @@ From the repository root:
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.13.0.vsix
-code --install-extension .\autosdk-vscode-0.13.0.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.13.1.vsix
+code --install-extension .\autosdk-vscode-0.13.1.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An

@@ -37,6 +37,10 @@ unavailable.
 
 ## Round 73 quality iteration
 
+Round 75 / v1.38.2 / extension 0.13.1 normalizes the saved/discovered URL before
+checking the pairing target; 123 extension tests. Round 74's 90 native tests,
+IPA build and release succeeded (Actions run 34094825945).
+
 Round 74 / v1.38.1 follows up on CI: isolate shared-engine test queues, trigger
 stop tests from actual adapter activity, and prevent a finished run's queued
 watchdog from cancelling the next run. No tests are skipped.

@@ -6,6 +6,17 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.38.2] - 2026-09-07
+
+### Fixed
+
+- Extension 0.13.1 compares normalized pairing URLs: Bonjour omits the trailing
+  slash while VS Code settings save URL.href. Freshly added devices now enter
+  automatic connection testing/recovery, with workspace and phone guards intact.
+- Two regression tests cover canonical-target equality and the real recovery
+  entry condition. Extension tests: 123. Native code is unchanged from v1.38.1,
+  whose full iOS simulator test and IPA build/publish passed.
+
 ## [1.38.1] - 2026-09-07
 
 ### Fixed

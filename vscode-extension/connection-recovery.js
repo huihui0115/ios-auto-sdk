@@ -1,6 +1,13 @@
 const REENTER_TOKEN = 'Re-enter Token';
 const RETRY_CONNECTION = 'Retry Connection';
 const SCAN_WIFI_DEVICE = 'Scan Wi-Fi and Add iPhone';
+const { canonicalDebugUrl } = require('./connection-settings');
+
+function connectionTargetIsCurrent(actual, expected) {
+  const url = canonicalDebugUrl(actual.url);
+  return Boolean(url) && url === canonicalDebugUrl(expected.url) &&
+    actual.scope === expected.scope && (actual.deviceId || '') === (expected.deviceId || '');
+}
 
 function errorMessage(error) {
   return String(error && error.message ? error.message : error || 'Unknown connection error');
@@ -42,6 +49,7 @@ module.exports = {
   RETRY_CONNECTION,
   SCAN_WIFI_DEVICE,
   connectWithRecovery,
+  connectionTargetIsCurrent,
   errorMessage,
   isUnconfiguredConnectionError,
   runErrorActions

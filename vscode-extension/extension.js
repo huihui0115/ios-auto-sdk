@@ -2,7 +2,7 @@ const vscode = require('vscode');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
-const { REENTER_TOKEN, RETRY_CONNECTION, SCAN_WIFI_DEVICE, connectWithRecovery, runErrorActions } = require('./connection-recovery');
+const { REENTER_TOKEN, RETRY_CONNECTION, SCAN_WIFI_DEVICE, connectWithRecovery, connectionTargetIsCurrent, runErrorActions } = require('./connection-recovery');
 const { DeviceClient } = require('./device-client');
 const { canonicalDebugUrl, connectionCredentials, normalizeWifiDebugUrl, tokenForConfiguration, updateConnectionConfiguration } = require('./connection-settings');
 const { completionEntries } = require('./completion-model');
@@ -422,8 +422,9 @@ async function promptDebugToken(mode, savedToken) {
 }
 
 async function testWifiConnectionWithRecovery({ current, credentialScope, url, wifiDeviceId = '' }) {
-  const isCurrent = () => credentialScope === workspaceCredentialScope() &&
-    configuration().get('debugUrl') === url && (configuration().get('wifiDeviceId') || '') === wifiDeviceId;
+  const isCurrent = () => connectionTargetIsCurrent({ scope: workspaceCredentialScope(),
+    url: configuration().get('debugUrl'), deviceId: configuration().get('wifiDeviceId') },
+  { scope: credentialScope, url, deviceId: wifiDeviceId });
   return connectWithRecovery({
     isCurrent,
     testConnection: () => testConnection({ showFailure: false }),

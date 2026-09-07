@@ -5,8 +5,29 @@ const {
   RETRY_CONNECTION,
   SCAN_WIFI_DEVICE,
   connectWithRecovery,
+  connectionTargetIsCurrent,
   runErrorActions
 } = require('../connection-recovery');
+
+test('discovery URLs still match after settings add the canonical trailing slash', () => {
+  const expected = { scope: 'workspace', url: 'ws://192.168.1.2:9001', deviceId: 'phone' };
+  assert.equal(connectionTargetIsCurrent({ ...expected, url: expected.url + '/' }, expected), true);
+  assert.equal(connectionTargetIsCurrent({ ...expected, scope: 'other' }, expected), false);
+  assert.equal(connectionTargetIsCurrent({ ...expected, deviceId: 'other' }, expected), false);
+  assert.equal(connectionTargetIsCurrent({ ...expected, url: 'ws://192.168.1.3:9001' }, expected), false);
+  assert.equal(connectionTargetIsCurrent({ ...expected, url: '' }, { ...expected, url: '' }), false);
+});
+
+test('a freshly discovered phone is tested rather than silently skipped', async () => {
+  const expected = { scope: 'workspace', url: 'ws://192.168.1.2:9001', deviceId: 'phone' };
+  const actual = { ...expected, url: expected.url + '/' }; let tests = 0;
+  assert.equal(await connectWithRecovery({
+    isCurrent: () => connectionTargetIsCurrent(actual, expected),
+    testConnection: async () => { tests++; return true; },
+    chooseAction: async () => undefined, replaceToken: async () => false
+  }), true);
+  assert.equal(tests, 1);
+});
 
 test('recovery stops when the selected phone changes during a dialog', async () => {
   let current = true; let replacements = 0;

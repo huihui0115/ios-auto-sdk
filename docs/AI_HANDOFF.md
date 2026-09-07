@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 74（v1.38.1，2026-09-07）。
+> 最后更新：Round 75（v1.38.2，2026-09-07）。
 
 ---
 
@@ -83,12 +83,15 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 74 / v1.38.1）
+## 4. 当前状态（Round 75 / v1.38.2）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **61262 / 61440**（预算 60×1024 UTF-16 码元，余 178）。
-- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **90 项**；VS Code 插件 **0.13.0**，测试 **121 项**。
+- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **90 项**；VS Code 插件 **0.13.1**，测试 **123 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
+- **Round 75 接入回归**：广播 URL 无尾斜杠，保存后的 URL.href 有尾斜杠；配对目标
+  守卫改为规范化比较，避免首次添加被错误判为目标已切换而跳过连接测试。新增两项回归。
+  R74 的完整原生测试、IPA 构建和发布已通过：Actions run `34094825945`。
 - **Round 74 CI 回归修复**：v1.38.0 新增 12 项原生测试通过，但旧共享引擎测试
   在冷启动/短等待超时后串入后续测试。现在 setup/teardown 等待脚本队列及主队列栅栏，
   停止测试由实际第三次 click 触发，功能烟测明确放宽冷启动预算；同时修复已完成
@@ -280,6 +283,8 @@ webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   daemon；原生真值仍以 verify 锚点 + Xcode 真机抽查为准。
 
 ## 9. 历轮主线（git log 可查）
+
+- R75（v1.38.2）：配对恢复 URL 规范化比较，插件 0.13.1；原生代码沿用已通过 R74 CI 的版本。
 
 - R74（v1.38.1）：共享引擎 XCTest 生命周期隔离、确定性循环停止触发、迟到 watchdog 完成门禁。
 
