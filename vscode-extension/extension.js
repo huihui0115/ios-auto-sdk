@@ -12,7 +12,7 @@ const { InspectorService, maxNodes, responseError } = require('./inspector-servi
 const { InspectorSession } = require('./inspector-session');
 const { inspectorHtml } = require('./inspector-view');
 const { terminateOwnedProcess } = require('./process-lifecycle');
-const { deployedAssetName, deployedScriptName, transpileScript } = require('./script-tools');
+const { deployedAssetName, deployedScriptName, editorScript } = require('./script-tools');
 const { UsbTunnel } = require('./usb-tunnel');
 const { discoverWifiDevices } = require('./wifi-discovery');
 
@@ -257,14 +257,8 @@ function workspaceCredentialScope() {
   return folders.length ? folders.join('\n') : 'empty-window';
 }
 
-function currentScript() {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) throw new Error('Open a JavaScript or TypeScript script first.');
-  if (editor.document.languageId !== 'javascript' && editor.document.languageId !== 'typescript') {
-    throw new Error('The active editor is not a JavaScript or TypeScript file.');
-  }
-  const source = transpileScript(editor.document.getText(), editor.document.fileName, editor.document.languageId);
-  return { name: path.basename(editor.document.fileName), source, identity: editor.document.uri.toString() };
+function currentScript(selectionOnly = false) {
+  return editorScript(vscode.window.activeTextEditor, selectionOnly);
 }
 
 async function sendRequest(payload, options = {}) {
@@ -287,12 +281,12 @@ function runScript(script) {
   return sendRequest({ type: 'run', script: script.source });
 }
 
-async function runCurrentScript() {
+async function runCurrentScript(selectionOnly = false) {
   const channel = outputChannel();
   channel.show(true);
   try {
     if (!vscode.workspace.isTrusted) throw new Error('Trust this workspace before running its scripts on the iPhone.');
-    const script = currentScript();
+    const script = currentScript(selectionOnly);
     channel.appendLine(`Running ${script.name}...`);
     const response = await runScript(script);
     if (!response.ok) throw new Error(responseError(response));
@@ -428,7 +422,10 @@ async function promptDebugToken(mode, savedToken) {
 }
 
 async function testWifiConnectionWithRecovery({ current, credentialScope, url, wifiDeviceId = '' }) {
+  const isCurrent = () => credentialScope === workspaceCredentialScope() &&
+    configuration().get('debugUrl') === url && (configuration().get('wifiDeviceId') || '') === wifiDeviceId;
   return connectWithRecovery({
+    isCurrent,
     testConnection: () => testConnection({ showFailure: false }),
     chooseAction: () => vscode.window.showWarningMessage(
       'AutoSDK could not connect to this iPhone. Correct the token or retry without scanning again.',
@@ -438,8 +435,8 @@ async function testWifiConnectionWithRecovery({ current, credentialScope, url, w
     replaceToken: async () => {
       const token = await promptDebugToken('wifi', '');
       if (token === undefined) return false;
-      if (credentialScope !== workspaceCredentialScope()) {
-        vscode.window.showErrorMessage('AutoSDK: The workspace changed while updating the token. Run the add command again.');
+      if (!isCurrent()) {
+        vscode.window.showErrorMessage('AutoSDK: The workspace or selected iPhone changed. The old pairing was not overwritten.');
         return false;
       }
       try {
@@ -1142,7 +1139,8 @@ function activate(context) {
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       deviceClient?.disconnect('Workspace identity changed; configure the device connection again.');
     }),
-    vscode.commands.registerCommand('autosdk.runCurrentScript', runCurrentScript),
+    vscode.commands.registerCommand('autosdk.runCurrentScript', () => runCurrentScript()),
+    vscode.commands.registerCommand('autosdk.runSelection', () => runCurrentScript(true)),
     vscode.commands.registerCommand('autosdk.sendCurrentScript', deployCurrentScript),
     vscode.commands.registerCommand('autosdk.manageScripts', manageDeviceScripts),
     vscode.commands.registerCommand('autosdk.configureDevice', configureDevice),

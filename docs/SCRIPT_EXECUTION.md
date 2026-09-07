@@ -78,6 +78,15 @@ Remote loading is disabled by default. With `allowRemoteScripts: @YES`:
 
 ## Timeouts and interruption
 
+Location and Personal VPN preference loading use `AutoPendingSystemOperation`:
+monotonic deadlines, cancellation polling in at most 50ms wait slices, and a
+one-way completion gate rejecting late callbacks. Location's deadline includes
+main-queue scheduling and the authorization prompt; cleanup stops updates on
+the main queue. CoreLocation failures use AutoSDKErrorDomain with the original
+underlying error. This does not preempt a system API already executing, dismiss
+an authorization dialog already displayed, or promise 50ms cancellation for
+every legacy native operation.
+
 **`scriptTimeout`** (seconds, default 300, hard cap 3600) is the total
 wall-clock budget for one run, **including timer callbacks**. The timeout is
 enforced by a watchdog plus cooperative stop checks:

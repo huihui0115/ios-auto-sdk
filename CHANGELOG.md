@@ -6,6 +6,32 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-09-07
+
+### Added
+
+- VS Code extension 0.13.0: explicit Run Selected Code, with empty/multi-selection
+  safety and TypeScript language-mode support for untitled/non-TS filenames.
+- Deterministic native callback/location tests and executable Webview-controller
+  regression tests covering selection changes, cancellation and stale results.
+
+### Fixed
+
+- Location/VPN waits now use a shared 50 ms cooperative cancellation gate with
+  monotonic deadlines. Location setup rechecks expiry after manager creation,
+  stops updates on cleanup, avoids the blocking main-thread services preflight,
+  and wraps CoreLocation errors in AutoSDKErrorDomain with underlying details.
+- Inspector no longer restores obsolete request IDs or overwrites a newer
+  selection/manual code edit; empty snapshots clear stale code and hidden
+  requests always finish their busy lifecycle.
+- Bonjour synchronous failures/cancellation no longer leave timers/browsers
+  alive; known devices can refresh addresses at the result limit. Pairing
+  recovery cannot overwrite a subsequently selected phone/workspace.
+- Swift Package Manager explicitly links SQLite, matching CocoaPods.
+- Removed obsolete WDA activation guidance and refreshed the product comparison
+  around real workflows and explicit capability limits. Bootstrap unchanged:
+  61262 / 61440 UTF-16 code units.
+
 ## [1.37.0] - 2026-08-20
 
 ### Added

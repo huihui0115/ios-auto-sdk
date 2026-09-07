@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 72（v1.37.0，2026-08-20）。
+> 最后更新：Round 73（v1.38.0，2026-09-07）。
 
 ---
 
@@ -83,12 +83,17 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 72 / v1.37.0）
+## 4. 当前状态（Round 73 / v1.38.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **61262 / 61440**（预算 60×1024 UTF-16 码元，余 178）。
-- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **78 项**；VS Code 插件 **0.12.0**，测试 **105 项**。
+- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **90 项**；VS Code 插件 **0.13.0**，测试 **121 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
+- **Round 73 整体审计**：新增 `AutoSystemOperations.h/.m` 管理可取消系统等待与一次性定位；
+  定位/VPN 50ms 分片检查停止，定位移除主线程阻塞前置查询、迟到回调拒绝、统一错误。
+  插件增加安全的选区运行，修复 Inspector 选择版本/隐藏 busy 生命周期、Bonjour 清理和配对目标切换；
+  7 个测试执行真实 Webview 控制器，12 个原生假管理器/回调门闩测试不依赖 locationd。
+  完整范围、竞品来源和剩余问题见 `docs/QUALITY_AUDIT.md`；不宣称真机验收已完成。
 - **Round 46 战略转向**：放弃“必须外部 WDA”路线，新增内置 no-WDA 适配器
   `AutoBuiltinAdapter`（系统级触摸注入/控件查询/应用控制）。
 - **Round 47 清场**：`AutoWDAHTTPAdapter` 及其全部测试/配置/verify 锚点/文档
@@ -214,15 +219,13 @@ webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   pasteboard 读写（含无权限时返回）、setBacklightLevel 真机亮度生效。
 
 ### 工程质量待办
-- 原生 `Tests/` 目前只有 AutoEngineTests / AutoHTTPProtocolTests，可在
+- 原生 `Tests/` 包含 AutoEngineTests / AutoHTTPProtocolTests / AutoSystemOperationsTests，可在
   macOS/Xcode 环境扩充；Windows 环境以 `npm test`（Node 端）为主。
 - `docs/PERFORMANCE.md` 记录了图色/OCR 预算，新增原生能力时保持有界。
 - 每轮更新 `docs/EASYCLICK_COMPARISON.md` 的矩阵与计数，避免文档漂移。
-- 定位桥仍需继续拆除可能阻塞的实时 `locationServicesEnabled` 前置查询，并在硬超时后
-  严格禁止迟到的授权/定位副作用；CoreLocation delegate 错误还应统一包装成
-  `AutoSDKErrorDomain` 并保留 underlying error。
-- VPN preference load 与定位等待应改为可感知 `stopScript` 的短分片等待，避免取消时
-  仍被系统回调阻塞到固定超时；这些属于下一轮原生并发/取消专项。
+- Round 73 已修复定位前置查询/迟到 setup、错误 domain 和定位/VPN 短分片取消；
+  下一步专项覆盖其他旧 HTTP/适配器等待的子线程 cancel 一致性，并完成真机权限/后台验收。
+- 无设备列表、工程打包器、视频流与断点调试；Pages 探测失败仍需区分禁用与权限/网络问题。
 
 ## 7. 核心工作流
 
@@ -272,6 +275,9 @@ webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   daemon；原生真值仍以 verify 锚点 + Xcode 真机抽查为准。
 
 ## 9. 历轮主线（git log 可查）
+
+- R73（v1.38.0）：系统等待模块化、选区运行、Inspector 选择级迟到结果防护、
+  Bonjour 生命周期/配对切换回归、显式 SQLite 链接；删除过期 WDA 安装方案。
 
 - R72（v1.37.0）：**调试、错误传播与发布链可靠性**——插件 0.12.0 支持可取消的
   多 iPhone 广播收集、token 原地重输/重试、未配置运行直达扫描，并把 Inspector

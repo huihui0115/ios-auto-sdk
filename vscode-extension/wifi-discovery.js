@@ -34,7 +34,7 @@ function serviceIdentity(service) {
 function serviceDevice(service) {
   const port = Number(service?.port);
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535) return undefined;
-  const addresses = [...new Set((service?.addresses || []).map(usableAddress).filter(Boolean)
+  const addresses = [...new Set((Array.isArray(service?.addresses) ? service.addresses : []).map(usableAddress).filter(Boolean)
     .sort((left, right) => left.family - right.family).map(item => item.address))];
   if (!addresses.length) return undefined;
   const address = addresses[0];
@@ -86,10 +86,11 @@ async function discoverWifiDevices(options = {}) {
     signal?.addEventListener('abort', abortListener, { once: true });
     const onService = service => {
       if (settled) return;
-      if (found.size >= MAX_DISCOVERED_DEVICES) return;
       const device = serviceDevice(service);
       if (!device) return;
-      found.set(device.deviceId || device.url, device);
+      const identity = device.deviceId || device.url;
+      if (found.size >= MAX_DISCOVERED_DEVICES && !found.has(identity)) return;
+      found.set(identity, device);
       cancelTimeout(settleTimer);
       settleTimer = scheduleTimeout(() => finish(), DISCOVERY_SETTLE_MS);
     };
@@ -101,12 +102,16 @@ async function discoverWifiDevices(options = {}) {
         return;
       }
       browser = bonjour.find({ type: 'autosdk', protocol: 'tcp' }, onService);
+      if (settled) {
+        cleanup();
+        return;
+      }
       browser?.update?.();
     } catch (error) {
       finish(new Error(`Wi-Fi discovery could not start: ${error.message}`));
       return;
     }
-    timer = scheduleTimeout(() => finish(), timeoutMs);
+    if (!settled) timer = scheduleTimeout(() => finish(), timeoutMs);
   });
 }
 

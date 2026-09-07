@@ -125,6 +125,7 @@ const guides = [
         <tbody>
           <tr><td><code>Scan Wi-Fi and Add iPhone</code></td><td>扫描局域网 AutoSDK 广播，选择手机后自动保存并测试连接。</td></tr>
           <tr><td><code>Run Current Script</code></td><td>立即执行当前编辑器内容，最适合迭代。</td></tr>
+          <tr><td><code>Run Selected Code</code></td><td>选中一段 JS/TS 后右键运行，只发送选区；空选区不会运行全文件。</td></tr>
           <tr><td><code>Send Current Script to Device</code></td><td>把脚本保存到设备脚本列表。</td></tr>
           <tr><td><code>Stop Active Script</code></td><td>停止当前脚本、定时器和后台任务。</td></tr>
           <tr><td><code>Capture Device Screenshot</code></td><td>抓取当前设备画面。</td></tr>
@@ -187,6 +188,7 @@ main();`)}
       </div>
       <div class="callout"><strong>节点太多时</strong>通过 <code>autosdk.inspectorMaxNodes</code> 控制 1–2000 个节点；动作后的刷新延迟可通过 <code>autosdk.inspectorActionRefreshDelay</code> 调整为 0–5000ms。</div>
       <h2>稳定选择器原则</h2>
+      <p>切换模式、节点或选区后，旧的异步结果不会覆盖新代码；快照失去选中节点时自动清空代码。代码为空时不能复制或插入。每次运行选区都会新建脚本上下文，不会继承上一次运行的变量，请选中完整、可独立执行的代码。</p>
       <ol>
         <li>优先使用业务稳定的 <code>id</code>、<code>name</code> 或明确文本。</li>
         <li>属性不唯一时再组合 <code>type</code>、<code>visible</code> 和层级关系。</li>

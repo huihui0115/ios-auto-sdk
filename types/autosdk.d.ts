@@ -1109,7 +1109,7 @@ interface AutoLocationResult {
 }
 
 interface AutoLocationAPI {
-  /** One-shot GPS fix with a bounded wait; null means timeout/no fix, false means lastError() has details. */
+    /** One-shot GPS fix; deadline includes authorization. Cooperatively cancellable; null = timeout/no fix, false = lastError() details. */
   getLocation(timeoutMs?: number): AutoLocationResult | null | false;
   /** Whether the device-wide Location Services switch is enabled. */
   isEnabled(): boolean;

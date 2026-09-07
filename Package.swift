@@ -30,7 +30,8 @@ let package = Package(
                 .linkedFramework("Photos"),
                 .linkedFramework("UserNotifications"),
                 .linkedFramework("ImageIO"),
-                .linkedLibrary("z")
+                .linkedLibrary("z"),
+                .linkedLibrary("sqlite3")
             ]
         ),
         .testTarget(

@@ -1,104 +1,28 @@
-# 免巨魔（No-TrollStore）改造方案
+# 安装与跨 App 能力边界
 
-> 对标 AScript / kuaijs 的市场方向：不需要 TrollStore（巨魔），不需要越狱、不需要开发者账号，
-> 普通用户也能装、能用。2026-08 起 AutoSDK **分发路径已完全去掉 TrollStore**：
-> 产物为未签名 IPA，用 Apple ID 免费签名即可安装（详见 [WINDOWS_SIDELOAD.md](WINDOWS_SIDELOAD.md)）；
-> 本文的 WDA 内容已归档：v1.17.0 起 AutoSDK 已完全移除 WDA 客户端（AutoWDAHTTPAdapter），
-> 跨 App 自动化统一走内置 no-WDA 适配器（见 [NO_WDA_ARCHITECTURE.md](NO_WDA_ARCHITECTURE.md)），无需再"激活 WDA"。
+更新：2026-09-07 / AutoSDK v1.38.0。
 
-## 一、现状：分发已免巨魔，跨 App 自动化走内置 no-WDA（以下 WDA 内容为历史归档）
+## 最短使用路径
 
-AutoSDK 模板 App 是一个 **unsigned IPA**：
+下载发布页中的 IPA 与 VSIX → 按 [安装指南](WINDOWS_SIDELOAD.md) 签名安装
+模板 App → 手机开启 Wi-Fi 调试 → VS Code 执行 Scan Wi-Fi and Add iPhone →
+输入手机显示的 token → 编写脚本并右键运行。完整操作见
+[唯一开发文档](index.html#/quickstart)。
 
-- App 本体（JS 引擎 / 图色 OCR / 媒体 / 文件 / HTTP / 存储 / 悬浮窗 / 宿主 App 内自动化）
-  **不依赖任何特殊权限**，用 Apple ID 免费签名即可运行，7 天续签一次。
-- 跨 App 的**控件自动化**依赖一个独立运行的 **WebDriverAgent（WDA）服务**（`http://127.0.0.1:8100`）。
-  在免越狱设备上让 WDA 跑起来需要系统级权限：历史上 TrollStore 通过给 WDA 注入
-  `platform-application` 等 entitlement 实现，**这与 App 本身无关**。
+## 安装成功不等于跨 App 自动化可用
 
-结论：**App 分发与日常自动化已完全免巨魔；跨 App 自动化只需换一条"让 WDA 跑起来"的路径。**
+- 未签名 IPA 必须先签名才能安装。普通签名可运行 JavaScript 和宿主允许的公共能力，
+  不会自动获得系统级触摸、跨 App 节点或后台常驻权限。
+- UIKit 适配器只操作宿主自己的界面。
+- 唯一跨 App 路线是内置 AutoBuiltinAdapter：依赖私有 API、实际签名权限与系统版本。
+  必须读取 auto.capabilities().automation，再在目标真机验证；不能仅凭“开发签名/
+  企业签名/安装成功”承诺可用。宿主切到后台还可能被 iOS 挂起。
+- v1.17.0 起已删除外部 WDA 客户端，不再提供或计划 WDA 激活器。
+  HID 硬件模式也不是当前仓库已实现的能力。
+- VPN 只管理宿主预存且启用的 Personal VPN 配置，需要对应 entitlement。
+  设置页跳转不等于静默控制系统开关。
 
-## 二、路线 A：免费签名安装（最快落地，今天就能用）
+[能力与签名说明](index.html#/scope) · [内置架构](NO_WDA_ARCHITECTURE.md) ·
+[本轮审计与后续优先级](QUALITY_AUDIT.md)
 
-用你自己的 Apple ID 免费签名安装 unsigned IPA，7 天过期后重签一次即可。
-
-| 工具 | 平台 | 特点 |
-| --- | --- | --- |
-| [AltStore](https://altstore.io) | Mac/Windows | 最流行，自动续签（需电脑常开） |
-| [Sideloadly](https://sideloadly.io) | Windows/Mac | 手动签名安装，简单直接 |
-| [SideStore](https://sidestore.io) | iOS + 电脑 | 手机端续签，无需电脑常开 |
-| [TrollHelper/Feather](https://github.com/khcrysalis/Feather) | iOS/电脑 | 图形化签名工具 |
-
-步骤（以 Sideloadly 为例）：
-
-1. 下载 `AutoSDKTemplate.ipa`（GitHub Releases 或 CI 产物）。
-2. 电脑安装 Sideloadly，iPhone USB 连接，输入 Apple ID。
-3. 选择 IPA → 开始安装。iPhone 上 设置 → 通用 → VPN与设备管理 → 信任开发者。
-4. 打开 App 即可使用：**脚本引擎、图色 OCR、相册媒体、文件/HTTP/存储、悬浮窗、
-   AutoUIKitAdapter（宿主 App 内自动化）全部可用。**
-
-> 免费签名的限制：7 天过期需重签；同一 Apple ID 最多 3 个签名 App；无 WDA 时
-> 跨 App 控件自动化不可用（见路线 B）。
-
-## 三、路线 B：XCTest 激活 WDA（对标 AScript Agent 模式，完整控件自动化）
-
-AScript 的"免越狱 Agent 模式"原理：App 用**企业签名/免费签名**安装，然后用激活工具
-（USB 连接 + 开启开发者模式）注入运行 WDA 的 **XCTest 进程**，激活后 WDA 在
-`127.0.0.1:8100` 提供控件 API。**AutoSDK 的 AutoWDAHTTPAdapter 完全复用这套链路。**
-
-| 项 | 要求 |
-| --- | --- |
-| 系统 | iOS 15+（支持最新系统） |
-| 前置 | 设置 → 隐私与安全性 → 开发者模式（开启） |
-| 激活工具 | Windows 或 Mac 上运行（本项目规划中，见下文"待开发"） |
-| 激活后 | 可拔 USB；**关机后失效，需重新激活** |
-
-### 待开发：AutoSDK 激活工具（ActivationTool）
-
-1. **WDA XCUITest bundle 构建**（CI 可产出）：在 macOS runner 上编译一个
-   WebDriverAgent 的 `.xctest` bundle，作为构建产物上传。
-2. **Windows 激活器**：基于 [go-ios](https://github.com/danielpaulus/go-ios)
-   （开源，Windows 可用）实现：
-   - USB 连接设备 → 安装 App → 运行 `xctest run` 注入 WDA bundle；
-   - 等待 `8100` 端口就绪 → 提示激活成功。
-3. **Mac 激活脚本**：用 `xcodebuild test-without-building` 注入（对标 AScript 的 Xcode 方案）。
-4. App 端无需改动：设置里 WDA URL 指向 `http://127.0.0.1:8100` 即可。
-
-> 该路线的工程量主要在激活工具，仓库内已有的 `AutoWDAHTTPAdapter`、调试服务器、
-> VS Code 插件全部直接复用，不需要改架构。
-
-## 四、路线 C（远期）：HID 硬件模式（对标 AScript HID / kuaijs HID）
-
-| 项 | 说明 |
-| --- | --- |
-| 原理 | ESP32 蓝牙芯片模拟鼠标键盘（物理触控，不可被拦截）+ 系统录屏（Broadcast Extension）截图 |
-| 优点 | 不需要开发者模式、不需要 WDA、不需要任何签名，iOS 13+ |
-| 成本 | ESP32-C3 约 9~20 元 |
-| 工作项 | ESP32 固件（Bluetooth HID）+ iOS Broadcast Extension + 引擎触控/截图适配层 |
-
-此模式需要硬件与固件工程，作为后续里程碑推进。
-
-## 五、无 WDA 时的能力矩阵（免费签名即可用）
-
-| 能力 | 免费签名（无 WDA） | + XCTest 激活 WDA |
-| --- | --- | --- |
-| JS 脚本引擎 / 定时器 / 线程 | ✅ | ✅ |
-| 图色：截屏 / 找色 / 找图 / 像素 | ✅ | ✅ |
-| OCR（本地 Vision） | ✅ | ✅ |
-| 文件 / 存储 / HTTP / 压缩 / Excel / plist | ✅ | ✅ |
-| 相册读写（save/delete） | ✅ | ✅ |
-| 悬浮窗（webView / screenDraw / floatBall） | ✅ | ✅ |
-| 剪贴板 / 亮度 / 音量 / 振动 | ✅ | ✅ |
-| 宿主 App 内自动化（AutoUIKitAdapter） | ✅ | ✅ |
-| 跨 App 控件查找 / 点击 / 输入 | ❌ | ✅ |
-| 跨 App 应用控制（launch/terminate/state） | ❌ | ✅ |
-
-## 六、落地清单
-
-- [x] 确认 App 本体无 entitlements，unsigned IPA 可被免费签名工具直接安装
-- [x] 文档：本方案 + [ASCRIPT_COMPARISON.md](ASCRIPT_COMPARISON.md)
-- [ ] CI 产出 WDA XCUITest bundle 工件（macOS runner）
-- [ ] Windows 激活工具（go-ios `xctest run`）
-- [ ] Mac 激活脚本（xcodebuild test-without-building）
-- [ ] 企业签名打包脚本（可选，若持有企业证书）
-- [ ] HID 模式（远期：ESP32 固件 + Broadcast Extension）
+旧版 WDA/XCTest 激活方案已从本指南删除，历史内容可在 Git 中查看。

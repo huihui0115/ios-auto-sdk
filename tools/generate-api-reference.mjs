@@ -767,7 +767,7 @@ APIS.push({ cat:'vision', sig:'yolo.detect(imagePath) / yolo.detectByFilePath(im
   }
 }
 main();` });
-APIS.push({ cat:'device', sig:'location.getLocation(timeoutMs?)', title:'GPS 定位', desc:'一次性 GPS 定位（对标 kuaijs/AutoJS location 模块）：获取当前经纬度与精度信息，超时或 CoreLocation 暂时无法取得定位时返回 null。timeoutMs 默认 5000（范围 500～30000）。宿主 App 需在 Info.plist 声明 NSLocationWhenInUseUsageDescription，首次调用会先等待授权回调再开始定位；权限被拒、定位服务关闭或配置缺失时返回 false，并可用 lastError() 区分原因。', params:[['timeoutMs','number','可选，等待定位的毫秒数，默认 5000']], returns:'AutoLocationResult | null | false', example:`function main(){
+APIS.push({ cat:'device', sig:'location.getLocation(timeoutMs?)', title:'GPS 定位', desc:'一次性 GPS 定位（对标 kuaijs/AutoJS location 模块）：获取当前经纬度与精度信息，超时或 CoreLocation 暂时无法取得定位时返回 null。timeoutMs 默认 5000（范围 500～30000），包含排队与授权等待；停止脚本或取消子线程会中止等待，迟到回调不再返回结果。宿主 App 需在 Info.plist 声明 NSLocationWhenInUseUsageDescription，首次调用会先等待授权回调再开始定位；权限被拒、定位服务关闭或配置缺失时返回 false，并可用 lastError() 区分原因。', params:[['timeoutMs','number','可选，等待定位的毫秒数，默认 5000']], returns:'AutoLocationResult | null | false', example:`function main(){
   const loc = location.getLocation(8000);
   if (loc) {
     logd("纬度: " + loc.latitude + " 经度: " + loc.longitude);

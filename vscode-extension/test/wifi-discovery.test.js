@@ -147,3 +147,46 @@ test('Wi-Fi discovery time and result limits stay bounded', () => {
   assert.equal(boundedTimeout(999999), 15000);
   assert.equal(MAX_DISCOVERED_DEVICES, 64);
 });
+
+test('Wi-Fi discovery cleans up synchronous find failures without starting timers', async () => {
+  let stopped = 0; let timers = 0;
+  class Bonjour {
+    constructor(_options, onError) { this.onError = onError; }
+    find() { this.onError(new Error('sync failure')); return { stop() { stopped++; } }; }
+    destroy() {}
+  }
+  await assert.rejects(discoverWifiDevices({ BonjourClass: Bonjour,
+    scheduleTimeout() { timers++; }, cancelTimeout() {} }), /sync failure/);
+  assert.equal(stopped, 1);
+  assert.equal(timers, 0);
+});
+
+test('Wi-Fi discovery cancellation during update creates no orphan timer', async () => {
+  const controller = new AbortController(); let timers = 0; let stopped = 0;
+  class Bonjour {
+    find() { return { update() { controller.abort(); }, stop() { stopped++; } }; }
+    destroy() {}
+  }
+  await assert.rejects(discoverWifiDevices({ BonjourClass: Bonjour, signal: controller.signal,
+    scheduleTimeout() { timers++; }, cancelTimeout() {} }), { name: 'AbortError' });
+  assert.equal(stopped, 1); assert.equal(timers, 0);
+});
+
+test('Wi-Fi discovery refreshes known addresses at the device limit and ignores malformed services', async () => {
+  let onService; let finish;
+  class Bonjour {
+    find(_options, callback) { onService = callback; return { stop() {} }; }
+    destroy() {}
+  }
+  const promise = discoverWifiDevices({ BonjourClass: Bonjour,
+    scheduleTimeout(callback) { finish = callback; }, cancelTimeout() {} });
+  onService({ port: 9001, addresses: 'malformed' });
+  for (let index = 0; index < MAX_DISCOVERED_DEVICES; index++) {
+    onService({ name: `phone-${index}`, port: 9001, addresses: ['192.168.1.2'] });
+  }
+  onService({ name: 'overflow', port: 9001, addresses: ['192.168.1.3'] });
+  onService({ name: 'phone-0', port: 9001, addresses: ['192.168.1.9'] });
+  finish(); const devices = await promise;
+  assert.equal(devices.length, MAX_DISCOVERED_DEVICES);
+  assert.equal(devices.find(device => device.name === 'phone-0').address, '192.168.1.9');
+});

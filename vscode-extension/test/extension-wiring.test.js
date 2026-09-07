@@ -48,7 +48,7 @@ test('selector results keep the correlated snapshot tree as the uniqueness basel
 test('every contributed extension command is registered', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
   const commands = [
-    'autosdk.runCurrentScript', 'autosdk.sendCurrentScript', 'autosdk.manageScripts',
+    'autosdk.runCurrentScript', 'autosdk.runSelection', 'autosdk.sendCurrentScript', 'autosdk.manageScripts',
     'autosdk.configureDevice', 'autosdk.discoverDevice', 'autosdk.discoverUsbDevice', 'autosdk.startUsbTunnel', 'autosdk.stopUsbTunnel',
     'autosdk.testConnection', 'autosdk.stopScript', 'autosdk.captureScreenshot',
     'autosdk.inspectNodes', 'autosdk.openInspector', 'autosdk.buildIPA'

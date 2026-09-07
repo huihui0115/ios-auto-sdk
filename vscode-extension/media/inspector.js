@@ -32,20 +32,30 @@
   const state = {
     nodes: [], snapshotNodes: [], device: {}, selectedIndex: -1, mode: 'node', regionStart: null, region: null,
     match: null, snapshotId: '', capturedAtMs: 0, hasSnapshot: false,
-    requestSequence: 0, latestRequests: {}, busyRequests: new Set()
+    requestSequence: 0, latestRequests: {}, busyRequests: new Set(), selectionRevision: 0, requestSelections: {}
   };
   const number = model.number;
 
   function send(operation, type, payload) {
+    if (['pixel', 'ocr', 'image', 'selector'].includes(operation)) invalidateSelection();
     state.requestSequence += 1;
     const id = operation + '-' + state.requestSequence;
     state.latestRequests[operation] = id;
+    state.requestSelections[operation] = state.selectionRevision;
     vscode.postMessage(Object.assign({ type: type, operation: operation, requestId: id }, payload || {}));
     return id;
   }
 
   function accepts(message) {
-    return !message.operation || !message.requestId || state.latestRequests[message.operation] === message.requestId;
+    if (!message.operation || !message.requestId) return true;
+    if (state.latestRequests[message.operation] !== message.requestId) return false;
+    return !['pixel', 'ocr', 'image', 'selector'].includes(message.operation) ||
+      state.requestSelections[message.operation] === state.selectionRevision;
+  }
+
+  function invalidateSelection() {
+    state.selectionRevision += 1;
+    setGenerated('');
   }
 
   function renderBusyState() {
@@ -87,6 +97,8 @@
 
   function setGenerated(code) {
     elements.generatedCode.value = code || '';
+    elements.copyCode.disabled = !code;
+    elements.insertCode.disabled = !code;
   }
 
   function setStatus(message, error) {
@@ -146,6 +158,10 @@
   }
 
   function selectNode(index) {
+    invalidateSelection();
+    state.regionStart = null;
+    state.region = null;
+    elements.selection.hidden = true;
     state.selectedIndex = index;
     const node = state.nodes[index];
     const selector = nodeSelector(node);
@@ -158,6 +174,8 @@
       const y = Math.round(number(node.bounds.centerY, number(node.bounds.y, 0) + number(node.bounds.height, 0) / 2));
       elements.selector.value = JSON.stringify({ x: x, y: y }, null, 2);
       setGenerated(model.codeForPoint({ x: x, y: y }));
+    } else {
+      elements.selector.value = '';
     }
     renderNodes();
     renderOverlays();
@@ -204,8 +222,10 @@
 
   document.querySelectorAll('[data-mode]').forEach(function (button) {
     button.addEventListener('click', function () {
+      invalidateSelection();
       state.mode = button.dataset.mode;
       state.regionStart = null;
+      state.region = null;
       elements.selection.hidden = true;
       document.querySelectorAll('[data-mode]').forEach(function (item) { item.classList.toggle('active', item === button); });
       renderBusyState();
@@ -221,6 +241,8 @@
   elements.screen.addEventListener('pointerdown', function (event) {
     const point = pointForEvent(event);
     if (state.mode === 'region') {
+      invalidateSelection();
+      state.region = null;
       state.regionStart = point;
       elements.screen.setPointerCapture(event.pointerId);
       showRegion(point, point);
@@ -256,7 +278,12 @@
   elements.refresh.addEventListener('click', function () { send('snapshot', 'refresh'); });
   elements.testImage.addEventListener('click', function () { send('image', 'testImage'); });
   elements.saveSnapshot.addEventListener('click', function () { send('export', 'saveSnapshot'); });
-  elements.cancel.addEventListener('click', function () { send('cancel', 'cancelOperations'); });
+  function cancelOperations() {
+    invalidateSelection();
+    state.latestRequests = {};
+    send('cancel', 'cancelOperations');
+  }
+  elements.cancel.addEventListener('click', cancelOperations);
   elements.testOCR.addEventListener('click', function () {
     if (!state.region || state.region.width <= 0 || state.region.height <= 0) {
       setStatus('Select a region first.', true);
@@ -265,6 +292,11 @@
     send('ocr', 'testOCR', { region: state.region });
   });
   elements.nodeFilter.addEventListener('input', renderNodes);
+  elements.selector.addEventListener('input', invalidateSelection);
+  elements.generatedCode.addEventListener('input', function () {
+    state.selectionRevision += 1;
+    setGenerated(elements.generatedCode.value);
+  });
   elements.testSelector.addEventListener('click', function () {
     try {
       const selector = JSON.parse(elements.selector.value);
@@ -274,6 +306,7 @@
     }
   });
   elements.useSelector.addEventListener('click', function () {
+    invalidateSelection();
     try { setGenerated(model.codeForSelector(JSON.parse(elements.selector.value), 'find')); }
     catch (error) { setStatus('Invalid selector JSON: ' + error.message, true); }
   });
@@ -285,7 +318,7 @@
   window.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && state.busyRequests.size > 0) {
       event.preventDefault();
-      send('cancel', 'cancelOperations');
+      cancelOperations();
     }
   });
 
@@ -298,9 +331,14 @@
   window.addEventListener('message', function (event) {
     const message = event.data || {};
     if (message.type === 'operationStart') {
-      if (message.operation && message.requestId) state.latestRequests[message.operation] = message.requestId;
+      // Host-initiated refreshes have no preceding send(). Client operationStart
+      // acknowledgements must never rewind a newer request/selection.
+      if (message.operation && /^host-/.test(message.requestId || '')) {
+        state.latestRequests[message.operation] = message.requestId;
+        state.requestSelections[message.operation] = state.selectionRevision;
+      }
       if (message.requestId) state.busyRequests.add(message.requestId);
-      setStatus(message.message || 'Loading...');
+      if (accepts(message)) setStatus(message.message || 'Loading...');
       renderBusyState();
       return;
     }
@@ -318,6 +356,7 @@
     }
     if (message.type === 'error') setStatus(message.message || 'Operation failed.', true);
     if (message.type === 'snapshot') {
+      invalidateSelection();
       const previousKey = model.nodeKey(state.selectedIndex >= 0 ? state.nodes[state.selectedIndex] : null);
       state.snapshotNodes = Array.isArray(message.nodes) ? message.nodes : [];
       state.nodes = state.snapshotNodes;
@@ -337,6 +376,7 @@
         .filter(Boolean).join(' @ ') + (state.snapshotId || captured ? ' | ' : '');
       if (state.selectedIndex >= 0) selectNode(state.selectedIndex);
       else {
+        elements.selector.value = '';
         elements.details.textContent = 'Select a node or point.';
         renderNodes();
         renderOverlays();
@@ -356,6 +396,8 @@
       state.region = null;
       elements.selection.hidden = true;
       elements.details.textContent = nodes.length ? JSON.stringify(nodes[0], null, 2) : 'No matching nodes.';
+      if (nodes.length) selectNode(0);
+      else setGenerated('');
       renderNodes();
       renderOverlays();
       setStatus(nodes.length + ' selector match' + (nodes.length === 1 ? '' : 'es'));
@@ -388,6 +430,7 @@
     if (message.type === 'notice') setStatus(message.message || 'Done');
   });
 
+  setGenerated('');
   renderBusyState();
   send('snapshot', 'ready');
 }());

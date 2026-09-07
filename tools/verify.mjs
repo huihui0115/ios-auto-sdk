@@ -378,16 +378,19 @@ check(read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCCHmacAlgSHA1') &&
       read('Sources/AutoSDK/AutoScriptSupport.m').includes('kCCHmacAlgSHA256') &&
       read('Sources/AutoSDK/AutoScriptSupport.m').includes('CCHmac('),
       'AutoScriptSupport must implement HMAC-SHA1/SHA256 with CommonCrypto');
+const systemOperationsSource = read('Sources/AutoSDK/AutoSystemOperations.m');
 check(engineSource.includes('AutoGetLocationSnapshot') && engineSource.includes('CLLocationManager') &&
-      engineSource.includes('requestLocation') && engineSource.includes('@"locGet"') &&
-      engineSource.includes('kCLAuthorizationStatusDenied') &&
+      systemOperationsSource.includes('requestLocation') && engineSource.includes('@"locGet"') &&
+      systemOperationsSource.includes('kCLAuthorizationStatusDenied') &&
       engineSource.includes('objectForInfoDictionaryKey:@"NSLocationWhenInUseUsageDescription"') &&
-      engineSource.includes('kCLAuthorizationStatusNotDetermined') &&
-      engineSource.includes('locationManagerDidChangeAuthorization') &&
-      engineSource.includes('kCLErrorLocationUnknown') &&
-      engineSource.includes('@synchronized (stateLock)') &&
-      engineSource.includes('long waitResult = dispatch_semaphore_wait') &&
-      engineSource.includes('if (finalError && error) *error = finalError') &&
+      systemOperationsSource.includes('kCLAuthorizationStatusNotDetermined') &&
+      systemOperationsSource.includes('locationManagerDidChangeAuthorization') &&
+      systemOperationsSource.includes('kCLErrorLocationUnknown') &&
+      systemOperationsSource.includes('[request.operation isActive]') &&
+      systemOperationsSource.includes('waitWithError:') &&
+      systemOperationsSource.includes('stopUpdatingLocation') &&
+      systemOperationsSource.includes('NSUnderlyingErrorKey') &&
+      !systemOperationsSource.includes('[CLLocationManager locationServicesEnabled]') &&
       engineSource.includes('NSError *locationError = nil') &&
       read('Examples/TemplateApp/App/Info.plist').includes('<key>NSLocationWhenInUseUsageDescription</key>'),
       'Native location queries must await authorization, preserve real errors, bound races and ship a template usage description');
@@ -395,12 +398,21 @@ check(engineSource.includes('AutoLoadPersonalVPNManager') &&
       engineSource.includes('loadFromPreferencesWithCompletionHandler') &&
       engineSource.includes('startVPNTunnelAndReturnError') &&
       engineSource.includes('stopVPNTunnel') &&
-      engineSource.includes('5 * NSEC_PER_SEC') &&
+      engineSource.includes('initWithTimeout:5 cancellation:cancellation') &&
+      engineSource.includes('AutoLoadPersonalVPNManager(^BOOL { return [self invokeIsStopped]; }') &&
       engineSource.includes('NSThread.isMainThread') &&
       engineSource.includes('NEVPNErrorConfigurationReadWriteFailed') &&
       engineSource.includes('verify the host entitlement and saved profile') &&
       engineSource.includes('AutoVPNStatusName'),
       'Personal VPN control must load a host-owned configuration with bounded, truthful error handling');
+check(systemOperationsSource.includes('systemUptime') && systemOperationsSource.includes('MIN(0.05,') &&
+      systemOperationsSource.includes('AutoSDKErrorScriptCancelled') &&
+      read('Package.swift').includes('.linkedLibrary("sqlite3")'),
+      'System waits must be cancellable and SPM must explicitly link SQLite');
+check(extensionPackage.contributes?.menus?.['editor/context']?.some(item =>
+        item.command === 'autosdk.runSelection' && item.when.includes('editorHasSelection')) &&
+      inspectorSource.includes('selectionRevision') && inspectorSource.includes('requestSelections'),
+      'Editor selection runs and selection-scoped Inspector results must remain available');
 check(engineSource.includes('AutoSystemSettingsURL') &&
       engineSource.includes('page.length > 32') &&
       engineSource.includes('@"App-prefs:root=General&path=VPN"') &&

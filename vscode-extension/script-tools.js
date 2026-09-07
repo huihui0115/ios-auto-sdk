@@ -10,6 +10,8 @@ function typescriptCompiler() {
 
 function transpileScript(source, fileName, languageId) {
   if (languageId !== 'typescript') return source;
+  // VS Code's language mode can be TypeScript in an untitled or .js document.
+  fileName = /\.[cm]?ts$/i.test(fileName) ? fileName : `${fileName}.ts`;
   const ts = typescriptCompiler();
   const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TS);
   if (ts.isExternalModule(sourceFile)) {
@@ -23,6 +25,22 @@ function transpileScript(source, fileName, languageId) {
   const errors = (transpiled.diagnostics || []).filter(diagnostic => diagnostic.category === ts.DiagnosticCategory.Error);
   if (errors.length) throw new Error(ts.flattenDiagnosticMessageText(errors[0].messageText, '\n'));
   return transpiled.outputText;
+}
+
+function editorScript(editor, selectionOnly = false) {
+  if (!editor) throw new Error('Open a JavaScript or TypeScript script first.');
+  const { document, selection } = editor;
+  if (!['javascript', 'typescript'].includes(document.languageId)) {
+    throw new Error('The active editor is not a JavaScript or TypeScript file.');
+  }
+  if (selectionOnly && (!selection || selection.isEmpty || editor.selections?.length > 1)) {
+    throw new Error('Select one code block to run. Empty or multiple selections will not run the whole file.');
+  }
+  const text = document.getText(selectionOnly ? selection : undefined);
+  if (!text.trim()) throw new Error('The script or selection is empty.');
+  const suffix = selectionOnly ? ` (selection, line ${selection.start.line + 1})` : '';
+  return { name: path.basename(document.fileName) + suffix,
+    source: transpileScript(text, document.fileName, document.languageId), identity: document.uri.toString() };
 }
 
 function deployedScriptName(fileName, identity = fileName) {
@@ -40,4 +58,4 @@ function deployedAssetName(fileName, identity = fileName) {
   return `${stem || 'template'}-${suffix}${extension}`;
 }
 
-module.exports = { deployedAssetName, deployedScriptName, transpileScript };
+module.exports = { deployedAssetName, deployedScriptName, editorScript, transpileScript };

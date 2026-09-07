@@ -2,7 +2,7 @@
   "name": "autosdk-vscode",
   "displayName": "AutoSDK Script Tools",
   "description": "Edit, run, and build AutoSDK scripts for an iOS app installed via free Apple ID signing",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "private": true,
   "publisher": "autosdk",
   "repository": {
@@ -29,6 +29,7 @@
   "main": "extension.js",
   "activationEvents": [
     "onCommand:autosdk.runCurrentScript",
+    "onCommand:autosdk.runSelection",
     "onCommand:autosdk.sendCurrentScript",
     "onCommand:autosdk.manageScripts",
     "onCommand:autosdk.configureDevice",
@@ -47,6 +48,11 @@
   ],
   "contributes": {
     "commands": [
+      {
+        "command": "autosdk.runSelection",
+        "title": "AutoSDK: Run Selected Code",
+        "enablement": "editorHasSelection && !editorHasMultipleSelections && (editorLangId == javascript || editorLangId == typescript)"
+      },
       {
         "command": "autosdk.runCurrentScript",
         "title": "AutoSDK: Run Current Script",
@@ -108,6 +114,11 @@
     ],
     "menus": {
       "editor/context": [
+        {
+          "command": "autosdk.runSelection",
+          "when": "editorHasSelection && !editorHasMultipleSelections && (editorLangId == javascript || editorLangId == typescript)",
+          "group": "navigation@9"
+        },
         {
           "command": "autosdk.runCurrentScript",
           "when": "editorLangId == javascript || editorLangId == typescript",

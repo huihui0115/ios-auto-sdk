@@ -2,6 +2,17 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const { InspectorSession, LatestTaskQueue, actionRefreshDelay } = require('../inspector-session');
 
+test('requests received while hidden still pair operationStart with operationEnd', async () => {
+  const messages = [];
+  const session = new InspectorSession({ service: { snapshot() { throw new Error('hidden capture'); } },
+    postMessage: message => messages.push(message) });
+  session.setVisible(false);
+  await session.handleMessage({ type: 'refresh', requestId: 'hidden' });
+  assert.deepEqual(messages.map(message => message.type), ['operationStart', 'operationEnd']);
+  session.setVisible(true);
+  session.dispose();
+});
+
 function deferred() {
   let resolve;
   const promise = new Promise(done => { resolve = done; });

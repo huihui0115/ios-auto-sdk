@@ -2,7 +2,7 @@
 
 这是一个面向第三方 iOS App 的客户端自动化 SDK MVP。它不是最终 App，也不包含后台设备管理或结果回传服务。
 > ⬇️ 预编译下载：GitHub [Releases](https://github.com/huihui0115/ios-auto-sdk/releases) 提供模板 App 的 IPA（AutoSDKTemplate.ipa：未签名 IPA，用 AltStore / Sideloadly / SideStore / Feather 免费签名安装（无需巨魔））与 VS Code 插件（autosdk-vscode-*.vsix），不想自己构建可直接下载。
-> 🌐 在线文档：<https://huihui0115.github.io/ios-auto-sdk/>（docs/ 自动部署到 GitHub Pages）。
+> 📖 文档首选离线入口 [docs/index.html](docs/index.html)；[在线地址](https://huihui0115.github.io/ios-auto-sdk/) 仅在仓库已启用 GitHub Pages 且部署成功时可用。
 
 ## 当前能力
 
@@ -26,7 +26,7 @@
 > 📖 开发文档（离线网页版，双击即开）：[docs/index.html](docs/index.html)（快速上手、可视化调试、实战与完整 API）。
 > 🤖 AI 交接手册（换 AI 继续迭代前必读）：[`docs/AI_HANDOFF.md`](docs/AI_HANDOFF.md) + 根目录 [`AGENTS.md`](AGENTS.md)。
 > 🆚 对标文档：[`docs/EASYCLICK_COMPARISON.md`](docs/EASYCLICK_COMPARISON.md)（EasyClick）、[`docs/TROLLAUTOSCRIPT_COMPARISON.md`](docs/TROLLAUTOSCRIPT_COMPARISON.md)（TrollAutoScript）、[`docs/ASCRIPT_COMPARISON.md`](docs/ASCRIPT_COMPARISON.md)（AScript）、[`docs/AUTOSCRIPT_COMPARISON.md`](docs/AUTOSCRIPT_COMPARISON.md)（AutoScript）。
-> 🚀 免巨魔路线（对标 AScript/kuaijs）：[`docs/NO_TROLLSTORE.md`](docs/NO_TROLLSTORE.md)——免费签名安装 / XCTest 激活 WDA / HID 模式。
+> 🚀 安装与能力边界：[`docs/NO_TROLLSTORE.md`](docs/NO_TROLLSTORE.md)——安装不等于获得跨 App 权限；当前版本不使用 WDA 激活器。
 > 🔥 内置 no-WDA 架构（Round 46 起的主路线）：[`docs/NO_WDA_ARCHITECTURE.md`](docs/NO_WDA_ARCHITECTURE.md)——放弃外挂 WDA，触摸/控件/应用控制全部内置。
 > 🚀 想快速上手？直接打开唯一开发文档的 [`5 分钟上手`](docs/index.html#/quickstart)
 > （安装插件 → Wi-Fi 扫描手机 → 右键运行）。与 AutoScript 的定位/能力对比见

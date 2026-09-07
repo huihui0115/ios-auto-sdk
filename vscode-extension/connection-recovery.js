@@ -20,16 +20,21 @@ async function connectWithRecovery(options) {
   const testConnection = options && options.testConnection;
   const chooseAction = options && options.chooseAction;
   const replaceToken = options && options.replaceToken;
+  const isCurrent = options?.isCurrent || (() => true);
   if (typeof testConnection !== 'function' || typeof chooseAction !== 'function' || typeof replaceToken !== 'function') {
     throw new TypeError('Connection recovery requires testConnection, chooseAction, and replaceToken functions.');
   }
 
-  while (!await testConnection()) {
+  while (isCurrent()) {
+    const connected = await testConnection();
+    if (!isCurrent()) return false;
+    if (connected) return true;
     const action = await chooseAction();
+    if (!isCurrent()) return false;
     if (action === RETRY_CONNECTION) continue;
     if (action !== REENTER_TOKEN || !await replaceToken()) return false;
   }
-  return true;
+  return false;
 }
 
 module.exports = {

@@ -25,8 +25,8 @@ From the repository root:
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.12.0.vsix
-code --install-extension .\autosdk-vscode-0.12.0.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.13.0.vsix
+code --install-extension .\autosdk-vscode-0.13.0.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An
@@ -152,6 +152,11 @@ independent snippets and discovers namespaces from the completion data, so new
 modules cannot silently fall back to an unrelated all-API list.
 
 **AutoSDK: Run Current Script** executes the editor contents immediately.
+**AutoSDK: Run Selected Code** runs only one selected JS/TS block from the
+editor context menu. Empty/multiple selections are rejected, never expanded to
+the whole file. Each run gets a fresh context; include needed declarations.
+The output names the selected block's starting line. TypeScript language mode
+also works in untitled documents and files without a `.ts` extension.
 **AutoSDK: Send Current Script to Device** stores a transpiled `.js` copy in
 the app sandbox without running it. **AutoSDK: Manage Device Scripts** lists,
 runs, or deletes those deployed files.

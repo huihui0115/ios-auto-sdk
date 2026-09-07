@@ -119,8 +119,8 @@ class InspectorSession {
     this.post('operationStart', operation, id, { message: status });
     return this.queue.schedule(queueKey, async isCurrent => {
       const signal = this.signal();
-      if (!this.visible || signal.aborted) return;
       try {
+        if (!this.visible || signal.aborted) return;
         const payload = await task(signal);
         if (isCurrent() && this.visible && !signal.aborted && payload !== undefined) {
           if (commit) commit(payload);
