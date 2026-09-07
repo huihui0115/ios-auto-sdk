@@ -695,6 +695,7 @@ check(engineSource.includes('downloadTaskWithRequest:remoteRequest') && engineSo
 check(engineSource.includes('cancelBeforeStart = self.stopRequested') && engineSource.includes('self.activeAdapter = runAdapter'), 'Script cancellation and adapter selection must use the active run snapshot');
 check(engineSource.includes('[scriptAdapter cancelCurrentOperations]'), 'Script timeouts must cancel active native adapter work');
 check(engineSource.includes('executionFinished') &&
+      engineSource.includes('if (executionFinished) return;') &&
       engineSource.includes('@synchronized (executionState)') &&
       engineSource.includes('systemUptime >= executionDeadline'),
       'Script timeout completion must not race with cancellation or poison the next run');

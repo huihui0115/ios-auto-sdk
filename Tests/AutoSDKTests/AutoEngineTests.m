@@ -6,10 +6,15 @@
 @interface AutoTestAdapter : NSObject <AutoAutomationAdapter>
 @property (nonatomic, assign) NSInteger clickCount;
 @property (nonatomic, assign) NSInteger cancellationCount;
+@property (nonatomic, copy) dispatch_block_t onClick;
 @end
 
 @implementation AutoTestAdapter
-- (BOOL)click:(id)selector error:(NSError **)error { self.clickCount += 1; return YES; }
+- (BOOL)click:(id)selector error:(NSError **)error {
+    self.clickCount += 1;
+    if (self.onClick) self.onClick();
+    return YES;
+}
 - (BOOL)clickAtX:(CGFloat)x y:(CGFloat)y error:(NSError **)error { self.clickCount += 1; return YES; }
 - (BOOL)doubleClickAtX:(CGFloat)x y:(CGFloat)y interval:(NSTimeInterval)interval error:(NSError **)error { self.clickCount += 2; return YES; }
 - (BOOL)longClick:(id)selector duration:(NSTimeInterval)duration error:(NSError **)error { return YES; }
@@ -134,17 +139,33 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
 - (void)handleDebugRequest:(NSDictionary<NSString *, id> *)request response:(AutoDebugResponseHandler)response;
 - (NSDictionary<NSString *, id> *)capabilityInfo;
 @property (atomic, strong, nullable) id systemStatusProviderForTesting;
+@property (nonatomic, strong, readonly) dispatch_queue_t scriptQueue;
 @end
 
 @implementation AutoEngineTests
 - (void)setUp {
     [super setUp];
+    [self drainSharedEngine];
     AutoEngine.sharedEngine.systemStatusProviderForTesting = nil;
 }
 
 - (void)tearDown {
+    [self drainSharedEngine];
     AutoEngine.sharedEngine.systemStatusProviderForTesting = nil;
     [super tearDown];
+}
+
+- (void)drainSharedEngine {
+    AutoEngine *engine = AutoEngine.sharedEngine;
+    if (engine.isRunning) [engine stopScript];
+    XCTestExpectation *drained = [self expectationWithDescription:@"shared engine callbacks drained"];
+    // A serial queue fence plus a main-queue fence keeps old completion/overlay
+    // callbacks in their own test, even if an assertion timed out earlier.
+    dispatch_async(engine.scriptQueue, ^{
+        dispatch_async(dispatch_get_main_queue(), ^{ [drained fulfill]; });
+    });
+    [self waitForExpectations:@[drained] timeout:15];
+    XCTAssertFalse(engine.isRunning, @"A test must not leave a script for the next test.");
 }
 
 - (void)testFileWriteCapabilityRequiresFileAccess {
@@ -550,7 +571,9 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
 - (void)testScriptRunsThroughJavaScriptBridge {
     AutoTestAdapter *adapter = [AutoTestAdapter new];
     AutoEngine *engine = AutoEngine.sharedEngine;
-    [engine initWithConfig:@{@"scriptTimeout": @5}];
+    // This is a functional smoke test, including cold UIKit/font initialization,
+    // not a two-second simulator performance benchmark.
+    [engine initWithConfig:@{@"scriptTimeout": @30}];
     [engine setAutomationAdapter:adapter];
     XCTestExpectation *expectation = [self expectationWithDescription:@"script completion"];
     [engine runScript:@"console.log('start'); auto.click({id:'button'}); auto.clickPoint(10,20); auto.doubleClickPoint(10,20); auto.getText({id:'title'}); const n=auto.findElement({id:'button'}); auto.findElements({type:'Button'}); auto.exists(n); auto.getAttribute(n,'type'); auto.getBounds(n); auto.getChildren(n); auto.getParent(n); auto.waitFor(n,100); auto.scrollIntoView(n); auto.findColor('#ff0000'); auto.getPixelColor(10,20); auto.compareColors([{x:10,y:20,color:'#ff0000'}]); auto.findMultiColor('#ff0000',[]); auto.ocr(); auto.app.launch('com.example.target'); auto.activateApp('com.example.target'); auto.app.terminate('com.example.target'); const hit=auto.node.at(10,20); auto.node.snapshot(10); auto.screen.cache(true); const cached=auto.screen.isCache(); auto.screen.cache(false); auto.floatLog.show(10,20,120,100); auto.floatLog.log('bridge-ok'); const logVisible=auto.floatLog.isShow(); auto.floatLog.hide(); auto.floatLog.destroy(); const state=auto.appState('com.example.target'); state;" completion:^(NSDictionary *result, NSError *error) {
@@ -561,7 +584,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(adapter.clickCount, 4);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:40 handler:nil];
 }
 
 - (void)testStopScriptIsANoOpWhileEngineIsIdle {
@@ -775,19 +798,23 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
 
 - (void)testStopInterruptsARepeatedAutomationBridgeLoop {
     AutoEngine *engine = AutoEngine.sharedEngine;
-    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
-    [engine setAutomationAdapter:[AutoTestAdapter new]];
+    [engine initWithConfig:@{ @"scriptTimeout": @30 }];
+    AutoTestAdapter *adapter = [AutoTestAdapter new];
+    __weak AutoTestAdapter *weakAdapter = adapter;
+    adapter.onClick = ^{
+        if (weakAdapter.clickCount == 3) {
+            dispatch_async(dispatch_get_main_queue(), ^{ [engine stopScript]; });
+        }
+    };
+    [engine setAutomationAdapter:adapter];
     XCTestExpectation *expectation = [self expectationWithDescription:@"bridge loop cancellation"];
     [engine runScript:@"while (true) { auto.click({id:'button'}); }" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(result);
         XCTAssertEqual(error.code, AutoSDKErrorScriptCancelled);
         [expectation fulfill];
     }];
-    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-        [NSThread sleepForTimeInterval:0.05];
-        [engine stopScript];
-    });
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:10 handler:nil];
+    XCTAssertGreaterThanOrEqual(adapter.clickCount, 3);
 }
 
 - (void)testNativeMethodAndRemoteScriptPolicy {
@@ -892,7 +919,8 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
 
 - (void)testScriptCannotReplaceInternalTimerDrainOrAccessNativeBridge {
     AutoEngine *engine = AutoEngine.sharedEngine;
-    [engine initWithConfig:@{ @"scriptTimeout": @5 }];
+    [engine initWithConfig:@{ @"scriptTimeout": @30 }];
+    [engine setAutomationAdapter:[AutoTestAdapter new]];
     XCTestExpectation *expectation = [self expectationWithDescription:@"private bootstrap internals"];
     NSString *script = @"const state={internal:[typeof __bridge,typeof __console,typeof __autoDrainTimers].join(','),timer:false};__autoDrainTimers=function(){throw new Error('replaced drain');};setTimeout(function(){state.timer=true;},1);state;";
     [engine runScript:script completion:^(NSDictionary *result, NSError *error) {
@@ -901,7 +929,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"][@"timer"], @YES);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:40 handler:nil];
 }
 
 

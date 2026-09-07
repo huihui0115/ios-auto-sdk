@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 73（v1.38.0，2026-09-07）。
+> 最后更新：Round 74（v1.38.1，2026-09-07）。
 
 ---
 
@@ -83,12 +83,17 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 73 / v1.38.0）
+## 4. 当前状态（Round 74 / v1.38.1）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **61262 / 61440**（预算 60×1024 UTF-16 码元，余 178）。
 - 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **90 项**；VS Code 插件 **0.13.0**，测试 **121 项**。
 - 全部命令通过：`npm run verify`、`npm test`、`tsc --noEmit`、`npm run docs`、插件 `check/test`。
+- **Round 74 CI 回归修复**：v1.38.0 新增 12 项原生测试通过，但旧共享引擎测试
+  在冷启动/短等待超时后串入后续测试。现在 setup/teardown 等待脚本队列及主队列栅栏，
+  停止测试由实际第三次 click 触发，功能烟测明确放宽冷启动预算；同时修复已完成
+  脚本的迟到 watchdog 无条件停止下一次运行的竞态。v1.38.0 的失败标签保留，不覆写。
+  GitHub CLI 在 Windows 沙盒中可能误报认证失败，使用受批准的正常主机调用可读取 CI 日志。
 - **Round 73 整体审计**：新增 `AutoSystemOperations.h/.m` 管理可取消系统等待与一次性定位；
   定位/VPN 50ms 分片检查停止，定位移除主线程阻塞前置查询、迟到回调拒绝、统一错误。
   插件增加安全的选区运行，修复 Inspector 选择版本/隐藏 busy 生命周期、Bonjour 清理和配对目标切换；
@@ -275,6 +280,8 @@ webView 悬浮网页、AES/HMAC/MD5/SHA、拼音、
   daemon；原生真值仍以 verify 锚点 + Xcode 真机抽查为准。
 
 ## 9. 历轮主线（git log 可查）
+
+- R74（v1.38.1）：共享引擎 XCTest 生命周期隔离、确定性循环停止触发、迟到 watchdog 完成门禁。
 
 - R73（v1.38.0）：系统等待模块化、选区运行、Inspector 选择级迟到结果防护、
   Bonjour 生命周期/配对切换回归、显式 SQLite 链接；删除过期 WDA 安装方案。

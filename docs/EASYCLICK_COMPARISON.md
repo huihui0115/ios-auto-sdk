@@ -37,6 +37,10 @@ unavailable.
 
 ## Round 73 quality iteration
 
+Round 74 / v1.38.1 follows up on CI: isolate shared-engine test queues, trigger
+stop tests from actual adapter activity, and prevent a finished run's queued
+watchdog from cancelling the next run. No tests are skipped.
+
 SDK v1.38.0 / extension 0.13.0: selection-only runs, TypeScript language-mode fixes,
 selection-scoped Inspector results and hidden-request cleanup, Bonjour startup/cancellation
 cleanup and address refresh at capacity, pairing-target guards, cancellable location/VPN

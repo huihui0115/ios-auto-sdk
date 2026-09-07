@@ -5214,11 +5214,14 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                                   (uint64_t)(0.05 * NSEC_PER_SEC));
         dispatch_source_set_event_handler(watchdog, ^{
             @synchronized (executionState) {
-                if (!executionFinished) timedOut = YES;
-            }
-            [self requestStop];
-            if ([scriptAdapter respondsToSelector:@selector(cancelCurrentOperations)]) {
-                [scriptAdapter cancelCurrentOperations];
+                // A cancelled source may already have queued its handler. Do
+                // not let a finished run's watchdog stop a subsequent script.
+                if (executionFinished) return;
+                timedOut = YES;
+                [self requestStop];
+                if ([scriptAdapter respondsToSelector:@selector(cancelCurrentOperations)]) {
+                    [scriptAdapter cancelCurrentOperations];
+                }
             }
             dispatch_source_cancel(watchdog);
         });

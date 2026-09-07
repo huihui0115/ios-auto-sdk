@@ -6,6 +6,21 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.38.1] - 2026-09-07
+
+### Fixed
+
+- A queued timeout-watchdog callback now checks the run's completion gate before
+  stopping the engine or cancelling the adapter, so it cannot affect a newer run.
+- Native tests fence the shared script and main queues during setup/teardown;
+  timed-out callbacks no longer leak into another test. The bridge-loop stop
+  test waits for actual adapter activity instead of a fixed background sleep.
+- Cold-start UIKit/JSC functional tests have explicit non-performance budgets.
+  v1.38.0 simulator runs exposed this test isolation issue; its 12 new location
+  and callback-gate tests all passed, but IPA publication was correctly blocked.
+
+Extension remains 0.13.0. Bootstrap remains 61262 / 61440 UTF-16 code units.
+
 ## [1.38.0] - 2026-09-07
 
 ### Added
