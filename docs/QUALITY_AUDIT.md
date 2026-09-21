@@ -9,6 +9,7 @@ Round 73–79 · 2026-09-21 · SDK v1.42.0 / VS Code 0.16.0
 - 修复 action/auto 声明不一致与字符串/线程误分发；加入调用路径行为测试。
 - 增加系统小白点查询/开关；可选私有接口、严格布尔值、策略门禁和立即回读，权限未知不冒充可用；非静默设置入口扩展 10 项。新增 5 项原生确定性测试，不调用真实系统开关。
 - 对标依据和范围见 EASYCLICK_COMPARISON。原生 CI、iPhone 7 实机与 VS Code Extension Host 验收分别记录，不能用 Node mock 测试替代。
+- 本轮本地 SDK/工具 90 项、插件 165 项、TypeScript 5.6.3 与生成一致性通过；隔离 Chromium 验证函数搜索按钮及 240/320px 侧栏布局。主线 CI 35578651563 的 127 项 XCTest（含新增 5 项）和 IPA 构建通过。发布标签还会重新完整验证；未执行 Extension Host 自动化或 iPhone 7 真机测试。
 
 ## Round 78：一键状态检查与可信采集
 

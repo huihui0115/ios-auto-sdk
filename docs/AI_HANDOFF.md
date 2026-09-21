@@ -16,6 +16,8 @@ Round 79：插件函数库改为 `node tools/generate-vscode-api.mjs` 从 d.ts +
 系统设置另加 10 项最佳努力深链（仅打开页面）；与 floatBall 区分。`action=auto` 修复
 声明/运行时差异，auto 字符串/线程别名避免落入通用原生分发。bootstrap 61394/61440。
 仍待 iPhone 7 真机验证；模拟器/Node 测试不证明私有权限或可见小白点状态。
+本轮本地 90/165 项、类型/文档/目录一致性与 Chromium 侧栏烟测通过；主线 CI
+35578651563 的 127 项 XCTest 及 IPA 构建通过。插件 0.16.0 已本地安装。
 
 ---
 
