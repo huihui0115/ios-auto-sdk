@@ -1,0 +1,23 @@
+{
+  "name": "autosdk-docs-mcp",
+  "version": "1.43.0",
+  "private": true,
+  "description": "Local read-only AutoSDK API documentation and static script validation over MCP stdio",
+  "type": "module",
+  "license": "UNLICENSED",
+  "bin": { "autosdk-docs-mcp": "server.mjs" },
+  "files": ["*.mjs", "data", "README.md", "npm-shrinkwrap.json"],
+  "scripts": {
+    "start": "node server.mjs",
+    "config": "node server.mjs --config",
+    "check": "node --check server.mjs && node --check catalog.mjs && node --check validator.mjs && node --check validation-worker.mjs && node ../tools/generate-mcp-data.mjs --check",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
+    "typescript": "5.9.3",
+    "zod": "4.6.5"
+  },
+  "devDependencies": { "@modelcontextprotocol/client": "2.0.0" }
+}

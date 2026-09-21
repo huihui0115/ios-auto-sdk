@@ -38,6 +38,9 @@ npx -y -p typescript@5.6.3 tsc -p jsconfig.json --noEmit
 npm run docs
 npm --prefix vscode-extension run check
 npm --prefix vscode-extension test
+npm ci --prefix mcp-server --ignore-scripts
+npm run mcp:check
+npm run mcp:test
 
 # 2) 在 macOS 上生成工程并打包
 cd Examples/TemplateApp
@@ -104,4 +107,4 @@ CI 也会做同样的事：GitHub 上手动触发 `Build AutoSDK IPA`
 2. 跑一遍第 3 节的静态检查和 CI 构建。
 3. 人工过一遍第 4 节清单。
 4. 把未签名 IPA 上传商店/分发后台，附上第 5 节说明。
-5. 打 tag：`git tag v1.42.0; git push origin main v1.42.0`。
+5. 打 tag：`git tag v1.43.0; git push origin main v1.43.0`。

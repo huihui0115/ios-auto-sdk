@@ -140,6 +140,36 @@ const guides = [
       <div class="callout warning"><strong>调试范围</strong>当前支持运行、停止、日志、截图与节点采集，不支持断点单步调试；真实 iPhone Wi-Fi 和跨 App 私有能力仍需真机验收。</div>`
   },
   {
+    id: 'ai',
+    group: '入门',
+    title: 'AI 接入：本地 MCP',
+    lead: '让 AI 先查真实接口，再检查它写出的脚本。不绑定 AI 品牌，不需要连接手机。',
+    search: 'AI MCP 本地 文档 接入 大模型 防止 乱写 函数 search_api get_api validate_script',
+    body: `
+      <div class="callout success"><strong>只读文档服务</strong>本地 stdio MCP 提供中文函数搜索、精确参数与示例、脚本静态检查。不控制手机，不执行提交的代码，不要求 AI API Key，也不开网络端口。</div>
+      <h2>只需接入一次</h2>
+      <ol>
+        <li>电脑安装 Node.js 22+。在项目根目录安装一次服务依赖：</li>
+      </ol>
+      ${codeBlock('npm ci --prefix mcp-server --ignore-scripts')}
+      <p>生成本机接入配置，复制终端里的 JSON：</p>
+      ${codeBlock('node mcp-server/server.mjs --config')}
+      <p>在 AI 客户端的 MCP 设置里添加 <strong>本地 / stdio</strong> 服务，使用生成配置的 command 和 args，再重新加载。不同客户端的外层配置格式可能不同；选择可视化表单时，分别填写命令和参数即可。无需手机 IP、配对码或连接脚本。</p>
+      <p>客户端会自动启动服务，不需要单独保持终端运行。仅支持远程 HTTP MCP 的客户端不能直接使用。服务不会替你修改 AI 设置；本机注册一次后才会出现在工具列表中。</p>
+      <h2>然后这样告诉 AI</h2>
+      ${codeBlock('写 AutoSDK 脚本前，先用 autosdk-docs 的 search_api 搜索，get_api 核对参数、返回值和限制。写完调用 validate_script。查不到的函数不要猜；不要把静态通过当作真机运行成功。')}
+      <h2>三个工具就够</h2>
+      <table><thead><tr><th>工具</th><th>用途</th></tr></thead><tbody>
+        <tr><td>search_api</td><td>搜“小白点、VPN、截图”或英文函数名，返回真实名称与版本。</td></tr>
+        <tr><td>get_api</td><td>读取准确签名、参数、返回类型、原始示例和限制；类型名可查看结构。</td></tr>
+        <tr><td>validate_script</td><td>不运行代码，检查语法、未声明函数、参数类型与模块误用，返回错误行列。</td></tr>
+      </tbody></table>
+      <p>验收时让 AI 搜索“小白点”，应看到 device.setAssistiveTouchEnabled；让它检查 device.madeUp()，应报告不存在的成员。资料由本项目类型声明与文档自动生成，当前对应 SDK v${esc(rootPackage.version)}，并不代表手机已升级。</p>
+      <div class="callout warning"><strong>不是百分之百防乱写</strong>AI 需要实际调用工具。检查结果不能证明权限、签名、坐标、后台保活或真机成功；any 和动态调用可能绕过类型检查，需阅读警告。TypeScript 仍需插件转译。虽然服务在本地，AI 客户端仍可能把脚本和工具结果发送给其模型服务。</div>
+      <h2>独立分发</h2>
+      <p>Release 提供 autosdk-docs-mcp-${esc(rootPackage.version)}.tgz，解压后进入 package 目录，安装依赖并生成配置即可，无需整个框架源码。完整安装、限制与维护步骤见仓库 mcp-server/README.md。</p>`
+  },
+  {
     id: 'scope',
     group: '核心指南',
     title: '能力与签名',

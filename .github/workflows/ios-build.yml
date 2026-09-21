@@ -37,6 +37,9 @@ jobs:
           npm ci --prefix vscode-extension
           npm run check --prefix vscode-extension
           npm test --prefix vscode-extension
+          npm ci --prefix mcp-server --ignore-scripts
+          npm run mcp:check
+          npm run mcp:test
           ./vscode-extension/node_modules/.bin/tsc -p jsconfig.json --noEmit
           plutil -lint Examples/TemplateApp/App/Info.plist
       - name: Package VS Code extension
@@ -47,6 +50,16 @@ jobs:
         with:
           name: autosdk-vscode
           path: vscode-extension/autosdk-vscode-0.16.0.vsix
+          if-no-files-found: error
+      - name: Package local documentation MCP
+        run: |
+          mkdir -p mcp-artifacts
+          npm pack ./mcp-server --pack-destination mcp-artifacts
+      - name: Upload documentation MCP artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: autosdk-docs-mcp
+          path: mcp-artifacts/*.tgz
           if-no-files-found: error
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -148,9 +161,10 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           notes="$RUNNER_TEMP/release-notes.md"
           {
-            echo "AutoSDK ${tag} unsigned IPA + VS Code extension."
+            echo "AutoSDK ${tag} unsigned IPA + VS Code extension + local documentation MCP."
             echo ""
             echo "## Downloads"
+            echo "- autosdk-docs-mcp-${tag#v}.tgz — 本地只读 MCP 文档服务（函数查询 / 静态检查，不控制手机；安装见包内 README）"
             echo "- AutoSDKTemplate.ipa — 未签名模板 App，用 AltStore / Sideloadly / SideStore / Feather 免费签名安装（无需巨魔）"
             echo "- autosdk-vscode-0.16.0.vsix — VS Code 调试插件（中文函数库 / 参数提示 / 一键连接运行 / 截图与节点）"
             echo ""
@@ -161,6 +175,7 @@ jobs:
             --title "AutoSDK ${tag}" \
             --notes-file "$notes" \
             dist/AutoSDKTemplate.ipa \
+            mcp-artifacts/*.tgz \
             vscode-extension/autosdk-vscode-0.16.0.vsix \
             || gh release edit "$tag" --notes-file "$notes" --title "AutoSDK ${tag}"
 

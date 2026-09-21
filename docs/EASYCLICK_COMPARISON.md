@@ -1,6 +1,16 @@
 # EasyClick iOS capability comparison
 
-Audit date: 2026-09-21 (Round 79; current workflow review: [QUALITY_AUDIT.md](QUALITY_AUDIT.md))
+Audit date: 2026-09-21 (Round 80; current workflow review: [QUALITY_AUDIT.md](QUALITY_AUDIT.md))
+
+## Round 80: client-neutral AI documentation access
+
+AutoSDK now exposes its own declarations/docs through a local read-only MCP server:
+search, exact reference and bounded in-memory JS/TS validation. This is documentation
+assistance, not an AI phone agent or an AI-provider integration. No competitor MCP
+parity or absence claim is made. Static diagnostics do not establish signing,
+permissions, runtime behavior or iPhone 7 endurance. Authoritative protocol references:
+[MCP server guide](https://modelcontextprotocol.io/docs/develop/build-server) and
+[official TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk).
 
 ## Round 79: callable APIs and AssistiveTouch
 

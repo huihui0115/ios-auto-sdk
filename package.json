@@ -1,6 +1,6 @@
 {
   "name": "auto-sdk-tools",
-  "version": "1.42.0",
+  "version": "1.43.0",
   "private": true,
   "description": "Cross-platform helper for validating and invoking an iOS AutoSDK build",
   "bin": {
@@ -15,7 +15,12 @@
     "init": "node tools/init-project.mjs",
     "doctor": "node tools/doctor.mjs",
     "docs": "node tools/generate-devdocs.mjs",
-    "regenerate:bootstrap": "node tools/regenerate-bootstrap.mjs"
+    "regenerate:bootstrap": "node tools/regenerate-bootstrap.mjs",
+    "mcp": "node mcp-server/server.mjs",
+    "mcp:config": "node mcp-server/server.mjs --config",
+    "mcp:generate": "node tools/generate-mcp-data.mjs",
+    "mcp:check": "npm --prefix mcp-server run check",
+    "mcp:test": "npm --prefix mcp-server test"
   },
   "engines": {
     "node": ">=22"

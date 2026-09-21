@@ -22,6 +22,8 @@ if (!/^\d+\.\d+\.\d+$/.test(versionArg)) fail(`invalid version "${versionArg}" (
 const files = {
   package: resolve(root, 'package.json'),
   lock: resolve(root, 'package-lock.json'),
+  mcpPackage: resolve(root, 'mcp-server/package.json'),
+  mcpLock: resolve(root, 'mcp-server/npm-shrinkwrap.json'),
   podspec: resolve(root, 'AutoSDK.podspec'),
   version: resolve(root, 'Sources/AutoSDK/AutoSDKVersion.m'),
   changelog: resolve(root, 'CHANGELOG.md'),
@@ -42,6 +44,14 @@ try {
 if (lockJSON.version !== undefined) lockJSON.version = versionArg;
 if (lockJSON.packages?.['']?.version !== undefined) lockJSON.packages[''].version = versionArg;
 writeFileSync(files.lock, `${JSON.stringify(lockJSON, null, 2)}\n`, 'utf8');
+
+// The documentation service follows the SDK snapshot version, not the VS Code version.
+for (const file of [files.mcpPackage, files.mcpLock]) {
+  const data = JSON.parse(readFileSync(file, 'utf8'));
+  data.version = versionArg;
+  if (data.packages?.['']) data.packages[''].version = versionArg;
+  writeFileSync(file, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+}
 
 let podspec = readFileSync(files.podspec, 'utf8');
 podspec = podspec.replace(/s\.version\s*=\s*'[^']+'/, `s.version          = '${versionArg}'`);
@@ -68,6 +78,7 @@ console.log('  package.json          updated');
 console.log('  package-lock.json     updated');
 console.log('  AutoSDK.podspec       updated');
 console.log('  AutoSDKVersion.m      updated');
+console.log('  MCP package/lock      updated (run npm run mcp:generate next)');
 console.log('');
 console.log('Next steps:');
 console.log(`  git add -A && git commit -m "Release ${versionArg}"`);

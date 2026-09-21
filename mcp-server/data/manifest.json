@@ -1,0 +1,13 @@
+{
+  "sdkVersion": "1.43.0",
+  "sources": {
+    "types/autosdk.d.ts": "0bafd8c08df3de747de5c53955202a555c00d116560149d2d6038c602138c635",
+    "tools/generate-api-reference.mjs": "d5602c763d5d5043ae9b2a66de07ac5e1b1758068567f595c840d3b440e77153",
+    "tools/generate-mcp-data.mjs": "63419fa3d08dbaba961e30f077d1c534e94f2c25b247f3edc71c63d0e78d0f99",
+    "package.json": "94cd3a34292b25f1d5f316f4c4d30a45c9e8abfc07b7dd8b1ceb9317c038b6c6"
+  },
+  "outputs": {
+    "catalog.json": "8f7be9080b56a5161b1ca5bd17f068de8c625c69638078b3d4a2f1ea23c1986b",
+    "autosdk.d.ts": "0bafd8c08df3de747de5c53955202a555c00d116560149d2d6038c602138c635"
+  }
+}

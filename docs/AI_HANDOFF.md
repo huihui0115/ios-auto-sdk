@@ -3,7 +3,21 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 79（v1.42.0 / VS Code 0.16.0，2026-09-21）。
+> 最后更新：Round 80（v1.43.0 / VS Code 0.16.0，2026-09-21）。
+
+Round 80：新增 `mcp-server/` 本地只读 stdio 文档服务，不连接手机、不执行提交的代码。
+`search_api` / `get_api` / `validate_script`，资源 `autosdk://guide`；客户端只需注册一次。
+资料由 `tools/generate-mcp-data.mjs` 从 d.ts + API 元数据生成，含全局/模块/实例签名、
+类型定义和原始中文文档。`npm run mcp:generate` 更新；根 verify 无需安装 MCP 依赖
+即可核对 SHA-256，`npm run mcp:check` 再用编译器验证生成一致性。
+服务使用官方 MCP SDK 2.0.0（旧 initialize 与新版协商均支持），依赖锁定在
+`mcp-server/npm-shrinkwrap.json`。静态检查独立 Worker，输入/时间/内存/并发有界，
+统一 bump-version 工具也同步 MCP 包及锁文件版本，bump 后必须重新生成 MCP 资料。
+编译器宿主只读包内声明，禁止用户指定引用/模块加载；any/动态调用不承诺完全覆盖。
+文档唯一 HTML 新增“AI 接入：本地 MCP”，完整指南 `mcp-server/README.md`。
+本轮不改手机端运行逻辑与插件行为；静态检查、协议测试不等于 iPhone 7 真机验收。
+本地 90/165/15 项测试、指定类型检查、生成一致性通过；独立包生产安装的 4 项协议测试
+通过。HTML 正文宽度扣除导航，Chromium 320–1280px 五档及 MCP 搜索/路由通过。
 
 Round 79：插件函数库改为 `node tools/generate-vscode-api.mjs` 从 d.ts + API 元数据生成
 `vscode-extension/api-catalog.json`（1160 个可调用签名，含别名/重载，不是 1160 项独立能力）。

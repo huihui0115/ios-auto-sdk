@@ -233,7 +233,7 @@ a:hover { color: var(--brand-strong); }
 .nav-link.current { color: var(--brand-strong); background: var(--brand-soft); font-weight: 650; }
 .nav-count { min-width: 25px; border-radius: 999px; padding: 0 6px; color: var(--subtle); background: var(--panel); font-size: 10px; text-align: center; }
 .content {
-  width: min(100%, 1080px);
+  width: min(calc(100% - var(--sidebar-width)), 1080px);
   margin-left: var(--sidebar-width);
   padding: 30px 44px 90px;
 }

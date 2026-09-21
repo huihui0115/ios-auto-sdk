@@ -6,6 +6,21 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.43.0] - 2026-09-21
+
+### Added
+
+- Local, client-neutral stdio MCP service: `search_api`, `get_api` and `validate_script`, plus an AutoSDK writing guide resource. No phone access, network listener or submitted-code execution.
+- Generated reference from the authoritative declarations and API metadata: 1,857 callable signatures including global/module aliases and interface members, 74 type definitions and 261 documentation groups. SHA-256 consistency checks prevent stale data.
+- In-memory JS/TS diagnostics in a bounded worker with cancellation, timeout, busy handling and no input-selected filesystem/module resolution. Unknown API, argument errors and unsupported modules are reported; dynamic/any escapes carry warnings.
+- Client-neutral setup guide in the offline HTML documentation and a standalone locked MCP package in CI/Release artifacts; legacy and 2026-07-28 protocol integration tests.
+
+### Fixed
+
+- Offline docs now subtract the navigation width from the desktop content width, preventing clipped content and horizontal page overflow on narrower windows.
+- Documentation explicitly distinguishes static validation from real-device success, local service execution from the AI provider's data handling, and instance members from globally callable modules.
+- VS Code stays at 0.16.0; iOS runtime/bootstrap unchanged (61,394 / 61,440). No iPhone 7/private-capability validation is claimed by this release.
+
 ## [1.42.0] - 2026-09-21
 
 ### Added

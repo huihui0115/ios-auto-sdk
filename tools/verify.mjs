@@ -4,9 +4,11 @@ import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
 import { APIS } from './generate-api-reference.mjs';
+import { checkMcpSources } from './generate-mcp-data.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const failures = [];
+try { checkMcpSources(); } catch (error) { failures.push(error.message); }
 
 // The compiler-backed regeneration check runs in the extension check/prepublish workflow.
 const apiCatalog = JSON.parse(readFileSync(resolve(root, 'vscode-extension/api-catalog.json'), 'utf8'));

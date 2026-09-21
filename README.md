@@ -6,6 +6,8 @@
 
 ## 当前能力
 
+- AI 写脚本：[本地只读 MCP 接入](mcp-server/README.md) 提供真实接口搜索、精确文档和静态检查；不绑定 AI、不连接手机、不执行代码。离线 HTML 也有“AI 接入”指南。
+
 - Objective-C 友好的 `AutoEngine` 单例入口
 - JavaScriptCore 执行本地脚本、Bundle 脚本和远程 URL
 - 全局 `auto` API：点击、滑动、输入、稳定节点查询、图色、截图、OCR、沙盒文件、命名存储、设备信息和受控 HTTP
