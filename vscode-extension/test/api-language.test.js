@@ -16,6 +16,9 @@ test('namespace and partial names stay focused, including aliases and nested mod
   for (const prefix of ['unknown.get', 'fn().', 'items[0].']) assert.deepEqual(completions(prefix), [], prefix);
   assert.equal(completions('device.getBr')[0].insertText, 'getBrightness()');
   assert.equal(completions('device.getBr')[0].replaceLength, 5);
+  const middle = completions('device.getBrightness()', 12)[0];
+  assert.equal(middle.insertText, 'getBrightness');
+  assert.equal(middle.replaceAfterLength, 'ightness'.length);
 });
 
 test('comments, strings and template text do not offer executable completions', () => {
@@ -38,7 +41,8 @@ test('all generated snippets parse without optional markers, type annotations or
 });
 
 test('signature help counts nested expressions, callback types and overloads', () => {
-  for (const text of ['http.post("url", { a: [1,2] }, ', 'http.post("url", fn(1, 2), ']) {
+  for (const text of ['http.post("url", { a: [1,2] }, ', 'http.post("url", fn(1, 2), ',
+    'http.post(url, /a,b/, ', 'http.post(url, fn<string, number>(x), ', 'http.post(url, `a,b`, ']) {
     const help = callHelp(text, text.length);
     assert.equal(help.parameter, 2);
     assert.equal(help.entries[0].name, 'http.post');

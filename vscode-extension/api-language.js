@@ -50,13 +50,16 @@ function completions(text, offset = text.length) {
   const dot = normalized.lastIndexOf('.');
   const namespace = dot < 0 ? '' : normalized.slice(0, dot);
   const typed = normalized.slice(dot + 1);
+  const suffix = text.slice(offset).match(/^[\w$]*/)[0];
+  const hasArguments = /^\s*\(/.test(text.slice(offset + suffix.length));
   // Do not complete properties of an arbitrary call result or a computed receiver.
   if (!namespace && /[.)\]]\s*\.\s*[\w$]*$/.test(text.slice(0, offset))) return [];
   return catalog.filter(entry => {
     const separator = entry.name.lastIndexOf('.');
     return (!namespace || entry.name.slice(0, separator) === namespace) &&
       entry.name.slice(namespace ? namespace.length + 1 : 0).startsWith(typed);
-  }).map(entry => ({ ...entry, insertText: snippet(entry, namespace), replaceLength: typed.length,
+  }).map(entry => ({ ...entry, insertText: hasArguments ? entry.name.slice(namespace ? namespace.length + 1 : 0) : snippet(entry, namespace),
+    replaceLength: typed.length, replaceAfterLength: suffix.length,
     filterText: namespace ? entry.name.slice(namespace.length + 1) : entry.name }));
 }
 
@@ -76,14 +79,10 @@ function callHelp(text, offset) {
   const name = call.expression.getText(source).replace(/\?\./g, '.');
   const entries = catalog.filter(entry => entry.name === name);
   if (!entries.length) return undefined;
-  // Count only top-level commas: objects, arrays, strings and nested calls remain single arguments.
-  const scanner = ts.createScanner(ts.ScriptTarget.Latest, true, ts.LanguageVariant.Standard, text.slice(call.arguments.pos, offset));
-  let token, depth = 0, parameter = 0;
-  while ((token = scanner.scan()) !== ts.SyntaxKind.EndOfFileToken) {
-    if ([ts.SyntaxKind.OpenParenToken, ts.SyntaxKind.OpenBraceToken, ts.SyntaxKind.OpenBracketToken].includes(token)) depth++;
-    else if ([ts.SyntaxKind.CloseParenToken, ts.SyntaxKind.CloseBraceToken, ts.SyntaxKind.CloseBracketToken].includes(token)) depth--;
-    else if (token === ts.SyntaxKind.CommaToken && depth === 0) parameter++;
-  }
+  // Count syntax-list separators, not text commas (regexes/templates/generics can contain commas).
+  const list = call.getChildren(source).find(node => node.kind === ts.SyntaxKind.SyntaxList &&
+    node.pos === call.arguments.pos && node.end === call.arguments.end);
+  const parameter = list?.getChildren(source).filter(node => node.kind === ts.SyntaxKind.CommaToken && node.end <= offset).length || 0;
   return { entries, parameter };
 }
 

@@ -11,7 +11,7 @@ function languageProviders(vscode) {
         item.documentation = new vscode.MarkdownString(candidate.documentation);
         item.insertText = new vscode.SnippetString(candidate.insertText);
         item.filterText = candidate.filterText;
-        item.range = new vscode.Range(position.translate(0, -candidate.replaceLength), position);
+        item.range = new vscode.Range(position.translate(0, -candidate.replaceLength), position.translate(0, candidate.replaceAfterLength));
         item.command = { command: 'editor.action.triggerParameterHints', title: '参数提示' };
         return item;
       });
