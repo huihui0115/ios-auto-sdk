@@ -6,6 +6,20 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.42.0] - 2026-09-21
+
+### Added
+
+- VS Code 0.16.0: searchable Chinese API library, typed parameter hints and hover help, generated from the SDK declarations and documentation (1,160 callable signatures including aliases/overloads).
+- AssistiveTouch state and explicit boolean switch APIs with optional private-SPI resolution, ABI checks, configuration gate and immediate readback; unsupported/unknown states are not reported as success/disabled.
+- Ten additional best-effort Settings panels for accessibility, text size, auto-lock, sounds and keyboard.
+
+### Fixed
+
+- Partial module completion, invalid optional-argument snippets, and suggestions inside comments/strings. Removed the obsolete hand-maintained completion table/model.
+- `action` now follows the same facade as `auto`; string helpers and thread aliases resolve to their implementations instead of generic native fallback.
+- Bootstrap remains within its 61,440-code-unit budget (61,394). Real iPhone 7 signing, private switches and background endurance still require device validation.
+
 ## [1.41.1] - 2026-09-21
 
 ### Added

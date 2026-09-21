@@ -2,7 +2,7 @@
   "name": "autosdk-vscode",
   "displayName": "AutoSDK Script Tools",
   "description": "Edit, run, and build AutoSDK scripts for an iOS app installed via free Apple ID signing",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "private": true,
   "publisher": "autosdk",
   "repository": {
@@ -67,6 +67,10 @@
       ]
     },
     "commands": [
+      {
+        "command": "autosdk.insertAPI",
+        "title": "AutoSDK: 搜索函数 / 插入操作"
+      },
       {
         "command": "autosdk.openDeviceHome",
         "title": "AutoSDK: 打开设备与调试",
@@ -278,10 +282,12 @@
     ]
   },
   "scripts": {
-    "precheck": "npm run check:home",
-    "check": "node --check extension.js && node --check completion-model.js && node --check connection-recovery.js && node --check connection-settings.js && node --check device-client.js && node --check device-discovery.js && node --check wifi-discovery.js && node --check inspector-input.js && node --check inspector-service.js && node --check inspector-session.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector-model.js && node --check media/inspector.js",
+    "vscode:prepublish": "node ../tools/generate-vscode-api.mjs --check",
+    "precheck": "npm run check:home && node ../tools/generate-vscode-api.mjs --check",
+    "check": "node --check extension.js && node --check api-language.js && node --check api-tools.js && node --check connection-recovery.js && node --check connection-settings.js && node --check device-client.js && node --check device-discovery.js && node --check wifi-discovery.js && node --check inspector-input.js && node --check inspector-service.js && node --check inspector-session.js && node --check process-lifecycle.js && node --check script-tools.js && node --check usb-tunnel.js && node --check inspector-view.js && node --check media/inspector-model.js && node --check media/inspector.js",
     "test": "node --test test/*.test.js",
-    "check:home": "node --check device-home.js && node --check device-health.js && node --check device-home-view.js && node --check media/device-home.js"
+    "check:home": "node --check device-home.js && node --check device-health.js && node --check device-home-view.js && node --check media/device-home.js",
+    "generate:api": "node ../tools/generate-vscode-api.mjs"
   },
   "dependencies": {
     "bonjour-service": "1.4.4",

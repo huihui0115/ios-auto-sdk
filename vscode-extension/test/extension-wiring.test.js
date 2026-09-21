@@ -23,7 +23,8 @@ test('the extension delegates visual capture and Inspector state to focused modu
 
 test('the extension delegates completion parsing instead of hard-coding namespaces', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension.js'), 'utf8');
-  assert.match(source, /completionEntries\(API_COMPLETIONS, prefix/);
+  assert.match(source, /languageProviders\(vscode\)/);
+  assert.doesNotMatch(source, /const API_COMPLETIONS/);
   assert.doesNotMatch(source, /namespaceMatch\s*=\s*prefix\.match/);
 });
 

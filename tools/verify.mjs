@@ -8,6 +8,11 @@ import { APIS } from './generate-api-reference.mjs';
 const root = resolve(import.meta.dirname, '..');
 const failures = [];
 
+// The compiler-backed regeneration check runs in the extension check/prepublish workflow.
+const apiCatalog = JSON.parse(readFileSync(resolve(root, 'vscode-extension/api-catalog.json'), 'utf8'));
+if (!apiCatalog.some(entry => entry.name === 'device.setAssistiveTouchEnabled') ||
+    !apiCatalog.some(entry => entry.name === 'system.openSettings')) failures.push('Generated VS Code catalog must include system controls');
+
 function read(path) {
   return readFileSync(resolve(root, path), 'utf8');
 }
@@ -630,8 +635,8 @@ check(bootstrapScript.includes('function pushTimer') && bootstrapScript.includes
       !bootstrapScript.includes('timers.sort(') && !bootstrapScript.includes('timers.shift()'),
       'Timer draining must use a bounded priority heap instead of repeated full-array sorting');
 check(bootstrapScript.includes('cancelled[id]=true') && bootstrapScript.includes('delete cancelled[timer.id]'), 'Queued timer cancellation must not leak cancellation markers');
-check(bootstrapScript.includes('function ensureRunning()') && bootstrapScript.includes('guardMethods(base)') &&
-      bootstrapScript.includes('ensureRunning();return _nn(Str(key)'),
+check(bootstrapScript.includes('function erun()') && bootstrapScript.includes('guardMethods(base)') &&
+      bootstrapScript.includes('erun();return _nn(Str(key)'),
       'Script stop must reject subsequent automation and native bridge calls');
 check(bootstrapScript.includes('delete g.__bridge;delete g.__console') &&
       engineSource.includes('[drainTimers callWithArguments:@[]]') &&

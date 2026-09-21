@@ -8,7 +8,7 @@ const { deviceHomeHtml } = require('./device-home-view');
 const { REENTER_TOKEN, RETRY_CONNECTION, SCAN_WIFI_DEVICE, connectWithRecovery, connectionTargetIsCurrent, runErrorActions } = require('./connection-recovery');
 const { DeviceClient } = require('./device-client');
 const { canonicalDebugUrl, connectionCredentials, normalizeWifiDebugUrl, tokenForConfiguration, updateConnectionConfiguration } = require('./connection-settings');
-const { completionEntries } = require('./completion-model');
+const { languageProviders, insertAPI } = require('./api-tools');
 const { discoverUsbDevices } = require('./device-discovery');
 const { generatedCode, inputText } = require('./inspector-input');
 const { InspectorService, maxNodes, responseError } = require('./inspector-service');
@@ -33,218 +33,7 @@ let deviceHomeView;
 let scriptRunning = false;
 const activeBuildProcesses = new Set();
 
-const API_COMPLETIONS = [
-  ['auto.click(selector)', 'Activate the first matching node.'],
-  ['auto.clickPoint(x, y)', 'Activate the host-app control at screen coordinates.'],
-  ['auto.doubleClickPoint(x, y, intervalSeconds)', 'Activate a coordinate twice.'],
-  ['auto.longClick(selector, durationSeconds)', 'Long press through an adapter that supports real touch injection.'],
-  ['auto.swipe(x1, y1, x2, y2, durationSeconds)', 'Swipe or scroll between screen coordinates.'],
-  ['auto.input(selector, text)', 'Replace text in a matching input.'],
-  ['auto.setText(selector, text)', 'EasyClick-compatible alias for input.'],
-  ['auto.getText(selector)', 'Read text from the first matching node.'],
-  ['auto.sleep(milliseconds)', 'Pause cooperatively and remain cancellable.'],
-  ['auto.findElement(selector)', 'Return one stable node descriptor or null.'],
-  ['auto.findElements(selector)', 'Return all matching node descriptors.'],
-  ['auto.exists(selector)', 'Test whether a node exists.'],
-  ['auto.waitFor(selector, timeoutMs)', 'Wait for a node or fail with a timeout.'],
-  ['auto.getAttribute(selector, name)', 'Read a node attribute.'],
-  ['auto.getBounds(selector)', 'Read point-coordinate node bounds.'],
-  ['auto.getChildren(selector)', 'Return direct child descriptors.'],
-  ['auto.getParent(selector)', 'Return the parent descriptor.'],
-  ['auto.getSiblings(node)', 'Return sibling descriptors.'],
-  ['auto.getPreviousSiblings(node)', 'Return siblings before the node.'],
-  ['auto.getNextSiblings(node)', 'Return siblings after the node.'],
-  ['auto.getChild(node, index)', 'Return one direct child.'],
-  ['auto.scrollIntoView(selector)', 'Scroll a matching node into view.'],
-  ['auto.clickCenter(node)', 'Activate the center of a node.'],
-  ['auto.clickRandom(node)', 'Activate a random inset point in a node.'],
-  ['auto.screenshot()', 'Return a PNG screenshot as base64.'],
-  ['auto.saveImageToAlbum(path)', 'Save a sandbox image file to the iOS photo library.'],
-  ['auto.saveImageBase64ToAlbum(base64)', 'Save a base64 image to the iOS photo library.'],
-  ['auto.saveVideoToAlbum(path)', 'Save a sandbox video file to the iOS photo library.'],
-  ['auto.saveScreenshotToAlbum()', 'Capture and save the current screen to the iOS photo library.'],
-  ['auto.findImage(templatePath, options)', 'Find an image template.'],
-  ['auto.findColor(color, region, options)', 'Find one color.'],
-  ['auto.findMultiColor(color, offsets, region, options)', 'Find a base color plus relative color offsets.'],
-  ['auto.getPixelColor(x, y)', 'Read one screenshot pixel.'],
-  ['auto.compareColors(points, options)', 'Compare several screenshot points in one capture.'],
-  ['auto.cmpColor(points, options)', 'EasyClick-compatible alias for compareColors.'],
-  ['auto.ocr(region)', 'Run on-device Vision OCR.'],
-  ['auto.http(url, options)', 'Perform a controlled synchronous HTTP request.'],
-  ['auto.httpGet(url, options)', 'Perform a GET request.'],
-  ['auto.httpPost(url, body, options)', 'Perform a POST request.'],
-  ['auto.storage(name)', 'Open a persistent named JSON store.'],
-  ['auto.launchApp(bundleId)', 'Launch an application through a capable adapter.'],
-  ['auto.activateApp(bundleId)', 'Bring an application to the foreground.'],
-  ['auto.terminateApp(bundleId)', 'Terminate an application through a capable adapter.'],
-  ['auto.appState(bundleId)', 'Read the application state code.'],
-  ['auto.capabilities()', 'Inspect the current adapter and runtime capabilities.'],
-  ['auto.time()', 'Return the current Unix time in milliseconds.'],
-  ['auto.randomInt(min, max)', 'Return a random integer in an inclusive range.'],
-  ['setTimeout(callback, milliseconds)', 'Run a callback before script completion after a delay.'],
-  ['setInterval(callback, milliseconds)', 'Repeat a callback until cancelled, stopped, or timed out.'],
-  ['clearTimeout(timerId)', 'Cancel a timeout.'],
-  ['clearInterval(timerId)', 'Cancel an interval.'],
-  ['cancelTimeout(timerId)', 'EasyClick-compatible alias for clearTimeout.'],
-  ['cancelInterval(timerId)', 'EasyClick-compatible alias for clearInterval.'],
-  ['file.sandboxDir()', 'Return the configured AutoSDK sandbox directory.'],
-  ['file.resolvePath(path)', 'Resolve a relative sandbox path.'],
-  ['file.exists(path)', 'Test whether a sandbox path exists.'],
-  ['file.readFile(path)', 'Read a UTF-8 file below the AutoSDK sandbox root.'],
-  ['file.readBase64(path)', 'Read a sandbox file as base64.'],
-  ['file.readLines(path)', 'Read a bounded UTF-8 file as lines.'],
-  ['file.readLine(path, index)', 'Read one line from a bounded UTF-8 file.'],
-  ['file.writeFile(path, text)', 'Atomically write a UTF-8 file.'],
-  ['file.writeBase64(path, base64)', 'Decode base64 into a sandbox file.'],
-  ['file.create(path)', 'Create or truncate an empty sandbox file.'],
-  ['file.appendText(path, text)', 'Append UTF-8 text to a sandbox file.'],
-  ['file.appendLine(path, text)', 'Append a line to a UTF-8 file.'],
-  ['file.deleteLine(path, index)', 'Remove one line from a UTF-8 file.'],
-  ['file.list(path)', 'Return bounded metadata for a sandbox directory.'],
-  ['file.listDir(path)', 'List a sandbox directory.'],
-  ['file.mkdir(path)', 'Create a sandbox directory recursively.'],
-  ['file.mkdirs(path)', 'Create a sandbox directory recursively.'],
-  ['file.remove(path)', 'Remove a sandbox file or bounded directory tree.'],
-  ['file.deleteAllFile(path)', 'Remove a file or directory below the sandbox root.'],
-  ['file.copy(source, destination, overwrite)', 'Copy a sandbox file or directory.'],
-  ['storages.create(name)', 'Open an EasyClick-style persistent store.'],
-  ['device.info() / device.getDeviceInfo()', 'Return device, app, screen, battery and adapter information.'],
-  ['device.width() / device.height() / device.scale()', 'Read screen dimensions and scale through short aliases.'],
-  ['device.getScreenWidth() / device.getScreenHeight() / device.getScreenWidthHeightText() / device.getScale()', 'Read screen dimensions in points, as text, or as pixel scale.'],
-  ['device.getModel() / device.getOSVersion() / device.getDeviceName()', 'Read the public iOS model, version, and device name.'],
-  ['device.getBattery() / device.isCharging() / device.getOrientation()', 'Read battery, charging, and interface-orientation state.'],
-  ['device.getDeviceId() / device.getDeviceAlias() / device.getSerialNo()', 'Read the app-scoped device identity, alias, or unavailable hardware serial.'],
-  ['device.getIPAddress() / device.getIP()', 'Read the current Wi-Fi IPv4 address.'],
-  ['device.getAppVersion() / device.getPackageName()', 'Read the host app version and bundle identifier.'],
-  ['device.getMemoryInfo() / device.getTotalMemory() / device.getAvailableMemory() / device.getUsedMemory()', 'Read bounded memory metrics in bytes.'],
-  ['device.getClipboard() / device.setClipboard(text)', 'Read or replace bounded clipboard text.'],
-  ['device.getBrightness() / device.setBrightness(value) / device.setBacklightLevel(value) / device.backlightLevel()', 'Read or set screen brightness from 0 to 1.'],
-  ['device.getVolume() / device.volumeUp() / device.volumeDown()', 'Read volume or request a hardware volume-button action.'],
-  ['device.vibrate(durationMs) / device.vibrateLong() / device.vibrateShort()', 'Trigger system vibration.'],
-  ['device.isScreenOn() / device.isLocked() / device.keepScreenOn(value)', 'Read lock state or control the app idle timer.'],
-  ['device.getLanguage() / device.getCountry() / device.getLocale() / device.getTimezone()', 'Read locale-related system information.'],
-  ['device.getUptime() / device.getNetworkType() / device.isWifi()', 'Read uptime and active network path.'],
-  ['device.isLowPowerModeEnabled()', 'Read the reliable iOS Low Power Mode state.'],
-  ['device.setFlashlight(on) / device.torch(on) / device.flashlight(on)', 'Turn the camera torch on or off.'],
-  ['device.applist() / device.getOrientationNoAuto() / device.getDeviceMsg()', 'EasyClick-compatible device aliases.'],
-  ['vpn.status() / vpn.connect() / vpn.disconnect() / vpn.openSettings()', 'Manage the host app Personal VPN configuration or open VPN settings.'],
-  ['system.openSettings(panel)', 'Open a named iOS Settings panel with a safe fallback.'],
-  ['http.request(url, options)', 'Perform a controlled HTTP request.'],
-  ['http.get(url, options)', 'Perform a GET request.'],
-  ['http.post(url, body, options)', 'Perform a POST request.'],
-  ['http.postJSON(url, body, options)', 'EasyClick-compatible JSON POST alias.'],
-  ['http.downloadFile(url, path, options)', 'Download a response into the AutoSDK sandbox.'],
-  ['image.findImage(templatePath, options)', 'Find an image template.'],
-  ['image.findColor(color, region, options)', 'Find a color in a screenshot region.'],
-  ['image.findMultiColor(color, offsets, region, options)', 'Find a multi-point color pattern.'],
-  ['image.pixel(x, y)', 'Read one screenshot pixel.'],
-  ['image.screenshot()', 'Return a PNG screenshot as base64.'],
-  ['image.saveToAlbum(path)', 'Save a sandbox image file to the iOS photo library.'],
-  ['image.saveBase64ToAlbum(base64)', 'Save a base64 image to the iOS photo library.'],
-  ['image.saveScreenshotToAlbum()', 'Capture and save the current screen to the iOS photo library.'],
-  ['image.cmpColor(points, options)', 'Compare several colors in one screenshot.'],
-  ['media.saveImage(path)', 'Save a sandbox image file to the iOS photo library.'],
-  ['media.saveImageBase64(base64)', 'Save a base64 image to the iOS photo library.'],
-  ['media.saveVideo(path)', 'Save a sandbox video file to the iOS photo library.'],
-  ['media.saveScreenshot()', 'Capture and save the current screen to the iOS photo library.'],
-  ['app.launch(bundleId)', 'Launch an application through a capable adapter.'],
-  ['app.activate(bundleId)', 'Bring an application to the foreground.'],
-  ['app.terminate(bundleId)', 'Terminate an application through a capable adapter.'],
-  ['app.state(bundleId)', 'Read the application state code.'],
-  ['clickPoint(x, y)', 'Global coordinate activation alias.'],
-  ['doubleClickPoint(x, y, intervalSeconds)', 'Global coordinate double activation alias.'],
-  ['swipeToPoint(x1, y1, x2, y2, durationSeconds)', 'Global swipe alias.'],
-  ['sleep(milliseconds)', 'Global cooperative sleep alias.'],
-  ['random(min, max)', 'Return a random integer in an inclusive range.'],
-  ['logd(...values)', 'Write a debug-level script log entry.'],
-  ['logi(...values)', 'Write an info-level script log entry.'],
-  ['logw(...values)', 'Write a warning-level script log entry.'],
-  ['loge(...values)', 'Write an error-level script log entry.'],
-  ['media.deleteAllPhotos()', 'Delete every photo from the camera roll (read-write authorization).'],
-  ['media.deleteAllVideos()', 'Delete every video from the camera roll (read-write authorization).'],
-  ['media.deleteAllMedia()', 'Delete every photo and video from the camera roll.'],
-  ['file.lineCount(path)', 'Count lines in a UTF-8 text file.'],
-  ['file.getLineText(path, index)', 'Read one line by index.'],
-  ['file.insertLineText(path, index, text)', 'Insert a line at an index.'],
-  ['file.resetLineText(path, index, text)', 'Replace one line.'],
-  ['file.readPlist(path)', 'Read an XML plist into a plain object.'],
-  ['file.writePlist(path, value)', 'Write a JSON value as an XML plist.'],
-  ['plist.read(path) / plist.write(path, value)', 'Global plist read/write aliases.'],
-  ['strings.trim(text)', 'Trim whitespace from both ends.'],
-  ['strings.split(text, separator)', 'Split a string into an array.'],
-  ['strings.toHex(text) / fromHex(hex)', 'Hex encode and decode.'],
-  ['strings.isChinese(text) / isEmail(text) / isLink(text)', 'String classification helpers.'],
-  ['strings.md5(text) / sha1(text) / sha256(text) / sha512(text)', 'Message digest helpers.'],
-  ['strings.base64Encode(text) / base64Decode(base64)', 'Base64 encode and decode.'],
-  ['strings.aes128Encrypt(text, key) / aes128Decrypt(base64, key)', 'AES-128-ECB encryption helpers.'],
-  ['strings.toPinYin(text)', 'Convert Chinese characters to pinyin (system transform).'],
-  ['strings.stripUtf8Bom(text)', 'Remove a leading UTF-8 BOM character.'],
-  ['strings.fromUnicode(text)', 'Restore \\uXXXX escape sequences to characters.'],
-  ['toPinYin(text) / stripUtf8Bom(text) / fromUnicode(text)', 'Global string helper aliases.'],
-  ['webView.init(url)', 'Create a floating WKWebView and return a token.'],
-  ['webView.show(token, x, y, width, height)', 'Show the floating web view at a position.'],
-  ['webView.eval(token, js)', 'Evaluate JavaScript inside the floating web view.'],
-  ['webView.hidden(token) / webView.release(token)', 'Hide or release the floating web view.'],
-  ['screenDraw.init()', 'Create a floating rectangle draw and return a token.'],
-  ['screenDraw.setBorderWidth(token, width) / setBorderColor(token, color)', 'Style the draw border.'],
-  ['screenDraw.setTitle(token, title)', 'Set the draw title label.'],
-  ['screenDraw.show(token, x, y, w, h) / move(token, x, y) / hide(token)', 'Show, move, and hide the draw.'],
-  ['floatBall.show(title, x, y)', 'Show the draggable floating ball.'],
-  ['floatBall.move(x, y) / hide() / isShow()', 'Move, hide, or query the floating ball.'],
-  ['setFloatBallPoint(x, y)', 'EasyClick-compatible floating ball alias.'],
-  ['node.keep(node) / node.unkeep(node)', 'Register or release a node reference.'],
-  ['keepNode(node) / unkeepNode(node)', 'Global node keep/unkeep aliases.'],
-  ['alert(message, title)', 'Show a native alert dialog.'],
-  ['exit()', 'Stop the current script immediately.'],
-  ['restartScript()', 'Stop and re-run the current script.'],
-  ['sha256(text) / sha512(text) / md5(text) / sha1(text)', 'Global hash aliases.'],
-  ['formatDate(timestamp, pattern)', 'Format a millisecond timestamp as readable text (yyyy/MM/dd/HH/mm/ss/SSS/E).'],
-  ['dateFormat(timestamp, pattern)', 'Alias of formatDate.'],
-  ['sleepRandom(min, max)', 'Sleep a random number of milliseconds in an inclusive range.'],
-  ['strings.startWith(text, prefix) / endWith(text, suffix) / contains(text, sub)', 'EasyClick-style string predicates.'],
-  ['strings.indexOf(text, sub, from?) / lastIndexOf(text, sub)', 'Find a substring position.'],
-  ['strings.substring(text, start, end?) / replaceAll(text, search, replacement)', 'Slice or replace substrings.'],
-  ['strings.toUpperCase(text) / toLowerCase(text)', 'Change letter case.'],
-  ['strings.join(array, sep) / repeat(text, count) / length(text)', 'Combine and measure strings.'],
-  ['strings.padZero(text, length) / padStart(text, length, pad?) / padEnd(text, length, pad?)', 'Pad a string to a fixed width.'],
-  ['strings.format(pattern, ...args)', 'Format with %s/%d/%f placeholders.'],
-  ['app.isInstalled(bundleId)', 'Check whether an app is installed via the installed-app list.'],
-  ['file.getLineCount(path)', 'Alias of file.lineCount.'],
-  ['aes128Encrypt(text, key) / aes128Decrypt(base64, key)', 'Global AES-128 aliases.'],
-  ['screen.getColor(x, y) / getColorRGB(x, y) / getColorHex(x, y)', 'EasyClick-compatible screen pixel color readers.'],
-  ['screen.findImage(path, options) / findColor(color, region, options)', 'EasyClick-compatible image/color search entries.'],
-  ['screen.findColorEx(colors, threshold, x, y, ex, ey, limit, direction)', 'EasyClick-compatible region multi-color search.'],
-  ['screen.findNotColor(colors, threshold, x, y, ex, ey, limit, direction)', 'EasyClick-compatible region non-color search.'],
-  ['screen.findMultiColor(color, offsets, region, options)', 'EasyClick-compatible multi-point color pattern search.'],
-  ['screen.findColors(points, options) / isColors(points, options) / cmpColor(points, options)', 'EasyClick-compatible multi-point color compare.'],
-  ['screen.ocr(options)', 'EasyClick-compatible OCR entry (on-device Vision).'],
-  ['screen.screenshot()', 'EasyClick-compatible screenshot entry (PNG base64).'],
-  ['app.getAppName(bundleId)', 'Resolve an app display name from the installed app list.'],
-  ['app.isRunning(bundleId)', 'Check whether an app is running (state code >= 2).'],
-  ['findColorCount(colors, threshold, x, y, ex, ey, maxCount)', 'Count matching color points (AScript CountingColor style).'],
-  ['screen.findColorCount(colors, threshold, x, y, ex, ey, maxCount)', 'Screen-module color counting entry.'],
-  ['image.findColorCount(colors, threshold, x, y, ex, ey, maxCount)', 'Image-module color counting entry.'],
-  ['image.toBase64(path)', 'Read a sandbox image file as a Base64 string.'],
-  ['metrics.set(width, height) / get() / x(value) / y(value) / point(x, y)', 'Scale design coordinates to the current screen.'],
-  ['base64.encode(text) / decode(base64)', 'Encode or decode UTF-8 text with Base64.'],
-  ['thread.execAsync(fn, ...args) / execSync(fn, ...args) / cancelThread(handle) / stopAll() / isCancelled()', 'Run and control cooperative script threads.'],
-  ['utils.dataMd5(text) / fileMd5(path) / randomInt(min, max) / randomCharNumber(length) / getRangeInt(min, max) / getRatio(ratio)', 'Common hashing and random helpers.'],
-  ['utils.zip(source, destination) / unzip(path, destination) / readFileInZip(path, name)', 'Archive helpers for sandbox files.'],
-  ['utils.playMp3(path, volume, loop) / stopMp3() / deleteAllPhotos() / deleteAllVideos() / requestPhotoAuthorization()', 'Media utility helpers.'],
-  ['ocr(options) / ocr.newOcr(defaults)', 'Run Vision OCR or create an OCR instance with defaults.'],
-  ['ws.connect(url) / poll(handle) / send(handle, text) / close(handle)', 'Open and operate a WebSocket connection.'],
-  ['sqlite.open(path) / exec(handle, sql, params) / query(handle, sql, params) / close(handle)', 'Open and query a sandbox SQLite database.'],
-  ['yolo.detect(imagePath) / detectByFilePath(imagePath)', 'Run bounded on-device Vision image classification.'],
-  ['location.getLocation(timeoutMs) / location.isEnabled() / location.getAuthorizationStatus()', 'Read one GPS fix, the Location Services switch, or this app authorization.'],
-  ['colors.parseColor(color) / toInt(color) / int2Hex(color) / toHex(color) / hex2Int(color) / rgb(r, g, b) / argb(a, r, g, b)', 'Parse and convert color values.'],
-  ['speech.speak(text, options, stopWhenScriptEnd) / tts(text, options, stopWhenScriptEnd) / stop() / stopSpeak()', 'Speak text or stop active speech.'],
-  ['pasteboard.read() / write(text)', 'Read or replace the iOS pasteboard text.'],
-  ['json.encode(value) / decode(text)', 'Encode or safely decode JSON.'],
-  ['floatLog.show(x, y, width, height) / log(text) / clear() / hide() / isShow() / destroy()', 'Control the on-device floating log window.'],
-  ['node.find(selector) / findOne(selector) / findAll(selector) / at(x, y) / snapshot(maxResults) / keptCount()', 'Find nodes or capture a bounded node snapshot.'],
-  ['webView.takeMessage(token) / injectBridge(token) / loadHTML(token, html)', 'Exchange messages with or update a floating web view.'],
-  ['screenDraw.release(token) / clearAll()', 'Release floating drawing resources.'],
-];
+// Generated from SDK declarations and the Chinese API reference; no second hand-maintained list.
 
 function outputChannel() {
   if (!channel) channel = vscode.window.createOutputChannel('AutoSDK');
@@ -630,6 +419,7 @@ async function performHomeAction(action, device) {
       deviceId: configuration().get('wifiDeviceId') || '', name: homeContext().deviceName }, true);
     case 'disconnect': deviceClient?.disconnect('用户断开连接。'); return;
     case 'newScript': return newScript();
+    case 'functions': return insertAPI(sidebarEditor, vscode);
     case 'run': return runCurrentScript(false, sidebarEditor());
     case 'runSelection': return runCurrentScript(true, sidebarEditor());
     case 'stop': return stopScript();
@@ -1005,22 +795,6 @@ async function openInspector() {
   panel.webview.html = inspectorHtml(panel.webview, extensionContext.extensionUri);
 }
 
-function completionProvider() {
-  return {
-    provideCompletionItems(document, position) {
-      const prefix = document.lineAt(position.line).text.slice(0, position.character);
-      return completionEntries(API_COMPLETIONS, prefix, { action: 'auto', string: 'strings' }).map(candidate => {
-        const item = new vscode.CompletionItem(candidate.label, vscode.CompletionItemKind.Method);
-        const { documentation, signature } = candidate;
-        item.detail = signature;
-        item.documentation = new vscode.MarkdownString(documentation);
-        item.insertText = new vscode.SnippetString(candidate.insertText);
-        return item;
-      });
-    }
-  };
-}
-
 async function buildIPA() {
   const channel = outputChannel();
   channel.show(true);
@@ -1196,7 +970,8 @@ function activate(context) {
     vscode.commands.registerCommand('autosdk.captureScreenshot', captureScreenshot),
     vscode.commands.registerCommand('autosdk.inspectNodes', inspectNodes),
     vscode.commands.registerCommand('autosdk.openInspector', openInspector),
-    vscode.languages.registerCompletionItemProvider([{ language: 'javascript' }, { language: 'typescript' }], completionProvider(), '.'),
+    ...languageProviders(vscode),
+    vscode.commands.registerCommand('autosdk.insertAPI', () => insertAPI(sidebarEditor, vscode)),
     vscode.commands.registerCommand('autosdk.buildIPA', buildIPA)
   );
 }

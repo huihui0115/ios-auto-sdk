@@ -6,6 +6,7 @@
 #import "AutoBootstrapScript.h"
 #import "AutoHTTPSupport.h"
 #import "AutoSystemOperations.h"
+#import "AutoAccessibilityControl.h"
 #import "AutoBackgroundLease.h"
 #import "AutoResourcePolicy.h"
 #import <JavaScriptCore/JavaScriptCore.h>
@@ -1234,6 +1235,16 @@ static NSURL *AutoSystemSettingsURL(NSString *page) {
         @"notifications": @"App-prefs:root=NOTIFICATIONS_ID",
         @"display": @"App-prefs:root=DISPLAY",
         @"accessibility": @"App-prefs:root=ACCESSIBILITY",
+        @"assistivetouch": @"App-prefs:root=ACCESSIBILITY&path=TOUCH_REACHABILITY_TITLE/AIR_TOUCH_TITLE",
+        @"touch": @"App-prefs:root=ACCESSIBILITY&path=TOUCH_REACHABILITY_TITLE",
+        @"voiceover": @"App-prefs:root=ACCESSIBILITY&path=VOICEOVER_TITLE",
+        @"zoom": @"App-prefs:root=ACCESSIBILITY&path=ZOOM_TITLE",
+        @"switchcontrol": @"App-prefs:root=ACCESSIBILITY&path=ScannerSwitchTitle",
+        @"reducemotion": @"App-prefs:root=ACCESSIBILITY&path=MOTION_TITLE",
+        @"textsize": @"App-prefs:root=DISPLAY&path=TEXT_SIZE",
+        @"autolock": @"App-prefs:root=DISPLAY&path=AUTOLOCK",
+        @"sounds": @"App-prefs:root=Sounds",
+        @"keyboard": @"App-prefs:root=General&path=Keyboard",
         @"general": @"App-prefs:root=General",
         @"airplane": @"App-prefs:"
     };
@@ -3061,6 +3072,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         [operation isEqualToString:@"brightnessGet"] || [operation isEqualToString:@"brightnessSet"] ||
         [operation isEqualToString:@"volumeGet"] || [operation isEqualToString:@"vibrate"] ||
         [operation isEqualToString:@"keepScreenOn"] || [operation isEqualToString:@"flashlight"] ||
+        [operation isEqualToString:@"assistiveTouchSet"] ||
         [operation isEqualToString:@"vpnSet"] || [operation isEqualToString:@"openSystemSettings"] ||
         [operation isEqualToString:@"torch"]) {
         if (!AutoPermission(self.config, @"allowSystemControl", YES)) {
@@ -3069,6 +3081,26 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     }
     if ([operation isEqualToString:@"memory"]) {
         return AutoValueOnMainThread(^id{ return [self.engine deviceMemoryInfo]; }) ?: @{};
+    }
+    if ([operation isEqualToString:@"assistiveTouchGet"]) {
+        return AutoValueOnMainThread(^id{
+            NSNumber *state = AutoAssistiveTouchState(AutoAssistiveTouchControlClass());
+            // UIKit only documents a correct AssistiveTouch value in Guided Access.
+            if (!state && UIAccessibilityIsGuidedAccessEnabled()) state = @(UIAccessibilityIsAssistiveTouchRunning());
+            return (id)state ?: NSNull.null;
+        });
+    }
+    if ([operation isEqualToString:@"assistiveTouchSet"]) {
+        id value = data[@"value"];
+        if (![value isKindOfClass:NSNumber.class] || CFGetTypeID((__bridge CFTypeRef)value) != CFBooleanGetTypeID()) {
+            return [self failure:AutoMakeError(AutoSDKErrorInvalidConfiguration, @"AssistiveTouch enabled must be a boolean (true or false).", nil)];
+        }
+        __block NSError *controlError = nil;
+        BOOL changed = [AutoValueOnMainThread(^id{
+            if ([self invokeIsStopped]) return @NO;
+            return @(AutoSetAssistiveTouchEnabled(AutoAssistiveTouchControlClass(), [value boolValue], &controlError));
+        }) boolValue];
+        return changed ? @YES : [self failure:controlError ?: AutoMakeError(AutoSDKErrorScriptCancelled, @"Script cancelled.", nil)];
     }
     if ([operation isEqualToString:@"lowPowerMode"]) {
         id<AutoSystemStatusProviding> provider = self.engine.systemStatusProviderForTesting;

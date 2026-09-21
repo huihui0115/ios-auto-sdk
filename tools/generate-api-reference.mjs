@@ -1600,4 +1600,14 @@ APIS.push({ cat:'speech', sig:'speak(text, options?) / tts(text, options?) / spe
   speechStop();
 }
 main();` });
+APIS.push({ cat:'device', sig:'device.isAssistiveTouchEnabled() / device.setAssistiveTouchEnabled(enabled)', title:'小白点 / 辅助触控开关', desc:'查询、打开或关闭系统 AssistiveTouch 小白点，不是 App 内的 floatBall。isAssistiveTouchEnabled 返回 true/false；无法可靠读取时返回 null，不能当作已关闭。setAssistiveTouchEnabled 必须传 true 或 false；依赖 iOS 私有 Preferences 接口及实际签名权限，受 allowSystemControl 控制。true 仅表示立即回读符合目标，不是屏幕显示已验证；权限不足、接口缺失、状态未确认则失败并设置 lastError()，不盲目重试、不自动打开设置。普通 Apple ID 签名不保证可用，iPhone 7 需真机验证。蓝牙鼠标/HID 方案可能依赖辅助触控，关闭前确认；改用 system.openSettings("assistiveTouch") 时仍需用户手动切换。', params:[['enabled','boolean','true 打开，false 关闭；查询方法不需要参数']], returns:'boolean | null', example:`function main(){
+  const previous = device.isAssistiveTouchEnabled();
+  logd("小白点状态: " + (previous === null ? "无法读取" : previous));
+  // 按需取消注释，不会因查询而改变设置：
+  // device.setAssistiveTouchEnabled(true);   // 打开
+  // device.setAssistiveTouchEnabled(false);  // 关闭
+  // system.openSettings("assistiveTouch");  // 手动设置入口
+}
+main();` });
+APIS.push({ cat:'device', sig:'system.openSettings("assistiveTouch")', title:'辅助功能与低频设置入口', desc:'panel 另支持 assistiveTouch（小白点）、touch（触控）、voiceOver（旁白）、zoom（缩放）、switchControl（切换控制）、reduceMotion（减弱动态效果）、textSize（字体大小）、autoLock（自动锁屏）、sounds（声音）、keyboard（键盘）。这些是未公开的 App-prefs 最佳努力深链，iOS 版本或权限不同可能只打开设置首页/本 App 设置；返回 true 绝不代表开关已切换。VS Code 点击“搜索函数 / 插入操作”，输入中文可直接插入相应调用。', params:[['panel','AutoSystemSettingsPanel','设置页面名']], returns:'boolean', example:`system.openSettings("assistiveTouch");` });
 export { APIS, CATEGORIES };

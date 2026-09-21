@@ -408,6 +408,16 @@ type AutoSystemSettingsPanel =
   | "notifications"
   | "display"
   | "accessibility"
+  | "assistiveTouch"
+  | "touch"
+  | "voiceOver"
+  | "zoom"
+  | "switchControl"
+  | "reduceMotion"
+  | "textSize"
+  | "autoLock"
+  | "sounds"
+  | "keyboard"
   | "general";
 
 interface AutoVPNAPI {
@@ -451,6 +461,10 @@ interface AutoDeviceInfo extends Record<string, unknown> {
 }
 
 interface AutoDeviceAPI {
+  /** 系统小白点/辅助触控状态。null 表示当前系统/权限无法可靠读取，不等于关闭。 */
+  isAssistiveTouchEnabled(): boolean | null;
+  /** 打开/关闭系统小白点。需可用的私有接口与签名权限；true 仅表示立即回读符合目标，失败看 lastError()。 */
+  setAssistiveTouchEnabled(enabled: boolean): boolean;
   info(): AutoDeviceInfo;
   getDeviceInfo(): AutoDeviceInfo;
   width(): number;

@@ -28,7 +28,7 @@ function harness({ folder = false } = {}) {
       onDidCloseTextDocument: () => disposable, onDidGrantWorkspaceTrust: () => disposable,
       onDidChangeWorkspaceFolders: handler => { handlers.folders = handler; return disposable; } },
     commands: { registerCommand: (name, callback) => { commands.set(name, callback); return disposable; }, executeCommand: async () => {} },
-    languages: { registerCompletionItemProvider: () => disposable }
+    languages: { registerCompletionItemProvider: () => disposable, registerSignatureHelpProvider: () => disposable, registerHoverProvider: () => disposable }
   };
   const context = { subscriptions: [], extensionUri: '/extension',
     workspaceState: { get: key => saved.get(key), update: async (key, value) => saved.set(key, value) },

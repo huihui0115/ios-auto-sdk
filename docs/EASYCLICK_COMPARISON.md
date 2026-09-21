@@ -1,6 +1,27 @@
 # EasyClick iOS capability comparison
 
-Audit date: 2026-09-21 (Round 78; current workflow review: [QUALITY_AUDIT.md](QUALITY_AUDIT.md))
+Audit date: 2026-09-21 (Round 79; current workflow review: [QUALITY_AUDIT.md](QUALITY_AUDIT.md))
+
+## Round 79: callable APIs and AssistiveTouch
+
+VS Code 0.16.0 generates global/module completions and parameter help from d.ts,
+with Chinese documentation search and explicit insert-only on/off presets.
+Runtime parity checks exposed and fixed missing `action` aliases and incorrect
+generic-native dispatch of string/thread helpers. 1,160 catalog signatures include
+aliases/overloads; they are not 1,160 distinct device capabilities.
+
+Official product references checked on 2026-09-21:
+
+- [XXTouch AssistiveTouch on](https://xxtouch.app/en/docs/handbook/device/device.assistive_touch_on/) documents a direct control; [XXTouchNG](https://github.com/XXTouchNG/XXTouchNG) describes a jailbreak-based toolkit. Do not assume ordinary host signing grants the same permissions.
+- [AScript ESP32](https://www.ascript.cn/docs/ios/esp32/) requires the user to enable AssistiveTouch for its HID path. Disabling it can break that input route.
+- [TrollVNC](https://github.com/owngoal-dev/TrollVNC) documents optional auto-activation/restoration. Its SPI declaration confirms Preferences `PSAssistiveTouchSettingsDetail` class-level `isEnabled` / `setEnabled:`; no third-party implementation copied.
+- [Apple's state API](https://developer.apple.com/documentation/uikit/uiaccessibility/isassistivetouchrunning) has a Guided Access caveat. AutoSDK returns unknown instead of false when reliable reading is unavailable.
+- EasyClick device reference was queried but did not yield a verifiable AssistiveTouch entry in this review; no absence/parity claim is made.
+
+AutoSDK adds explicit boolean AssistiveTouch control with optional SPI/ABI checking,
+policy enforcement and immediate readback, plus ten Settings panels. No automatic
+accessibility-state change during connection, no fabricated success on denied writes,
+and no claim of iPhone 7/private-signature validation. Settings navigation is not a switch.
 
 Official references:
 

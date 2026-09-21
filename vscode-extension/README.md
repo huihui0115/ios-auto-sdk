@@ -1,11 +1,16 @@
 # AutoSDK：设备与调试
 
+0.16.0 新增“搜索函数 / 插入操作”：输入中文或函数名，选择后只插入，不自动运行。
+补全、参数提示和悬停说明从 SDK 类型与文档生成；改动类型/文档后运行 `npm run generate:api`。
+“小白点”是系统辅助触控，直接开关需要 SDK 1.42.0、可用的私有接口与实际签名权限；
+无法读取时返回 null，开关成功仅表示立即回读符合目标，仍需 iPhone 7 真机验收。
+
 安装后点 VS Code 左侧 **AutoSDK 手机图标**，日常连接和调试都在中文侧栏完成。
 无需连接命令、IP、端口或设置 JSON。
 
 ## 安装与开始使用
 
-1. 下载 `autosdk-vscode-0.15.0.vsix`，在 VS Code **扩展 → … → 从 VSIX 安装** 中选择它。
+1. 下载 `autosdk-vscode-0.16.0.vsix`，在 VS Code **扩展 → … → 从 VSIX 安装** 中选择它。
 2. 手机打开 AutoSDK 并开启 Wi-Fi 调试，允许“本地网络”权限；电脑与手机使用同一可信 Wi-Fi。
 3. 左侧 **AutoSDK → 搜索 Wi-Fi 手机 → 添加并连接**，首次输入手机显示的配对码。
 4. **新建示例脚本 → 运行整个脚本**。还可右键运行代码、只运行选区，或点击编辑器右上角 ▶。
@@ -49,8 +54,8 @@ From the repository root:
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.15.0.vsix
-code --install-extension .\autosdk-vscode-0.15.0.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.16.0.vsix
+code --install-extension .\autosdk-vscode-0.16.0.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An

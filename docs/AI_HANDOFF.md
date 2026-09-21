@@ -3,7 +3,19 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 78（v1.41.1，2026-09-21）。
+> 最后更新：Round 79（v1.42.0 / VS Code 0.16.0，2026-09-21）。
+
+Round 79：插件函数库改为 `node tools/generate-vscode-api.mjs` 从 d.ts + API 元数据生成
+`vscode-extension/api-catalog.json`（1160 个可调用签名，含别名/重载，不是 1160 项独立能力）。
+插件 check/prepublish 会检查生成一致性；删除旧 completion-model 和手写表。
+新 `api-language.js` / `api-tools.js` 提供部分前缀补全、参数提示、悬停和中文搜索插入，
+只插入不执行；不得把任意用户对象或实例方法当作 SDK 全局模块。
+`device.isAssistiveTouchEnabled/setAssistiveTouchEnabled` 通过 AutoAccessibilityControl
+解析可选 Preferences SPI；严格 boolean + allowSystemControl + 立即回读；不可读为 null，
+拒绝或未确认失败，不能保证普通签名支持。UIKit 查询仅在 Guided Access 下作为回退。
+系统设置另加 10 项最佳努力深链（仅打开页面）；与 floatBall 区分。`action=auto` 修复
+声明/运行时差异，auto 字符串/线程别名避免落入通用原生分发。bootstrap 61394/61440。
+仍待 iPhone 7 真机验证；模拟器/Node 测试不证明私有权限或可见小白点状态。
 
 ---
 

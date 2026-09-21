@@ -1,6 +1,6 @@
 // Host-owned sidebar state. The webview sends action names, never URLs or commands.
 const ACTIONS = new Set(['scan', 'cancelScan', 'connect', 'reconnect', 'pair', 'disconnect',
-  'newScript', 'run', 'runSelection', 'stop', 'inspector', 'logs', 'help', 'manual', 'usb', 'health', 'cancelHealth', 'copyHealth']);
+  'newScript', 'functions', 'run', 'runSelection', 'stop', 'inspector', 'logs', 'help', 'manual', 'usb', 'health', 'cancelHealth', 'copyHealth']);
 const CONNECTION_ACTIONS = new Set(['connect', 'reconnect', 'pair', 'disconnect', 'manual', 'usb']);
 
 function connectionHelp(error) {

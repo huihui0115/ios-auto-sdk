@@ -21,6 +21,7 @@ function deviceHomeHtml(webview, extensionUri) {
     </section>
     <section aria-labelledby="script-heading">
       <h2 id="script-heading">2 · 编写与运行</h2>
+      <div class="buttons"><button id="functions" data-action="functions" class="secondary">搜索函数 / 插入操作</button></div>
       <p id="script-name">还没有打开脚本</p><p id="trust" class="hint" hidden>请先通过 VS Code 信任此工作区，再运行脚本。</p>
       <div class="buttons"><button id="newScript" data-action="newScript" class="secondary">新建示例脚本</button><button id="run" data-action="run">运行整个脚本</button><button id="runSelection" data-action="runSelection" class="secondary">只运行选中代码</button><button id="stop" data-action="stop" class="secondary">停止脚本</button></div>
       <p class="hint">也可以在代码上右键运行，或点编辑器右上角 ▶。先连接手机，再运行。</p>

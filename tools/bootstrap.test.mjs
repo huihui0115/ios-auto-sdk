@@ -1466,6 +1466,26 @@ test('Personal VPN and common system switch helpers route bounded device operati
   assert.equal(sandbox.auto.isLowPowerModeEnabled(), true);
   assert.deepEqual(calls.device.at(-1), { operation: 'lowPowerMode' });
 });
+test('AssistiveTouch routes exact booleans without treating strings as true', () => {
+  const { sandbox, calls } = boot();
+  sandbox.device.isAssistiveTouchEnabled();
+  assert.deepEqual(calls.device.at(-1), { operation: 'assistiveTouchGet' });
+  for (const value of [true, false, 'false', null]) {
+    sandbox.device.setAssistiveTouchEnabled(value);
+    assert.deepEqual(calls.device.at(-1), { operation: 'assistiveTouchSet', value });
+  }
+  sandbox.system.openSettings('assistiveTouch');
+  assert.deepEqual(calls.device.at(-1), { operation: 'openSystemSettings', page: 'assistiveTouch' });
+});
+test('action aliases resolve real modules instead of missing or generic native methods', () => {
+  const { sandbox, calls } = boot();
+  assert.equal(sandbox.action, sandbox.auto);
+  assert.equal(sandbox.auto.padZero(7, 3), sandbox.strings.padZero(7, 3));
+  sandbox.action.getBrightness();
+  assert.deepEqual(calls.device.at(-1), { operation: 'brightnessGet' });
+  assert.equal(sandbox.auto.cancelThread(null), false);
+  assert.equal(calls.native.length, 0);
+});
 test('flashlight/torch route to bridge and default to on', () => {
   const { sandbox, calls } = boot();
   sandbox.device.setFlashlight(true);

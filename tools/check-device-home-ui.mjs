@@ -47,6 +47,8 @@ try {
     devices: [{ key: '1:0', name: '我的 iPhone · 1234ABCD', address: '192.168.1.25:9001' }] };
   const update = value => page.evaluate(state => window.postMessage({ type: 'state', state }), value);
   await update(state);
+  await page.getByRole('button', { name: '搜索函数 / 插入操作', exact: true }).click();
+  assert.equal(await page.evaluate(() => window.sent.at(-1).action), 'functions');
   await page.getByRole('button', { name: '添加并连接' }).click();
   assert.equal(await page.evaluate(() => window.sent.at(-1).key), '1:0');
   assert.equal(await page.locator('#run').isDisabled(), true);
