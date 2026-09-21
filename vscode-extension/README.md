@@ -5,7 +5,7 @@
 
 ## 安装与开始使用
 
-1. 下载 `autosdk-vscode-0.14.0.vsix`，在 VS Code **扩展 → … → 从 VSIX 安装** 中选择它。
+1. 下载 `autosdk-vscode-0.15.0.vsix`，在 VS Code **扩展 → … → 从 VSIX 安装** 中选择它。
 2. 手机打开 AutoSDK 并开启 Wi-Fi 调试，允许“本地网络”权限；电脑与手机使用同一可信 Wi-Fi。
 3. 左侧 **AutoSDK → 搜索 Wi-Fi 手机 → 添加并连接**，首次输入手机显示的配对码。
 4. **新建示例脚本 → 运行整个脚本**。还可右键运行代码、只运行选区，或点击编辑器右上角 ▶。
@@ -16,6 +16,10 @@
 空白窗口也可添加手机，示例脚本无需先保存。
 
 完整离线操作说明：[使用指南](START_HERE.md)。
+连接验证后会显示手机状态摘要；点“检查手机状态”可手动刷新，查看低内存保护、温度、
+前后台和上次停止原因。检查只读、可取消、不自动轮询；复制摘要不含配对码或脚本。
+能力是适配器声明，不等于实机验证。旧手机端缺少的字段显示未知，不影响连接。
+Inspector 现在区分遍历完成、预算受限与完整性未知；少量节点不再被误当作完整结果。
 手动 IP 和 USB 收在侧栏“更多连接方式”；以下是开发者和高级使用说明。
 
 ## Developer reference
@@ -45,8 +49,8 @@ From the repository root:
 ```powershell
 cd vscode-extension
 npm install
-npx @vscode/vsce package --out autosdk-vscode-0.14.0.vsix
-code --install-extension .\autosdk-vscode-0.14.0.vsix --force
+npx @vscode/vsce package --out autosdk-vscode-0.15.0.vsix
+code --install-extension .\autosdk-vscode-0.15.0.vsix --force
 ```
 
 Packaging and repository helper commands require Node.js 22+ on PATH. An

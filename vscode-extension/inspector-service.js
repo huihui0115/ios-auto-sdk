@@ -67,6 +67,22 @@ function boundedIdentifier(value, fallback = '') {
   return typeof value === 'string' && value.length <= 128 ? value : fallback;
 }
 
+function snapshotCompleteness(response, count, requestedLimit) {
+  const budget = response.nodeBudget;
+  const known = budget && !Array.isArray(budget) && typeof budget === 'object' && typeof budget.truncated === 'boolean';
+  const nodeBudget = {};
+  if (known) {
+    nodeBudget.truncated = budget.truncated;
+    nodeBudget.limitReasons = ['visitLimit', 'depthLimit', 'resultLimit'].filter(reason => Array.isArray(budget.limitReasons) && budget.limitReasons.includes(reason));
+    for (const key of ['visitedCount', 'nodeLimit', 'depthLimit', 'resultLimit']) {
+      if (Number.isInteger(budget[key]) && budget[key] >= 0 && budget[key] <= 10000) nodeBudget[key] = budget[key];
+    }
+  }
+  const truncated = response.truncated === true || response.completeness === 'limited' || (known && budget.truncated) || count >= requestedLimit;
+  return { truncated: Boolean(truncated), nodeBudget,
+    completeness: truncated ? 'limited' : known && response.completeness === 'complete' ? 'complete' : 'unknown' };
+}
+
 class InspectorService {
   constructor(request) {
     if (typeof request !== 'function') throw new TypeError('InspectorService requires a request function.');
@@ -106,15 +122,16 @@ class InspectorService {
       const protocolVersion = Number(response.protocolVersion);
       const capturedAtMs = Number(response.capturedAtMs);
       const durationMs = Number(response.durationMs);
+      const nodes = nodeArray(response.nodes, 'Inspector snapshot');
       return {
         protocolVersion: Number.isFinite(protocolVersion) ? protocolVersion : 0,
         snapshotId: boundedIdentifier(response.snapshotId),
         capturedAtMs: Number.isFinite(capturedAtMs) && capturedAtMs >= 0 ? capturedAtMs : 0,
         durationMs: Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0,
         pngBase64: pngBase64(response.pngBase64, 'Inspector snapshot'),
-        nodes: nodeArray(response.nodes, 'Inspector snapshot'),
+        nodes,
         deviceInfo: objectValue(response.deviceInfo, 'Inspector device information'),
-        truncated: Boolean(response.truncated)
+        ...snapshotCompleteness(response, nodes.length, limit)
       };
     });
   }

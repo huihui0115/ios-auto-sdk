@@ -845,6 +845,17 @@ check(templateSettingsSource.includes('makeAutomationAdapter') && templateSettin
 const builtinAdapterSource = read('Sources/AutoSDK/AutoBuiltinAdapter.m');
 const resourcePolicySource = read('Sources/AutoSDK/AutoResourcePolicy.m');
 const backgroundLeaseSource = read('Sources/AutoSDK/AutoBackgroundLease.m');
+check(resourcePolicySource.includes('AutoBoundedNodeWalkWithMetadata') &&
+      resourcePolicySource.includes('@"limitReasons"') && builtinAdapterSource.includes('metadata:metadata error:error') &&
+      engineSource.includes('@"completeness"') && engineSource.includes('@"unknown"') &&
+      read('vscode-extension/inspector-service.js').includes('snapshotCompleteness'),
+      'Node completeness must carry per-call traversal budgets and preserve unknown legacy state');
+check(engineSource.includes('@"runtimeHealth"') && engineSource.includes('@"interruptibleScripts": @NO') &&
+      engineSource.includes('@"cooperativeCancellation": @YES') && backgroundLeaseSource.includes('- (BOOL)isActive') &&
+      read('vscode-extension/device-health.js').includes('readDeviceHealth') &&
+      read('vscode-extension/device-home.js').includes('generation !== this.healthGeneration') &&
+      existsSync(resolve(root, 'Tests/AutoSDKTests/AutoRuntimeDiagnosticsTests.m')),
+      'Read-only diagnostics must retain honest cancellation/background state and reject stale device reports');
 check((engineSource.match(/^- \(void\)dealloc\s*\{/gm) || []).length === 1,
       'Engine background/resource cleanup must share its existing audio dealloc method');
 check(resourcePolicySource.includes('AutoUsesLowMemoryProfile') &&

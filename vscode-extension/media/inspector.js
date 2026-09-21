@@ -382,9 +382,12 @@
         renderOverlays();
       }
       const timing = number(message.durationMs, 0) > 0 ? ' in ' + Math.round(number(message.durationMs, 0)) + ' ms' : '';
-      const suffix = message.truncated ? ' (limited)' : '';
+      const reasons = { visitLimit: '访问预算', depthLimit: '深度预算', resultLimit: '结果数量上限' };
+      const limits = (message.nodeBudget?.limitReasons || []).filter(key => Object.hasOwn(reasons, key)).map(key => reasons[key]).join('、');
+      const suffix = message.truncated || message.completeness === 'limited' ? ` · 部分节点（${limits || '采集达到限制'}），未找到不代表不存在`
+        : message.completeness === 'complete' ? ' · 节点遍历完成（可访问树）' : ' · 完整性未知（手机端未提供预算信息）';
       const notice = message.notice ? ' · ' + message.notice : '';
-      setStatus(state.nodes.length + ' nodes loaded' + timing + suffix + notice);
+      setStatus(state.nodes.length + ' nodes loaded' + timing + suffix + notice, message.completeness !== 'complete');
       renderBusyState();
     }
     if (message.type === 'selectorResult') {

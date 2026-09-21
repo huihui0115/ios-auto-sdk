@@ -6,6 +6,28 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.41.0] - 2026-09-21
+
+### Added
+
+- VS Code 0.15.0 read-only device health: connection-check summary, manual refresh,
+  cancellation, safe diagnostic copy and stale workspace/device/run rejection.
+- Native runtimeHealth snapshot for low-memory profile, image budget, thermal and
+  background state, with privacy-safe last in-process exit reasons and type declarations.
+- Per-call node traversal budgets and Inspector completeness metadata, including
+  conservative unknown status for older adapters and portable snapshot exports.
+
+### Fixed
+
+- Node snapshots limited by depth or the effective low-memory budget no longer
+  appear complete merely because fewer nodes than requested were returned.
+- Capability reporting now distinguishes cooperative cancellation from unsupported
+  pure-JavaScript preemption. Repeated stop sources preserve the first reason.
+- Updated offline setup/help and current official workflow comparison. No automatic
+  polling/action replay, permanent background guarantee or real-iPhone acceptance claim.
+- Added 19 plugin and 11 native regressions for diagnostics, cancellation, safe
+  reports, lifecycle state and incomplete node snapshots; bootstrap remains 61,262 units.
+
 ## [1.40.0] - 2026-09-07
 
 ### Added

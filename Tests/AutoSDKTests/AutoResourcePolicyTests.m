@@ -7,6 +7,37 @@
 @interface AutoResourcePolicyTests : XCTestCase
 @end
 @implementation AutoResourcePolicyTests
+- (NSDictionary *)metadataForTree:(NSDictionary *)tree nodes:(NSUInteger)nodes depth:(NSUInteger)depth {
+    NSDictionary *metadata = nil; NSError *error = nil;
+    NSArray *result = AutoBoundedNodeWalkWithMetadata(tree, nodes, depth, 1000,
+        ^NSDictionary *(id node, NSString *path, NSString *parent, NSUInteger level, NSUInteger index) { return @{ @"handle": path }; },
+        ^NSArray *(id node) { return node[@"children"] ?: @[]; }, nil, ^BOOL { return NO; }, &metadata, &error);
+    XCTAssertNotNil(result); XCTAssertNil(error);
+    XCTAssertEqual(result.count, [metadata[@"visitedCount"] unsignedIntegerValue]);
+    return metadata;
+}
+- (void)testSnapshotReportsDepthLimitEvenBelowRequestedCount {
+    NSDictionary *metadata = [self metadataForTree:self.tree nodes:100 depth:1];
+    XCTAssertEqualObjects(metadata[@"truncated"], @YES);
+    XCTAssertEqualObjects(metadata[@"limitReasons"], (@[@"depthLimit"]));
+    XCTAssertEqualObjects(metadata[@"visitedCount"], @3);
+}
+- (void)testSnapshotReportsEffectiveBudgetAndDoesNotLeakPreviousResult {
+    NSDictionary *limited = [self metadataForTree:self.tree nodes:2 depth:10];
+    XCTAssertEqualObjects(limited[@"truncated"], @YES);
+    XCTAssertEqualObjects(limited[@"nodeLimit"], @2);
+    XCTAssertEqualObjects(limited[@"resultLimit"], @2);
+    NSDictionary *complete = [self metadataForTree:self.tree nodes:100 depth:10];
+    XCTAssertEqualObjects(complete[@"truncated"], @NO);
+    XCTAssertEqualObjects(complete[@"limitReasons"], @[]);
+    XCTAssertEqualObjects(complete[@"visitedCount"], @4);
+    XCTAssertEqualObjects(limited[@"truncated"], @YES);
+}
+- (void)testExactResultLimitIsConservativelyIncomplete {
+    NSDictionary *metadata = [self metadataForTree:@{} nodes:1 depth:10];
+    XCTAssertEqualObjects(metadata[@"truncated"], @YES);
+    XCTAssertTrue([metadata[@"limitReasons"] containsObject:@"resultLimit"]);
+}
 - (void)testLowMemoryPolicyAndOverflowSafeDimensions {
     XCTAssertTrue(AutoUsesLowMemoryProfile(2ULL * 1024 * 1024 * 1024));
     XCTAssertTrue(AutoUsesLowMemoryProfile(0));
@@ -113,7 +144,9 @@
     __block dispatch_block_t expire; __block NSUInteger ends = 0, expirations = 0;
     AutoBackgroundLease *lease = [[AutoBackgroundLease alloc] initWithBegin:^UIBackgroundTaskIdentifier(dispatch_block_t handler) { expire = handler; return 42; }
         end:^(UIBackgroundTaskIdentifier identifier) { XCTAssertEqual(identifier, 42u); ends++; } expiration:^{ expirations++; }];
+    XCTAssertTrue(lease.isActive);
     [lease finish]; [lease finish]; expire();
+    XCTAssertFalse(lease.isActive);
     XCTAssertEqual(ends, 1u); XCTAssertEqual(expirations, 0u);
 }
 - (void)testBackgroundLeaseExpirationIsExactlyOnce {
@@ -121,18 +154,21 @@
     AutoBackgroundLease *lease = [[AutoBackgroundLease alloc] initWithBegin:^UIBackgroundTaskIdentifier(dispatch_block_t handler) { expire = handler; return 43; }
         end:^(UIBackgroundTaskIdentifier identifier) { ends++; } expiration:^{ expirations++; }];
     dispatch_apply(10, dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^(size_t index) { expire(); });
+    XCTAssertFalse(lease.isActive);
     [lease finish]; XCTAssertEqual(ends, 1u); XCTAssertEqual(expirations, 1u);
 }
 - (void)testBackgroundLeaseHandlesSynchronousExpiration {
     __block NSUInteger ends = 0, expirations = 0;
     AutoBackgroundLease *lease = [[AutoBackgroundLease alloc] initWithBegin:^UIBackgroundTaskIdentifier(dispatch_block_t handler) { handler(); return 44; }
         end:^(UIBackgroundTaskIdentifier identifier) { ends++; } expiration:^{ expirations++; }];
+    XCTAssertFalse(lease.isActive);
     [lease finish]; XCTAssertEqual(ends, 1u); XCTAssertEqual(expirations, 1u);
 }
 - (void)testDeniedBackgroundLeaseNeverEndsInvalidIdentifier {
     __block NSUInteger ends = 0;
     AutoBackgroundLease *lease = [[AutoBackgroundLease alloc] initWithBegin:^UIBackgroundTaskIdentifier(dispatch_block_t handler) { return UIBackgroundTaskInvalid; }
         end:^(UIBackgroundTaskIdentifier identifier) { ends++; } expiration:^{}];
+    XCTAssertFalse(lease.isActive);
     [lease finish]; XCTAssertEqual(ends, 0u);
 }
 - (void)testBackgroundLeaseDeallocationBalancesAssertion {

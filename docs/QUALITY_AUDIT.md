@@ -1,6 +1,20 @@
 # 整体代码与易用性审计
 
-Round 73–77 · 2026-09-07 · SDK v1.40.0 / VS Code 0.14.0
+Round 73–78 · 2026-09-21 · SDK v1.41.0 / VS Code 0.15.0
+
+## Round 78：一键状态检查与可信采集
+
+- 参照当前官方工作流：AScript 将工具连接与手机连接验证分开，Appium Inspector 为截图/节点提供状态反馈；这里实现无代码的只读检查，不做竞品速度或私有权限对等宣传。
+- VS Code 连接验证复用已有请求展示健康摘要，支持手动刷新、取消、复制白名单摘要；不轮询、不执行脚本、不点击手机。断线、设备/工作区与运行状态变更会清除旧结果并拒绝迟到响应。
+- 原生新增 `runtimeHealth`，准确区分保护档、有限后台额度与上次退出原因；能力声明纠正为协作式停止，不冒充纯 JS 抢占。原因码只保留当前进程，不回传源码/原始异常。
+- 修复仅用节点数量判断完整性的缺陷：内置逐次输出实际预算与深度/访问/结果限制；旧适配器显示未知，导出保留元数据。
+- 本地测试：SDK/工具 88 项、插件 163 项；新增 11 项原生回归（共 122 项，运行结果以本轮 CI 为准）。浏览器预览是模拟设备，不是 Extension Host 或 iPhone 7 验收。
+- 最新系统后台方案不等于 iPhone 7 可用的永久后台权限；不添加伪用途后台模式，不自动续跑动作。仍需 iPhone 7 签名、长测和后台真机验收。
+
+官方资料（2026-09-21 查阅）：[AScript 本地连接](https://www.ascript.cn/ai-coding/local/)、
+[Appium Inspector 截图面板](https://appium.github.io/appium-inspector/latest/session-inspector/screenshot/)、
+[Apple 长运行后台任务](https://developer.apple.com/documentation/BackgroundTasks/performing-long-running-tasks-on-ios-and-ipados)、
+[VS Code Webview 状态与资源](https://code.visualstudio.com/api/extension-guides/webview)。
 
 ## Round 77：iPhone 7 稳定性
 

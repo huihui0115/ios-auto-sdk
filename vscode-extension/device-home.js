@@ -1,6 +1,6 @@
 // Host-owned sidebar state. The webview sends action names, never URLs or commands.
 const ACTIONS = new Set(['scan', 'cancelScan', 'connect', 'reconnect', 'pair', 'disconnect',
-  'newScript', 'run', 'runSelection', 'stop', 'inspector', 'logs', 'help', 'manual', 'usb']);
+  'newScript', 'run', 'runSelection', 'stop', 'inspector', 'logs', 'help', 'manual', 'usb', 'health', 'cancelHealth', 'copyHealth']);
 const CONNECTION_ACTIONS = new Set(['connect', 'reconnect', 'pair', 'disconnect', 'manual', 'usb']);
 
 function connectionHelp(error) {
@@ -20,6 +20,7 @@ class DeviceHome {
     this.devices = [];
     this.revision = 0;
     this.epoch = 0;
+    this.healthGeneration = 0;
     this.connection = 'disconnected';
     this.message = '手机打开 AutoSDK，开启 Wi-Fi 调试，然后点击搜索。';
     this.busy = false;
@@ -30,6 +31,7 @@ class DeviceHome {
   snapshot() {
     return { ...this.options.context(), connection: this.connection, message: this.message,
       busy: this.busy, running: this.running, scanning: Boolean(this.scanController),
+      checkingHealth: Boolean(this.healthController), health: this.health,
       revision: this.revision, devices: this.devices.map((device, index) => ({
         key: `${this.revision}:${index}`, name: device.name, address: `${device.address}:${device.port}`
       })) };
@@ -40,17 +42,20 @@ class DeviceHome {
   }
 
   setConnection(state) {
+    if (state !== this.connection) this.invalidateHealth();
     if (state === 'disconnected' && this.connection === 'ready') this.message = '连接已断开。请保持手机 App 打开，点击「连接」重试；地址变化时重新搜索。';
     this.connection = state;
     this.publish();
   }
 
   setRunning(running) {
+    if (running !== this.running) this.invalidateHealth();
     this.running = running;
     this.publish();
   }
 
   reset() {
+    this.invalidateHealth();
     this.epoch++;
     this.scanController?.abort();
     this.scanController = undefined;
@@ -87,11 +92,59 @@ class DeviceHome {
     }
   }
 
+  invalidateHealth() {
+    this.healthGeneration++;
+    this.health = undefined;
+    this.healthController?.abort();
+    this.healthController = undefined;
+  }
+
+  setHealth(report, generation = this.healthGeneration) {
+    if (this.disposed || this.connection !== 'ready' || generation !== this.healthGeneration) return;
+    this.health = report;
+    this.publish();
+  }
+
+  cancelHealth() {
+    if (!this.healthController) return;
+    this.invalidateHealth();
+    this.message = '已取消状态检查。';
+    this.publish();
+  }
+
+  async checkHealth() {
+    if (this.disposed || this.connection !== 'ready' || this.healthController || (this.busy && !this.running) || this.scanController) return;
+    const controller = new AbortController(), generation = ++this.healthGeneration;
+    this.healthController = controller;
+    this.health = undefined;
+    this.publish();
+    try {
+      const report = await this.options.health({ signal: controller.signal });
+      if (!controller.signal.aborted) this.setHealth(report, generation);
+    } catch (error) {
+      if (!this.disposed && !controller.signal.aborted && generation === this.healthGeneration) {
+        this.message = connectionHelp(error);
+      }
+    } finally {
+      if (this.healthController === controller) this.healthController = undefined;
+      this.publish();
+    }
+  }
+
   async receive(message) {
     if (this.disposed || !message || typeof message !== 'object') return;
     if (message.action === 'ready') return this.publish();
     const action = message.action;
     if (!ACTIONS.has(action)) return;
+    if (action === 'health') return this.checkHealth();
+    if (action === 'cancelHealth') return this.cancelHealth();
+    if (action === 'copyHealth') {
+      if (this.health && this.connection === 'ready') {
+        try { await this.options.copyHealth(this.health); }
+        catch (_) { this.message = '复制未完成，请重试。'; this.publish(); }
+      }
+      return;
+    }
     if (action === 'cancelScan') { this.scanController?.abort(); return; }
     if (action === 'scan') return this.scan();
     // Stop and read-only help remain available during a long-running script.
@@ -107,6 +160,7 @@ class DeviceHome {
       if (!device) return; // Reject stale scan results and forged URLs.
     }
     const epoch = this.epoch;
+    if (CONNECTION_ACTIONS.has(action) || ['run', 'runSelection'].includes(action)) this.invalidateHealth();
     this.busy = true;
     this.publish();
     try {
@@ -125,7 +179,7 @@ class DeviceHome {
     }
   }
 
-  dispose() { this.disposed = true; this.epoch++; this.scanController?.abort(); }
+  dispose() { this.disposed = true; this.epoch++; this.scanController?.abort(); this.invalidateHealth(); }
 }
 
 module.exports = { DeviceHome, connectionHelp };

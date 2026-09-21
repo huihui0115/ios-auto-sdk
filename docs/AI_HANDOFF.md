@@ -3,7 +3,7 @@
 > 用途：任何新接手本项目的 AI，先读本文件 + 根目录 `AGENTS.md`，
 > 再读 `docs/EASYCLICK_COMPARISON.md` 的能力差距表。本文档描述架构、
 > 现状、工作流、坑和待办，确保换人后能无缝继续迭代。
-> 最后更新：Round 77（v1.40.0，2026-09-07）。
+> 最后更新：Round 78（v1.41.0，2026-09-21）。
 
 ---
 
@@ -83,11 +83,12 @@ bridge (__bridge 对象，JSValue block)
 | `docs/` | 对标审计（EASYCLICK/ASCRIPT/TROLLAUTOSCRIPT）、协议、发布、性能 |
 | `Tests/` | 原生 Xcode 单元测试（AutoEngineTests / AutoHTTPProtocolTests） |
 
-## 4. 当前状态（Round 77 / v1.40.0）
+## 4. 当前状态（Round 78 / v1.41.0）
 
 - HEAD：见 `git log -1`；分支 `main`；发布走 tag `vX.Y.Z`。
 - bootstrap 解码 **61262 / 61440**（预算 60×1024 UTF-16 码元，余 178）。
-- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **111 项（R77 新增 21 项，执行结果以标签 CI 为准）**；VS Code 插件 **0.14.0**，测试 **144 项**。
+- 文档 **259 个 API 条目 / 259 个可运行示例 / 14 个模块**；bootstrap/工具测试 **88 项**；原生 XCTest **122 项（R78 新增 11 项，执行结果以标签 CI 为准）**；VS Code 插件 **0.15.0**，测试 **163 项**。
+- **Round 78 一键状态检查**：`device-health.js` 只读健康字段白名单、中文建议和复制摘要；`DeviceHome` 用连接/工作区/运行代际隔离迟到结果，可取消，不自动轮询。连接验证复用原来的 ping/deviceInfo/capabilities，手动检查只读后两者。原生 `runtimeHealth` 只存当前进程末次退出原因码；`interruptibleScripts=false`、`cooperativeCancellation=true`。内置节点通过 `AutoBoundedNodeWalkWithMetadata` 和可选 adapter 元数据方法逐次上报预算，Inspector 明确 complete/limited/unknown；老方法继续兼容，bootstrap 不变。最新官方工作流参考与未验收边界见 `QUALITY_AUDIT.md`。
 - **Round 77 iPhone 7 稳定性**：`AutoResourcePolicy` 统一低内存判断/图像预算/有界迭代节点遍历；
   内置节点最多访问 1500、模板深度最多 20，消除递归 block 环；图像元数据预检与 16 MiB 像素预算。
   `AutoBackgroundLease` 为每次脚本提供有限后台额度，重复/同步/迟到回调安全；到期、内存告警和严重热状态请求停止，

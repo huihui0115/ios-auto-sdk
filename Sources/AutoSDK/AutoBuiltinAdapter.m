@@ -670,6 +670,12 @@ static NSString *AutoBuiltinStringOrNil(id value) {
 - (nullable NSArray<NSDictionary *> *)walkWithMaxResults:(NSUInteger)maxResults
                                                   filter:(BOOL (^_Nullable)(NSDictionary *descriptor))filter
                                                    error:(NSError **)error {
+    return [self walkWithMaxResults:maxResults filter:filter metadata:nil error:error];
+}
+
+- (nullable NSArray<NSDictionary *> *)walkWithMaxResults:(NSUInteger)maxResults
+                                                  filter:(BOOL (^_Nullable)(NSDictionary *descriptor))filter
+                                                metadata:(NSDictionary **)metadata error:(NSError **)error {
     AutoBuiltinAccessibilityEngine *ax = [AutoBuiltinAccessibilityEngine sharedEngine];
     AutoAXElementRef root = [ax systemWideRoot];
     if (!root) {
@@ -681,12 +687,12 @@ static NSString *AutoBuiltinStringOrNil(id value) {
     NSUInteger maxDepth = self.maxSnapshotDepth > 0 ? self.maxSnapshotDepth : AutoBuiltinDefaultMaxDepth;
     NSUInteger generation = self.cancellationGeneration;
     @try {
-        return AutoBoundedNodeWalk((__bridge id)root, maxNodes, maxDepth, maxResults,
+        return AutoBoundedNodeWalkWithMetadata((__bridge id)root, maxNodes, maxDepth, maxResults,
             ^NSDictionary *(id element, NSString *path, NSString *parent, NSUInteger depth, NSUInteger index) {
                 return [self descriptorForElement:(__bridge AutoAXElementRef)element path:path
                     parentHandle:parent depth:depth index:index engine:ax];
             }, ^NSArray *(id element) { return [ax copyChildrenOfElement:(__bridge AutoAXElementRef)element]; },
-            filter, ^BOOL { return [self operationCancelledSince:generation]; }, error);
+            filter, ^BOOL { return [self operationCancelledSince:generation]; }, metadata, error);
     } @finally { CFRelease(root); }
 }
 
@@ -1355,8 +1361,12 @@ static NSDictionary *AutoBuiltinXPathToQuery(NSString *xpath, NSInteger *positio
 }
 
 - (NSArray<NSDictionary<NSString *, id> *> *)nodeSnapshotWithMaxResults:(NSUInteger)maxResults error:(NSError **)error {
+    return [self nodeSnapshotWithMaxResults:maxResults metadata:nil error:error];
+}
+
+- (NSArray<NSDictionary<NSString *, id> *> *)nodeSnapshotWithMaxResults:(NSUInteger)maxResults metadata:(NSDictionary **)metadata error:(NSError **)error {
     NSUInteger limit = maxResults > 0 ? maxResults : self.maxSnapshotNodes;
-    return [self walkWithMaxResults:limit filter:nil error:error];
+    return [self walkWithMaxResults:limit filter:nil metadata:metadata error:error];
 }
 
 - (id)attribute:(NSString *)attribute forSelector:(id)selector error:(NSError **)error {

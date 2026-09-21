@@ -41,6 +41,10 @@ NS_ASSUME_NONNULL_BEGIN
 /** Returns a bounded flat snapshot whose descriptors retain depth/parent metadata when available. */
 - (nullable NSArray<NSDictionary<NSString *, id> *> *)nodeSnapshotWithMaxResults:(NSUInteger)maxResults
                                                                              error:(NSError * _Nullable * _Nullable)error;
+/** Optional per-call limit metadata. Never infer completeness solely from returned node count. */
+- (nullable NSArray<NSDictionary<NSString *, id> *> *)nodeSnapshotWithMaxResults:(NSUInteger)maxResults
+                                                                          metadata:(NSDictionary * _Nullable * _Nullable)metadata
+                                                                             error:(NSError * _Nullable * _Nullable)error;
 - (nullable id)attribute:(NSString *)attribute
                forSelector:(id)selector
                      error:(NSError * _Nullable * _Nullable)error;

@@ -426,9 +426,33 @@ interface AutoSystemAPI {
   openSettings(panel?: AutoSystemSettingsPanel): boolean;
 }
 
+/** Read-only snapshot; not a guarantee of background lifetime, RSS, or private-API permissions. */
+interface AutoRuntimeHealth {
+  schemaVersion: 1;
+  sampledAtMs: number;
+  lowMemoryProfile: boolean;
+  physicalMemoryMiB: number;
+  decodedImageBudgetMiB: number;
+  thermalState: "nominal" | "fair" | "serious" | "critical";
+  lowPowerMode: boolean;
+  appState: "active" | "inactive" | "background" | "unknown";
+  running: boolean;
+  stopRequested: boolean;
+  backgroundPolicy: "finite";
+  backgroundLeaseActive: boolean;
+  /** Last finished run in this process only; no script or arbitrary error text. */
+  lastRun: { reasonCode?: "completed" | "userCancelled" | "cancelled" | "memoryPressure" | "thermalPressure" | "backgroundExpired" | "scriptTimeout" | "failed"; finishedAtMs?: number };
+}
+
+interface AutoDeviceInfo extends Record<string, unknown> {
+  /** Optional for older phone runtimes. */
+  sdkVersion?: string;
+  runtimeHealth?: AutoRuntimeHealth;
+}
+
 interface AutoDeviceAPI {
-  info(): Record<string, unknown>;
-  getDeviceInfo(): Record<string, unknown>;
+  info(): AutoDeviceInfo;
+  getDeviceInfo(): AutoDeviceInfo;
   width(): number;
   height(): number;
   scale(): number;
@@ -1246,7 +1270,7 @@ declare function torch(on?: boolean): boolean;
 declare function flashlight(on?: boolean): boolean;
 declare function launchAppByPrefix(bundleIdPrefix: string): boolean;
 declare function getFrontmostApp(): string | null;
-declare function getDeviceInfo(): Record<string, unknown>;
+declare function getDeviceInfo(): AutoDeviceInfo;
 declare function getScreenWidth(): number;
 declare function getScreenHeight(): number;
 declare function getScale(): number;

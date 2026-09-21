@@ -56,5 +56,8 @@
     }
     if (identifier != UIBackgroundTaskInvalid) self.endTask(identifier);
 }
+- (BOOL)isActive {
+    @synchronized (self) { return !self.closed && self.identifier != UIBackgroundTaskInvalid; }
+}
 - (void)dealloc { [self finish]; }
 @end

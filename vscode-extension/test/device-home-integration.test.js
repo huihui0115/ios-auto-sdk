@@ -41,7 +41,7 @@ function harness({ folder = false } = {}) {
   }
   const module = { exports: {} };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../extension.js'), 'utf8') +
-    '\nmodule.exports.testing = { pairWifiDevice, performHomeAction, homeContext, sidebarEditor };', {
+    '\nmodule.exports.testing = { pairWifiDevice, performHomeAction, homeContext, sidebarEditor, getHome: () => deviceHome };', {
     module, Buffer, URL, AbortController, console,
     require: name => name === 'vscode' ? vscode : name === './device-client' ? { DeviceClient: Client } :
       name === './usb-tunnel' ? { UsbTunnel: class { dispose() {} } } :
@@ -57,6 +57,10 @@ test('actual extension pairs from an empty window without workspace settings err
   assert.equal(h.values.get('debugUrl'), 'ws://192.168.1.2:9001/');
   assert.ok(h.updates.filter(update => update.key !== 'debugToken').every(update => update.target === 1));
   assert.deepEqual(h.sent.map(item => item.type), ['ping', 'deviceInfo', 'capabilities']);
+  assert.match(h.api.getHome().snapshot().health.summary, /检查完成/);
+  assert.doesNotMatch(JSON.stringify(h.api.getHome().snapshot().health), /long-test-pairing-token/);
+  await h.api.getHome().receive({ action: 'health' });
+  assert.deepEqual(h.sent.slice(3).map(item => item.type), ['deviceInfo', 'capabilities']);
   assert.doesNotMatch(JSON.stringify(h.api.homeContext()), /long-test-pairing-token/);
 });
 

@@ -42,6 +42,7 @@ test('unconfigured or untrusted sidebar cannot run; stop stays usable when busy'
   ui.update({ busy: true, running: true });
   assert.equal(ui.get('stop').disabled, false); assert.equal(ui.get('inspector').disabled, true);
   assert.equal(ui.get('pair').disabled, true);
+  assert.equal(ui.get('health').disabled, false);
 });
 
 test('phone names are text only and clicks send opaque keys without addresses', () => {
@@ -57,4 +58,17 @@ test('new state clears old results and disables selection-only run for empty sel
   ui.update({ canSelect: false, scanning: true });
   assert.equal(ui.get('devices').children.length, 0); assert.equal(ui.get('runSelection').disabled, true);
   assert.equal(ui.get('cancelScan').hidden, false); assert.equal(ui.get('scan').disabled, true);
+});
+
+test('health view is read-only text, cancellable, and clears stale details', () => {
+  const ui = webview(); ui.update({ checkingHealth: true });
+  assert.equal(ui.get('health').disabled, true); assert.equal(ui.get('cancelHealth').hidden, false);
+  ui.get('cancelHealth').emit('click'); assert.equal(ui.sent.at(-1).action, 'cancelHealth');
+  ui.update({ health: { checkedAtMs: 0, summary: '已读取', warnings: ['<img onerror=evil()>'], rows: [{ label: '保护', value: '开启' }] } });
+  assert.equal(ui.get('health-warnings').children[0].textContent, '<img onerror=evil()>');
+  assert.equal(ui.get('health-rows').children[0].textContent, '保护：开启');
+  assert.equal(ui.get('copyHealth').hidden, false);
+  ui.update({ connection: 'disconnected' });
+  assert.equal(ui.get('health-warnings').children.length, 0); assert.equal(ui.get('copyHealth').hidden, true);
+  assert.equal(ui.get('health').disabled, true);
 });

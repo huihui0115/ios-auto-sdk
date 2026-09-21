@@ -850,7 +850,7 @@ main();` });APIS.push({ cat:'app', sig:'launchAppByPrefix(bundleIdPrefix) / app.
   const ok = launchAppByPrefix("com.apple.mobile");
   logd("启动结果: " + ok);
 }
-main();` });APIS.push({ cat:'device', sig:'device.getDeviceInfo() / device.info()', title:'设备信息', desc:'返回设备/屏幕/电池/系统等完整信息字典；info 是等价简写。', params:[], returns:'object {model, systemVersion, screenWidth, batteryLevel, ...}', example:`function main(){
+main();` });APIS.push({ cat:'device', sig:'device.getDeviceInfo() / device.info()', title:'设备信息', desc:'返回设备、屏幕、电池、系统信息；info 是等价简写。SDK 1.41 起增加 sdkVersion 与 runtimeHealth：低内存档、图像解码预算、温度、省电模式、前后台、运行/停止状态、有限后台额度是否有效，以及本进程上次运行的原因码和时间。只读快照，不是永久保活或权限实机验证；老版本没有这些字段。VS Code 侧栏可直接点“检查手机状态”，无需写代码。', params:[], returns:'AutoDeviceInfo {sdkVersion?, runtimeHealth?: AutoRuntimeHealth, model, systemVersion, ...}', example:`function main(){
   const info = device.getDeviceInfo();
   logd("型号: " + info.model);
   logd("系统: " + info.systemVersion);

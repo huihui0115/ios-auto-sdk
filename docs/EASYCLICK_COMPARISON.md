@@ -1,6 +1,6 @@
 # EasyClick iOS capability comparison
 
-Audit date: 2026-09-07 (Round 77; current workflow review: [QUALITY_AUDIT.md](QUALITY_AUDIT.md))
+Audit date: 2026-09-21 (Round 78; current workflow review: [QUALITY_AUDIT.md](QUALITY_AUDIT.md))
 
 Official references:
 
@@ -36,6 +36,16 @@ unavailable.
 | Deployment | signed EasyClick agent/IPA products, proxy IPA, Bluetooth and OTG HID paths | template app, macOS CI-verified unsigned IPA workflow (free Apple ID signing), built-in no-WDA adapter as the only cross-app engine (private symbols resolved at runtime, no linked private frameworks; external WDA removed in v1.17.0) | Built-in adapter requires a private-API-permitted build (TrollStore or developer signing) for touch injection and system-wide AX; Xcode simulator builds/tests pass, but private APIs still require real-iPhone validation |
 
 ## Round 77 iPhone 7 resource safety
+
+Round 78 adds a read-only device-health panel (VS Code 0.15.0 / SDK 1.41.0):
+manual refresh/cancel, a whitelisted diagnostic copy, resource/background state and
+the last in-process exit reason. It reuses connection validation requests, rejects
+stale target/run results, and never treats declared capabilities as real-device tests.
+Inspector now propagates per-call visit/depth/result limits; older adapters remain
+explicitly unknown, not silently complete. Workflow references rechecked on 2026-09-21:
+[AScript connection validation](https://www.ascript.cn/ai-coding/local/) and
+[Appium Inspector feedback](https://appium.github.io/appium-inspector/latest/session-inspector/screenshot/).
+No competitor performance measurement or iPhone 7 background endurance result is claimed.
 
 Automatic <=2 GiB profile, bounded node visits without recursive-block retention,
 image metadata/working-buffer budgets, single-flight built-in visual work, bounded

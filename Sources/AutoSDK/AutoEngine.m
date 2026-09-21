@@ -1,4 +1,5 @@
 #import "include/AutoEngine.h"
+#import "include/AutoSDK.h"
 #import "include/AutoDebugServer.h"
 #import "include/AutoSDKError.h"
 #import "AutoScriptSupport.h"
@@ -151,6 +152,8 @@
 @property (nonatomic, strong) AutoBackgroundLease *backgroundLease;
 @property (nonatomic, strong) NSUUID *activeRunIdentifier;
 @property (atomic, copy) NSString *stopReason;
+@property (nonatomic, copy) NSString *stopReasonCode;
+@property (nonatomic, copy) NSDictionary *lastRunSummary;
 @property (nonatomic, strong) NSMutableArray<AVAudioPlayer *> *audioPlayers;
 @property (nonatomic, strong) NSMutableDictionary<NSNumber *, AVAudioPlayer *> *audioPlayersById;
 @property (nonatomic, assign) NSUInteger audioPlayerIdCounter;
@@ -4278,9 +4281,13 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
 }
 
 - (void)requestStopForRun:(NSUUID *)identifier reason:(NSString *)reason {
+    [self requestStopForRun:identifier reason:reason code:@"cancelled"];
+}
+
+- (void)requestStopForRun:(NSUUID *)identifier reason:(NSString *)reason code:(NSString *)code {
     @synchronized (self) {
         if (!self.running || ![self.activeRunIdentifier isEqual:identifier]) return;
-        self.stopReason = reason;
+        if (!self.stopReasonCode) { self.stopReason = reason; self.stopReasonCode = code; }
         self.stopRequested = YES;
         // No waiting for JS/SQL/network completion on the expiration callback.
         if ([self.activeAdapter respondsToSelector:@selector(cancelCurrentOperations)]) [self.activeAdapter cancelCurrentOperations];
@@ -4295,7 +4302,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     @synchronized (self) {
         [self requestStopForRun:self.activeRunIdentifier reason:memory
             ? @"Stopped because iOS reported low memory. Return to AutoSDK and reduce the workload before running again."
-            : @"Stopped because the device is overheating. Let it cool before running again."];
+            : @"Stopped because the device is overheating. Let it cool before running again."
+            code:memory ? @"memoryPressure" : @"thermalPressure"];
         adapter = self.adapter;
         if (self.activeAdapter != adapter && [self.activeAdapter respondsToSelector:@selector(releaseCachedResources)]) {
             [self.activeAdapter releaseCachedResources];
@@ -4551,7 +4559,8 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     NSMutableDictionary *result = [@{ @"runtime": @"JavaScriptCore",
                                       @"timers": @YES,
                                       @"parallelWorkers": @NO,
-                                      @"interruptibleScripts": @(AutoPermission(config, @"interruptibleScripts", YES)),
+                                      @"interruptibleScripts": @NO,
+                                      @"cooperativeCancellation": @YES,
                                       @"http": @(AutoBoolean(config[@"allowNetwork"], NO)),
                                       @"fileRead": @(fileReadEnabled),
                                       @"fileWrite": @(fileWriteEnabled),
@@ -4623,12 +4632,17 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                 return;
             }
             NSError *nodeError = nil;
-            NSArray *nodes = [adapter nodeSnapshotWithMaxResults:maxNodes error:&nodeError];
+            NSDictionary *nodeBudget = nil;
+            NSArray *nodes = [adapter respondsToSelector:@selector(nodeSnapshotWithMaxResults:metadata:error:)]
+                ? [adapter nodeSnapshotWithMaxResults:maxNodes metadata:&nodeBudget error:&nodeError]
+                : [adapter nodeSnapshotWithMaxResults:maxNodes error:&nodeError];
             if (!nodes || nodeError) {
                 response(@{@"ok": @NO, @"error": nodeError.localizedDescription ?: @"Unable to inspect nodes."});
                 return;
             }
             NSDictionary *deviceInfo = AutoValueOnMainThread(^id{ return [self getDeviceInfo]; }) ?: @{};
+            BOOL knownBudget = [nodeBudget[@"truncated"] isKindOfClass:NSNumber.class];
+            BOOL truncated = [nodeBudget[@"truncated"] boolValue] || nodes.count >= maxNodes;
             response(@{ @"ok": @YES,
                         @"protocolVersion": @(AutoDebugProtocolVersion),
                         @"snapshotId": NSUUID.UUID.UUIDString,
@@ -4640,7 +4654,9 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                         @"nodes": nodes,
                         @"nodeCount": @(nodes.count),
                         @"maxNodes": @(maxNodes),
-                        @"truncated": @(nodes.count >= maxNodes) });
+                        @"nodeBudget": nodeBudget ?: @{},
+                        @"completeness": truncated ? @"limited" : knownBudget ? @"complete" : @"unknown",
+                        @"truncated": @(truncated) });
         }];
         return;
     }
@@ -4986,6 +5002,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         if (!self.running && !self.scriptTask) return;
         self.stopRequested = YES;
         adapter = self.activeAdapter ?: self.adapter;
+        if (!self.stopReasonCode) self.stopReasonCode = @"userCancelled";
         task = self.scriptTask;
         self.scriptTask = nil;
     }
@@ -5023,6 +5040,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         self.running = YES;
         self.stopRequested = NO;
         self.stopReason = nil;
+        self.stopReasonCode = nil;
         NSUUID *identifier = NSUUID.UUID;
         self.activeRunIdentifier = identifier;
         runConfig = self.config ?: @{};
@@ -5030,7 +5048,7 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
         self.activeAdapter = runAdapter;
         __weak AutoEngine *weakSelf = self;
         self.backgroundLease = [AutoBackgroundLease leaseWithExpiration:^{
-            [weakSelf requestStopForRun:identifier reason:@"iOS background execution time expired. Return to AutoSDK and run again; actions are not replayed automatically."];
+            [weakSelf requestStopForRun:identifier reason:@"iOS background execution time expired. Return to AutoSDK and run again; actions are not replayed automatically." code:@"backgroundExpired"];
         }];
     }
     [self loadScript:scriptPathOrSource config:runConfig completion:^(NSString * _Nullable source, NSError * _Nullable error) {
@@ -5328,6 +5346,10 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
     }
     @synchronized (self) {
         lease = self.backgroundLease;
+        BOOL sdkError = [error.domain isEqualToString:AutoSDKErrorDomain];
+        NSString *reasonCode = !error ? @"completed" : sdkError && error.code == AutoSDKErrorScriptTimeout ? @"scriptTimeout"
+            : sdkError && error.code == AutoSDKErrorScriptCancelled ? (self.stopReasonCode ?: @"cancelled") : @"failed";
+        self.lastRunSummary = @{ @"reasonCode": reasonCode, @"finishedAtMs": @((long long)(NSDate.date.timeIntervalSince1970 * 1000)) };
         self.backgroundLease = nil;
         self.activeRunIdentifier = nil;
         self.running = NO;
@@ -5448,6 +5470,25 @@ static NSURLRequest *AutoBuildHTTPRequest(NSDictionary *data, NSURL *url, NSDict
                                     @"networkType": AutoCurrentNetworkType() } mutableCopy];
     NSDictionary *adapterInfo = [adapter deviceInfo];
     if (adapterInfo) [info addEntriesFromDictionary:adapterInfo];
+    info[@"sdkVersion"] = [NSString stringWithUTF8String:(const char *)AutoSDKVersionString];
+    // Read-only snapshot, no script text, tokens, filenames or arbitrary error messages.
+    NSProcessInfo *process = NSProcessInfo.processInfo;
+    NSString *thermal = process.thermalState == NSProcessInfoThermalStateCritical ? @"critical"
+        : process.thermalState == NSProcessInfoThermalStateSerious ? @"serious"
+        : process.thermalState == NSProcessInfoThermalStateFair ? @"fair" : @"nominal";
+    UIApplication *application = UIApplication.sharedApplication;
+    NSString *appState = !application ? @"unknown" : application.applicationState == UIApplicationStateActive ? @"active"
+        : application.applicationState == UIApplicationStateBackground ? @"background" : @"inactive";
+    @synchronized (self) {
+        info[@"runtimeHealth"] = @{ @"schemaVersion": @1, @"sampledAtMs": @((long long)(NSDate.date.timeIntervalSince1970 * 1000)),
+            @"lowMemoryProfile": @(AutoUsesLowMemoryProfile(process.physicalMemory)),
+            @"physicalMemoryMiB": @(process.physicalMemory / (1024 * 1024)),
+            @"decodedImageBudgetMiB": @(AutoDecodedImageBudget(process.physicalMemory) / (1024 * 1024)),
+            @"thermalState": thermal, @"lowPowerMode": @(process.lowPowerModeEnabled), @"appState": appState,
+            @"running": @(self.running), @"stopRequested": @(self.stopRequested),
+            @"backgroundPolicy": @"finite", @"backgroundLeaseActive": @(self.backgroundLease.isActive),
+            @"lastRun": self.lastRunSummary ?: @{} };
+    }
     return info;
 }
 

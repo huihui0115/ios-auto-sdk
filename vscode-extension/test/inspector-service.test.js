@@ -50,6 +50,19 @@ test('Inspector protocol limits and errors remain bounded', () => {
   assert.equal(responseError({ error: 'x'.repeat(3000) }).length, 2051);
 });
 
+test('snapshot completeness is conservative for legacy, malformed and budget-limited responses', async () => {
+  const get = extra => new InspectorService(async () => ({ ok: true, pngBase64: PNG, nodes: [{}], deviceInfo: {}, ...extra })).snapshot();
+  assert.equal((await get({ truncated: false })).completeness, 'unknown');
+  assert.equal((await get({ completeness: 'complete', nodeBudget: {} })).completeness, 'unknown');
+  assert.equal((await get({ completeness: 'complete', nodeBudget: { truncated: 'false' } })).completeness, 'unknown');
+  assert.equal((await get({ completeness: 'complete', nodeBudget: { truncated: false } })).completeness, 'complete');
+  const limited = await get({ completeness: 'complete', nodeBudget: { truncated: true, visitedCount: 3,
+    limitReasons: ['depthLimit', 'SECRET'], token: 'SECRET', nodeLimit: Infinity } });
+  assert.equal(limited.completeness, 'limited'); assert.equal(limited.truncated, true);
+  assert.deepEqual(limited.nodeBudget.limitReasons, ['depthLimit']); assert.doesNotMatch(JSON.stringify(limited), /SECRET/);
+  assert.equal((await get({ truncated: true, completeness: 'complete', nodeBudget: { truncated: false } })).completeness, 'limited');
+});
+
 test('InspectorService serializes all visual requests across command and panel consumers', async () => {
   let releaseScreenshot;
   const screenshotGate = new Promise(resolve => { releaseScreenshot = resolve; });

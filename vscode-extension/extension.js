@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const { DeviceHome } = require('./device-home');
+const { buildDeviceHealth, readDeviceHealth, healthReportText } = require('./device-health');
 const { deviceHomeHtml } = require('./device-home-view');
 const { REENTER_TOKEN, RETRY_CONNECTION, SCAN_WIFI_DEVICE, connectWithRecovery, connectionTargetIsCurrent, runErrorActions } = require('./connection-recovery');
 const { DeviceClient } = require('./device-client');
@@ -653,8 +654,9 @@ function resolveDeviceHome(view) {
   view.webview.options = { enableScripts: true,
     localResourceRoots: [vscode.Uri.joinPath(extensionContext.extensionUri, 'media')] };
   const subscription = view.webview.onDidReceiveMessage(message => deviceHome?.receive(message));
-  const visibility = view.onDidChangeVisibility(() => { if (view.visible) deviceHome?.publish(); });
+  const visibility = view.onDidChangeVisibility(() => { if (view.visible) deviceHome?.publish(); else deviceHome?.cancelHealth(); });
   view.onDidDispose(() => {
+    deviceHome?.cancelHealth();
     subscription.dispose(); visibility.dispose();
     if (deviceHomeView === view) deviceHomeView = undefined;
   });
@@ -791,12 +793,14 @@ async function testConnection({ showFailure = true, showSuccess = true, throwOnF
   try {
     const pong = await sendRequest({ type: 'ping' });
     if (!pong.ok) throw new Error(responseError(pong));
+    const healthGeneration = deviceHome?.healthGeneration;
     const response = await sendRequest({ type: 'deviceInfo' });
     if (!response.ok) throw new Error(responseError(response));
     const capabilityResponse = await sendRequest({ type: 'capabilities' });
     if (!capabilityResponse.ok) throw new Error(responseError(capabilityResponse));
-    channel.appendLine(JSON.stringify(response.deviceInfo, null, 2));
-    channel.appendLine(JSON.stringify(capabilityResponse.capabilities, null, 2));
+    const report = buildDeviceHealth(response.deviceInfo, capabilityResponse.capabilities);
+    deviceHome?.setHealth(report, healthGeneration);
+    channel.appendLine(healthReportText(report));
     if (showSuccess) vscode.window.showInformationMessage('手机已连接，可以开始运行和采集。');
     return true;
   } catch (error) {
@@ -1124,6 +1128,8 @@ async function buildIPA() {
 function activate(context) {
   extensionContext = context;
   deviceHome = new DeviceHome({ context: homeContext, discover: discoverWifiDevices,
+    health: options => readDeviceHealth(sendRequest, options),
+    copyHealth: report => vscode.env.clipboard.writeText(healthReportText(report)),
     perform: performHomeAction, log: error => outputChannel().appendLine(error.stack || String(error)),
     publish: state => {
       try {

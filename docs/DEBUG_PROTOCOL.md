@@ -83,6 +83,26 @@ The response includes `protocolVersion`, `snapshotId`, `capturedAtMs`,
 `truncated` flag. Nodes expose `nodeId`, `parentId`, `depth`, `order`, bounds,
 attributes, and a transient selector. `maxNodes` is clamped to `1...2000`.
 
+SDK 1.41 adds `completeness` (`complete`, `limited`, `unknown`) and `nodeBudget`.
+The built-in adapter reports per-call `truncated`, `limitReasons` (`visitLimit`,
+`depthLimit`, `resultLimit`), `visitedCount`, `nodeLimit`, `depthLimit`, and `resultLimit`.
+A depth/effective-budget cutoff can return fewer nodes than requested and is still
+limited. Reaching the requested count is conservatively limited. Older adapters
+without metadata are unknown, not complete; clients must not infer absence from
+partial results. Complete means traversal of the accessible tree, not all visual
+elements. Screenshot and nodes are sequential within one request, not atomic.
+
+`deviceInfo` also includes `sdkVersion` and `runtimeHealth` schema 1: `sampledAtMs`,
+`lowMemoryProfile`, `physicalMemoryMiB`, `decodedImageBudgetMiB`, `thermalState`,
+`lowPowerMode`, `appState`, `running`, `stopRequested`, `backgroundPolicy: "finite"`,
+`backgroundLeaseActive`, and `lastRun: { reasonCode?, finishedAtMs? }`.
+Reasons are completed/userCancelled/cancelled/memoryPressure/thermalPressure/
+backgroundExpired/scriptTimeout/failed. They cover the last finished in-process
+run only and exclude arbitrary error/script text. Restart or OS termination does
+not fabricate a last-exit reason. `capabilities.interruptibleScripts` is false and
+`cooperativeCancellation` true; pure-JS loops cannot be guaranteed preemptible.
+These read-only snapshots do not prove permissions, RSS safety or permanent uptime.
+
 Capture visible host-app UIKit node descriptors. An optional compound selector
 uses the same fields as `auto.findElements`:
 

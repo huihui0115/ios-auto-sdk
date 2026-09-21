@@ -7,6 +7,7 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
+const { buildDeviceHealth } = require('../vscode-extension/device-health');
 const { chromium } = require(process.env.AUTOSDK_PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(import.meta.dirname, '..');
 const extension = path.join(root, 'vscode-extension');
@@ -55,11 +56,23 @@ try {
   await update({ ...state, connection: 'ready', configured: true, deviceName: '我的 iPhone', address: '192.168.1.25:9001', devices: [], message: '手机已连接，可以运行脚本或打开截图与节点。' });
   await page.getByRole('button', { name: '运行整个脚本', exact: true }).click();
   assert.equal(await page.evaluate(() => window.sent.at(-1).action), 'run');
+  const health = buildDeviceHealth({ sdkVersion: '1.41.0', systemVersion: '15.8.5', runtimeHealth: {
+    schemaVersion: 1, lowMemoryProfile: true, decodedImageBudgetMiB: 16, thermalState: 'nominal', lowPowerMode: false,
+    appState: 'active', running: false, backgroundPolicy: 'finite', backgroundLeaseActive: false,
+    lastRun: { reasonCode: 'memoryPressure' }
+  } }, { cooperativeCancellation: true, automation: { screenshot: true, nodes: true, click: false, crossApp: true } });
+  await update({ ...state, connection: 'ready', configured: true, deviceName: '我的 iPhone', address: '192.168.1.25:9001', message: '手机已连接，可以运行脚本或打开截图与节点。', devices: [], health });
+  await page.getByRole('button', { name: '检查手机状态', exact: true }).click();
+  assert.equal(await page.evaluate(() => window.sent.at(-1).action), 'health');
+  await page.locator('#health-details summary').click();
+  assert.match(await page.locator('#health-rows').innerText(), /低内存机型保护已启用/);
+  await page.getByRole('button', { name: '复制诊断摘要', exact: true }).click();
+  assert.equal(await page.evaluate(() => window.sent.at(-1).action), 'copyHealth');
   await page.screenshot({ path: path.join(root, 'dist/device-home-connected.png'), fullPage: true });
   await page.setViewportSize({ width: 240, height: 1050 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.deepEqual(errors, []);
-  console.log('PASS: real Chromium sidebar rendering, CSP, device card, run button, 240/320px widths; screenshots in dist/. Simulated device only.');
+  console.log('PASS: real Chromium sidebar rendering, CSP, device card, run/health/copy buttons, expanded diagnostics, 240/320px widths; screenshots in dist/. Simulated device only.');
 } finally {
   await browser?.close();
   await new Promise(resolve => server.close(resolve));

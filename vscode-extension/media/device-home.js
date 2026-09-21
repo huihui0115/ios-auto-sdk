@@ -29,6 +29,19 @@
     byId('runSelection').disabled = byId('run').disabled || !state.canSelect;
     byId('stop').disabled = !ready;
     byId('inspector').disabled = !ready || locked || state.running;
+    byId('health').disabled = Boolean(!ready || (state.busy && !state.running) || state.scanning || state.checkingHealth);
+    byId('health').textContent = state.checkingHealth ? '正在检查…' : '检查手机状态';
+    byId('cancelHealth').hidden = !state.checkingHealth;
+    byId('copyHealth').hidden = !state.health;
+    byId('health-details').hidden = !state.health;
+    byId('health-summary').textContent = state.checkingHealth ? '正在读取手机状态，可取消。' : state.health
+      ? `${state.health.summary} · ${new Date(state.health.checkedAtMs).toLocaleTimeString()}`
+      : ready ? '点击检查获取当前状态；上次结果在连接或运行状态变化后清除。' : '连接手机后可检查，无需输入代码。';
+    for (const [id, values] of [['health-warnings', state.health?.warnings || []],
+      ['health-rows', (state.health?.rows || []).map(row => `${row.label}：${row.value}`)]]) {
+      const container = byId(id); container.replaceChildren();
+      for (const value of values) { const line = document.createElement('p'); line.className = 'hint'; line.textContent = value; container.append(line); }
+    }
     const devices = byId('devices');
     devices.replaceChildren();
     for (const device of state.devices) {

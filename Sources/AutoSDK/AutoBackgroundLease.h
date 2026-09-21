@@ -7,5 +7,6 @@ NS_ASSUME_NONNULL_BEGIN
                           end:(void (^)(UIBackgroundTaskIdentifier))end
                    expiration:(dispatch_block_t)expiration;
 - (void)finish;
+@property (nonatomic, readonly, getter=isActive) BOOL active;
 @end
 NS_ASSUME_NONNULL_END

@@ -30,6 +30,14 @@ function deviceHomeHtml(webview, extensionUri) {
       <div class="buttons"><button id="inspector" data-action="inspector">截图与节点</button><button id="logs" data-action="logs" class="secondary">运行日志</button><button id="help" data-action="help" class="secondary">使用指南</button></div>
       <p class="hint">点选画面生成操作代码。此处是运行与采集调试，不是断点单步调试。</p>
     </section>
+    <section aria-labelledby="health-heading">
+      <h2 id="health-heading">手机状态</h2>
+      <div class="buttons"><button id="health" data-action="health" class="secondary">检查手机状态</button><button id="cancelHealth" data-action="cancelHealth" class="secondary" hidden>取消检查</button><button id="copyHealth" data-action="copyHealth" class="secondary" hidden>复制诊断摘要</button></div>
+      <p id="health-summary" role="status" aria-live="polite">连接手机后可检查，无需输入代码。</p>
+      <p class="hint">只读快照，不会点击手机或运行脚本；不自动轮询。截图、节点和跨 App 权限仍需实机验证。</p>
+      <div id="health-warnings"></div>
+      <details id="health-details" hidden><summary>查看状态详情</summary><div id="health-rows"></div></details>
+    </section>
     <details><summary>找不到手机？更多连接方式</summary><p class="hint">仅在广播被网络屏蔽时使用；正常连接不需要这些设置。</p><div class="buttons"><button id="manual" data-action="manual" class="secondary">手动填写手机地址</button><button id="usb" data-action="usb" class="secondary">USB 备用连接</button></div></details>
     <script nonce="${nonce}" src="${resource('device-home.js')}"></script>
   </body></html>`;
