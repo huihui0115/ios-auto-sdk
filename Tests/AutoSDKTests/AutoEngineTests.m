@@ -3,6 +3,10 @@
 #import <CoreLocation/CoreLocation.h>
 #import <UIKit/UIKit.h>
 
+// Functional assertions below validate results/errors, not simulator scheduling speed.
+// SDK execution/HTTP deadlines remain independently configured and asserted.
+static const NSTimeInterval AutoTestCompletionTimeout = 30;
+
 @interface AutoTestAdapter : NSObject <AutoAutomationAdapter>
 @property (nonatomic, assign) NSInteger clickCount;
 @property (nonatomic, assign) NSInteger cancellationCount;
@@ -194,7 +198,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual([result[@"logs"] count], (NSUInteger)1);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testDebugVisualOperationHonorsThirdPartyMainThreadRequirement {
@@ -209,7 +213,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertTrue(adapter.pixelCalledOnMainThread);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testDebugNodeActionAndDeployedScriptLifecycle {
@@ -225,7 +229,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(response[@"ok"], @YES);
         [put fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     NSError *listError = nil;
     NSArray<NSDictionary<NSString *, id> *> *scripts = [engine deployedScriptsWithError:&listError];
@@ -241,7 +245,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(response[@"result"][@"value"], @42);
         [run fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     XCTestExpectation *action = [self expectationWithDescription:@"node click"];
     [engine handleDebugRequest:@{ @"type": @"nodeAction", @"action": @"click", @"selector": @{@"id": @"button"} }
@@ -249,7 +253,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(response[@"ok"], @YES);
         [action fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
     XCTAssertEqual(adapter.clickCount, 1);
 
     NSError *deleteError = nil;
@@ -317,7 +321,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(response[@"path"], [@"debug-assets" stringByAppendingPathComponent:name]);
         [put fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     XCTestExpectation *find = [self expectationWithDescription:@"find deployed asset"];
     [engine handleDebugRequest:@{ @"type": @"findImage", @"assetName": name }
@@ -326,7 +330,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(response[@"match"][@"found"], @YES);
         [find fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     XCTestExpectation *ocr = [self expectationWithDescription:@"test OCR"];
     [engine handleDebugRequest:@{ @"type": @"testOCR", @"region": @{@"x": @0, @"y": @0, @"width": @10, @"height": @10} }
@@ -335,7 +339,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(response[@"count"], @1);
         [ocr fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     XCTestExpectation *remove = [self expectationWithDescription:@"delete asset"];
     [engine handleDebugRequest:@{ @"type": @"deleteAsset", @"name": name }
@@ -343,7 +347,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(response[@"ok"], @YES);
         [remove fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testDebugInspectorReturnsOneCorrelatedSnapshot {
@@ -360,7 +364,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertTrue([response[@"pngBase64"] length] > 0);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testUIKitAdapterReportsItsCapabilities {
@@ -379,7 +383,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertTrue([info[@"screenScale"] doubleValue] > 0);
         [finished fulfill];
     });
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testUIKitCancellationInvalidatesScreenshotCacheGenerations {
@@ -609,7 +613,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorScriptTimeout);
         [timedOut fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     [engine initWithConfig:@{ @"scriptTimeout": @5 }];
     XCTestExpectation *nextRun = [self expectationWithDescription:@"run after timeout"];
@@ -618,7 +622,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @42);
         [nextRun fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testBridgeSleepLoopIsInterruptedByScriptTimeout {
@@ -642,7 +646,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @42);
         [nextRun fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testTimerCallbackBridgeLoopIsInterruptedByScriptTimeout {
@@ -666,7 +670,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @42);
         [nextRun fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testAmbiguousInputDistinguishesPathsFromSource {
@@ -680,7 +684,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @0.5);
         [divisionExpectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     [engine initWithConfig:@{ @"scriptTimeout": @5 }];
     XCTestExpectation *pathExpectation = [self expectationWithDescription:@"separator path rejection"];
@@ -689,7 +693,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorScriptNotFound);
         [pathExpectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testTrailingJsCommentIsNotTreatedAsMissingPath {
@@ -703,7 +707,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"success"], @YES);
         [singleLine fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     [engine initWithConfig:@{ @"scriptTimeout": @5 }];
     XCTestExpectation *multiLine = [self expectationWithDescription:@"source whose last line is a .js comment"];
@@ -712,7 +716,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @42);
         [multiLine fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testStopBeforeEvaluationInterruptsBridgeSleepLoop {
@@ -746,7 +750,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(value[@"count"], @60000);
         [largeArray fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     [engine initWithConfig:@{ @"scriptTimeout": @5 }];
     XCTestExpectation *smallArray = [self expectationWithDescription:@"small arrays pass through unchanged"];
@@ -755,7 +759,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], (@[@1, @2, @3]));
         [smallArray fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testScriptBridgeRejectsNonFiniteCoordinates {
@@ -769,7 +773,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertTrue([error.localizedDescription containsString:@"finite"]);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testHTTPBootstrapAliasesPreserveCompatibility {
@@ -793,7 +797,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"][@"proxyStringifyOk"], @YES);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testStopInterruptsARepeatedAutomationBridgeLoop {
@@ -818,7 +822,8 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
 }
 
 - (void)testNativeMethodAndRemoteScriptPolicy {
-    AutoEngine *engine = AutoEngine.sharedEngine;
+    // A cancellation test must not share a target with any later test.
+    AutoEngine *engine = [AutoEngine new];
     [engine initWithConfig:@{@"scriptTimeout": @5}];
     [engine registerNativeMethod:@"echo" handler:^id(NSArray *args) {
         return args.firstObject ?: [NSNull null];
@@ -829,7 +834,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @"ok");
         [nativeExpectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     XCTestExpectation *remoteExpectation = [self expectationWithDescription:@"remote rejection"];
     [engine runScript:@"https://example.com/script.js" completion:^(NSDictionary *result, NSError *error) {
@@ -837,7 +842,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorScriptReadFailed);
         [remoteExpectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     XCTestExpectation *pathExpectation = [self expectationWithDescription:@"missing path"];
     [engine runScript:@"missing.js" completion:^(NSDictionary *result, NSError *error) {
@@ -845,7 +850,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorScriptNotFound);
         [pathExpectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     [engine initWithConfig:@{@"scriptTimeout": @5}];
     XCTestExpectation *networkExpectation = [self expectationWithDescription:@"network policy"];
@@ -854,7 +859,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorNetworkDisabled);
         [networkExpectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     [engine initWithConfig:@{@"maxScriptBytes": @4}];
     XCTestExpectation *sizeExpectation = [self expectationWithDescription:@"size rejection"];
@@ -863,20 +868,27 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorScriptTooLarge);
         [sizeExpectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
-    [engine initWithConfig:@{@"scriptTimeout": @5}];
+    [engine initWithConfig:@{@"scriptTimeout": @60}];
+    XCTestExpectation *started = [self expectationWithDescription:@"cancel run reached native bridge"];
+    [engine registerNativeMethod:@"signalReadyForCancellation" handler:^id(NSArray *args) {
+        [started fulfill]; return @YES;
+    }];
     XCTestExpectation *cancelExpectation = [self expectationWithDescription:@"cancel completion"];
-    [engine runScript:@"auto.sleep(1000);" completion:^(NSDictionary *result, NSError *error) {
+    [engine runScript:@"auto.signalReadyForCancellation(); auto.sleep(30000);" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(result);
         XCTAssertEqual(error.code, AutoSDKErrorScriptCancelled);
         [cancelExpectation fulfill];
     }];
-    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-        [NSThread sleepForTimeInterval:0.05];
-        [engine stopScript];
-    });
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectations:@[started] timeout:30];
+    [engine stopScript];
+    [self waitForExpectations:@[cancelExpectation] timeout:30];
+    XCTestExpectation *nextRun = [self expectationWithDescription:@"next run is not cancelled by old test work"];
+    [engine runScript:@"42;" completion:^(NSDictionary *result, NSError *error) {
+        XCTAssertNil(error); XCTAssertEqualObjects(result[@"value"], @42); [nextRun fulfill];
+    }];
+    [self waitForExpectations:@[nextRun] timeout:30];
 }
 
 - (void)testJavaScriptLabelIsNotTreatedAsAURLScheme {
@@ -888,7 +900,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @42);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testJavaScriptExceptionsReturnErrorsWithoutCrashing {
@@ -901,7 +913,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertTrue([error.localizedDescription containsString:@"boom-marker"]);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testIntervalCanCancelItself {
@@ -914,7 +926,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"][@"count"], @1);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testScriptCannotReplaceInternalTimerDrainOrAccessNativeBridge {
@@ -962,7 +974,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"][@"timer"], @YES);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testConfigurationSnapshotAndInvalidPermissionTypesFailClosed {
@@ -994,7 +1006,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @YES);
         [waitExpectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     XCTestExpectation *attributeExpectation = [self expectationWithDescription:@"invalid attribute"];
     [engine runScript:@"auto.getAttribute({id:'button'}, null);" completion:^(NSDictionary *result, NSError *error) {
@@ -1002,7 +1014,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
         [attributeExpectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testStorageClearRecoversCorruptDataAndEntryLimitIsEnforced {
@@ -1020,7 +1032,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @1);
         [recovered fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     XCTestExpectation *limited = [self expectationWithDescription:@"storage entry limit"];
     script = [NSString stringWithFormat:
@@ -1030,7 +1042,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorStorageFailed);
         [limited fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
     [NSUserDefaults.standardUserDefaults removeObjectForKey:defaultsKey];
 }
 
@@ -1060,7 +1072,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
             [expectation fulfill];
         }];
     });
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testSystemControlCapabilityReflectsConfiguration {
@@ -1081,14 +1093,14 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
         [brightness fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
     XCTestExpectation *clipboard = [self expectationWithDescription:@"clipboard disabled"];
     [engine runScript:@"device.setClipboard('text');" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(result);
         XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
         [clipboard fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     XCTestExpectation *vpn = [self expectationWithDescription:@"VPN control disabled"];
     [engine runScript:@"vpn.connect();" completion:^(NSDictionary *result, NSError *error) {
@@ -1096,7 +1108,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
         [vpn fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     XCTestExpectation *settings = [self expectationWithDescription:@"system settings disabled"];
     [engine runScript:@"system.openSettings('vpn');" completion:^(NSDictionary *result, NSError *error) {
@@ -1104,12 +1116,12 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
         [settings fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testExecSyncPropagatesNestedBridgeFailure {
-    AutoEngine *engine = AutoEngine.sharedEngine;
-    [engine initWithConfig:@{ @"scriptTimeout": @5, @"allowSystemControl": @NO }];
+    AutoEngine *engine = [AutoEngine new];
+    [engine initWithConfig:@{ @"scriptTimeout": @30, @"allowSystemControl": @NO }];
     [engine setAutomationAdapter:[AutoTestAdapter new]];
     XCTestExpectation *expectation = [self expectationWithDescription:@"execSync bridge failure"];
     NSString *script = @"execSync(function(){ return vpn.connect(); });";
@@ -1119,7 +1131,8 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    // This tests error identity, not a 2-second scheduler performance target.
+    [self waitForExpectationsWithTimeout:30 handler:nil];
 }
 
 - (void)testAsyncGetResultPropagatesNestedBridgeFailure {
@@ -1134,7 +1147,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testAsyncJoinPropagatesNestedBridgeFailure {
@@ -1149,7 +1162,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testReliableSystemSwitchStatesAreExposed {
@@ -1170,7 +1183,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
                                                      @"authorization": @"denied" }));
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
     XCTAssertEqual(provider.lowPowerReadCount, 1);
     XCTAssertEqual(provider.locationServicesReadCount, 1);
     XCTAssertEqual(provider.authorizationReadCount, 1);
@@ -1196,7 +1209,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
                                                     @"authorizedAlways", @"authorizedWhenInUse", @"notDetermined"]));
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
     XCTAssertEqual(provider.authorizationReadCount, 6);
 }
 
@@ -1218,7 +1231,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testMediaSaveRejectsInvalidInputsBeforePhotoAccess {
@@ -1231,14 +1244,14 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
         [emptyPath fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
     XCTestExpectation *invalidBase64 = [self expectationWithDescription:@"media invalid base64"];
     [engine runScript:@"media.saveImageBase64('not-base64!');" completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(result);
         XCTAssertEqual(error.code, AutoSDKErrorFileOperationFailed);
         [invalidBase64 fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testOpenURLRejectsUnsafeSchemes {
@@ -1251,7 +1264,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorInvalidConfiguration);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testOpenURLHTTPSchemeReturnsSystemResult {
@@ -1265,7 +1278,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
                       @"https URLs must pass the scheme check and reach the system");
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testSystemAppActionsRequireAdapterSupport {
@@ -1278,7 +1291,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqual(error.code, AutoSDKErrorAutomationUnavailable);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testBuiltInToastFallbackAndHostOverride {
@@ -1291,7 +1304,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @YES);
         [fallback fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 
     [engine registerNativeMethod:@"toast" handler:^id(NSArray *args) { return @42; }];
     XCTestExpectation *override = [self expectationWithDescription:@"host toast override"];
@@ -1300,7 +1313,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @42);
         [override fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testDeviceMemoryInfoIsExposed {
@@ -1312,7 +1325,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertTrue([result[@"value"][@"totalBytes"] unsignedLongLongValue] > 0);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testFileWriteLinesMoveAndRename {
@@ -1336,7 +1349,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"][@"renamed"], @YES);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testDeviceInfoRemainsAvailableWhenSystemControlIsDisabled {
@@ -1349,7 +1362,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertTrue([result[@"value"] length] > 0);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testDeviceIPAddressIsExposed {
@@ -1362,7 +1375,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
                       @"getIPAddress must return a string, null or NSNull");
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testNotifyNativeMethodIsExposed {
@@ -1374,7 +1387,7 @@ static UIImage *AutoTestRGBAImage(NSUInteger width, NSUInteger height, const uin
         XCTAssertEqualObjects(result[@"value"], @YES);
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:2 handler:nil];
+    [self waitForExpectationsWithTimeout:AutoTestCompletionTimeout handler:nil];
 }
 
 - (void)testImageCompressWritesJPEG {

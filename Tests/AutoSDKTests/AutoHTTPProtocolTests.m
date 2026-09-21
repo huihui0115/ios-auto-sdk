@@ -309,13 +309,22 @@ static dispatch_block_t AutoTestSlowScriptStarted;
 - (void)testHTTPTimeoutIsEnforced {
     XCTestExpectation *expectation = [self expectationWithDescription:@"http timeout"];
     [self runScript:@"auto.http.get('http://autosdk.test/slow',{timeout:100});"
-         withConfig:@{@"allowNetwork": @YES, @"scriptTimeout": @5}
+         withConfig:@{@"allowNetwork": @YES, @"scriptTimeout": @30}
          completion:^(NSDictionary *result, NSError *error) {
         XCTAssertNil(result);
         XCTAssertEqual(error.code, AutoSDKErrorNetworkFailed);
+        XCTAssertEqualObjects(error.domain, AutoSDKErrorDomain);
+        NSError *underlying = error.userInfo[NSUnderlyingErrorKey];
+        if (underlying) {
+            XCTAssertEqualObjects(underlying.domain, NSURLErrorDomain);
+            XCTAssertEqual(underlying.code, NSURLErrorTimedOut);
+        } else {
+            XCTAssertEqualObjects(error.localizedDescription, @"HTTP request timed out.");
+        }
         [expectation fulfill];
     }];
-    [self waitForExpectationsWithTimeout:5 handler:nil];
+    // Keep the actual HTTP budget at 100 ms; allow scheduling/callback delivery on a slow CI host.
+    [self waitForExpectationsWithTimeout:30 handler:nil];
 }
 
 - (void)testHTTPJSONBodyIsSentWithContentType {

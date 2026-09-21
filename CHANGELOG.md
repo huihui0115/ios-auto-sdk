@@ -6,6 +6,24 @@ All notable changes to AutoSDK are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.41.1] - 2026-09-21
+
+### Added
+
+- Native regression proving the next script survives after cancellation of a prior run.
+
+### Fixed
+
+- Isolated cancellation and nested-worker error tests from the shared engine. The
+  cancellation trigger now waits for an actual native callback instead of sleeping
+  on a utility queue that could later stop an unrelated test's run.
+- Functional XCTest completion waits no longer impose a two-second simulator
+  scheduling benchmark. The HTTP timeout test retains its 100 ms request budget,
+  validates timeout error identity and gives callback delivery a separate 30 s wait.
+- Preserved the failed v1.41.0 tag: its main build passed all 122 native tests, but
+  the tag runner exposed old timing/isolation defects. No production runtime or
+  plugin behavior changes in this patch; release only after fresh CI verification.
+
 ## [1.41.0] - 2026-09-21
 
 ### Added

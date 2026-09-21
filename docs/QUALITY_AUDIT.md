@@ -1,6 +1,6 @@
 # 整体代码与易用性审计
 
-Round 73–78 · 2026-09-21 · SDK v1.41.0 / VS Code 0.15.0
+Round 73–78 · 2026-09-21 · SDK v1.41.1 / VS Code 0.15.0
 
 ## Round 78：一键状态检查与可信采集
 
@@ -10,6 +10,7 @@ Round 73–78 · 2026-09-21 · SDK v1.41.0 / VS Code 0.15.0
 - 修复仅用节点数量判断完整性的缺陷：内置逐次输出实际预算与深度/访问/结果限制；旧适配器显示未知，导出保留元数据。
 - 本地测试：SDK/工具 88 项、插件 163 项；新增 11 项原生回归（共 122 项，运行结果以本轮 CI 为准）。浏览器预览是模拟设备，不是 Extension Host 或 iPhone 7 验收。
 - 最新系统后台方案不等于 iPhone 7 可用的永久后台权限；不添加伪用途后台模式，不自动续跑动作。仍需 iPhone 7 签名、长测和后台真机验收。
+- v1.41.0 主线完整通过，但标签 CI 暴露旧测试的迟到取消污染与 2/5 秒完成等待问题；新增 11 项均通过。v1.41.1 隔离相关引擎，以原生回调代替 utility sleep 触发取消，并验证下一轮不被误停；HTTP 保持 100ms 超时并检查错误身份，只扩大测试完成等待。失败标签未覆盖，最终以补丁 CI 结果为准。
 
 官方资料（2026-09-21 查阅）：[AScript 本地连接](https://www.ascript.cn/ai-coding/local/)、
 [Appium Inspector 截图面板](https://appium.github.io/appium-inspector/latest/session-inspector/screenshot/)、
